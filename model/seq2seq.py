@@ -28,7 +28,10 @@ class CharDecoder(nn.Module):
         self.seq_decoder = nn.RNN(input_size=input_dim, hidden_size= hidden_size_decoder,
                                   num_layers=1, nonlinearity='relu',
                                   bias=True, batch_first=True, bidirectional=False)
-
+    def forward_step(self, output_seq, hidden):
+        char_vecs = self.char_embedding_decoder(output_seq)
+        output, h_n = self.seq_decoder(char_vecs, hidden)
+        return h_n
     def forward(self, output, conditioning):
         char_vecs = self.char_embedding_decoder(output)
         # conditioning is the output of the encoder (work as the first initial state of the decoder)
@@ -68,13 +71,6 @@ class LexNormalizer(nn.Module):
         output = self.forward(input_seq, output_seq)
         loss = nn.LogSoftmax()(output)
         return loss
-
-
-# TODO
-## - confirm dimensions output
-## - compute the softmax --> along the sequence ??
-## -- deal with padding
-
 
 
 
