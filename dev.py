@@ -1,49 +1,37 @@
-from model.seq2seq import LexNormalizer
+from model.seq2seq import LexNormalizer, Generator
 import torch.nn as nn
 import torch
 from torch.autograd import Variable
-
 import numpy as np
 import pdb
-import
+import time
 
-pdb.set_trace = lambda: 1
+#pdb.set_trace = lambda: 1
 
-data_in = torch.LongTensor([[1., 2., 4., 0]])
-data_out = torch.LongTensor([[1, 0, 0, 0]])
+data_in = torch.LongTensor([[1., 2., 4., 0],[2., 5., 1., 0]])
+data_out = torch.LongTensor([[1, 0, 0, 0],[5, 1, 2, 0]])
 
-model = LexNormalizer()
-forward = model.forward(input_seq=data_in, output_seq=data_out)
-pdb.set_trace()
+# DEFINE MODEL
+model = LexNormalizer(generator=Generator, char_embedding_dim=5, hidden_size_encoder=11, hidden_size_decoder=11, verbose=0)
+#forward = model.forward(input_seq=data_in, output_seq=data_out, input_mask=None, output_mask=None)
+#pdb.set_trace()
+#print(forward)
+#pdb.set_trace()
+#print(loss.size(), loss)
 
-print(forward)
-loss = model.loss(input_seq=data_in, output_seq=data_out)
-pdb.set_trace()
-print(loss.size(), loss)
-
-
-class MaskBatch(object):
-    def __init__(self, input_seq, output_seq):
-        self.input_seq = input_seq
-        self.output_seq = output_seq
-        self.output_seq_x = output_seq[:, :-1]
-        self.output_seq_y = output_seq[:, 1:]
-        self.output_mask = self.make_mask(self.output_seq)
-    @staticmethod
-    def make_mask(output_seq, padding):
-        "create a mask to hide paddding and future work"
-        mask = (output_seq!=padding).unsqueeze(-2)
-        pdb.set_trace()
-        mask = mask & Variable()
-
-        return mask
+# ---------------------------------------------------------------------- #
 
 
-def train():
-    model.zero_grad()
-    loss = 0
-    pass
-    #for char_i in range(input_lenght):
+#  THEN run_epoch()
+# generate x, y sequences
+# do forward pass using model.forward() to get prediction
+# LossCompute takes the model.generator, the CE model --> output the CE
+# do loss_compute(prediction, y sequences, LossCompute)
+
+# TODO :
+# add real_data io : link to characters
+# then build code to play with the model (write a noisy code --> gives you the prediction)
+# plug tensorboard
 
 
 
