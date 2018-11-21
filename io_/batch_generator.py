@@ -4,7 +4,6 @@ import numpy as np
 import pdb
 import matplotlib.pyplot as plt
 
-
 def subsequent_mask(size):
     "Mask out subsequent positions."
     attn_shape = (1, size, size)
@@ -26,7 +25,6 @@ class MaskBatch(object):
             self.output_seq_y = output_seq[:, 1:]
             self.output_mask = self.make_mask(self.output_seq_x, pad)
             self.ntokens = (self.output_seq_y != pad).data.sum()
-
 
     @staticmethod
     def make_mask(output_seq, padding):

@@ -31,7 +31,7 @@ class CharDecoder(nn.Module):
     def __init__(self, char_embedding, input_dim, hidden_size_decoder, verbose=0):
         super(CharDecoder, self).__init__()
         self.char_embedding_decoder = char_embedding
-        self.seq_decoder = nn.RNN(input_size=input_dim, hidden_size= hidden_size_decoder,
+        self.seq_decoder = nn.RNN(input_size=input_dim, hidden_size=hidden_size_decoder,
                                   num_layers=1, nonlinearity='relu',
                                   bias=True, batch_first=True, bidirectional=False)
         self.verbose = verbose
@@ -62,9 +62,8 @@ class CharDecoder(nn.Module):
 
 class LexNormalizer(nn.Module):
 
-    def __init__(self, generator, char_embedding_dim, hidden_size_encoder, hidden_size_decoder, verbose=0):
+    def __init__(self, generator, char_embedding_dim, hidden_size_encoder, hidden_size_decoder,voc_size, verbose=0):
         super(LexNormalizer, self).__init__()
-        voc_size = 9
         # 1 share character embedding layer
         assert hidden_size_decoder == hidden_size_encoder, "Warning : For now {} should equal {} because pf the " \
                                                            "init hidden state (cf. TODO for more flexibility )".format(hidden_size_encoder, hidden_size_decoder)
@@ -77,7 +76,7 @@ class LexNormalizer(nn.Module):
         #self.output_predictor = nn.Linear(in_features=hidden_size_decoder, out_features=voc_size)
 
     def forward(self, input_seq, output_seq, input_mask, output_mask):
-        # [batch, seq_len] , batch of sequences of indexes (that corresponds to character 1-hot encoded)
+        # [batch, seq_len ] , batch of sequences of indexes (that corresponds to character 1-hot encoded)
         #char_vecs_input = self.char_embedding(input_seq)
         # [batch, seq_len, input_dim] n batch of sequences of embedded character
 
