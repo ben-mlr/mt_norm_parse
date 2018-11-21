@@ -16,9 +16,8 @@ def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
                                                xpos_dictionary, type_dictionary,
                                                use_gpu=0, symbolic_root=True, dry_run=0, lattice=False)
 
-    _, char, _, _, _, _, _, _, _ = conllu_data.get_batch_variable(data,batch_size=batch_size, unk_replace=0) # word, char, pos, xpos, heads, types, masks, lengths, morph
-
     for _ in tqdm(range(1, nbatch)):
+        _, char, _, _, _, _, _, _, _ = conllu_data.get_batch_variable(data,batch_size=batch_size, unk_replace=0) # word, char, pos, xpos, heads, types, masks, lengths, morph
         for word_ind in range(char.size(1)):
             yield MaskBatch(char[:, word_ind, :], char[:, word_ind, :])
 

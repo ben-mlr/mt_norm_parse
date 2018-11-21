@@ -50,15 +50,8 @@ run_epoch(batchIter, model, LossCompute(model.generator))
 
 
 
-# TODO
-##confirm dimensions output
-##TODO2 Design test masking :
-##-- : for test : you can try with padding sequences (should I pad with zeros : yes) : print the mask along forward pass to see (with various batch , seq len ...)
-##-- : both input and output
-## come up with a test to make sure the seq output never see the target !
-## + a test on the softmax score !
 # TODO :
-# add real_data io : link to characters
+# HANDLE MASKING in the input and output : within RNN then SOFTMAX (what else ?) same for encoder and decoder !!
 # then build code to play with the model (write a noisy code --> gives you the prediction)
 # plug tensorboard
 from torchtext import datasets, data
