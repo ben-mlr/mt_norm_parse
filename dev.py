@@ -22,24 +22,25 @@ train_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/
 dev_pat = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/owoputi.integrated"
 test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
 
-word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary = conllu_data.create_dict(dict_path=dict_path,
-                                                                                                             train_path=train_path,
-                                                                                                             dev_path=dev_pat,
-                                                                                                             test_path=test_path,
-                                                                                                             word_embed_dict={},
-                                                                                                             dry_run=False,
-                                                                                                             vocab_trim=True)
+word_dictionary, char_dictionary, pos_dictionary, \
+xpos_dictionary, type_dictionary = conllu_data.create_dict(dict_path=dict_path,
+                                                           train_path=train_path,
+                                                           dev_path=dev_pat,
+                                                           test_path=test_path,
+                                                           word_embed_dict={},
+                                                           dry_run=False,
+                                                           vocab_trim=True)
 print("char_dictionary", char_dictionary.instance2index)
 V = len(char_dictionary.instance2index)
 print("Character vocabulary is {} length".format(V))
 #data_train = conllu_data.read_data_to_variable(test_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary,    use_gpu=0, symbolic_root=True, dry_run=0, lattice=False)
 #word, char, pos, xpos, heads, types, masks, lengths, morph = conllu_data.get_batch_variable(data_train,batch_size= 1, unk_replace=0)
 #print("-->", char.size(), word.size(), char)
-model = LexNormalizer(generator=Generator, char_embedding_dim=5, voc_size=V, hidden_size_encoder=11, hidden_size_decoder=11, verbose=0)
+model = LexNormalizer(generator=Generator, char_embedding_dim=5, voc_size=V, hidden_size_encoder=11, hidden_size_decoder=11, verbose=2)
 #batch = MaskBatch(input_seq=char[:, 1,:],output_seq=char[:, 1, :], pad=1)
 
 
-batchIter = data_gen_conllu(test_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary, batch_size=10, nbatch=100)
+batchIter = data_gen_conllu(test_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary, batch_size=2, nbatch=5)
 run_epoch(batchIter, model, LossCompute(model.generator))
 
 

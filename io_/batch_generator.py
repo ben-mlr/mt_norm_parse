@@ -16,15 +16,31 @@ class MaskBatch(object):
         # input mask
         self.input_seq = input_seq
         self.input_seq_mask = (input_seq != pad).unsqueeze(-2)
+        self.input_seq_len = torch.argmin(self.input_seq_mask, dim=2)#-1
+        #self.input_seq_le = torch.argmin(self.input_seq_mask, dim=2)-1
+        #print("DEBUG ", self.input_seq_len)
+        #print("DEBUG<-->", (self.input_seq_len > -1).all() == 1)
+        #assert (self.input_seq_len > -1).all() == 1, "ERROR : self.input_seq_len {} corrupted".format(self.input_seq_len)
+        #if not (self.input_seq_len > -1).all() == 1:
+        #    print("ERROR : self.input_seq_len {} corrupted".format(self.input_seq_len))
         #pdb.set_trace()
         # output mask
         self.output_seq = output_seq
         #pdb.set_trace()
         if output_seq is not None:
             self.output_seq_x = output_seq[:, :-1]
+            #
+            _output_mask_x = (self.output_seq_x != pad).unsqueeze(-2)
+            self.output_seq_len = torch.argmin(_output_mask_x, dim=2)#-1
+
             self.output_seq_y = output_seq[:, 1:]
             self.output_mask = self.make_mask(self.output_seq_x, pad)
             self.ntokens = (self.output_seq_y != pad).data.sum()
+            #self.output_seq_len = torch.argmin(self.output_mask, dim=2)#-1
+            #print("OUTPUT MASK", self.output_mask, self.output_mask.size())
+            print("self.output_seq_len ", self.output_seq_len, self.output_seq_len.size())
+
+
 
     @staticmethod
     def make_mask(output_seq, padding):

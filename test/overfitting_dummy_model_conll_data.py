@@ -18,9 +18,9 @@ if __name__=="__main__":
 
     loss_training = []
     verbose = 0
-    epochs = 5
-    batch_size = 10
-    nbatch = 100
+    epochs = 20
+    batch_size = 20
+    nbatch = 50
     lr = 0.001
     word_dictionary, char_dictionary, pos_dictionary, \
             xpos_dictionary, type_dictionary = \
@@ -33,19 +33,18 @@ if __name__=="__main__":
                                         vocab_trim=True)
 
     print("char_dictionary", char_dictionary.instance2index)
-    V = len(char_dictionary.instance2index)
+    V = len(char_dictionary.instance2index)+1
     print("Character vocabulary is {} length".format(V))
-    model = LexNormalizer(generator=Generator, char_embedding_dim=5, voc_size=V, hidden_size_encoder=11,
-                          hidden_size_decoder=11, verbose=0)
+    model = LexNormalizer(generator=Generator, char_embedding_dim=20, voc_size=V, hidden_size_encoder=50,
+                          hidden_size_decoder=50, verbose=verbose)
     adam = torch.optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.98), eps=1e-9)
 
-    for _ in range(epochs):
-
+    for epoch in range(epochs):
         model.train()
         batchIter = data_gen_conllu(test_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
                                     type_dictionary, batch_size=batch_size, nbatch=nbatch)
 
-        run_epoch(batchIter, model, LossCompute(model.generator, opt=adam), verbose=verbose)
+        run_epoch(batchIter, model, LossCompute(model.generator, opt=adam), verbose=verbose, n_epoch=epoch)
 
         model.eval()
         batchIter_eval = data_gen_conllu(test_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
@@ -55,4 +54,5 @@ if __name__=="__main__":
         if verbose >= 1:
             print("Final Loss {} ".format(loss))
 
-    simple_plot(final_loss=loss, loss_ls=loss_training, epochs=epochs, save=False, lr = lr, prefix="test-overfit_conll_dummy")
+    simple_plot(final_loss=loss, loss_ls=loss_training, epochs=epochs, save=False,
+                lr=lr, prefix="test-LARGER-overfit_conll_dummy")

@@ -5,19 +5,6 @@ from model.seq2seq import Generator
 import matplotlib.pyplot as plt
 import numpy as np
 
-# NO NEED ?
-
-class TargetMatching(nn.Module):
-    "Implement label smoothing."
-    def __init__(self, size, padding_idx, smoothing=0.0):
-        super(TargetMatching, self).__init__()
-        pass
-
-    def forward(self, x, target):
-        assert x.size(1) == self.size
-        #return self.criterion(x, Variable(true_dist, requires_grad=False))
-
-
 
 class LossCompute:
     def __init__(self, generator, opt=None, verbose=0):
@@ -27,20 +14,20 @@ class LossCompute:
         self.verbose = verbose
 
     def __call__(self, x, y):
-        if self.verbose>=2:
+        if self.verbose >= 2:
             print("LOSS decoding states ", x.size())
         x = self.generator(x)
-        if self.verbose>=2:
+        if self.verbose >= 2:
             print("LOSS input y candidate scores ", x.size())
             print("LOSS input y observations ", y.size())
         reshaped_x = x.contiguous().view(-1, x.size(-1))
         reshaped_y = y.contiguous().view(-1)
-        if self.verbose>=2:
+        if self.verbose >= 2:
             print("RESHAPED : x candidate ", reshaped_x.size())
             print("RESHAPED : y ", reshaped_y.size())
         loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)),
                                   y.contiguous().view(-1))
-        if self.verbose>=2:
+        if self.verbose >= 2:
             print("LOSS loss {} loss {}".format(loss.size(), loss))
         # define loss_distance as --> Cross-entropy
         loss.backward()
