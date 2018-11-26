@@ -4,7 +4,8 @@ import torch
 from model.seq2seq import Generator
 import matplotlib.pyplot as plt
 import numpy as np
-
+import pdb
+from io_.info_print import printing
 
 class LossCompute:
     def __init__(self, generator, opt=None, verbose=0):
@@ -14,27 +15,17 @@ class LossCompute:
         self.verbose = verbose
 
     def __call__(self, x, y):
-        if self.verbose >= 2:
-            print("LOSS decoding states ", x.size())
+
+        printing("LOSS decoding states {} ".format(x.size()), self.verbose, verbose_level=3)
         x = self.generator(x)
-        if self.verbose >= 2:
-            print("LOSS input y candidate scores ", x.size())
-            print("LOSS input y observations ", y.size())
-        reshaped_x = x.contiguous().view(-1, x.size(-1))
-        reshaped_y = y.contiguous().view(-1)
-        if self.verbose >= 2:
-            print("RESHAPED : x candidate ", reshaped_x.size())
-            print("RESHAPED : y ", reshaped_y.size())
-        loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)),
-                                  y.contiguous().view(-1))
-        if self.verbose >= 2:
-            print("LOSS loss {} loss {}".format(loss.size(), loss))
+        printing("LOSS input y candidate scores {} ".format(x.size()), self.verbose, verbose_level=3)
+        printing("LOSS input y observations {} ".format(y.size()), self.verbose, verbose_level=3)
+        loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1))
+        printing("LOSS loss size {}".format(loss.size()), verbose=self.verbose, verbose_level=3)
         # define loss_distance as --> Cross-entropy
         loss.backward()
-
         if self.opt is not None:
-            if self.verbose>=2:
-                print("Optimizing")
+            printing("Optimizing", self.verbose, verbose_level=3)
             self.opt.step()
             self.opt.zero_grad()
         return loss

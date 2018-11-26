@@ -3,7 +3,8 @@ import torch
 import numpy as np
 import pdb
 import matplotlib.pyplot as plt
-
+from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
+from io_.info_print import printing
 def subsequent_mask(size):
     "Mask out subsequent positions."
     attn_shape = (1, size, size)
@@ -12,44 +13,37 @@ def subsequent_mask(size):
 
 
 class MaskBatch(object):
-    def __init__(self, input_seq, output_seq, pad=0):
+    def __init__(self, input_seq, output_seq, pad=0, verbose=0):
         # input mask
         self.input_seq = input_seq
         self.input_seq_mask = (input_seq != pad).unsqueeze(-2)
-        self.input_seq_len = torch.argmin(self.input_seq_mask, dim=2)#-1
-        #self.input_seq_le = torch.argmin(self.input_seq_mask, dim=2)-1
-        #print("DEBUG ", self.input_seq_len)
-        #print("DEBUG<-->", (self.input_seq_len > -1).all() == 1)
-        #assert (self.input_seq_len > -1).all() == 1, "ERROR : self.input_seq_len {} corrupted".format(self.input_seq_len)
-        #if not (self.input_seq_len > -1).all() == 1:
-        #    print("ERROR : self.input_seq_len {} corrupted".format(self.input_seq_len))
-        #pdb.set_trace()
-        # output mask
+        self.input_seq_len = torch.argmin(self.input_seq_mask, dim=2)
+        printing("BATCH : SOURCE true dim {} ".format(self.input_seq.size()),verbose, verbose_level=3)
+
         self.output_seq = output_seq
-        #pdb.set_trace()
         if output_seq is not None:
             self.output_seq_x = output_seq[:, :-1]
-            #
-            _output_mask_x = (self.output_seq_x != pad).unsqueeze(-2)
-            self.output_seq_len = torch.argmin(_output_mask_x, dim=2)#-1
 
+            _output_mask_x = (self.output_seq_x != pad).unsqueeze(-2)
+            #print(_output_mask_x.sum(dim=2))
+            #print(_output_mask_x.sum().data, _output_mask_x.size(2)*torch.Tensor.new_ones(size=),_output_mask_x.sum() == _output_mask_x.size(2))
+            self.output_seq_len = torch.argmin(_output_mask_x, dim=2) #if not bool(_output_mask_x.sum().data == _output_mask_x.size(0)*_output_mask_x.size(2)) else
             self.output_seq_y = output_seq[:, 1:]
             self.output_mask = self.make_mask(self.output_seq_x, pad)
             self.ntokens = (self.output_seq_y != pad).data.sum()
-            #self.output_seq_len = torch.argmin(self.output_mask, dim=2)#-1
-            #print("OUTPUT MASK", self.output_mask, self.output_mask.size())
-            print("self.output_seq_len ", self.output_seq_len, self.output_seq_len.size())
+            output_seq_len, perm_idx = self.output_seq_len.squeeze().sort(0, descending=True)
 
+            self.output_seq_y = self.output_seq_y[perm_idx, :]
+            self.output_seq_y = pack_padded_sequence(self.output_seq_y, output_seq_len.squeeze().cpu().numpy(), batch_first=True)
 
+            self.output_seq_y, lenghts = pad_packed_sequence(self.output_seq_y, batch_first=True)
+            printing("BATCH : TARGET true dim {} ".format(self.output_seq_y.size()),verbose, verbose_level=3)
 
     @staticmethod
     def make_mask(output_seq, padding):
         "create a mask to hide paddding and future work"
         mask = (output_seq != padding).unsqueeze(-2)
-        #pdb.set_trace()
-        #pdb.set_trace()
         mask = mask & Variable(subsequent_mask(output_seq.size(-1)).type_as(mask.data))
-        #pdb.set_trace()
         return mask
 
 

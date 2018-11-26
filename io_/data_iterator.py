@@ -7,37 +7,46 @@ import sys
 from tqdm import tqdm
 sys.path.insert(0,"/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/ELMoLex_sosweet/")
 from dat import conllu_data
-
+from io_.info_print import printing, print_char_seq, disable_tqdm_level
 
 def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
                     xpos_dictionary, type_dictionary, batch_size, nbatch,
-                    padding=1):
+                    padding=1, print_raw=False, verbose=0):
 
     data = conllu_data.read_data_to_variable(data_path, word_dictionary, char_dictionary, pos_dictionary,
                                              xpos_dictionary, type_dictionary,
                                              use_gpu=0, symbolic_root=True, dry_run=0, lattice=False)
-    ind = 0
-    for _ in tqdm(range(1, nbatch+1)):
-        ind+=1
-        _, char, _, _, _, _, _, lenght, _ = conllu_data.get_batch_variable(data, batch_size=batch_size, unk_replace=0) # word, char, pos, xpos, heads, types, masks, lengths, morph
-        print(" LENGTH : lenght.data[0] " , lenght.data)
-        #if min(lenght.data):
-        print("-->MIN ", min(lenght.data))
+    for ibatch in tqdm(range(1, nbatch+1)):
+        # word, char, pos, xpos, heads, types, masks, lengths, morph
+        printing("Data : getting {} out of {} batches".format(ibatch, nbatch+1), verbose, verbose_level=2)
+        _, char, _, _, _, _, _, lenght, _ = conllu_data.get_batch_variable(data, batch_size=batch_size, unk_replace=0)
         assert min(lenght.data)>0, "ERROR : min(lenght.data) is {} ".format(min(lenght.data))
-        if ind==1:
-            continue
-        for word_ind in range(min(lenght.data)):#-batch_size):
-            print("--> ", word_ind)
-            #for word_ind in range(char.size(1)):
+        print_char_seq(active=print_raw, char_array=char, sent_len=min(lenght.data), word_len=char.size(2),
+                       nbatch=batch_size, dic=char_dictionary)
+        for word_ind in range(min(lenght.data)):
             # we don't pass empty words ! to the word level seq2seq
-            yield MaskBatch(char[:, word_ind, :], char[:, word_ind, :], pad=padding)
+            ## TODO : replace that !!
+            char[:, word_ind, -2] = 1
+            char[:, word_ind, -1] = 1
+            try:
+                yield MaskBatch(char[:, word_ind, :], char[:, word_ind, :], pad=padding, verbose=verbose)
+            except Exception as e:
+                print("ERROR : {} happened on char {} ".format(e, char))
+                #pdb.set_trace()
+                continue
 
 
-def data_gen_dummy(V, batch, nbatches,seq_len=10):
+
+def data_gen_dummy(V, batch, nbatches,seq_len=10,
+                   verbose=0):
     "Generate random data for a src-tgt copy task."
-    for i in range(nbatches):
-        data = torch.from_numpy(np.random.randint(2, V, size=(batch, seq_len)))
-        data[:, 0] = 1
+    for i in tqdm(range(nbatches), disable=disable_tqdm_level(verbose, verbose_level=2)):
+        data = torch.from_numpy(np.random.randint(low=2,high=V, size=(batch, seq_len)))
+        data[:, 0] = 2
+        # we force padding in the dummy model
+        data[:,-1] = 1
+        data[:,-2] = 1
+        printing("DATA dummy {} ".format(data), verbose=verbose, verbose_level=5)
         src = Variable(data, requires_grad=False)
         tgt = Variable(data, requires_grad=False)
         yield MaskBatch(src, tgt, pad=1)

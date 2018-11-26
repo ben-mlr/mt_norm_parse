@@ -6,7 +6,9 @@ from training.train import run_epoch
 from io_.data_iterator import data_gen_dummy
 from model.loss import LossCompute
 import matplotlib.pyplot as plt
-
+from tracking.plot_loss import simple_plot
+from tqdm import tqdm
+from io_.info_print import disable_tqdm_level
 
 # hyperparameters
 V = 5
@@ -15,29 +17,25 @@ model = LexNormalizer(generator=Generator, char_embedding_dim=5, hidden_size_enc
 # optimizer
 adam = torch.optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.98), eps=1e-9)
 
-
+verbose = 0
 # reporting
 training_loss = []
-
-verbose = 1
-EPOCHS = 5000
+nbatches = 50
+EPOCHS = 100
 seq_len = 10
 generalize_extra = 5
 if __name__ == "__main__":
 
-    for epoch in range(EPOCHS):
+    for epoch in tqdm(range(EPOCHS),disable_tqdm_level(verbose=verbose, verbose_level=0)):
         model.train()
-        run_epoch(data_gen_dummy(V=V, batch=1, nbatches=1, seq_len=seq_len), model, LossCompute(model.generator, opt=adam), verbose=4)
+        run_epoch(data_gen_dummy(V=V, batch=2, nbatches=nbatches, seq_len=seq_len, verbose=verbose),
+                  model, LossCompute(model.generator, opt=adam, verbose=verbose), verbose=verbose, i_epoch=epoch, n_epochs=EPOCHS, n_batches=nbatches)
         model.eval()
-        loss = run_epoch(data_gen_dummy(V, batch=10, nbatches=10,seq_len=seq_len+generalize_extra), model, LossCompute(model.generator))
+        loss = run_epoch(data_gen_dummy(V, batch=2, nbatches=10, seq_len=seq_len+generalize_extra), model, LossCompute(model.generator))
         training_loss.append(loss)
-        if verbose>=1:
+        if verbose >= 1:
             print("Final Loss {} ".format(loss))
 
-    plt.title("Training Loss with {} lr".format(lr))
-    plt.xlabel("epoch")
-    plt.plot(training_loss)
-    dir_fig = os.path.join(os.path.dirname(os.path.realpath(__file__)),"test_logs","test-{}ep-{}V-{}lr-{}seq-{}gener.png".format(EPOCHS, V, lr, seq_len, generalize_extra))
-    plt.savefig(dir_fig )
-    print("Loss of the test saved to {} ".format(dir_fig))
-    plt.show()
+
+    simple_plot(final_loss=loss, loss_ls=training_loss, save=True,show=True,epochs=EPOCHS, seq_len=seq_len, V=V,
+                lr=lr, prefix="**test-dummy-fake_data.png")
