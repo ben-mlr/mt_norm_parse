@@ -41,10 +41,10 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
             tokens += batch.ntokens.type(torch.FloatTensor)
             elapsed = torch.from_numpy(np.array(time.time() - start)).float()
             start = time.time() if verbose>=2 else start
-            printing("Epoch {} Step: {}  Loss: {}  Tokens per Sec: {}  ".format(n_epochs, i, loss / batch.ntokens.type(torch.FloatTensor), tokens / elapsed), verbose=verbose, verbose_level=2)
-            tokens = 0 if verbose>=2 else tokens
+            printing("Epoch {} Step: {}  Loss: {}  Tokens per Sec: {}  ".format(i_epoch, i, loss / batch.ntokens.type(torch.FloatTensor), tokens / elapsed), verbose=verbose, verbose_level=2)
+            tokens = 0 if verbose >= 2 else tokens
             if i % log_every_x_batch == 1 and verbose == 1:
-                print("Epoch {} Step: {}  Loss: {}  Tokens per Sec: {}  ".format(n_epochs, i, loss / batch.ntokens.type(torch.FloatTensor), tokens / elapsed))
+                print("Epoch {} Step: {}  Loss: {}  Tokens per Sec: {}  ".format(i_epoch, i, loss / batch.ntokens.type(torch.FloatTensor), tokens / elapsed))
                 start = time.time()
                 tokens = 0
         else:

@@ -20,8 +20,8 @@ if __name__ == "__main__":
 
     loss_training = []
     verbose = 1
-    epochs = 100
-    batch_size = 20
+    epochs = 10
+    batch_size = 50
     nbatch = 50
     lr = 0.001
     word_dictionary, char_dictionary, pos_dictionary,\
@@ -43,20 +43,23 @@ if __name__ == "__main__":
 
     for epoch in tqdm(range(epochs),disable_tqdm_level(verbose=verbose, verbose_level=0)):
 
-        printing("Starting new epoch", verbose=verbose, verbose_level=1)
+        printing("Starting new epoch {} ".format(epoch), verbose=verbose, verbose_level=1)
         model.train()
         batchIter = data_gen_conllu(test_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
                                     type_dictionary, batch_size=batch_size, nbatch=nbatch, verbose=verbose)
 
         run_epoch(batchIter, model, LossCompute(model.generator, opt=adam), verbose=verbose, i_epoch=epoch, n_epochs=epochs,
-                  log_every_x_batch=25)
+                  log_every_x_batch=100)
 
         model.eval()
         batchIter_eval = data_gen_conllu(test_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
-                                         type_dictionary, batch_size=batch_size, nbatch=nbatch, verbose=verbose)
+                                         type_dictionary, batch_size=batch_size,
+                                         nbatch=nbatch, verbose=verbose)
         print("Startint evaluation ")
-        loss = run_epoch(batchIter_eval, model, LossCompute(model.generator, verbose=verbose), verbose=verbose,
-                         log_every_x_batch=25)
+        loss = run_epoch(batchIter_eval, model, LossCompute(model.generator, verbose=verbose),
+                         i_epoch=epoch, n_epochs=epochs,
+                         verbose=verbose,
+                         log_every_x_batch=100)
 
         loss_training.append(loss)
 
