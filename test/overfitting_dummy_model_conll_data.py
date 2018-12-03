@@ -14,16 +14,18 @@ dict_path = "../dictionaries/"
 train_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/en-ud-train.conllu"
 dev_pat = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/owoputi.integrated"
 test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
+test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo"
 
 
 if __name__ == "__main__":
 
     loss_training = []
-    verbose = 1
-    epochs = 10
-    batch_size = 50
-    nbatch = 50
+    verbose = 6
+    epochs = 1
+    batch_size = 2
+    nbatch = 2
     lr = 0.001
+    add_start_char = 1
     word_dictionary, char_dictionary, pos_dictionary,\
     xpos_dictionary, type_dictionary = \
             conllu_data.create_dict(dict_path=dict_path,
@@ -32,7 +34,7 @@ if __name__ == "__main__":
                                     test_path=test_path,
                                     word_embed_dict={},
                                     dry_run=False,
-                                    vocab_trim=True)
+                                    vocab_trim=True, add_start_char=add_start_char)
 
     printing("char_dictionary".format(char_dictionary.instance2index), verbose=verbose, verbose_level=0)
     V = len(char_dictionary.instance2index)+1
@@ -46,7 +48,8 @@ if __name__ == "__main__":
         printing("Starting new epoch {} ".format(epoch), verbose=verbose, verbose_level=1)
         model.train()
         batchIter = data_gen_conllu(test_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
-                                    type_dictionary, batch_size=batch_size, nbatch=nbatch, verbose=verbose)
+                                    type_dictionary, add_start_char=add_start_char, batch_size=batch_size,
+                                    nbatch=nbatch, verbose=verbose)
 
         run_epoch(batchIter, model, LossCompute(model.generator, opt=adam), verbose=verbose, i_epoch=epoch, n_epochs=epochs,
                   log_every_x_batch=100)
@@ -56,10 +59,13 @@ if __name__ == "__main__":
                                          type_dictionary, batch_size=batch_size,
                                          nbatch=nbatch, verbose=verbose)
         print("Startint evaluation ")
-        loss = run_epoch(batchIter_eval, model, LossCompute(model.generator, verbose=verbose),
+        try:
+            loss = run_epoch(batchIter_eval, model, LossCompute(model.generator, verbose=verbose),
                          i_epoch=epoch, n_epochs=epochs,
                          verbose=verbose,
                          log_every_x_batch=100)
+        except ZeroDivisionError as e:
+            print("ERROR {} e for epoch {} ".format(e,epoch))
 
         loss_training.append(loss)
 
@@ -67,6 +73,8 @@ if __name__ == "__main__":
 
         simple_plot(final_loss=loss, loss_ls=loss_training, epochs=epoch, save=True,
                     lr=lr, prefix="INT-test-LARGER-overfit_conll_dummy", show=False)
+
+    model.save("../checkpoints", model)
 
     simple_plot(final_loss=loss, loss_ls=loss_training, epochs=epochs, save=True,
                     lr=lr, prefix="LAST-test-LARGER-overfit_conll_dummy")

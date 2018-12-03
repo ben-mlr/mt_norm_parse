@@ -6,14 +6,17 @@ from io_.data_iterator import data_gen_conllu
 from io_.batch_generator import MaskBatch
 sys.path.insert(0,"/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/ELMoLex_sosweet/")
 from dat import conllu_data
-
+from io_.info_print import print_char_seq
 from training.train import run_epoch
 from model.loss import LossCompute
 from torch.autograd import Variable
+from model.sequence_prediction import greedy_decode, decode_seq_begins_with, decode_interacively
 import numpy as np
 import pdb
 import time
 from io_.info_print import printing
+from io_.from_array_to_text import output_text
+
 pdb.set_trace = lambda: 1
 
 # verbose typology :
@@ -28,7 +31,7 @@ train_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/
 dev_pat = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/owoputi.integrated"
 test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
 
-train_run = True
+train_run = False
 
 if train_run:
 
@@ -57,19 +60,53 @@ if train_run:
     printing("END training loss is {} ".format(loss), verbose=verbose, verbose_level=0)
     #print("input seq {} \n  input mask {} \n  output seq {} \n output mask {} \n ".format(batch.input_seq,batch.input_seq_mask, batch.output_seq, batch.output_mask ))
 
-predict_run = False
+predict_run = True
 
 if predict_run:
-    def greedy_decode(generator, model, src_seq, src_mask, src_len, verbose=0):
-        with torch.no_grad():
-            model.forward()
-        decoding_states = model.forward(input_seq=src_seq, output_seq=None, input_mask=src_mask, input_word_len=src_len, output_mask=None, output_word_len=None)
-        # [batch, seq_len, V] ? (TODO --> copy it to Generator also
-        scores = generator.forward(decoding_states)
-        # eacj time step predict the most likely
-        prediction = scores.argmax(dim=2)
 
+    dict_path = "./dictionaries/"
+    train_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/en-ud-train.conllu"
+    dev_pat = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/owoputi.integrated"
+    test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo"
 
+    word_dictionary, char_dictionary, pos_dictionary,\
+    xpos_dictionary, type_dictionary = \
+            conllu_data.create_dict(dict_path=dict_path,
+                                    train_path=train_path,
+                                    dev_path=dev_pat,
+                                    test_path=test_path,
+                                    add_start_char=1,
+                                    word_embed_dict={},
+                                    dry_run=False,
+                                    vocab_trim=True)
+
+    verbose = 2
+
+    #verbose = 2
+    #3b87
+    #1782
+    #cd05
+
+    model = LexNormalizer(generator=Generator, load=True, model_full_name="cd05", dir_model="./checkpoints",
+                          verbose=verbose)
+    batch_size = 5
+    nbatch = 2
+    batchIter = data_gen_conllu(test_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
+                                type_dictionary, batch_size=batch_size, nbatch=nbatch, add_start_char=1,
+                                print_raw=True,  verbose=verbose)
+
+    V = model.arguments["voc_size"]
+    hidden_size_decoder = model.arguments["hidden_size_decoder"]
+
+    #greedy_decode(generator=Generator(hidden_size_decoder=hidden_size_decoder, voc_size=V, verbose=verbose),
+    #              char_dictionary=char_dictionary, verbose=verbose,
+    #              batchIter=batchIter, model=model, batch_size=batch_size)
+
+    ##decode_seq_begins_with(seq_string="eabf", dictionary=char_dictionary, max_len=10, model=model, char_dictionary=char_dictionary,
+    #                       generator=Generator(hidden_size_decoder=hidden_size_decoder, voc_size=V, verbose=verbose),
+    #                       )
+    decode_interacively(dictionary=char_dictionary, max_len=10, model=model, char_dictionary=char_dictionary,
+                        generator=Generator(hidden_size_decoder=hidden_size_decoder, voc_size=V, verbose=verbose), verbose=verbose, pad=1)
 
 
 
@@ -85,3 +122,6 @@ from torchtext import datasets, data
 
 
 # ressources : https://bastings.github.io/annotated_encoder_decoder/
+
+# NB : batch_size is in data_gen_conllu relates to the collu format setence level !!
+## NB you can't have batch_size == 1 WHY ??

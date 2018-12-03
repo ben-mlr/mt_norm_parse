@@ -29,20 +29,21 @@ class CharEncoder(nn.Module):
         # [batch, seq_len] , batch of (already) padded sequences of indexes (that corresponds to character 1-hot encoded)
 
         printing("SOURCE dim {} ".format(input.size()), self.verbose, verbose_level=3)
-        printing("SOURCE DATE {} ".format(input), self.verbose, verbose_level=5)
+        printing("SOURCE DATA {} ".format(input), self.verbose, verbose_level=5)
+        printing("SOURCE DATA mask {} ".format(input_mask), self.verbose, verbose_level=6)
         if DEV:
             printing("SOURCE Word lenght size {} ".format(input_word_len.size()), self.verbose, verbose_level=5)
             printing("SOURCE : Word  length  {}  ".format(input_word_len), self.verbose, verbose_level=3)
             input_word_len, perm_idx = input_word_len.squeeze().sort(0, descending=True)
             # reordering by sequence len
             # [batch, seq_len]
-            input = input[perm_idx,:]
+            input = input[perm_idx, :]
         # [batch, max seq_len, dim char embedding]
         char_vecs = self.char_embedding_(input)
 
         printing("SOURCE embedding dim {} ".format(char_vecs.size()), self.verbose, verbose_level=3)
         if DEV:
-            printing("SOURCE  word lengths {} dim".format(input_word_len.size()), self.verbose, verbose_level=4)
+            printing("SOURCE  word lengths after  {} dim".format(input_word_len.size()), self.verbose, verbose_level=4)
             packed_char_vecs = pack_padded_sequence(char_vecs, input_word_len.squeeze().cpu().numpy(), batch_first=True)
             printing("SOURCE Packed data shape {} ".format(packed_char_vecs.data.shape), self.verbose, verbose_level=4)
         # all sequence encoding [batch, max seq_len, n_dir x encoding dim] ,
@@ -94,6 +95,7 @@ class CharDecoder(nn.Module):
         # TODO DEAL WITH MASKING (padding and prediction oriented ?)
         printing("TARGET size {} ".format(output.size()), verbose=self.verbose, verbose_level=3)
         printing("TARGET data {} ".format(output), verbose=self.verbose, verbose_level=5)
+        printing("TARGET mask data {} ".format(output_mask), verbose=self.verbose, verbose_level=6)
         printing("TARGET  : Word  length  {}  ".format(output_word_len), self.verbose, verbose_level=5)
 
         if DEV and DEV_2:

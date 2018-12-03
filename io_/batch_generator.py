@@ -5,6 +5,8 @@ import pdb
 import matplotlib.pyplot as plt
 from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 from io_.info_print import printing
+
+
 def subsequent_mask(size):
     "Mask out subsequent positions."
     attn_shape = (1, size, size)
@@ -22,6 +24,7 @@ class MaskBatch(object):
 
         self.output_seq = output_seq
         if output_seq is not None:
+
             self.output_seq_x = output_seq[:, :-1]
             _output_mask_x = (self.output_seq_x != pad).unsqueeze(-2)
             self.output_seq_len = torch.argmin(_output_mask_x, dim=2) #if not bool(_output_mask_x.sum().data == _output_mask_x.size(0)*_output_mask_x.size(2)) else
@@ -38,6 +41,7 @@ class MaskBatch(object):
 
             self.output_seq_y, lenghts = pad_packed_sequence(self.output_seq_y, batch_first=True)
             printing("BATCH : TARGET true dim {} ".format(self.output_seq_y.size()),verbose, verbose_level=3)
+
 
     @staticmethod
     def make_mask(output_seq, padding):
