@@ -38,8 +38,10 @@ def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
 
 
 def data_gen_dummy(V, batch, nbatches,seq_len=10,
-                   verbose=0):
+                   verbose=0, seed=None):
     "Generate random data for a src-tgt copy task."
+    if seed is not None:
+        np.random.seed(seed)
     for i in tqdm(range(nbatches), disable=disable_tqdm_level(verbose, verbose_level=2)):
         data = torch.from_numpy(np.random.randint(low=2,high=V, size=(batch, seq_len)))
         data[:, 0] = 2

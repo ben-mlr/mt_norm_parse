@@ -7,6 +7,7 @@ import numpy as np
 import pdb
 from io_.info_print import printing
 
+
 class LossCompute:
     def __init__(self, generator, opt=None, verbose=0):
         self.generator = generator
@@ -18,8 +19,12 @@ class LossCompute:
 
         printing("LOSS decoding states {} ".format(x.size()), self.verbose, verbose_level=3)
         x = self.generator(x)
-        printing("LOSS input y candidate scores {} ".format(x.size()), self.verbose, verbose_level=3)
-        printing("LOSS input y observations {} ".format(y.size()), self.verbose, verbose_level=3)
+        printing("LOSS input x candidate scores size {} ".format(x.size()), self.verbose, verbose_level=3)
+        printing("LOSS input y observations size {} ".format(y.size()), self.verbose, verbose_level=3)
+        printing("LOSS input x candidate scores {} reshaped {} ".format(x, x.view(-1, x.size(-1))), self.verbose,
+                 verbose_level=5)
+        printing("LOSS input y observations {} reshaped {} ".format(y, y.contiguous().view(-1)), self.verbose,
+                 verbose_level=5)
         loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1))
         printing("LOSS loss size {}".format(loss.size()), verbose=self.verbose, verbose_level=3)
         # define loss_distance as --> Cross-entropy
@@ -50,8 +55,7 @@ def loss(x):
     d = x + 3 * 1
     loss = LossCompute(generator=gene)
     dist = loss.loss_distance
-    predict = torch.FloatTensor([[0, x / d, 1 / d, 1 / d, 1 / d],
-                                 ])
+    predict = torch.FloatTensor([[0, x / d, 1 / d, 1 / d, 1 / d],])
     #print(predict)
     return dist(Variable(predict.log()),
                  Variable(torch.LongTensor([1])))

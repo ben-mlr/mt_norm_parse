@@ -28,30 +28,50 @@ train_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/
 dev_pat = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/owoputi.integrated"
 test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
 
-word_dictionary, char_dictionary, pos_dictionary, \
-xpos_dictionary, type_dictionary = conllu_data.create_dict(dict_path=dict_path,
-                                                           train_path=train_path,
-                                                           dev_path=dev_pat,
-                                                           test_path=test_path,
-                                                           word_embed_dict={},
-                                                           dry_run=False,
-                                                           vocab_trim=True)
+train_run = True
 
-V = len(char_dictionary.instance2index)
-print("Character vocabulary is {} length".format(V))
+if train_run:
 
-verbose = 2
-model = LexNormalizer(generator=Generator, char_embedding_dim=5, voc_size=V, hidden_size_encoder=11, hidden_size_decoder=11, verbose=verbose)
-nbatches = 10
+    word_dictionary, char_dictionary, pos_dictionary, \
+    xpos_dictionary, type_dictionary = conllu_data.create_dict(dict_path=dict_path,
+                                                               train_path=train_path,
+                                                               dev_path=dev_pat,
+                                                               test_path=test_path,
+                                                               word_embed_dict={},
+                                                               dry_run=False,
+                                                               vocab_trim=True)
 
-batchIter = data_gen_conllu(test_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary,
-                            batch_size=2, nbatch=nbatches, print_raw=True, verbose=verbose)
+    V = len(char_dictionary.instance2index)
+    print("Character vocabulary is {} length".format(V))
 
-printing("Starting training", verbose=verbose, verbose_level=0)
-loss = run_epoch(batchIter, model, LossCompute(model.generator, verbose=verbose),
-                 n_epochs=1, i_epoch=1, n_batches=None, empty_run=False, verbose=verbose)
-printing("END training loss is {} ".format(loss), verbose=verbose, verbose_level=0)
-#print("input seq {} \n  input mask {} \n  output seq {} \n output mask {} \n ".format(batch.input_seq,batch.input_seq_mask, batch.output_seq, batch.output_mask ))
+    verbose = 5
+    model = LexNormalizer(generator=Generator, char_embedding_dim=5, voc_size=V, hidden_size_encoder=11, hidden_size_decoder=11, verbose=verbose)
+    nbatches = 5
+
+    batchIter = data_gen_conllu(test_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary,
+                                batch_size=2, nbatch=nbatches, print_raw=True, verbose=verbose)
+
+    printing("Starting training", verbose=verbose, verbose_level=0)
+    loss = run_epoch(batchIter, model, LossCompute(model.generator, verbose=verbose),
+                     n_epochs=1, i_epoch=1, n_batches=None, empty_run=False, verbose=verbose)
+    printing("END training loss is {} ".format(loss), verbose=verbose, verbose_level=0)
+    #print("input seq {} \n  input mask {} \n  output seq {} \n output mask {} \n ".format(batch.input_seq,batch.input_seq_mask, batch.output_seq, batch.output_mask ))
+
+predict_run = False
+
+if predict_run:
+    def greedy_decode(generator, model, src_seq, src_mask, src_len, verbose=0):
+        with torch.no_grad():
+            model.forward()
+        decoding_states = model.forward(input_seq=src_seq, output_seq=None, input_mask=src_mask, input_word_len=src_len, output_mask=None, output_word_len=None)
+        # [batch, seq_len, V] ? (TODO --> copy it to Generator also
+        scores = generator.forward(decoding_states)
+        # eacj time step predict the most likely
+        prediction = scores.argmax(dim=2)
+
+
+
+
 
 
 # TODO :
@@ -62,3 +82,6 @@ from torchtext import datasets, data
 #TEXT = data.Field(lower=True, include_lengths=True, batch_first=True)
 #LABEL = data.Field(sequential=False)
 
+
+
+# ressources : https://bastings.github.io/annotated_encoder_decoder/

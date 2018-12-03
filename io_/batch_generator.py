@@ -23,13 +23,13 @@ class MaskBatch(object):
         self.output_seq = output_seq
         if output_seq is not None:
             self.output_seq_x = output_seq[:, :-1]
-
             _output_mask_x = (self.output_seq_x != pad).unsqueeze(-2)
-            #print(_output_mask_x.sum(dim=2))
-            #print(_output_mask_x.sum().data, _output_mask_x.size(2)*torch.Tensor.new_ones(size=),_output_mask_x.sum() == _output_mask_x.size(2))
             self.output_seq_len = torch.argmin(_output_mask_x, dim=2) #if not bool(_output_mask_x.sum().data == _output_mask_x.size(0)*_output_mask_x.size(2)) else
             self.output_seq_y = output_seq[:, 1:]
             self.output_mask = self.make_mask(self.output_seq_x, pad)
+            printing("BATCH : OUTPUT self.output_mask  subsequent {} {} ".format(self.output_mask.size(),  self.output_mask),  verbose, verbose_level=5)
+            printing("BATCH : OUTPUT self.output_seq_x,  subsequent {} {} ".format(self.output_seq_x.size(), self.output_seq_x),  verbose, verbose_level=5)
+
             self.ntokens = (self.output_seq_y != pad).data.sum()
             output_seq_len, perm_idx = self.output_seq_len.squeeze().sort(0, descending=True)
 
