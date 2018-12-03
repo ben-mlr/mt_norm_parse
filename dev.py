@@ -89,8 +89,8 @@ if predict_run:
 
     model = LexNormalizer(generator=Generator, load=True, model_full_name="cd05", dir_model="./checkpoints",
                           verbose=verbose)
-    batch_size = 5
-    nbatch = 2
+    batch_size = 2
+    nbatch = 1
     batchIter = data_gen_conllu(test_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
                                 type_dictionary, batch_size=batch_size, nbatch=nbatch, add_start_char=1,
                                 print_raw=True,  verbose=verbose)
@@ -102,11 +102,12 @@ if predict_run:
     #              char_dictionary=char_dictionary, verbose=verbose,
     #              batchIter=batchIter, model=model, batch_size=batch_size)
 
-    ##decode_seq_begins_with(seq_string="eabf", dictionary=char_dictionary, max_len=10, model=model, char_dictionary=char_dictionary,
+    #decode_seq_begins_with(seq_string="eabf", dictionary=char_dictionary, max_len=10, model=model, char_dictionary=char_dictionary,
     #                       generator=Generator(hidden_size_decoder=hidden_size_decoder, voc_size=V, verbose=verbose),
     #                       )
     decode_interacively(dictionary=char_dictionary, max_len=10, model=model, char_dictionary=char_dictionary,
-                        generator=Generator(hidden_size_decoder=hidden_size_decoder, voc_size=V, verbose=verbose), verbose=verbose, pad=1)
+                        generator=Generator(hidden_size_decoder=hidden_size_decoder, voc_size=V, verbose=verbose),
+                        verbose=verbose, pad=1)
 
 
 
