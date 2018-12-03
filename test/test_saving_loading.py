@@ -5,18 +5,12 @@ import torch
 from training.train import run_epoch
 from io_.data_iterator import data_gen_dummy
 from model.loss import LossCompute
-import matplotlib.pyplot as plt
-from tracking.plot_loss import simple_plot
 from tqdm import tqdm
 from io_.info_print import disable_tqdm_level
 
-# hyperparameters
-#V = 5
-#lr = 0.001
-train = True
 EPOCHS = 1
 verbose = 2
-SEED= 42
+SEED = 42
 
 
 def train_1_epoch(epochs=EPOCHS, seq_len=10, generalize_extra=0, nbatches=50, verbose=2, lr=0.001, V=5, batch=2):
