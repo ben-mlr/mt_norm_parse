@@ -31,37 +31,6 @@ def greedy_decode(generator, batchIter, model,char_dictionary, batch_size, pad=1
 
                 decode_sequence(model=model, generator=generator, char_dictionary=char_dictionary,
                                 max_len=max_len, src_seq=src_seq, src_mask=src_mask,src_len=src_len, batch_size=batch_size, pad=pad,verbose=verbose)
-                if False:
-                    for step, char_decode in enumerate(range(2,  max_len)):
-                        decoding_states = model.forward(input_seq=src_seq, output_seq=output_seq, input_mask=src_mask,
-                                                        input_word_len=src_len, output_mask=output_mask,
-                                                        output_word_len=output_len)
-                        # decoding_states = model.forward(input_seq=src_seq, output_seq=None, input_mask=src_mask,
-                        # input_word_len=src_len, output_mask=None, output_word_len=None)
-                        # [batch, seq_len, V] ? TODO --> copy it to Generator also
-                        scores = generator.forward(x=decoding_states)
-                        #print("DEBUG, decoding_states {} decoding_states size  ".format(decoding_states.size()))
-                        #print("DEBUG, scores {} score size  ".format(scores.size()))
-                        #print("DEBUG, output {} output size ".format(output_seq, output_seq.size()))
-
-                        # each time step predict the most likely
-                        # len
-                        output_len = Variable(torch.from_numpy(np.ones(src_seq.size(0),dtype=np.int64)),requires_grad=False)
-                        output_len[:] = char_decode
-                         # mask
-                        output_mask = np.ones(src_seq.size(), dtype=np.int64)
-                        output_mask[:, char_decode:] = 0
-                        output_mask = Variable(torch.from_numpy(output_mask),requires_grad=False)
-                        # new seq
-                        predictions = scores.argmax(dim=2)
-                        printing("scores: ".format(scores.size(), predictions.size(), predictions[:, -1], output_seq.size()), verbose=verbose,
-                                 verbose_level=3)
-                        output_seq[:, char_decode-1] = predictions[:, -1]
-                        sequence = [" ".join([char_dictionary.get_instance(output_seq[batch, char_i]) for char_i in range(max_len)]) + " / " for batch in range(batch_size)]
-                        printing("Decoding step {} decoded target {} ".format(step, sequence), verbose=verbose,
-                                 verbose_level=2)
-                        printing("PREDICTION : {} ".format(output_text(predictions, char_dictionary)), verbose=verbose,
-                                 verbose_level=3)
 
 
 def decode_sequence(model, generator, char_dictionary, max_len, src_seq, src_mask, src_len,batch_size, pad=1, verbose=2):
