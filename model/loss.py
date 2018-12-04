@@ -4,27 +4,30 @@ import torch
 from model.seq2seq import Generator
 import matplotlib.pyplot as plt
 import numpy as np
-import pdb
 from io_.info_print import printing
 
 
 class LossCompute:
-    def __init__(self, generator, opt=None, verbose=0):
+    def __init__(self, generator, opt=None, pad=1, verbose=0):
         self.generator = generator
-        self.loss_distance = nn.CrossEntropyLoss(reduce=True)
+        self.loss_distance = nn.CrossEntropyLoss(reduce=True, ignore_index=pad)
         self.opt = opt
         self.verbose = verbose
 
     def __call__(self, x, y):
 
         printing("LOSS decoding states {} ".format(x.size()), self.verbose, verbose_level=3)
-        x = self.generator(x)
+        if True:
+            x = self.generator(x)
+        #else:
+        #    for di in range(y.size(1)):
+
         printing("LOSS input x candidate scores size {} ".format(x.size()), self.verbose, verbose_level=3)
         printing("LOSS input y observations size {} ".format(y.size()), self.verbose, verbose_level=3)
         printing("LOSS input x candidate scores {} reshaped {} ".format(x, x.view(-1, x.size(-1))), self.verbose,
                  verbose_level=5)
-        printing("LOSS input y observations {} reshaped {} ".format(y, y.contiguous().view(-1)), self.verbose,
-                 verbose_level=5)
+        printing("LOSS input y observations {} reshaped {} ".format(y, y.contiguous().view(-1)),
+                 self.verbose, verbose_level=5)
         loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1))
         printing("LOSS loss size {}".format(loss.size()), verbose=self.verbose, verbose_level=3)
         # define loss_distance as --> Cross-entropy

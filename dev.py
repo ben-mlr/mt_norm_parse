@@ -67,14 +67,14 @@ if predict_run:
     dict_path = "./dictionaries/"
     train_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/en-ud-train.conllu"
     dev_pat = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/owoputi.integrated"
-    test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo"
+    test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo2"
 
     word_dictionary, char_dictionary, pos_dictionary,\
     xpos_dictionary, type_dictionary = \
             conllu_data.create_dict(dict_path=dict_path,
-                                    train_path=train_path,
-                                    dev_path=dev_pat,
-                                    test_path=test_path,
+                                    train_path=test_path,
+                                    dev_path=test_path,
+                                    test_path=None,
                                     add_start_char=1,
                                     word_embed_dict={},
                                     dry_run=False,
@@ -87,30 +87,50 @@ if predict_run:
     #1782
     #cd05
 
-    model = LexNormalizer(generator=Generator, load=True, model_full_name="cd05", dir_model="./checkpoints",
+    model = LexNormalizer(generator=Generator, load=True, model_full_name="d174", dir_model="./checkpoints",
                           verbose=verbose)
-    batch_size = 2
+    batch_size = 10
     nbatch = 1
+    verbose = 1
     batchIter = data_gen_conllu(test_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
-                                type_dictionary, batch_size=batch_size, nbatch=nbatch, add_start_char=1,
+                                type_dictionary, batch_size=batch_size, nbatch=nbatch, add_start_char=1, add_end_char=0,
                                 print_raw=True,  verbose=verbose)
 
     V = model.arguments["voc_size"]
     hidden_size_decoder = model.arguments["hidden_size_decoder"]
+    model.eval()
 
-    #greedy_decode(generator=Generator(hidden_size_decoder=hidden_size_decoder, voc_size=V, verbose=verbose),
-    #              char_dictionary=char_dictionary, verbose=verbose,
-    #              batchIter=batchIter, model=model, batch_size=batch_size)
+    batch_decoding, sequence_decoding, interactive_mode = False, False, True
+    loss = run_epoch(batchIter, model, LossCompute(model.generator, verbose=verbose),
+                         i_epoch=0, n_epochs=1,
+                         verbose=verbose,
+                         log_every_x_batch=100)
+    batchIter = data_gen_conllu(test_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
+                                type_dictionary, batch_size=batch_size, nbatch=nbatch, add_start_char=1, add_end_char=0,
+                                print_raw=True,  verbose=verbose)
+    print("LOSS", loss)
+    if batch_decoding:
+        greedy_decode(generator=Generator(hidden_size_decoder=hidden_size_decoder, voc_size=V, verbose=verbose),
+                      char_dictionary=char_dictionary, verbose=3,
+                      batchIter=batchIter, model=model, batch_size=batch_size)
 
-    #decode_seq_begins_with(seq_string="eabf", dictionary=char_dictionary, max_len=10, model=model, char_dictionary=char_dictionary,
-    #                       generator=Generator(hidden_size_decoder=hidden_size_decoder, voc_size=V, verbose=verbose),
-    #                       )
-    decode_interacively(dictionary=char_dictionary, max_len=10, model=model, char_dictionary=char_dictionary,
-                        generator=Generator(hidden_size_decoder=hidden_size_decoder, voc_size=V, verbose=verbose),
-                        verbose=verbose, pad=1)
+    if sequence_decoding:
+        decode_seq_begins_with(seq_string="eabf", dictionary=char_dictionary, max_len=10, model=model, char_dictionary=char_dictionary,
+                           generator=Generator(hidden_size_decoder=hidden_size_decoder, voc_size=V, verbose=verbose),
+                           )
+    if interactive_mode:
+        decode_interacively(dictionary=char_dictionary, max_len=10, model=model, char_dictionary=char_dictionary,
+                            generator=Generator(hidden_size_decoder=hidden_size_decoder, voc_size=V, verbose=verbose, output_dim=50),
+                            verbose=2)
 
 
 
+# TODO : add WORD ERROR RATE + CHARACTER ERROR RATE + EDIT DISTANCE RATE comparison with gold
+# TODO : when you do packed sequence you do teacher force : add inference-like training
+# TODO : add stop symbol at decoding
+# TODO : solve padding problem
+# TODO add reloading and keep training
+# TODO : add training report
 
 # TODO :
 # I think in the way you coded it : you can't have sequence of character that are not padded twice at the end --> bugs in the argmin --> you have to correct it !!
@@ -123,6 +143,7 @@ from torchtext import datasets, data
 
 
 # ressources : https://bastings.github.io/annotated_encoder_decoder/
+#              https://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html
 
 # NB : batch_size is in data_gen_conllu relates to the collu format setence level !!
 ## NB you can't have batch_size == 1 WHY ??

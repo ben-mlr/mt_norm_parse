@@ -23,12 +23,14 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
         #nput_seq, output_seq, input_mask, input_word_len, output_mask
         printing("DATA : \n input Sequence {} \n Target sequence {} ".format(batch.input_seq, batch.output_seq), verbose, verbose_level=5)
         if not empty_run:
-            out = model.forward(input_seq=batch.input_seq,
+            if True:
+                out = model.forward(input_seq=batch.input_seq,
                                 output_seq=batch.output_seq_x,
                                 input_mask=batch.input_seq_mask,
                                 input_word_len= batch.input_seq_len,
                                 output_mask=batch.output_mask,
                                 output_word_len=batch.output_seq_len)
+            
             # compute loss , (compute score over decoding states then softmax and Cross entropy )
         else:
             out = 0
@@ -50,8 +52,8 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
             total_loss, total_tokens = 0, 1
     if verbose >= 1 and not empty_run:
         printing("INFO : {} epoch done ".format(n_epochs), verbose, verbose_level=1)
-        printing("Loss epoch {} is  {} total ".format(i_epoch,total_loss/total_tokens), verbose, verbose_level=1)
+        printing("Loss epoch {} is  {} total out of {} tokens ".format(i_epoch, total_loss/total_tokens, total_tokens), verbose, verbose_level=1)
 
-
+    #training_report = {"n_epochs":n_epochs, "batch_size": batch.input_seq.size(0), "time_training": None, "total_tokens" : total_tokens, "loss": total_loss / total_tokens}
 
     return total_loss / total_tokens
