@@ -16,13 +16,13 @@ lr = 0.001
 # optimizer
 
 
-verbose = 6
-model = LexNormalizer(generator=Generator, char_embedding_dim=5, hidden_size_encoder=11, voc_size=9, hidden_size_decoder=11, verbose=verbose)
+verbose = 1
+model = LexNormalizer(generator=Generator, char_embedding_dim=5, hidden_size_encoder=12, voc_size=9, output_dim=50, hidden_size_decoder=11, verbose=verbose)
 adam = torch.optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.98), eps=1e-9)
 # reporting
 training_loss = []
 nbatches = 1
-EPOCHS = 1
+EPOCHS = 50
 seq_len = 10
 generalize_extra = 5
 if __name__ == "__main__":

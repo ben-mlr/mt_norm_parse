@@ -48,7 +48,9 @@ if train_run:
     print("Character vocabulary is {} length".format(V))
 
     verbose = 5
-    model = LexNormalizer(generator=Generator, char_embedding_dim=5, voc_size=V, hidden_size_encoder=11, hidden_size_decoder=11, verbose=verbose)
+    model = LexNormalizer(generator=Generator, char_embedding_dim=5, voc_size=V,
+                          hidden_size_encoder=11,
+                          hidden_size_decoder=11, verbose=verbose)
     nbatches = 5
 
     batchIter = data_gen_conllu(test_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary,

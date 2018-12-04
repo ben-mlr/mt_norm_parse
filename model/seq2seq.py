@@ -160,16 +160,14 @@ class CharDecoder(nn.Module):
 
 class LexNormalizer(nn.Module):
 
-    def __init__(self, generator, char_embedding_dim=None, hidden_size_encoder=None,
+    def __init__(self, generator, char_embedding_dim=None, hidden_size_encoder=None,output_dim=None,
                  hidden_size_decoder=None, voc_size=None, model_id_pref="", model_name="",
                  verbose=0, load=False, dir_model=None, model_full_name=None):
         super(LexNormalizer, self).__init__()
         if not load:
             printing("Defining new model ", verbose=verbose, verbose_level=0)
             assert dir_model is None and model_full_name is None
-            assert hidden_size_decoder == hidden_size_encoder, "Warning : For now {} should equal {} because pf the " \
-                                                             "init hidden state (cf. TODO for more flexibility )" \
-                                                             "".format(hidden_size_encoder, hidden_size_decoder)
+
             model_id = str(uuid4())[0:4]
             model_id_pref += "_" if len(model_id_pref) > 0 else ""
             model_id += "_" if len(model_name) > 0 else ""
@@ -180,7 +178,7 @@ class LexNormalizer(nn.Module):
                                                            model_id, model_name), verbose=verbose, verbose_level=0)
         else:
             printing("Loading existing model {} from {} ".format(model_full_name, dir_model), verbose=verbose, verbose_level=0)
-            assert char_embedding_dim is None and hidden_size_encoder is None and hidden_size_decoder is None and voc_size is None
+            assert char_embedding_dim is None and hidden_size_encoder is None and hidden_size_decoder is None and voc_size is None and output_dim is None
             assert model_full_name is not None
             args, checkpoint_dir = self.load(dir_model, model_full_name, verbose=verbose)
             char_embedding_dim, hidden_size_encoder, \
@@ -191,13 +189,13 @@ class LexNormalizer(nn.Module):
 
         #TODO : add projection of hidden_encoder for getting more flexibility
         self.arguments = {"char_embedding_dim": char_embedding_dim, "hidden_size_encoder": hidden_size_encoder,
-                          "hidden_size_decoder": hidden_size_decoder, "voc_size": voc_size}
+                          "hidden_size_decoder": hidden_size_decoder, "voc_size": voc_size,"output_dim": output_dim}
         printing("Model arguments are {} ".format(self.arguments), verbose, verbose_level=0)
         # 1 share character embedding layer
         self.char_embedding = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
         self.encoder = CharEncoder(self.char_embedding, input_dim=char_embedding_dim, hidden_size_encoder= hidden_size_encoder, verbose=verbose)
         self.decoder = CharDecoder(self.char_embedding, input_dim=char_embedding_dim, hidden_size_decoder=hidden_size_decoder, verbose=verbose)
-        self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size, output_dim = 50, verbose=verbose)
+        self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size, output_dim = output_dim, verbose=verbose)
         self.verbose = verbose
 
         self.bridge = nn.Linear(hidden_size_encoder, hidden_size_decoder)
@@ -237,6 +235,7 @@ class LexNormalizer(nn.Module):
         json.dump(model.arguments, open(arguments_dir, "w"))
         printing("Saving model weights and arguments as {}  and {} ".format(checkpoint_dir, arguments_dir),verbose, verbose_level=0)
         return dir, model.model_full_name
+
     @staticmethod
     def load(dir, model_full_name, verbose=0):
         args = model_full_name+"-args.json"
