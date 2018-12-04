@@ -67,7 +67,7 @@ if predict_run:
     dict_path = "./dictionaries/"
     train_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/en-ud-train.conllu"
     dev_pat = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/owoputi.integrated"
-    test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo2"
+    test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo"
 
     word_dictionary, char_dictionary, pos_dictionary,\
     xpos_dictionary, type_dictionary = \
@@ -87,7 +87,7 @@ if predict_run:
     #1782
     #cd05
 
-    model = LexNormalizer(generator=Generator, load=True, model_full_name="d174", dir_model="./checkpoints",
+    model = LexNormalizer(generator=Generator, load=True, model_full_name="84d7", dir_model="./checkpoints",
                           verbose=verbose)
     batch_size = 10
     nbatch = 1

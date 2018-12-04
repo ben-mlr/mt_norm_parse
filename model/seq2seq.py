@@ -214,7 +214,6 @@ class LexNormalizer(nn.Module):
         # [] [batch, , hiden_size_decoder]
         #char_vecs_output = self.char_embedding(output_seq)
         h = self.bridge(h)
-        print("debug", h)
         output, h_n = self.decoder.forward(output_seq, h, output_mask, output_word_len)
 
         # output_score = nn.ReLU()(self.output_predictor(h_out))

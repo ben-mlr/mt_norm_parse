@@ -14,15 +14,15 @@ dict_path = "../dictionaries/"
 train_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/en-ud-train.conllu"
 dev_pat = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/owoputi.integrated"
 test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
-test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo2"
+test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo"
 
 
 if __name__ == "__main__":
 
     loss_training = []
     verbose = 1
-    epochs = 20
-    batch_size = 10
+    epochs = 50
+    batch_size = 20
     print_raw = False
     nbatch = 1
     lr = 0.001

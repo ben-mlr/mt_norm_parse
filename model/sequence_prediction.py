@@ -22,6 +22,13 @@ def greedy_decode(generator, batchIter, model,char_dictionary, batch_size, pad=1
                                 verbose=verbose)
 
 
+def decode_step(model, src_seq, src_mask, src_len , output_mask, output_len, output_seq):
+    decoding_states = model.forward(input_seq=src_seq, output_seq=output_seq, input_mask=src_mask,
+                                    input_word_len=src_len, output_mask=output_mask,
+                                    output_word_len=output_len)
+    scores = generator.forward(x=decoding_states)
+
+
 def decode_sequence(model, generator, char_dictionary, max_len, src_seq, src_mask, src_len,batch_size, pad=1, verbose=2):
     output_seq = pad*np.ones(src_seq.size(), dtype=np.int64)
     # we start with the _START symbol
@@ -39,7 +46,7 @@ def decode_sequence(model, generator, char_dictionary, max_len, src_seq, src_mas
         # decoding_states = model.forward(input_seq=src_seq, output_seq=None, input_mask=src_mask,
         # input_word_len=src_len, output_mask=None, output_word_len=None)
         # [batch, seq_len, V]
-        scores = generator.forward(x=decoding_states)
+        scores = model.generator.forward(x=decoding_states)
         # each time step predict the most likely
         # len
         output_len = Variable(torch.from_numpy(np.ones(src_seq.size(0),dtype=np.int64)),requires_grad=False)

@@ -25,12 +25,24 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
         if not empty_run:
             if True:
                 out = model.forward(input_seq=batch.input_seq,
-                                output_seq=batch.output_seq_x,
-                                input_mask=batch.input_seq_mask,
-                                input_word_len= batch.input_seq_len,
-                                output_mask=batch.output_mask,
-                                output_word_len=batch.output_seq_len)
-            
+                                    output_seq=batch.output_seq_x,
+                                    input_mask=batch.input_seq_mask,
+                                    input_word_len= batch.input_seq_len,
+                                    output_mask=batch.output_mask,
+                                    output_word_len=batch.output_seq_len)
+            else:
+                # DEV : implement teacher force
+                from model.sequence_prediction import decode_sequence
+                decode_sequence(model=model,generator=model.generator,char_dictionary=char_dictionary,
+                                src_seq=batch.input_seq, src_mask=batch.input_seq_mask, src_len=batch.input_seq_len,
+                                batch_size=batch.input_seq.size(0))
+                out = model.forward(input_seq=batch.input_seq,
+                                    output_seq=batch.output_seq_x,
+                                    input_mask=batch.input_seq_mask,
+                                    input_word_len= batch.input_seq_len,
+                                    output_mask=batch.output_mask,
+                                    output_word_len=batch.output_seq_len)
+
             # compute loss , (compute score over decoding states then softmax and Cross entropy )
         else:
             out = 0
