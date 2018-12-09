@@ -174,16 +174,16 @@ class LexNormalizer(nn.Module):
             model_full_name = model_id_pref+model_id+model_name
             printing("Model name is {} with pref_id {} , "
                      "generated id {} and label {} ".format(model_full_name,
-                                                           model_id_pref,
-                                                           model_id, model_name), verbose=verbose, verbose_level=0)
+                                                            model_id_pref,
+                                                            model_id, model_name), verbose=verbose, verbose_level=0)
         else:
             printing("Loading existing model {} from {} ".format(model_full_name, dir_model), verbose=verbose, verbose_level=0)
             assert char_embedding_dim is None and hidden_size_encoder is None and hidden_size_decoder is None and voc_size is None and output_dim is None
             assert model_full_name is not None
             args, checkpoint_dir = self.load(dir_model, model_full_name, verbose=verbose)
             char_embedding_dim, hidden_size_encoder, \
-            hidden_size_decoder, voc_size = args["char_embedding_dim"], args["hidden_size_encoder"], \
-                                                        args["hidden_size_decoder"], args["voc_size"]
+            hidden_size_decoder, voc_size, output_dim = args["char_embedding_dim"], args["hidden_size_encoder"], \
+                                                        args["hidden_size_decoder"], args["voc_size"], args.get("output_dim")
 
         self.model_full_name = model_full_name
 

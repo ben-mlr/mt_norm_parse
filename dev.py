@@ -4,15 +4,17 @@ import torch
 import sys
 from io_.data_iterator import data_gen_conllu
 from io_.batch_generator import MaskBatch
-sys.path.insert(0,"/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/ELMoLex_sosweet/")
-from dat import conllu_data
+#sys.path.insert(0,"/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/ELMoLex_sosweet/")
+from io_.dat import conllu_data
 from io_.info_print import print_char_seq
 from training.train import run_epoch
 from model.loss import LossCompute
 from torch.autograd import Variable
 from model.sequence_prediction import greedy_decode, decode_seq_begins_with, decode_interacively
+
 import numpy as np
 import pdb
+
 import time
 from io_.info_print import printing
 from io_.from_array_to_text import output_text
@@ -127,20 +129,17 @@ if predict_run:
 
 
 
-# TODO : add WORD ERROR RATE + CHARACTER ERROR RATE + EDIT DISTANCE RATE comparison with gold
+# TODO :
+# 1 add WORD ERROR RATE + CHARACTER ERROR RATE + EDIT DISTANCE RATE comparison with gold
+# 2 evaluate on reproduction
+# 3 quick experiments on lexnorm on predicting NormPar + LexNorm + Owuputi + EWT: Norm=
 # TODO : when you do packed sequence you do teacher force : add inference-like training
-# TODO : add stop symbol at decoding
-# TODO : solve padding problem
-# TODO add reloading and keep training
-# TODO : add training report
+# TODO : add stop symbol in the data + at decoding time
+# TODO : add quick training report
 
 # TODO :
-# I think in the way you coded it : you can't have sequence of character that are not padded twice at the end --> bugs in the argmin --> you have to correct it !!
 # then build code to play with the model (write a noisy code --> gives you the prediction)
 # plug tensorboard
-from torchtext import datasets, data
-#TEXT = data.Field(lower=True, include_lengths=True, batch_first=True)
-#LABEL = data.Field(sequential=False)
 
 
 

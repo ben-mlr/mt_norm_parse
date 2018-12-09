@@ -14,19 +14,19 @@ dict_path = "../dictionaries/"
 train_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/en-ud-train.conllu"
 dev_pat = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/owoputi.integrated"
 test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
-test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo"
+test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
 
 
 if __name__ == "__main__":
 
     loss_training = []
-    verbose = 1
+    verbose = 2
     epochs = 50
     batch_size = 20
     print_raw = False
-    nbatch = 1
+    nbatch = 200
     lr = 0.001
-    add_start_char = 1
+    add_start_char = 0
     add_end_char = 0
     word_dictionary, char_dictionary, pos_dictionary,\
     xpos_dictionary, type_dictionary = \
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     printing("char_dictionary".format(char_dictionary.instance2index), verbose=verbose, verbose_level=0)
     V = len(char_dictionary.instance2index)+1
     printing("Character vocabulary is {} length".format(V), verbose=verbose, verbose_level=0)
-    model = LexNormalizer(generator=Generator, char_embedding_dim=20, voc_size=V, hidden_size_encoder=50,
+    model = LexNormalizer(generator=Generator, char_embedding_dim=20, voc_size=V, hidden_size_encoder=50, output_dim=50,
                           hidden_size_decoder=50, verbose=verbose)
     adam = torch.optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.98), eps=1e-9)
 
