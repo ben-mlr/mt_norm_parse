@@ -5,8 +5,8 @@ import pdb
 from io_.batch_generator import MaskBatch
 import sys
 from tqdm import tqdm
-sys.path.insert(0, "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/ELMoLex_sosweet/")
-from dat import conllu_data
+#sys.path.insert(0, "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/ELMoLex_sosweet/")
+from io_.dat import conllu_data
 from io_.info_print import printing, print_char_seq, disable_tqdm_level
 
 

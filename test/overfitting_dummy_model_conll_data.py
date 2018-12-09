@@ -1,7 +1,7 @@
 import sys
 
-sys.path.insert(0,"/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/ELMoLex_sosweet/")
-from dat import conllu_data
+#sys.path.insert(0,"/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/ELMoLex_sosweet/")
+from io_.dat import conllu_data
 from model.seq2seq import LexNormalizer, Generator
 from io_.data_iterator import data_gen_conllu
 from training.train import run_epoch
@@ -21,10 +21,10 @@ if __name__ == "__main__":
 
     loss_training = []
     verbose = 2
-    epochs = 50
+    epochs = 25
     batch_size = 20
     print_raw = False
-    nbatch = 200
+    nbatch = 20
     lr = 0.001
     add_start_char = 0
     add_end_char = 0
