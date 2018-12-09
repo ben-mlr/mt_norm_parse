@@ -3,6 +3,8 @@ import sys
 from .ioutils import DependencyInstance, Sentence
 from .constants import DIGIT_RE, MAX_CHAR_LENGTH, NUM_CHAR_PAD, ROOT, ROOT_CHAR, ROOT_POS, ROOT_TYPE, PAD
 from io_.info_print import printing
+import re
+
 
 class CoNLLReader(object):
 
@@ -83,7 +85,6 @@ class CoNLLReader(object):
 
     for tokens in lines:
 
-
       if '-' in tokens[0] or '.' in tokens[0]:
         continue
       if len(tokens)<10:
@@ -91,7 +92,6 @@ class CoNLLReader(object):
         open("/scratch/bemuller/parsing/sosweet/processing/logs/catching_errors.txt","a").write("Line broken {} because of tokens {} from {} file \n ".format(lines, tokens,self.__file_path))        
         continue
       if normalization:
-        import re
         match = re.match("$Norm=(.*)|.*", tokens[10])
         assert match is not None
         normalized_token = match.group(1)
