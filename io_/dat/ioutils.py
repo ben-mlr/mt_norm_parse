@@ -95,12 +95,14 @@ def getOOVWords(word_dictionary, test_path):
   return oov_words
 
 class Sentence(object):
-  def __init__(self, words, word_ids, char_seqs, char_id_seqs, lines):
+  def __init__(self, words, word_ids, char_seqs, char_id_seqs, lines, char_norm_seq=None, char_norm_ids_seq=None):
     self.words = words
     self.word_ids = word_ids
     self.char_seqs = char_seqs
     self.char_id_seqs = char_id_seqs
     self.raw_lines = lines
+    self.char_norm_seq = char_norm_seq
+    self.char_norm_ids_seq = char_norm_ids_seq
 
   def length(self):
     return len(self.words)

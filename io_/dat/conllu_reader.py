@@ -2,7 +2,7 @@ import codecs
 import sys
 from .ioutils import DependencyInstance, Sentence
 from .constants import DIGIT_RE, MAX_CHAR_LENGTH, NUM_CHAR_PAD, ROOT, ROOT_CHAR, ROOT_POS, ROOT_TYPE, PAD
-
+from io_.info_print import printing
 
 class CoNLLReader(object):
 
@@ -21,7 +21,7 @@ class CoNLLReader(object):
   def close(self):
     self.__source_file.close()
 
-  def getNext(self, normalize_digits=True, symbolic_root=False, symbolic_end=False):
+  def getNext(self, normalize_digits=True, symbolic_root=False, symbolic_end=False, normalization=False, verbose=0):
     line = self.__source_file.readline()
 
     # skip multiple blank lines.
@@ -60,6 +60,10 @@ class CoNLLReader(object):
     type_ids = []
     heads = []
 
+    norm_ids = []
+    char_norm_id_seqs = []
+    char_norm_str_seq = []
+
     if symbolic_root:
       words.append(ROOT)
       word_ids.append(self.__word_dictionary.get_index(ROOT))
@@ -78,17 +82,39 @@ class CoNLLReader(object):
       heads.append(0)
 
     for tokens in lines:
+
+
       if '-' in tokens[0] or '.' in tokens[0]:
         continue
       if len(tokens)<10:
         sys.stderr.write("Sentence broken for unkwown reasons \n".format(lines))
         open("/scratch/bemuller/parsing/sosweet/processing/logs/catching_errors.txt","a").write("Line broken {} because of tokens {} from {} file \n ".format(lines, tokens,self.__file_path))        
         continue
+      if normalization:
+        import re
+        match = re.match("$Norm=(.*)|.*", tokens[10])
+        assert match is not None
+        normalized_token = match.group(1)
+        normalized_token_id = self.__word_dictionary.get_index(normalized_token)
+        norm_ids.append(normalized_token_id )
+        char_norm_ids = []
+        char_norm_str = []
+        for char in normalized_token:
+          char_norm_ids .append(self.__char_dictionary.get_index(char))
+          char_norm_str.append(char)
+        char_norm_str_seq.append(char_norm_str)
+        char_norm_id_seqs.append(char_norm_ids)
+
+        printing("Normalized word is {} encoded as {} "
+                 "normalized character sequence is {} "
+                 "encoded as {} ".format(normalized_token, normalized_token_id, char_norm_str_seq , char_norm_id_seqs),
+                 verbose_level=6, verbose=verbose)
 
       chars = []
-      char_ids = [] 
-      #sys.stderr.write("DEBUG --> tokens ERROR {} \n".format(tokens))
-      #sys.stderr.write("DEBUG --> lines ERROR {} \n".format(lines))
+      char_ids = []
+      # sys.stderr.write("DEBUG --> tokens ERROR {} \n".format(tokens))
+      # sys.stderr.write("DEBUG --> lines ERROR {} \n".format(lines))
+
       for char in tokens[1]:
         chars.append(char)
         char_ids.append(self.__char_dictionary.get_index(char))
@@ -103,13 +129,12 @@ class CoNLLReader(object):
       words.append(tokens[1])
       lemmas.append(tokens[2])
       #sys.stderr.write("LEMMAS  FILLED \n")
-      
 
       word = DIGIT_RE.sub(b"0", str.encode(tokens[1])).decode()
       word_ids.append(self.__word_dictionary.get_index(word))
       #lemma_ids.append(self.__lemma_dictionary.get_index(tokens[2]))
 
-      pos = tokens[3] # if tokens[4]=='_' else tokens[3]+'$$$'+tokens[4]
+      pos = tokens[3]# if tokens[4]=='_' else tokens[3]+'$$$'+tokens[4]
       xpos = tokens[4]
       postags.append(pos)
       xpostags.append(xpos)
@@ -132,7 +157,8 @@ class CoNLLReader(object):
       types.append(END_TYPE)
       type_ids.append(self.__type_dictionary.get_index(END_TYPE))
       heads.append(0)
-    return DependencyInstance(Sentence(words, word_ids, char_seqs, char_id_seqs, [lines, raw_text]), postags, pos_ids, xpostags, xpos_ids, lemmas, lemma_ids, heads, types, type_ids)
+    return DependencyInstance(Sentence(words, word_ids, char_seqs, char_id_seqs, [lines, raw_text],
+                                       char_norm_ids_seq=char_norm_id_seqs, char_norm_seq=char_norm_str_seq),
+                              postags, pos_ids, xpostags, xpos_ids, lemmas, lemma_ids, heads, types, type_ids)
 
-
-
+# TODO : add end begin symbol both for character sequence and normalized character sequence
