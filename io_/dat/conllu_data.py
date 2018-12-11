@@ -1,7 +1,7 @@
 import sys
 import codecs
 import os
-
+import pdb
 from .constants import MAX_CHAR_LENGTH, NUM_CHAR_PAD, PAD_CHAR, PAD_POS, PAD_TYPE, ROOT_CHAR, ROOT_POS,\
   ROOT_TYPE, END_CHAR, END_POS, END_TYPE, _START_VOCAB, ROOT, PAD_ID_WORD, PAD_ID_CHAR, PAD_ID_TAG, DIGIT_RE, CHAR_START_ID, CHAR_START, CHAR_END_ID
 from .conllu_reader import CoNLLReader
@@ -122,7 +122,7 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict, dry
               vocab_set.add(word)
               vocab_list.append(word)
             li = li + 1
-            if dry_run and li==100:
+            if dry_run and li == 100:
               break
   expand_vocab([dev_path])
   if not vocab_trim:
@@ -148,42 +148,54 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict, dry
 
 
 def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary,
-              max_size=None, normalize_digits=True,
+              max_size=None,
+              normalize_digits=True,
+              normalization=False,
               symbolic_root=False, symbolic_end=False, dry_run=False, verbose=0):
   """
   Given vocabularies , data_file :
   - creates a  list of bucket
   - each bucket is a list of unicode encoded worrds, character, pos tags, relations, ... based on DependancyInstances() and Sentence() objects
   """
-  _buckets = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, -1]
 
+  _buckets = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, -1]
   last_bucket_id = len(_buckets) - 1
   data = [[] for _ in _buckets]
+
   max_char_length = [0 for _ in _buckets]
-  if verbose>=1:
+  max_char_norm_length = [0 for _ in _buckets] if normalization else None
+  if verbose >= 1:
     print('Reading data from %s' % source_path)
   counter = 0
   reader = CoNLLReader(source_path, word_dictionary, char_dictionary, pos_dictionary, type_dictionary, xpos_dictionary, None)
-  inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end)
+  inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end,
+                        normalization=normalization)
 
   while inst is not None and (not dry_run or counter < 100):
     inst_size = inst.length()
     sent = inst.sentence
     for bucket_id, bucket_size in enumerate(_buckets):
       if inst_size < bucket_size or bucket_id == last_bucket_id:
-        data[bucket_id].append([sent.word_ids, sent.char_id_seqs, sent.char_norm_ids_seq,inst.pos_ids, inst.heads, inst.type_ids, counter, sent.words, sent.raw_lines, inst.xpos_ids])
-        max_len = max([len(char_seq) for char_seq in sent.char_seqs])
-        if max_char_length[bucket_id] < max_len:
-          max_char_length[bucket_id] = max_len
-        if bucket_id == last_bucket_id and _buckets[last_bucket_id]<len(sent.word_ids):
+        data[bucket_id].append([sent.word_ids, sent.char_id_seqs, sent.char_norm_ids_seq, inst.pos_ids, inst.heads, inst.type_ids, counter, sent.words, sent.raw_lines, inst.xpos_ids])
+        max_char_len = max([len(char_seq) for char_seq in sent.char_seqs])
+        if normalization:
+          pdb.set_trace()
+          max_char_norm_len = max([len(char_norm_seq) for char_norm_seq in sent.char_norm_ids_seq])
+        # defining maximum characters lengh per bucket both for noralization and
+        if max_char_length[bucket_id] < max_char_len :
+          max_char_length[bucket_id] = max_char_len
+        if normalization:
+          if max_char_norm_length[bucket_id] < max_char_norm_len:
+            max_char_norm_length[bucket_id] = max_char_norm_len
+        if bucket_id == last_bucket_id and _buckets[last_bucket_id] < len(sent.word_ids):
           _buckets[last_bucket_id] = len(sent.word_ids)
         break
-    inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end)
+    inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end, normalization=normalization)
     counter += 1
 
   reader.close()
 
-  return data, max_char_length, _buckets
+  return data, {"max_char_length":max_char_length, "max_char_norm_length": max_char_norm_length}, _buckets
 
 
 def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
@@ -194,8 +206,12 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
   """
   Given data ovject form read_variable creates array-like  variables for character, word, pos, relation, heads ready to be fed to a network
   """
-  data, max_char_length, _buckets = read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary, verbose=verbose, max_size=max_size,
+  data, max_char_length_dic, _buckets = read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary,
+                                              verbose=verbose, max_size=max_size,normalization=normalization,
                                               normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end, dry_run=dry_run)
+
+  max_char_length = max_char_length_dic["max_char_length"]
+  max_char_norm_length = max_char_length_dic["max_char_norm_length"]
   bucket_sizes = [len(data[b]) for b in range(len(_buckets))]
 
   data_variable = []
@@ -208,16 +224,17 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       data_variable.append((1, 1))
       continue
     bucket_length = _buckets[bucket_id]
-    char_length = min(MAX_CHAR_LENGTH, max_char_length[bucket_id] + NUM_CHAR_PAD+add_end_char)
+    char_length = min(MAX_CHAR_LENGTH, max_char_length[bucket_id] + NUM_CHAR_PAD)
     wid_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)
     cid_inputs = np.empty([bucket_size, bucket_length, char_length], dtype=np.int64)
     pid_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)
     xpid_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)
     hid_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)
     tid_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)
+
     if normalization:
-      # are we sure we want the same max char length
-      cids_norm = np.empty([bucket_size, bucket_length, char_length], dtype=np.int64)
+      char_norm_length = min(MAX_CHAR_LENGTH, max_char_norm_length[bucket_id] + NUM_CHAR_PAD)
+      cids_norm = np.empty([bucket_size, bucket_length, char_norm_length], dtype=np.int64)
 
     masks_inputs = np.zeros([bucket_size, bucket_length], dtype=np.float32)
     single_inputs = np.zeros([bucket_size, bucket_length], dtype=np.int64)
@@ -230,7 +247,6 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
     for i, inst in enumerate(data[bucket_id]):
       ss[bucket_id] += 1
       ss1[bucket_id] = bucket_length
-      print("DEBUG  conllu_data: ", inst)
       wids, cid_seqs, cid_norm_seqs, pids, hids, tids, orderid, word_raw, lines, xpids = inst
       inst_size = len(wids)
       lengths_inputs[i] = inst_size
@@ -240,15 +256,25 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       wid_inputs[i, :inst_size] = wids
       wid_inputs[i, inst_size:] = PAD_ID_WORD
 
+      shift = 0
+
       if add_start_char:
-        shift = 1
-      else:
-        shift = 0
+        shift += 1
       if add_end_char:
         shift_end = 1
       else:
         shift_end = 0
-  #TODO should factorize character sequence numyisation
+
+      for c, cids in enumerate(cid_seqs):
+        if add_start_char:
+          cid_inputs[i, c, 0] = CHAR_START_ID
+        cid_inputs[i, c, shift:len(cids)+shift] = cids
+        if add_end_char:
+          cid_inputs[i, c, len(cids)+shift+shift_end] = CHAR_END_ID
+        cid_inputs[i, c, shift+len(cids)+shift_end:] = PAD_ID_CHAR
+      cid_inputs[i, inst_size:, :] = PAD_ID_CHAR
+      pdb.set_trace()
+      # TODO should factorize character sequence numpysation
       if normalization:
         for c, cids in enumerate(cid_norm_seqs):
           if add_start_char:
@@ -258,19 +284,6 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
             cids_norm[i, c, len(cids)+shift+shift_end] = CHAR_END_ID
           cids_norm[i, c, shift+len(cids)+shift_end:] = PAD_ID_CHAR
         cids_norm[i, inst_size:, :] = PAD_ID_CHAR
-
-      for c, cids in enumerate(cid_seqs):
-        if add_start_char:
-          cid_inputs[i, c, 0] = CHAR_START_ID
-        cid_inputs[i, c, shift:len(cids)+shift] = cids
-        if add_end_char:
-          cid_inputs[i, c, len(cids)+shift+shift_end] = CHAR_END_ID
-
-        cid_inputs[i, c, shift+len(cids)+shift_end:] = PAD_ID_CHAR
-      #  cid_inputs[i, c, len(cids):] = PAD_ID_CHAR
-      cid_inputs[i, inst_size:, :] = PAD_ID_CHAR
-      # cid_inputs is batch_size, sent_len padded, word lenths padded
-      # --
       # pos ids
       pid_inputs[i, :inst_size] = pids
       pid_inputs[i, inst_size:] = PAD_ID_TAG
@@ -361,6 +374,7 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None, normaliza
   print("CHAR NORM", chars_norm)
 
   return words, chars[index], chars_norm, pos[index], xpos[index], heads[index], types[index], masks[index], lengths[index], order_inputs[index]
+
 
 def iterate_batch_variable(data, batch_size, unk_replace=0., lattice=None, normalization=False):
   """

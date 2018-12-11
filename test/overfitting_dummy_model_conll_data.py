@@ -21,10 +21,10 @@ if __name__ == "__main__":
 
     loss_training = []
     verbose = 2
-    epochs = 25
-    batch_size = 20
+    epochs = 1
+    batch_size = 5
     print_raw = False
-    nbatch = 20
+    nbatch = 2
     lr = 0.001
     add_start_char = 0
     add_end_char = 0
@@ -79,7 +79,7 @@ if __name__ == "__main__":
                     verbose=verbose, verbose_level=1,
                     lr=lr, prefix="INT-test-LARGER-overfit_conll_dummy", show=False)
 
-    model.save("../checkpoints", model)
+    model.save("./test_models", model)
 
     simple_plot(final_loss=loss, loss_ls=loss_training, epochs=epochs, save=True,
                 lr=lr, prefix=model.model_full_name+"-LAST-test-LARGER-overfit_conll_dummy")

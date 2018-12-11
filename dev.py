@@ -51,11 +51,11 @@ if train_run:
 
     verbose = 5
     model = LexNormalizer(generator=Generator, char_embedding_dim=5, voc_size=V,
-                          hidden_size_encoder=11,
+                          hidden_size_encoder=11,output_dim=10,
                           hidden_size_decoder=11, verbose=verbose)
     nbatches = 5
 
-    batchIter = data_gen_conllu(test_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary,
+    batchIter = data_gen_conllu(test_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary,normalization=True,
                                 batch_size=2, nbatch=nbatches, print_raw=True, verbose=verbose)
 
     printing("Starting training", verbose=verbose, verbose_level=0)
@@ -64,7 +64,7 @@ if train_run:
     printing("END training loss is {} ".format(loss), verbose=verbose, verbose_level=0)
     #print("input seq {} \n  input mask {} \n  output seq {} \n output mask {} \n ".format(batch.input_seq,batch.input_seq_mask, batch.output_seq, batch.output_mask ))
 
-predict_run = True
+predict_run = False
 
 if predict_run:
 
@@ -91,7 +91,7 @@ if predict_run:
     #1782
     #cd05
 
-    model = LexNormalizer(generator=Generator, load=True, model_full_name="84d7", dir_model="./checkpoints",
+    model = LexNormalizer(generator=Generator, load=True, model_full_name="07d2", dir_model="./test/test_models",
                           verbose=verbose)
     batch_size = 10
     nbatch = 1

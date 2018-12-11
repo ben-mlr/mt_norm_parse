@@ -9,6 +9,7 @@ import torch
 
 from .constants import UNK_ID, DIGIT_RE
 
+
 def construct_word_embedding_table(word_dim, word_dictionary, word_embed, random_init=False):
   scale = np.sqrt(3.0 / word_dim)
   table = np.empty([word_dictionary.size(), word_dim], dtype=np.float32)
@@ -25,6 +26,7 @@ def construct_word_embedding_table(word_dim, word_dictionary, word_embed, random
     table[index, :] = embedding
   print('word OOV: %d/%d' % (oov, word_dictionary.size()))
   return torch.from_numpy(table)
+
 
 def load_word_embeddings(path, dry_run, content_arr, useful_words=None):
   if not useful_words:
@@ -59,6 +61,7 @@ def load_word_embeddings(path, dry_run, content_arr, useful_words=None):
   pbar.close()
   return embed_dict, embed_dim
 
+
 def getWordsToBeLoaded(content_arr):
   words = {}
   for file in content_arr:
@@ -77,6 +80,8 @@ def getWordsToBeLoaded(content_arr):
             words[word.lower()] = True
   return words
 
+
+
 def getOOVWords(word_dictionary, test_path):
   oov_words = {}
   with codecs.open(test_path, 'r', 'utf-8', errors='ignore') as f:
@@ -93,6 +98,7 @@ def getOOVWords(word_dictionary, test_path):
           if word_dictionary.get_index(cand_word)==0:
             oov_words[cand_word] = True
   return oov_words
+
 
 class Sentence(object):
   def __init__(self, words, word_ids, char_seqs, char_id_seqs, lines, char_norm_seq=None, char_norm_ids_seq=None):

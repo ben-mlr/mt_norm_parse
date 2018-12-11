@@ -1,2 +1,6 @@
 model/__pycache__*
-
+__pycache__/
+test/test_logs/
+test/test_models/
+.idea
+.data
