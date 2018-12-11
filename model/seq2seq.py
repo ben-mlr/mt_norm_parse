@@ -223,17 +223,19 @@ class LexNormalizer(nn.Module):
         return output
 
     @staticmethod
-    def save(dir, model, verbose=0):
+    def save(dir, model, suffix_name="",verbose=0):
         "saving model as and arguments as json "
         assert os.path.isdir(dir), " ERROR : dir {} does not exist".format(dir)
-        checkpoint_dir = os.path.join(dir, model.model_full_name + "-" + "checkpoint.pt")
+        checkpoint_dir = os.path.join(dir, model.model_full_name + "-"+ suffix_name + "-" + "checkpoint.pt")
         arguments_dir = os.path.join(dir,  model.model_full_name + "-" + "args.json")
         assert not os.path.isfile(checkpoint_dir), "Don't want to overwrite {} ".format(checkpoint_dir)
-        assert not os.path.isfile(arguments_dir), "Don't want to overwrite {} ".format(arguments_dir)
+        #assert not os.path.isfile(arguments_dir), "Don't want to overwrite {} ".format(arguments_dir)
+        if os.path.isfile(arguments_dir):
+            print("Arguments files already exists")
         torch.save(model.state_dict(), checkpoint_dir)
-        print(model.arguments)
+        printing(model.arguments, verbose=verbose, verbose_level=1)
         json.dump(model.arguments, open(arguments_dir, "w"))
-        printing("Saving model weights and arguments as {}  and {} ".format(checkpoint_dir, arguments_dir),verbose, verbose_level=0)
+        printing("Saving model weights and arguments as {}  and {} ".format(checkpoint_dir, arguments_dir), verbose, verbose_level=0)
         return dir, model.model_full_name
 
     @staticmethod
@@ -243,7 +245,7 @@ class LexNormalizer(nn.Module):
         args_dir = os.path.join(dir, args)
         args_checkpoint = os.path.join(dir, checkpoint)
         assert os.path.isfile(args_dir), "ERROR {} does not exits".format(args_dir)
-        assert os.path.isfile(args_checkpoint) , "ERROR {} does not exits".format(args_checkpoint)
+        assert os.path.isfile(args_checkpoint), "ERROR {} does not exits".format(args_checkpoint)
         args = json.load(open(args_dir,"r"))
         return args, args_checkpoint
 

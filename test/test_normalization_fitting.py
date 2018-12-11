@@ -8,6 +8,7 @@ from training.epoch_train import run_epoch
 from model.loss import LossCompute
 from tracking.plot_loss import simple_plot
 import torch
+import os
 from tqdm import tqdm
 import pdb
 from io_.info_print import disable_tqdm_level, printing
@@ -23,9 +24,10 @@ if __name__ == "__main__":
     normalization = True
     loss_training = []
     verbose = 1
-    epochs = 100
+    epochs = 60
     batch_size = 20
     print_raw = False
+    checkpointing = True
     nbatch = 20
     lr = 0.001
     add_start_char = 1
@@ -47,6 +49,13 @@ if __name__ == "__main__":
     model = LexNormalizer(generator=Generator, char_embedding_dim=20, voc_size=V, hidden_size_encoder=50, output_dim=50,
                           hidden_size_decoder=50, verbose=verbose)
     adam = torch.optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.98), eps=1e-9)
+    loss_former = 1000
+    checkpointing_freq = 10
+
+    if checkpointing:
+        model_dir = os.path.join("../checkpoints","{}-folder".format(model.model_full_name))
+        os.mkdir(model_dir)
+        printing("Dir {} created".format(model_dir), verbose=verbose, verbose_level=0)
 
     for epoch in tqdm(range(epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
 
@@ -75,7 +84,6 @@ if __name__ == "__main__":
                          log_every_x_batch=100)
         #except ZeroDivisionError as e:
         #    print("ERROR {} e for epoch {} ".format(e,epoch))
-
         loss_training.append(loss)
 
         printing("Final Loss epoch {} ".format(loss), verbose=verbose, verbose_level=1)
@@ -83,6 +91,15 @@ if __name__ == "__main__":
         simple_plot(final_loss=loss, loss_ls=loss_training, epochs=epoch, save=True,
                     verbose=verbose, verbose_level=1,
                     lr=lr, prefix="INT-test-LARGER-normalization_test", show=False)
+        if loss < loss_former and checkpointing and epoch%checkpointing_freq == 0 :
+            model.save(model_dir,model,suffix_name="{}ep-outof{}ep".format(epoch, epochs),verbose=verbose)
+            loss_former = loss
+        elif checkpointing:
+            # TODO : load former checkpoint : and do change loss append
+            #
+            pass
+
+
 
     model.save("./test_models", model)
 
