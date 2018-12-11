@@ -13,7 +13,8 @@ torch.manual_seed(123)
 from torch.autograd import Variable
 
 
-def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict, dry_run, vocab_trim=False, add_start_char=0):
+def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
+                dry_run, vocab_trim=False, add_start_char=0):
   """
   Given train, dev, test treebanks and a word embedding matrix :
   - basic mode : create key_value instanes for each CHAR, WORD, U|X-POS , Relation with special cases for Roots, Padding and End symbols
@@ -179,7 +180,6 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
         data[bucket_id].append([sent.word_ids, sent.char_id_seqs, sent.char_norm_ids_seq, inst.pos_ids, inst.heads, inst.type_ids, counter, sent.words, sent.raw_lines, inst.xpos_ids])
         max_char_len = max([len(char_seq) for char_seq in sent.char_seqs])
         if normalization:
-          pdb.set_trace()
           max_char_norm_len = max([len(char_norm_seq) for char_norm_seq in sent.char_norm_ids_seq])
         # defining maximum characters lengh per bucket both for noralization and
         if max_char_length[bucket_id] < max_char_len :
@@ -224,7 +224,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       data_variable.append((1, 1))
       continue
     bucket_length = _buckets[bucket_id]
-    char_length = min(MAX_CHAR_LENGTH, max_char_length[bucket_id] + NUM_CHAR_PAD)
+    char_length = min(MAX_CHAR_LENGTH+NUM_CHAR_PAD, max_char_length[bucket_id] + NUM_CHAR_PAD+add_end_char)
     wid_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)
     cid_inputs = np.empty([bucket_size, bucket_length, char_length], dtype=np.int64)
     pid_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)
@@ -233,7 +233,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
     tid_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)
 
     if normalization:
-      char_norm_length = min(MAX_CHAR_LENGTH, max_char_norm_length[bucket_id] + NUM_CHAR_PAD)
+      char_norm_length = min(MAX_CHAR_LENGTH+NUM_CHAR_PAD, max_char_norm_length[bucket_id] + NUM_CHAR_PAD+add_end_char)
       cids_norm = np.empty([bucket_size, bucket_length, char_norm_length], dtype=np.int64)
 
     masks_inputs = np.zeros([bucket_size, bucket_length], dtype=np.float32)
@@ -256,14 +256,12 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       wid_inputs[i, :inst_size] = wids
       wid_inputs[i, inst_size:] = PAD_ID_WORD
 
-      shift = 0
+      shift, shift_end = 0, 0
 
       if add_start_char:
         shift += 1
       if add_end_char:
-        shift_end = 1
-      else:
-        shift_end = 0
+        shift_end += 1
 
       for c, cids in enumerate(cid_seqs):
         if add_start_char:
@@ -271,10 +269,12 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
         cid_inputs[i, c, shift:len(cids)+shift] = cids
         if add_end_char:
           cid_inputs[i, c, len(cids)+shift+shift_end] = CHAR_END_ID
-        cid_inputs[i, c, shift+len(cids)+shift_end:] = PAD_ID_CHAR
+        cid_inputs[i, c, shift+len(cids)+2*shift_end:] = PAD_ID_CHAR
+
       cid_inputs[i, inst_size:, :] = PAD_ID_CHAR
-      pdb.set_trace()
+
       # TODO should factorize character sequence numpysation
+
       if normalization:
         for c, cids in enumerate(cid_norm_seqs):
           if add_start_char:
@@ -282,7 +282,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
           cids_norm[i, c, shift:len(cids)+shift] = cids
           if add_end_char:
             cids_norm[i, c, len(cids)+shift+shift_end] = CHAR_END_ID
-          cids_norm[i, c, shift+len(cids)+shift_end:] = PAD_ID_CHAR
+          cids_norm[i, c, len(cids)+shift+2*shift_end:] = PAD_ID_CHAR
         cids_norm[i, inst_size:, :] = PAD_ID_CHAR
       # pos ids
       pid_inputs[i, :inst_size] = pids
@@ -371,7 +371,6 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None, normaliza
     words = words * (ones - single[index] * noise)
   if normalization:
     chars_norm = chars_norm[index]
-  print("CHAR NORM", chars_norm)
 
   return words, chars[index], chars_norm, pos[index], xpos[index], heads[index], types[index], masks[index], lengths[index], order_inputs[index]
 

@@ -97,7 +97,7 @@ class CharDecoder(nn.Module):
         # TODO DEAL WITH MASKING (padding and prediction oriented ?)
         printing("TARGET size {} ".format(output.size()), verbose=self.verbose, verbose_level=3)
         printing("TARGET data {} ".format(output), verbose=self.verbose, verbose_level=5)
-        printing("TARGET mask data {} mask {} ".format(output_mask,output_mask.size()), verbose=self.verbose, verbose_level=6)
+        printing("TARGET mask data {} mask {} ".format(output_mask, output_mask.size()), verbose=self.verbose,verbose_level=6)
         printing("TARGET  : Word  length  {}  ".format(output_word_len), self.verbose, verbose_level=5)
 
         if DEV and DEV_2:

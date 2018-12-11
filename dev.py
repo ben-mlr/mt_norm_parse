@@ -7,7 +7,7 @@ from io_.batch_generator import MaskBatch
 #sys.path.insert(0,"/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/ELMoLex_sosweet/")
 from io_.dat import conllu_data
 from io_.info_print import print_char_seq
-from training.train import run_epoch
+from training.epoch_train import run_epoch
 from model.loss import LossCompute
 from torch.autograd import Variable
 from model.sequence_prediction import greedy_decode, decode_seq_begins_with, decode_interacively
@@ -21,41 +21,40 @@ from io_.from_array_to_text import output_text
 
 pdb.set_trace = lambda: 1
 
-# verbose typology :
-## 0 is only starting , end with final loss
-## 1 includes 0 + epoch-wise information : loss, + info about the epochs
-## 2 includes 0 + 1 + batch wise information like loss êr batch + summary info on each batch
-## 3 includes 0 + 1 + 2 + dimensions information of each tensors of the input, output the model, the loss
-## 4 : add masking info + packed_sequence info
-## 5 : printint data
+
 dict_path = "./dictionaries/"
 train_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/en-ud-train.conllu"
 dev_pat = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/owoputi.integrated"
 test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
 
-train_run = False
+train_run = True
 
 if train_run:
+    add_start_char = 1
+    verbose = 5
+    nbatches = 10
+
 
     word_dictionary, char_dictionary, pos_dictionary, \
     xpos_dictionary, type_dictionary = conllu_data.create_dict(dict_path=dict_path,
-                                                               train_path=train_path,
-                                                               dev_path=dev_pat,
+                                                               train_path=test_path,
+                                                               dev_path=test_path,
                                                                test_path=test_path,
                                                                word_embed_dict={},
                                                                dry_run=False,
+                                                               add_start_char=add_start_char,
                                                                vocab_trim=True)
 
-    V = len(char_dictionary.instance2index)
+    V = len(char_dictionary.instance2index)+1
     print("Character vocabulary is {} length".format(V))
 
-    verbose = 5
     model = LexNormalizer(generator=Generator, char_embedding_dim=5, voc_size=V,
-                          hidden_size_encoder=11,output_dim=10,
+                          hidden_size_encoder=11, output_dim=10,
                           hidden_size_decoder=11, verbose=verbose)
-    nbatches = 5
 
-    batchIter = data_gen_conllu(test_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary,normalization=True,
+    batchIter = data_gen_conllu(test_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary,
+                                normalization=True,
+                                add_start_char=add_start_char, add_end_char=0,
                                 batch_size=2, nbatch=nbatches, print_raw=True, verbose=verbose)
 
     printing("Starting training", verbose=verbose, verbose_level=0)
@@ -129,22 +128,3 @@ if predict_run:
 
 
 
-# TODO :
-# 1 add WORD ERROR RATE + CHARACTER ERROR RATE + EDIT DISTANCE RATE comparison with gold
-# 2 evaluate on reproduction
-# 3 quick experiments on lexnorm on predicting NormPar + LexNorm + Owuputi + EWT: Norm=
-# TODO : when you do packed sequence you do teacher force : add inference-like training
-# TODO : add stop symbol in the data + at decoding time
-# TODO : add quick training report
-
-# TODO :
-# then build code to play with the model (write a noisy code --> gives you the prediction)
-# plug tensorboard
-
-
-
-# ressources : https://bastings.github.io/annotated_encoder_decoder/
-#              https://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html
-
-# NB : batch_size is in data_gen_conllu relates to the collu format setence level !!
-## NB you can't have batch_size == 1 WHY ??

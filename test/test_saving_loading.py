@@ -2,7 +2,7 @@ from model.seq2seq import LexNormalizer, Generator
 import torch.nn as nn
 import os
 import torch
-from training.train import run_epoch
+from training.epoch_train import run_epoch
 from io_.data_iterator import data_gen_dummy
 from model.loss import LossCompute
 from tqdm import tqdm

@@ -50,9 +50,10 @@ class MaskBatch(object):
                 self.output_seq_y = self.output_seq_y[perm_idx, :]
             else:
                 # TODO should be able to handle batch_size == 1 but is not
-                output_seq_len, perm_idx  = self.output_seq_len, torch.zeros([1],dtype=torch.long)
-
+                output_seq_len, perm_idx  = self.output_seq_len, torch.zeros([1],dtype=torch.eq_len)
             printing("BATCH : TARGET before packed true {} ".format(self.output_seq_y),verbose, verbose_level=5)
+            printing("BATCH : output seq len {} ".format(output_seq_len),verbose, verbose_level=5)
+
             self.output_seq_y = pack_padded_sequence(self.output_seq_y, output_seq_len.squeeze().cpu().numpy(),
                                                      batch_first=True)
 

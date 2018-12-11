@@ -9,8 +9,6 @@ from tqdm import tqdm
 from io_.dat import conllu_data
 from io_.info_print import printing, print_char_seq, disable_tqdm_level
 
-pdb.set_trace = lambda: 1
-
 
 def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
                     xpos_dictionary, type_dictionary, batch_size, nbatch,
@@ -24,28 +22,44 @@ def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
                                              use_gpu=0, symbolic_root=symbolic_root, symbolic_end=symbolic_end, dry_run=0, lattice=False,verbose=verbose,
                                              normalization=normalization,
                                              add_start_char=add_start_char, add_end_char=add_end_char)
+
     for ibatch in tqdm(range(1, nbatch+1), disable=disable_tqdm_level(verbose, verbose_level=2)):
         # word, char, pos, xpos, heads, types, masks, lengths, morph
         printing("Data : getting {} out of {} batches".format(ibatch, nbatch+1), verbose, verbose_level=2)
         word, char, chars_norm,_, _, _, _, _, lenght, _ = conllu_data.get_batch_variable(data, batch_size=batch_size,
-                                                                                      normalization=normalization,
-                                                                                      unk_replace=0)
+                                                                                         normalization=normalization,
+                                                                                         unk_replace=0)
+        if min(lenght.data) < 3:
+            continue
         assert min(lenght.data) > 0, "ERROR : min(lenght.data) is {} ".format(min(lenght.data))
 
+        # TODO : you want to correct that : you're missing word !!
+        #for sent_ind in range(char.size(1)):
         for word_ind in range(min(lenght.data)):
-
+            word_ind = 0
             sent_len = min(lenght.data)
             word_len = char.size(2)
             if normalization:
                 printing("Normalized sequence {} ".format(chars_norm), verbose=verbose, verbose_level=5)
             printing("Char {} word ind : word : {}  ".format(word_ind, char[:, word_ind, :]), verbose=verbose,
                      verbose_level=5)
-            to_print = [" ".join([char_dictionary.get_instance(char[batch, word_ind, char_i]) for char_i in range(word_len)]) + " / " for batch in range(char.size(0))]
-            to_print_word = [word_dictionary.get_instance(word[batch, word_ind]) + " " for batch in range(char.size(0))]
+            character_display = [" ".join([char_dictionary.get_instance(char[batch, word_ind, char_i]) for char_i in range(word_len)]) + " / " for batch in range(char.size(0))]
+
+            character_norm_display = [" ".join([char_dictionary.get_instance(chars_norm[batch, word_ind, char_i])
+                                                for char_i in range(word_len)]) + " / " for batch in range(char.size(0))] \
+                                                if normalization else ""
+            word_display = [word_dictionary.get_instance(word[batch, word_ind]) + " " for batch in range(char.size(0))]
             _verbose = 5 if print_raw else verbose
-            printing("Feeding characters {} ".format(to_print), verbose=_verbose, verbose_level=5)
-            printing("Feeding words {} ".format(to_print_word), verbose=_verbose, verbose_level=5)
-            yield MaskBatch(char[:, word_ind, :], char[:, word_ind, :], pad=padding, verbose=verbose)
+            printing("Feeding source characters {} target characters {}  "
+                     "(NB : the character vocabulary is the same at input and output)".format(character_display,
+                                                                                              character_norm_display ),
+                     verbose=_verbose, verbose_level=5)
+            printing("Feeding source words {} ".format(word_display), verbose=_verbose, verbose_level=5)
+            if not normalization:
+                chars_norm = char.clone()
+                printing("Normalisation is False : model is a autoencoder ", verbose=_verbose, verbose_level=5)
+
+            yield MaskBatch(char[:, word_ind, :], chars_norm[:, word_ind, :], pad=padding, verbose=verbose)
 
 
 
@@ -92,13 +106,14 @@ if __name__=="__main__":
         dict_path = "../dictionaries/"
 
         test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo2"
+        #pdb.set_trace = lambda: 1
 
-        verbose = 5
+        verbose = 1
         batch_size = 2
-        nbatch = 1
+        nbatch = 2
         add_start_char = 1
         add_end_char = 0
-        normalization = False
+        normalization = True
         word_dictionary, char_dictionary, pos_dictionary,\
         xpos_dictionary, type_dictionary = conllu_data.create_dict(dict_path=dict_path,
                                                                    train_path=test_path,
@@ -112,34 +127,8 @@ if __name__=="__main__":
                                     add_start_char=add_start_char,
                                     symbolic_root=False, symbolic_end=False,
                                     batch_size=batch_size,
-                                    print_raw=True, normalization=True,
+                                    print_raw=False, normalization=normalization,
                                     add_end_char=add_end_char,
                                     nbatch=nbatch, verbose=verbose)
         for i, batch in enumerate(batchIter):
-            print(batch)
-
-
-
-#TODO : unknown replace ?
-
-
-# # RECALL :
-# # the data_gen_conllu originally generates batch of sentences :
-            #  the batch_size provided corresponds of batch of sentences
-# # if the batch_size of sentences if greater than the number of sentences available in the data
-            #  --> it will fall on the length og the current bucket : for instance :
-            #  2 if only two sentences in the bucket (5 word in the sentnce)
-
-
-# DEAL WITH data_iterator :
-## - size probelem
-## then get it as correct matrix array in numpy
-## then use it in the batch iterator
-## then fit model !!
-
-
-# ABOUT SYMBOLIC ROOT + END
-# - For character level : if you don't encode character sequence
-# at the sentence level but only at the word level :
-# then you don't need the symbolic ROOT/END for the sentence within characters
-# Pb : with symbolic END if normalization
+            print("Batch {} ".format(i))

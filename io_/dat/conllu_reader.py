@@ -89,7 +89,8 @@ class CoNLLReader(object):
         continue
       if len(tokens)<10:
         sys.stderr.write("Sentence broken for unkwown reasons \n".format(lines))
-        open("/scratch/bemuller/parsing/sosweet/processing/logs/catching_errors.txt", "a").write("Line broken {} because of tokens {} from {} file \n ".format(lines, tokens,self.__file_path))
+        open("/scratch/bemuller/parsing/sosweet/processing/logs/catching_errors.txt", "a").write("Line broken {} because of tokens "
+                                                                                                 "{} from {} file \n ".format(lines, tokens,self.__file_path))
         continue
 
       if normalization:
@@ -129,7 +130,7 @@ class CoNLLReader(object):
         char_ids = char_ids[:MAX_CHAR_LENGTH]
       char_seqs.append(chars)
       char_id_seqs.append(char_ids)
-      pdb.set_trace()
+      #pdb.set_trace()
 
       #sys.stderr.write("CHAR FILLED \n")
 
