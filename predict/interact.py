@@ -1,7 +1,7 @@
 from model.sequence_prediction import greedy_decode_batch, decode_seq_str, decode_interacively
 import pdb
 from model.loss import LossCompute
-
+import os
 from io_.info_print import printing
 from model.seq2seq import LexNormalizer, Generator
 import torch.nn as nn
@@ -39,8 +39,10 @@ verbose = 2
 #3b87
 #1782
 #cd05
+print(__file__)
+script_dir = os.path.dirname(os.path.realpath(__file__))
 
-model = LexNormalizer(generator=Generator, load=True, model_full_name="7fd2", dir_model="../test/test_models",
+model = LexNormalizer(generator=Generator, load=True, model_full_name="6437", dir_model=os.path.join(script_dir,"..","checkpoints"),
                       verbose=verbose)
 batch_size = 2
 nbatch = 50
@@ -55,7 +57,7 @@ V = model.arguments["voc_size"]
 hidden_size_decoder = model.arguments["hidden_size_decoder"]
 model.eval()
 
-batch_decoding, sequence_decoding, interactive_mode = True, False, False
+batch_decoding, sequence_decoding, interactive_mode = False, False, True
 
 #loss = run_epoch(batchIter, model, LossCompute(model.generator, verbose=verbose),
 #                     i_epoch=0, n_epochs=1,
@@ -63,7 +65,7 @@ batch_decoding, sequence_decoding, interactive_mode = True, False, False
 #                     log_every_x_batch=100)
 #print("LOSS", loss)
 if batch_decoding:
-    greedy_decode_batch(char_dictionary=char_dictionary, verbose=2, gold_output=True,evaluate_metric="mean",
+    greedy_decode_batch(char_dictionary=char_dictionary, verbose=2, gold_output=True,evaluation_metric="mean",
                                batchIter=batchIter, model=model, batch_size=batch_size)
 
 if sequence_decoding:

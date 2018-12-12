@@ -3,8 +3,10 @@
 ## Description
 
 1- Code
-
-- Word level  Evaluation metric
+- push to rioc and make it gpu compatible
+- experiments and measure on reproduction
+- add smart checkpointing
+- add validation loss
 - switch to sentence level and add context
 
 
@@ -18,8 +20,8 @@
 
 ### Dev todo
 
-1 add WORD ERROR RATE + CHARACTER ERROR RATE + EDIT DISTANCE RATE comparison with gold
-2 evaluate on reproduction
+1 evaluate on reproduction
+2
 3 quick experiments on lexnorm on predicting NormPar + LexNorm + Owuputi + EWT: Norm=
 TODO : when you do packed sequence you do teacher force : add inference-like training
 TODO : add stop symbol in the data + at decoding time

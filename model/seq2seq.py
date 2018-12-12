@@ -4,13 +4,17 @@ import json
 from uuid import uuid4
 import pdb
 import torch.nn.functional as F
+import git
 import torch
 from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 from io_.info_print import printing
-
+from toolbox.git_related import get_commit_id
+from toolbox.sanity_check import sanity_check_info_checkpoint
 DEV = True
 DEV_2 = True
 DEV_3 = False
+
+TEMPLATE_INFO_CHECKPOINT = {"n_epochs": 0, "batch_size": None, "train_data_path": None, "dev_data_path": None, "other": None, "git_id": None}
 
 
 class CharEncoder(nn.Module):
@@ -176,20 +180,37 @@ class LexNormalizer(nn.Module):
                      "generated id {} and label {} ".format(model_full_name,
                                                             model_id_pref,
                                                             model_id, model_name), verbose=verbose, verbose_level=0)
+            # defined at save time
+            checkpoint_dir = ""
+            self.args_dir = None
+            git_commit_id = get_commit_id()
+            self.arguments = {"checkpoint_dir": checkpoint_dir,
+                              "info_checkpoint": {"n_epochs": 0, "batch_size": None, "train_data_path": None, "dev_data_path": None, "other": None,
+                                                  "git_id": git_commit_id},
+                              "hyperparameters": {"char_embedding_dim": char_embedding_dim,
+                                                  "hidden_size_encoder": hidden_size_encoder,
+                                                  "hidden_size_decoder": hidden_size_decoder,
+                                                  "voc_size": voc_size, "output_dim": output_dim
+                                                 }
+                            }
+
         else:
             printing("Loading existing model {} from {} ".format(model_full_name, dir_model), verbose=verbose, verbose_level=0)
             assert char_embedding_dim is None and hidden_size_encoder is None and hidden_size_decoder is None and voc_size is None and output_dim is None
             assert model_full_name is not None
-            args, checkpoint_dir = self.load(dir_model, model_full_name, verbose=verbose)
+            args, checkpoint_dir, args_dir = self.load(dir_model, model_full_name, verbose=verbose)
+            self.arguments = args
+            args = args["hyperparameters"]
             char_embedding_dim, hidden_size_encoder, \
             hidden_size_decoder, voc_size, output_dim = args["char_embedding_dim"], args["hidden_size_encoder"], \
                                                         args["hidden_size_decoder"], args["voc_size"], args.get("output_dim")
+            self.args_dir = args_dir
+
 
         self.model_full_name = model_full_name
 
         #TODO : add projection of hidden_encoder for getting more flexibility
-        self.arguments = {"char_embedding_dim": char_embedding_dim, "hidden_size_encoder": hidden_size_encoder,
-                          "hidden_size_decoder": hidden_size_decoder, "voc_size": voc_size,"output_dim": output_dim}
+
         printing("Model arguments are {} ".format(self.arguments), verbose, verbose_level=0)
         # 1 share character embedding layer
         self.char_embedding = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
@@ -222,16 +243,29 @@ class LexNormalizer(nn.Module):
         printing("DECODER full  output sequence encoded of {}  ".format(output), verbose=self.verbose, verbose_level=5)
         return output
 
+
     @staticmethod
-    def save(dir, model, suffix_name="",verbose=0):
+    def save(dir, model, info_checkpoint,
+             suffix_name="",verbose=0):
         "saving model as and arguments as json "
+        sanity_check_info_checkpoint(info_checkpoint, template=TEMPLATE_INFO_CHECKPOINT)
         assert os.path.isdir(dir), " ERROR : dir {} does not exist".format(dir)
         checkpoint_dir = os.path.join(dir, model.model_full_name + "-"+ suffix_name + "-" + "checkpoint.pt")
+        # we update the checkpoint_dir
+        model.arguments["info_checkpoint"] = info_checkpoint
+        model.arguments["info_checkpoint"]["git_id"] = get_commit_id()
+        model.arguments["checkpoint_dir"] = checkpoint_dir
+
+        # the arguments dir does not change !
         arguments_dir = os.path.join(dir,  model.model_full_name + "-" + "args.json")
+        model.args_dir = arguments_dir
         assert not os.path.isfile(checkpoint_dir), "Don't want to overwrite {} ".format(checkpoint_dir)
         #assert not os.path.isfile(arguments_dir), "Don't want to overwrite {} ".format(arguments_dir)
         if os.path.isfile(arguments_dir):
-            print("Arguments files already exists")
+            printing("Overwriting argument file (checkpoint dir updated with {}  ) ".format(checkpoint_dir),
+                     verbose=verbose, verbose_level=0)
+        printing("Checkpoint info are now {} ".format(model.arguments["info_checkpoint"]),
+                     verbose=verbose, verbose_level=1)
         torch.save(model.state_dict(), checkpoint_dir)
         printing(model.arguments, verbose=verbose, verbose_level=1)
         json.dump(model.arguments, open(arguments_dir, "w"))
@@ -241,13 +275,14 @@ class LexNormalizer(nn.Module):
     @staticmethod
     def load(dir, model_full_name, verbose=0):
         args = model_full_name+"-args.json"
-        checkpoint = model_full_name+"-checkpoint.pt"
-        args_dir = os.path.join(dir, args)
-        args_checkpoint = os.path.join(dir, checkpoint)
+        args_dir = os.path.join(dir, model_full_name+"-folder", args)
+        #args_checkpoint = os.path.join(dir, checkpoint)
         assert os.path.isfile(args_dir), "ERROR {} does not exits".format(args_dir)
+        args = json.load(open(args_dir, "r"))
+        args_checkpoint = args["checkpoint_dir"] #model_full_name+"-checkpoint.pt"
         assert os.path.isfile(args_checkpoint), "ERROR {} does not exits".format(args_checkpoint)
-        args = json.load(open(args_dir,"r"))
-        return args, args_checkpoint
+
+        return args, args_checkpoint, args_dir
 
 
 class Generator(nn.Module):

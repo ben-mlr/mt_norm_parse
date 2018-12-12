@@ -119,14 +119,12 @@ def decode_seq_str(seq_string, dictionary, model, generator, char_dictionary, pa
         char_seq = Variable(torch.from_numpy(np.array([sequence_characters, sequence_characters])), requires_grad=False)
         char_mask = Variable(torch.from_numpy(np.array([masks,masks])), requires_grad=False)
         char_len = Variable(torch.from_numpy(np.array([[min(max_len, len(seq_string))],[min(max_len, len(seq_string))]])))
-        print(char_len)
         batch_size = 2
         text_decoded, src_text, target = decode_sequence(model=model, char_dictionary=char_dictionary,
                                                          max_len=max_len,batch_size=batch_size,
                                                          src_seq=char_seq, src_len=char_len,
                                                          src_mask=char_mask,single_sequence=True,
                                                          pad=pad, verbose=verbose)
-        print(text_decoded, src_text)
         print("DECODED text is : {} ".format(text_decoded))
 
 

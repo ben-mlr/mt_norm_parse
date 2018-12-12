@@ -91,8 +91,10 @@ if __name__ == "__main__":
         simple_plot(final_loss=loss, loss_ls=loss_training, epochs=epoch, save=True,
                     verbose=verbose, verbose_level=1,
                     lr=lr, prefix="INT-test-LARGER-normalization_test", show=False)
+
+
         if loss < loss_former and checkpointing and epoch%checkpointing_freq == 0 :
-            model.save(model_dir,model,suffix_name="{}ep-outof{}ep".format(epoch, epochs),verbose=verbose)
+            model.save(model_dir, model, suffix_name="{}ep-outof{}ep".format(epoch, epochs), verbose=verbose)
             loss_former = loss
         elif checkpointing:
             # TODO : load former checkpoint : and do change loss append
