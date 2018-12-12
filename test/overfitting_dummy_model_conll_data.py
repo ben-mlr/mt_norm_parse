@@ -23,7 +23,8 @@ test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/l
 if __name__ == "__main__":
 
     pdb.set_trace = lambda: 1
-    checkpointing = False
+    checkpointing = True
+    freq_checkpoint = 2
     loss_training = []
     loss_developing = []
     verbose = 1
@@ -90,7 +91,8 @@ if __name__ == "__main__":
         loss_developing.append(loss_dev)
 
         # WARNING : only saving if we decrease not loading former model if we relaod
-        model, _loss_dev = checkpoint(loss_former=_loss_dev, loss=loss_dev, model=model, model_dir=model_dir,
+        if checkpointing and epoch%freq_checkpoint==0:
+            model, _loss_dev = checkpoint(loss_former=_loss_dev, loss=loss_dev, model=model, model_dir=model_dir,
                                       info_checkpoint={"n_epochs": epochs, "batch_size": batch_size, "train_data_path": train_path, "dev_data_path": dev_path},
                                       epoch=epoch, epochs=epochs,verbose=verbose)
 
