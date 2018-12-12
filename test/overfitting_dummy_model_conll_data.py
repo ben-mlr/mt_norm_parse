@@ -28,10 +28,10 @@ if __name__ == "__main__":
     loss_training = []
     loss_developing = []
     verbose = 1
-    epochs = 10
-    batch_size = 20
+    epochs = 3
+    batch_size = 2
     print_raw = False
-    nbatch = 50
+    nbatch = 2
     lr = 0.001
     add_start_char = 0
     add_end_char = 0
