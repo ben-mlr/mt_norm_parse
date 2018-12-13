@@ -14,6 +14,7 @@
 - end symbol to add
 - I think there is a bug in your score metric if you have unknown characters
 - edit distance : what to do if empty string ?
+- add checkpoint full dir in the report !! in case of retrainig...
 2- Experiments
 
 ## Bag of TODOs
@@ -21,7 +22,6 @@
 ### Dev todo
 
 1 evaluate on reproduction
-2
 3 quick experiments on lexnorm on predicting NormPar + LexNorm + Owuputi + EWT: Norm=
 TODO : when you do packed sequence you do teacher force : add inference-like training
 TODO : add stop symbol in the data + at decoding time

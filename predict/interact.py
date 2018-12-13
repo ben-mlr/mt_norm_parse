@@ -25,8 +25,8 @@ add_start_char = 1
 word_dictionary, char_dictionary, pos_dictionary,\
 xpos_dictionary, type_dictionary = \
         conllu_data.create_dict(dict_path=dict_path,
-                                train_path=test_path,
-                                dev_path=test_path,
+                                train_path=train_path,
+                                dev_path=dev_pat,
                                 test_path=None,
                                 add_start_char=add_start_char,
                                 word_embed_dict={},
@@ -39,10 +39,9 @@ verbose = 2
 #3b87
 #1782
 #cd05
-print(__file__)
 script_dir = os.path.dirname(os.path.realpath(__file__))
 
-model = LexNormalizer(generator=Generator, load=True, model_full_name="6437", dir_model=os.path.join(script_dir,"..","checkpoints"),
+model = LexNormalizer(generator=Generator, load=True, model_full_name="auto_encoder_TEST_93a3", dir_model=os.path.join(script_dir,"..","checkpoints"),
                       verbose=verbose)
 batch_size = 2
 nbatch = 50
@@ -53,8 +52,8 @@ batchIter = data_gen_conllu("/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsin
                             normalization=normalization,
                             print_raw=True,  verbose=verbose)
 
-V = model.arguments["voc_size"]
-hidden_size_decoder = model.arguments["hidden_size_decoder"]
+V = model.arguments["hyperparameters"]["voc_size"]
+hidden_size_decoder = model.arguments["hyperparameters"]["hidden_size_decoder"]
 model.eval()
 
 batch_decoding, sequence_decoding, interactive_mode = False, False, True

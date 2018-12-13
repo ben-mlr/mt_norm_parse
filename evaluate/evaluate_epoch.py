@@ -13,17 +13,17 @@ from reporting.write_to_performance_repo import report_template, write_dic
 
 dict_path = "../dictionaries/"
 train_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/en-ud-train.conllu"
-dev_pat = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/owoputi.integrated"
+dev_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/owoputi.integrated"
 test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
 
 normalization = False
-add_start_char = 1
+add_start_char = 0
 
 word_dictionary, char_dictionary, pos_dictionary,\
 xpos_dictionary, type_dictionary = \
         conllu_data.create_dict(dict_path=dict_path,
-                                train_path=test_path,
-                                dev_path=test_path,
+                                train_path=train_path,
+                                dev_path=dev_path,
                                 test_path=None,
                                 add_start_char=add_start_char,
                                 word_embed_dict={},
@@ -32,20 +32,20 @@ xpos_dictionary, type_dictionary = \
 
 verbose = 2
 _dir = os.path.dirname(os.path.realpath(__file__))
-model = LexNormalizer(generator=Generator, load=True, model_full_name="auto_encoder_TEST_e528",#"6437",
+model = LexNormalizer(generator=Generator, load=True, model_full_name="auto_encoder_TEST_93a3",#"6437",
                       dir_model=os.path.join(_dir, "..", "checkpoints"),
                       verbose=verbose)
-batch_size = 2
-nbatch = 1
+batch_size = 10
+nbatch = 60
 verbose = 2
-data_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo2"
+#data_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo"
+data_path = train_path
 batchIter = data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
                             type_dictionary, batch_size=batch_size, nbatch=nbatch, add_start_char=add_start_char,
                             add_end_char=0,
                             normalization=normalization,
                             print_raw=True,  verbose=verbose)
 
-V = model.arguments["hyperparameters"]["voc_size"]
 model.eval()
 
 batch_decoding = True
@@ -65,18 +65,18 @@ if batch_decoding:
     try:
         for score in score_to_compute_ls:
             print("MODEL Normalization {} score is {} in average out of {} tokens on {} batches evaluation based on {} "
-                  .format(score,score_dic[score]/score_dic[score+"total_tokens"], score_dic[score+"total_tokens"], nbatch, data_path ))
+                  .format(score,score_dic[score]/score_dic[score+"total_tokens"], score_dic[score+"total_tokens"], nbatch, data_path))
     except ZeroDivisionError as e:
         print("ERROR catched {} ".format(e))
 
     for score in score_to_compute_ls:
         report = report_template(metric_val=score, info_score_val="None", score_val=score_dic[score],
                                  model_full_name_val=model.model_full_name,
-                                 report_path_val=os.path.dirname(os.path.realpath(__file__)),
+                                 report_path_val=model.arguments["checkpoint_dir"],
                                  evaluation_script_val="normalization_"+score,
                                  model_args_dir=model.args_dir,
                                  data_val=test_path)
-        dir_report = os.path.join("..", "checkpoints", model.model_full_name+"-folder",model.model_full_name+"-"+score+"-report.json")
+        dir_report = os.path.join("..", "checkpoints", model.model_full_name+"-folder",model.model_full_name+"-"+score+"-report-2.json")
         json.dump(report, open(dir_report, "w"))
         print(score, report)
 

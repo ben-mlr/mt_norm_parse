@@ -14,7 +14,8 @@ DEV = True
 DEV_2 = True
 DEV_3 = False
 
-TEMPLATE_INFO_CHECKPOINT = {"n_epochs": 0, "batch_size": None, "train_data_path": None, "dev_data_path": None, "other": None, "git_id": None}
+TEMPLATE_INFO_CHECKPOINT = {"n_epochs": 0, "batch_size": None, "train_data_path": None, "dev_data_path": None,
+                            "other": None, "git_id": None}
 
 
 class CharEncoder(nn.Module):
@@ -185,27 +186,33 @@ class LexNormalizer(nn.Module):
             self.args_dir = None
             git_commit_id = get_commit_id()
             self.arguments = {"checkpoint_dir": checkpoint_dir,
-                              "info_checkpoint": {"n_epochs": 0, "batch_size": None, "train_data_path": None, "dev_data_path": None, "other": None,
+                              "info_checkpoint": {"n_epochs": 0, "batch_size": None, "train_data_path": None,
+                                                  "dev_data_path": None, "other": None,
                                                   "git_id": git_commit_id},
                               "hyperparameters": {"char_embedding_dim": char_embedding_dim,
                                                   "hidden_size_encoder": hidden_size_encoder,
                                                   "hidden_size_decoder": hidden_size_decoder,
                                                   "voc_size": voc_size, "output_dim": output_dim
                                                  }
-                            }
+                              }
 
         else:
+            assert model_full_name is not None and dir_model is not None, "ERROR  model_full_name is {} and dir_model {}  ".format(model_full_name, dir_model)
             printing("Loading existing model {} from {} ".format(model_full_name, dir_model), verbose=verbose, verbose_level=0)
-            assert char_embedding_dim is None and hidden_size_encoder is None and hidden_size_decoder is None and voc_size is None and output_dim is None
-            assert model_full_name is not None
+            assert char_embedding_dim is None and hidden_size_encoder is None and hidden_size_decoder is None and output_dim is None
+
             args, checkpoint_dir, args_dir = self.load(dir_model, model_full_name, verbose=verbose)
             self.arguments = args
             args = args["hyperparameters"]
+            # -1 because when is passed for checking it accounts for the unkwnown which is
+            # actually not appear in the dictionary
+            assert args["voc_size"] == voc_size-1, "ERROR : voc_size loaded and voc_size " \
+                                                 "redefined in dictionnaries do not " \
+                                                 "match {} vs {} ".format(args["voc_size"], voc_size)
             char_embedding_dim, hidden_size_encoder, \
             hidden_size_decoder, voc_size, output_dim = args["char_embedding_dim"], args["hidden_size_encoder"], \
                                                         args["hidden_size_decoder"], args["voc_size"], args.get("output_dim")
             self.args_dir = args_dir
-
 
         self.model_full_name = model_full_name
 
