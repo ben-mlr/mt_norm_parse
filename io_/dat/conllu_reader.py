@@ -6,9 +6,11 @@ from io_.info_print import printing
 import re
 import pdb
 
+
 class CoNLLReader(object):
 
-  def __init__(self, file_path, word_dictionary, char_dictionary, pos_dictionary, type_dictionary, xpos_dictionary, lemma_dictionary):
+  def __init__(self, file_path, word_dictionary, char_dictionary, pos_dictionary, type_dictionary, xpos_dictionary,
+               lemma_dictionary):
     self.__source_file = codecs.open(file_path, 'r', 'utf-8', errors='ignore')
     self.__file_path = file_path
     self.__word_dictionary = word_dictionary
@@ -125,6 +127,7 @@ class CoNLLReader(object):
       for char in tokens[1]:
         chars.append(char)
         char_ids.append(self.__char_dictionary.get_index(char))
+      # we cut the characters in regard to the GENERAL MAX_CHAR_LENGTH (not bucket specific)
       if len(chars) > MAX_CHAR_LENGTH:
         chars = chars[:MAX_CHAR_LENGTH]
         char_ids = char_ids[:MAX_CHAR_LENGTH]

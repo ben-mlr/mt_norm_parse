@@ -152,7 +152,8 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
               max_size=None,
               normalize_digits=True,
               normalization=False,
-              symbolic_root=False, symbolic_end=False, dry_run=False, verbose=0):
+              symbolic_root=False, symbolic_end=False, dry_run=False,
+              verbose=0):
   """
   Given vocabularies , data_file :
   - creates a  list of bucket
@@ -178,10 +179,12 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
     for bucket_id, bucket_size in enumerate(_buckets):
       if inst_size < bucket_size or bucket_id == last_bucket_id:
         data[bucket_id].append([sent.word_ids, sent.char_id_seqs, sent.char_norm_ids_seq, inst.pos_ids, inst.heads, inst.type_ids, counter, sent.words, sent.raw_lines, inst.xpos_ids])
+        #
         max_char_len = max([len(char_seq) for char_seq in sent.char_seqs])
         if normalization:
           max_char_norm_len = max([len(char_norm_seq) for char_norm_seq in sent.char_norm_ids_seq])
         # defining maximum characters lengh per bucket both for noralization and
+        # we define a max_char_len per bucket !
         if max_char_length[bucket_id] < max_char_len :
           max_char_length[bucket_id] = max_char_len
         if normalization:
@@ -195,7 +198,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
 
   reader.close()
 
-  return data, {"max_char_length":max_char_length, "max_char_norm_length": max_char_norm_length}, _buckets
+  return data, {"max_char_length": max_char_length, "max_char_norm_length": max_char_norm_length}, _buckets
 
 
 def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
@@ -218,13 +221,14 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
 
   ss = [0] * len(_buckets)
   ss1 = [0] * len(_buckets)
+
   for bucket_id in range(len(_buckets)):
     bucket_size = bucket_sizes[bucket_id]
     if bucket_size == 0:
       data_variable.append((1, 1))
       continue
     bucket_length = _buckets[bucket_id]
-    char_length = min(MAX_CHAR_LENGTH+NUM_CHAR_PAD, max_char_length[bucket_id] + NUM_CHAR_PAD+add_end_char)
+    char_length = min(MAX_CHAR_LENGTH+NUM_CHAR_PAD, max_char_length[bucket_id] + NUM_CHAR_PAD)
     wid_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)
     cid_inputs = np.empty([bucket_size, bucket_length, char_length], dtype=np.int64)
     pid_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)
@@ -233,7 +237,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
     tid_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)
 
     if normalization:
-      char_norm_length = min(MAX_CHAR_LENGTH+NUM_CHAR_PAD, max_char_norm_length[bucket_id] + NUM_CHAR_PAD+add_end_char)
+      char_norm_length = min(MAX_CHAR_LENGTH+NUM_CHAR_PAD, max_char_norm_length[bucket_id] + NUM_CHAR_PAD)
       cids_norm = np.empty([bucket_size, bucket_length, char_norm_length], dtype=np.int64)
 
     masks_inputs = np.zeros([bucket_size, bucket_length], dtype=np.float32)
@@ -263,13 +267,15 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       if add_end_char:
         shift_end += 1
 
-      for c, cids in enumerate(cid_seqs):
+      for w, cids in enumerate(cid_seqs):
         if add_start_char:
-          cid_inputs[i, c, 0] = CHAR_START_ID
-        cid_inputs[i, c, shift:len(cids)+shift] = cids
+          cid_inputs[i, w, 0] = CHAR_START_ID
+
+        cid_inputs[i, w, shift:len(cids)+shift] = cids
+
         if add_end_char:
-          cid_inputs[i, c, len(cids)+shift+shift_end] = CHAR_END_ID
-        cid_inputs[i, c, shift+len(cids)+2*shift_end:] = PAD_ID_CHAR
+          cid_inputs[i, w, len(cids)+shift] = CHAR_END_ID
+        cid_inputs[i, w, shift+len(cids)+shift_end:] = PAD_ID_CHAR
 
       cid_inputs[i, inst_size:, :] = PAD_ID_CHAR
 
@@ -281,8 +287,9 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
             cids_norm[i, c, 0] = CHAR_START_ID
           cids_norm[i, c, shift:len(cids)+shift] = cids
           if add_end_char:
-            cids_norm[i, c, len(cids)+shift+shift_end] = CHAR_END_ID
-          cids_norm[i, c, len(cids)+shift+2*shift_end:] = PAD_ID_CHAR
+            cids_norm[i, c, len(cids)+shift] = CHAR_END_ID
+          #we want room to padd it
+          cids_norm[i, c, len(cids)+shift+shift_end:] = PAD_ID_CHAR
         cids_norm[i, inst_size:, :] = PAD_ID_CHAR
       # pos ids
       pid_inputs[i, :inst_size] = pids
@@ -336,7 +343,8 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
   return data_variable, bucket_sizes, _buckets
 
 
-def get_batch_variable(data, batch_size, unk_replace=0., lattice=None, normalization=False,):
+def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
+                       normalization=False,):
   """
   Given read_data_to_variable() get a random batch
   """
@@ -359,7 +367,7 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None, normaliza
 
   batch_size = min(bucket_size, batch_size)
   index = torch.randperm(bucket_size).long()[:batch_size]
-  if words.is_cuda:
+  if words.is_cuda :
     index = index.cuda()
 
   words = words[index]
@@ -369,10 +377,11 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None, normaliza
     ones = Variable(single.data.new(batch_size, bucket_length).fill_(1))
     noise = Variable(masks.data.new(batch_size, bucket_length).bernoulli_(unk_replace).long())
     words = words * (ones - single[index] * noise)
-  if normalization:
+  if normalization :
     chars_norm = chars_norm[index]
 
   return words, chars[index], chars_norm, pos[index], xpos[index], heads[index], types[index], masks[index], lengths[index], order_inputs[index]
+  #return words, chars, chars_norm, pos, xpos, heads, types, masks, lengths, order_inputs
 
 
 def iterate_batch_variable(data, batch_size, unk_replace=0., lattice=None, normalization=False):

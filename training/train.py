@@ -15,7 +15,8 @@ PROJECT_PATH = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/mt_norm_parse"
 def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=10,
           hidden_size_encoder=None, output_dim=None, char_embedding_dim=None, hidden_size_decoder=None,
           checkpointing=True, freq_checkpointing=None, model_dir=None,
-          reload=False, model_full_name=None, model_id_pref="", add_start_char=1,
+          reload=False, model_full_name=None, model_id_pref="",
+          add_start_char=1, add_end_char=1,
           debug=False,
           verbose=1):
 
@@ -34,7 +35,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
     print_raw = False
     nbatch = 30
     lr = 0.001
-    add_end_char = 0
 
     printing("WARNING : n_batch {} lr {} and add_end_char {} are hardcoded ".format(nbatch, lr, add_end_char), verbose=verbose, verbose_level=0)
 

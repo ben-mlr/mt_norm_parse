@@ -26,10 +26,11 @@ def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
     for ibatch in tqdm(range(1, nbatch+1), disable=disable_tqdm_level(verbose, verbose_level=2)):
         # word, char, pos, xpos, heads, types, masks, lengths, morph
         printing("Data : getting {} out of {} batches".format(ibatch, nbatch+1), verbose, verbose_level=2)
-        word, char, chars_norm,_, _, _, _, _, lenght, _ = conllu_data.get_batch_variable(data, batch_size=batch_size,
-                                                                                         normalization=normalization,
-                                                                                         unk_replace=0)
+        word, char, chars_norm, _, _, _, _, _, lenght, _ = conllu_data.get_batch_variable(data, batch_size=batch_size,
+                                                                                          normalization=normalization,
+                                                                                          unk_replace=0)
         if min(lenght.data) < 3:
+            print("MIN length.data ")
             continue
         assert min(lenght.data) > 0, "ERROR : min(lenght.data) is {} ".format(min(lenght.data))
 
@@ -40,7 +41,7 @@ def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
         sent_len = min(lenght.data)
         word_len = char.size(2)
         if normalization:
-            printing("Normalized sequence {} ".format(chars_norm), verbose=verbose, verbose_level=5)
+            printing("Normalized sequence {} ".format(chars_norm[:, word_ind, :]), verbose=verbose, verbose_level=5)
         printing("Char {} word ind : word : {}  ".format(word_ind, char[:, word_ind, :]), verbose=verbose,
                  verbose_level=5)
         character_display = [" ".join([char_dictionary.get_instance(char[batch, word_ind, char_i]) for char_i in range(word_len)]) + " / " for batch in range(char.size(0))]
@@ -106,11 +107,11 @@ if __name__=="__main__":
         test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo2"
         #pdb.set_trace = lambda: 1
 
-        verbose = 1
-        batch_size = 2
-        nbatch = 2
+        verbose = 2
+        batch_size = 10
+        nbatch = 50
         add_start_char = 1
-        add_end_char = 0
+        add_end_char = 1
         normalization = True
         word_dictionary, char_dictionary, pos_dictionary,\
         xpos_dictionary, type_dictionary = conllu_data.create_dict(dict_path=dict_path,

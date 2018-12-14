@@ -6,6 +6,7 @@ from io_.info_print import printing, VERBOSE_1_LOG_EVERY_x_BATCH
 
 def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
               n_epochs=None, n_batches=None, empty_run=False,
+
               log_every_x_batch=VERBOSE_1_LOG_EVERY_x_BATCH):
     "Standard Training and Logging Function"
     start = time.time()

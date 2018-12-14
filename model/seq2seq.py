@@ -78,7 +78,7 @@ class CharEncoder(nn.Module):
                  self.verbose, verbose_level=3)
         # TODO : check that usinh packed sequence indded privdes the last state of the sequence (not the end of the padded one ! )
         # + check this dimension ? why are we loosing a dimension
-        return h_n, (perm_idx,input_word_len, _input_word_len)
+        return h_n#, (perm_idx,input_word_len, _input_word_len)
 
 
 class CharDecoder(nn.Module):
@@ -258,11 +258,11 @@ class LexNormalizer(nn.Module):
         # [batch, seq_len ] , batch of sequences of indexes (that corresponds to character 1-hot encoded)
         #char_vecs_input = self.char_embedding(input_seq)
         # [batch, seq_len, input_dim] n batch of sequences of embedded character
-        h, perm = self.encoder.forward(input_seq, input_mask, input_word_len)
+        h = self.encoder.forward(input_seq, input_mask, input_word_len)
         # [] [batch, , hiden_size_decoder]
         #char_vecs_output = self.char_embedding(output_seq)
         h = self.bridge(h)
-        output = self.decoder.forward(output_seq, h, output_mask, output_word_len, perm_encoder=perm)
+        output = self.decoder.forward(output_seq, h, output_mask, output_word_len)
         #
         # output_score = nn.ReLU()(self.output_predictor(h_out))
         # [batch, output_voc_size], one score per output character token
@@ -270,7 +270,7 @@ class LexNormalizer(nn.Module):
         printing("DECODER full  output sequence encoded of size {} ".format(output.size()), verbose=self.verbose,
                  verbose_level=3)
         printing("DECODER full  output sequence encoded of {}  ".format(output), verbose=self.verbose, verbose_level=5)
-        return output, perm
+        return output#, perm
 
 
     @staticmethod
