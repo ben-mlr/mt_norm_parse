@@ -14,7 +14,7 @@ from toolbox.sanity_check import sanity_check_info_checkpoint
 DEV = True
 DEV_2 = True
 DEV_3 = False
-
+DEV_4 = False
 TEMPLATE_INFO_CHECKPOINT = {"n_epochs": 0, "batch_size": None, "train_data_path": None, "dev_data_path": None,
                             "other": None, "git_id": None}
 
@@ -79,6 +79,33 @@ class CharEncoder(nn.Module):
         # TODO : check that usinh packed sequence indded privdes the last state of the sequence (not the end of the padded one ! )
         # + check this dimension ? why are we loosing a dimension
         return h_n#, (perm_idx,input_word_len, _input_word_len)
+
+    def forward_sent(self,input, input_mask, input_word_len=None, verbose=0):
+        # input should be sentence
+        # should we have a loop
+        #sent_hidden is the accumulation of h_n over past and/or future words (it's the context)
+        # h_n is self.forward()
+        #input_word = input[:,x,:]
+        #input_mask_word = input_mask[:,x,:]
+        printing("input size {}  mask  {} size length size {} ".format(input.size(), input_mask.size(), input_word_len.size()),verbose=verbose,verbose_level=0)
+        input = input.view(input.size(0)*input.size(1), input.size(2))
+
+        input_mask = input_mask.view(input.size(0)*input.size(1), input.size(2))
+        input_word_len = input_word_len.view(input.size(0)*input.size(1))
+        printing("input new size {}  mask  {} size length size {} ".format(input.size(), input_mask.size(), input_word_len.size()), verbose=verbose,verbose_level=0)
+        h_w = self.forward(input=input, input_mask=input_mask, input_word_len=input_word_len)
+        # For thte sentence :
+        ##
+        ### reshape the input_word (real one with 4 d and the all sequence ) so that it's [batch_size*sent_length, word_len] padded same for len
+        ### Feed it to the self.forward [batch_size*sent_length, word_len, encoding ]
+        ### reshape to get again [batch_size, sent_len , word_len, encoding_dim]
+        ### SUM on dim = 1  and substract the one of the word you want to encode
+        ### conditioning = CAT(SUM\WORD, WORD)
+
+        # just append sent_hidden to the decoding step # provides source context
+        # then you can do the same on the target side having a conditioning : which is a concatanation of the source token,
+        # the source context and the target context : with attention on each context
+
 
 
 class CharDecoder(nn.Module):
@@ -167,7 +194,9 @@ class CharDecoder(nn.Module):
                      "last hidden hidden for each dir+layers)".format(output.data.shape, h_n.size()), verbose=self.verbose, verbose_level=3)
             output, output_sizes = pad_packed_sequence(output, batch_first=True)
             # reoredring output
+            #_ouptut = output.clone()
             output = output[inverse_perm_idx_output, :, :]
+            #_ouptut =
         # First implementation without accounted for padding
         elif not DEV_3:
             output, h_n = self.seq_decoder(char_vecs, conditioning)
@@ -258,7 +287,10 @@ class LexNormalizer(nn.Module):
         # [batch, seq_len ] , batch of sequences of indexes (that corresponds to character 1-hot encoded)
         #char_vecs_input = self.char_embedding(input_seq)
         # [batch, seq_len, input_dim] n batch of sequences of embedded character
-        h = self.encoder.forward(input_seq, input_mask, input_word_len)
+        if not DEV_4:
+            h = self.encoder.forward(input_seq, input_mask, input_word_len)
+        elif DEV_4:
+            self.encoder.forward_sent(input_seq, input_mask, input_word_len)
         # [] [batch, , hiden_size_decoder]
         #char_vecs_output = self.char_embedding(output_seq)
         h = self.bridge(h)

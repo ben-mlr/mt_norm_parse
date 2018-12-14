@@ -15,7 +15,7 @@ PROJECT_PATH = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/mt_norm_parse"
 def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=10,
           hidden_size_encoder=None, output_dim=None, char_embedding_dim=None, hidden_size_decoder=None,
           checkpointing=True, freq_checkpointing=None, model_dir=None,
-          reload=False, model_full_name=None, model_id_pref="",
+          reload=False, model_full_name=None, model_id_pref="",print_raw=False,
           add_start_char=1, add_end_char=1,
           debug=False,
           verbose=1):
@@ -32,7 +32,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
     loss_training = []
     loss_developing = []
 
-    print_raw = False
     nbatch = 30
     lr = 0.001
 
@@ -67,8 +66,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
 
     starting_epoch = model.arguments["info_checkpoint"]["n_epochs"] if reload else 0
     n_epochs += starting_epoch
-
-    starting_epoch = 0
 
     adam = torch.optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.98), eps=1e-9)
 
@@ -120,7 +117,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
 
         dir_plot = simple_plot(final_loss=loss_train, loss_2=loss_developing,loss_ls=loss_training, epochs=epoch, save=True,
                                verbose=verbose, verbose_level=1,
-                               lr=lr, prefix="INT-test-LARGER-overfit_conll_dummy",
+                               lr=lr, prefix=model.model_full_name,
                                show=False)
 
     model.save(model_dir, model,info_checkpoint={"n_epochs": n_epochs, "batch_size": batch_size,
@@ -130,4 +127,4 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
     #report_model(parameters=True, ,arguments_dic=model.arguments, dir_models_repositories=REPOSITORIES)
 
     simple_plot(final_loss=loss_dev, loss_ls=loss_training, loss_2=loss_developing,epochs=n_epochs, save=True,
-                lr=lr, prefix=model.model_full_name+"-LAST-test-LARGER-overfit_conll_dummy")
+                lr=lr, prefix=model.model_full_name+"-LAST")

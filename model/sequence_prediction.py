@@ -67,17 +67,19 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
     output_len = Variable(torch.from_numpy(np.ones(src_seq.size(0), dtype=np.int64)), requires_grad=False)
     output_mask = Variable(torch.from_numpy(output_mask), requires_grad=False)
     output_seq = Variable(torch.from_numpy(output_seq), requires_grad=False)
+    printing("Data Start source {} {} ".format(src_seq, src_seq.size()), verbose=verbose, verbose_level=6)
     printing("Data Start ".format(output_seq, output_len, output_mask), verbose=verbose, verbose_level=6)
     for step, char_decode in enumerate(range(2,  max_len)):
-        decoding_states, perm = model.forward(input_seq=src_seq,
-                                                output_seq=output_seq,
-                                                input_mask=src_mask,
-                                                input_word_len=src_len, output_mask=output_mask,
-                                                output_word_len=output_len)
+        decoding_states = model.forward(input_seq=src_seq,
+                                        output_seq=output_seq,
+                                        input_mask=src_mask,
+                                        input_word_len=src_len, output_mask=output_mask,
+                                        output_word_len=output_len)
 
         # decoding_states = model.forward(input_seq=src_seq, output_seq=None, input_mask=src_mask,
         # input_word_len=src_len, output_mask=None, output_word_len=None)
         # [batch, seq_len, V]
+        #print("scores", scores, scores.size())
         scores = model.generator.forward(x=decoding_states)
         # each time step predict the most likely
         # len
@@ -119,12 +121,12 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
     return text_decoded, src_text_ls, target_seq_gold_ls
 
 
-def decode_seq_str(seq_string, dictionary, model, generator, char_dictionary, pad=1, max_len=10, verbose=2):
+def decode_seq_str(seq_string, dictionary, model, char_dictionary, pad=1, max_len=10, verbose=2):
     with torch.no_grad():
         _seq_string = ["_START"]
-        printing("WARNING : we added _START symbol and that's it ! ", verbose=verbose, verbose_level=0)
+        printing("WARNING : we added _START symbol and _END_CHAR ! ", verbose=verbose, verbose_level=0)
         _seq_string.extend(list(seq_string))
-        seq_string = _seq_string #+ ["_PAD_CHAR"]#["_END_CHAR"]#["_PAD_CHAR"]
+        seq_string = _seq_string + ["_END_CHAR"] #["_END_CHAR"]#["_PAD_CHAR"]
 
         if len(seq_string) > max_len:
             # cutting to respect dim requirements
@@ -145,7 +147,7 @@ def decode_seq_str(seq_string, dictionary, model, generator, char_dictionary, pa
         print("DECODED text is : {} ".format(text_decoded))
 
 
-def decode_interacively(dictionary, model, generator, char_dictionary,  max_len, verbose,pad=1):
+def decode_interacively(dictionary, model , char_dictionary,  max_len, verbose,pad=1):
 
     while True:
         seq_string = input("Please type what you want to normalize ? to stop type : 'stop'    ")
@@ -154,4 +156,4 @@ def decode_interacively(dictionary, model, generator, char_dictionary,  max_len,
         if seq_string == "stop":
             break
         else:
-            decode_seq_str(seq_string, dictionary, model, generator, char_dictionary, pad, max_len, verbose)
+            decode_seq_str(seq_string, dictionary, model, char_dictionary, pad, max_len, verbose)

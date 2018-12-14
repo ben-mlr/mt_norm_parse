@@ -34,7 +34,7 @@ class MaskBatch(object):
             _output_mask_x = (self.output_seq_x != pad).unsqueeze(-2)
             # Handle long unpadded sequence
             # we force the last token to be masked so that we ensure the argmin computation we'll be correct
-            _output_mask_x[:, :,-1] = 0
+            _output_mask_x[:, : , -1] = 0
             self.output_seq_len = torch.argmin(_output_mask_x, dim=2) #if not bool(_output_mask_x.sum().data == _output_mask_x.size(0)*_output_mask_x.size(2)) else
             self.output_seq_y = output_seq[:, 1:]
             self.output_mask = self.make_mask(self.output_seq_x, pad)
@@ -48,7 +48,7 @@ class MaskBatch(object):
                 self.output_seq_y = self.output_seq_y[perm_idx, :]
             else:
                 # TODO should be able to handle batch_size == 1 but is not
-                output_seq_len, perm_idx  = self.output_seq_len, torch.zeros([1],dtype=torch.eq_len)
+                output_seq_len, perm_idx = self.output_seq_len, torch.zeros([1],dtype=torch.eq_len)
             printing("BATCH : TARGET before packed true {} ".format(self.output_seq_y),verbose, verbose_level=5)
             printing("BATCH : output seq len {} ".format(output_seq_len),verbose, verbose_level=5)
 

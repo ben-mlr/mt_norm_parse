@@ -14,18 +14,19 @@ from io_.dat import conllu_data
 from training.epoch_train import run_epoch
 
 
-dict_path = "../dictionaries/"
+dict_path = "../dictionariesbackup/"
 train_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/en-ud-train.conllu"
 dev_pat = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/owoputi.integrated"
 test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
 
 normalization = True
 add_start_char = 1
+add_end_char = 1
 
 word_dictionary, char_dictionary, pos_dictionary,\
 xpos_dictionary, type_dictionary = \
         conllu_data.create_dict(dict_path=dict_path,
-                                train_path=train_path,
+                                train_path=dev_pat,
                                 dev_path=dev_pat,
                                 test_path=None,
                                 add_start_char=add_start_char,
@@ -41,16 +42,18 @@ verbose = 2
 #cd05
 script_dir = os.path.dirname(os.path.realpath(__file__))
 
-model = LexNormalizer(generator=Generator, load=True, model_full_name="auto_encoder_TEST_93a3", dir_model=os.path.join(script_dir,"..","checkpoints"),
+model = LexNormalizer(generator=Generator,
+                      voc_size=len(char_dictionary.instance2index)+1,
+                      load=True, model_full_name="auto_encoder_TEST_212b", dir_model=os.path.join(script_dir,"..","checkpoints"),
                       verbose=verbose)
 batch_size = 2
-nbatch = 50
+nbatch = 20
 verbose = 2
-batchIter = data_gen_conllu("/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated", word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
-                            type_dictionary, batch_size=batch_size, nbatch=nbatch, add_start_char=add_start_char,
-                            add_end_char=0,
-                            normalization=normalization,
-                            print_raw=True,  verbose=verbose)
+#batchIter = data_gen_conllu(dev_pat,
+#                            word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
+#                            type_dictionary, batch_size=batch_size, nbatch=nbatch, add_start_char=add_start_char,add_end_char=add_end_char,
+#                            normalization=normalization,
+#                            print_raw=True,  verbose=verbose)
 
 V = model.arguments["hyperparameters"]["voc_size"]
 hidden_size_decoder = model.arguments["hyperparameters"]["hidden_size_decoder"]
@@ -69,8 +72,7 @@ if batch_decoding:
 
 if sequence_decoding:
     decode_seq_str(seq_string="eabf", dictionary=char_dictionary, max_len=10, model=model, char_dictionary=char_dictionary,
-                   generator=Generator(hidden_size_decoder=hidden_size_decoder, voc_size=V, verbose=verbose),)
+                )
 if interactive_mode:
     decode_interacively(dictionary=char_dictionary, max_len=10, model=model, char_dictionary=char_dictionary,
-                        generator=Generator(hidden_size_decoder=hidden_size_decoder, voc_size=V, verbose=verbose, output_dim=50),
                         verbose=2)

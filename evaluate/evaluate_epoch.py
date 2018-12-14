@@ -11,19 +11,19 @@ sys.path.insert(0, "/Users/benjaminmuller/Desktop/Work/INRIA/dev/experimental_pi
 from reporting.write_to_performance_repo import report_template, write_dic
 
 
-dict_path = "../dictionaries/"
+dict_path = "../dictionariesbackup/"
 train_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/en-ud-train.conllu"
 dev_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/owoputi.integrated"
-test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
+test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo"
 
 normalization = False
 add_start_char = 1
-
+add_end_char = 1
 word_dictionary, char_dictionary, pos_dictionary,\
 xpos_dictionary, type_dictionary = \
         conllu_data.create_dict(dict_path=dict_path,
-                                train_path=dev_path,
-                                dev_path=dev_path,
+                                train_path=test_path,
+                                dev_path=test_path,
                                 test_path=None,
                                 add_start_char=add_start_char,
                                 word_embed_dict={},
@@ -33,7 +33,7 @@ xpos_dictionary, type_dictionary = \
 verbose = 2
 _dir = os.path.dirname(os.path.realpath(__file__))
 voc_size = len(char_dictionary.instance2index)+1
-model = LexNormalizer(generator=Generator, load=True, model_full_name="auto_encoder_TEST_ffdc",#"6437",
+model = LexNormalizer(generator=Generator, load=True, model_full_name="auto_encoder_TEST_6273",#"6437",
                       voc_size=voc_size,
                       dir_model=os.path.join(_dir, "..", "checkpoints"),
                       verbose=verbose)
@@ -41,10 +41,10 @@ batch_size = 2
 nbatch = 30
 
 #data_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo"
-data_path = dev_path
+data_path = test_path
 batchIter = data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
                             type_dictionary, batch_size=batch_size, nbatch=nbatch, add_start_char=add_start_char,
-                            add_end_char=0,
+                            add_end_char=add_end_char,
                             normalization=normalization,
                             print_raw=True,  verbose=verbose)
 
@@ -72,7 +72,7 @@ if batch_decoding:
         print("ERROR catched {} ".format(e))
 
     for score in score_to_compute_ls:
-        report = report_template(metric_val=score, info_score_val="None", score_val=score_dic[score],
+        report = report_template(metric_val=score, info_score_val="None", score_val=score_dic[score]/score_dic[score+"total_tokens"],
                                  model_full_name_val=model.model_full_name,
                                  report_path_val=model.arguments["checkpoint_dir"],
                                  evaluation_script_val="normalization_"+score,
@@ -80,7 +80,7 @@ if batch_decoding:
                                  data_val=test_path)
         dir_report = os.path.join("..", "checkpoints", model.model_full_name+"-folder",model.model_full_name+"-"+score+"-report-2.json")
         json.dump(report, open(dir_report, "w"))
-        print(score, report)
+        print("Report saved {} ".format(dir_report))
 
         reporting = False
         if reporting:

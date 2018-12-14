@@ -20,7 +20,7 @@ def simple_plot(final_loss, loss_ls, loss_2=None, epochs=None, V=None, seq_len=N
 
     plt.legend(handles=patches)
 
-    dir_fig = os.path.join("/Users/benjaminmuller/Desktop/Work/INRIA/dev/mt_norm_parse/test/test_logs","{}-{}ep-{}V-{}lr-{}seq.png".format(prefix, epochs, V, lr, seq_len))
+    dir_fig = os.path.join("/Users/benjaminmuller/Desktop/Work/INRIA/dev/mt_norm_parse/test/test_logs","{}-{}-plo-seq.png".format(prefix, epochs, V, lr, seq_len))
     if save:
         plt.savefig(dir_fig )
         printing("Loss of the test saved to {} ".format(dir_fig), verbose=verbose, verbose_level=verbose_level)
