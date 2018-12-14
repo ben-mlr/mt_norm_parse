@@ -1,6 +1,7 @@
 import torch.nn as nn
 import os
 import json
+import numpy as np
 from uuid import uuid4
 import pdb
 import torch.nn.functional as F
@@ -20,7 +21,8 @@ TEMPLATE_INFO_CHECKPOINT = {"n_epochs": 0, "batch_size": None, "train_data_path"
 
 class CharEncoder(nn.Module):
 
-    def __init__(self, char_embedding, input_dim, hidden_size_encoder, verbose=2):
+    def __init__(self, char_embedding, input_dim, hidden_size_encoder,
+                 verbose=2):
         super(CharEncoder, self).__init__()
 
         self.char_embedding_ = char_embedding
@@ -40,10 +42,15 @@ class CharEncoder(nn.Module):
         if DEV:
             printing("SOURCE Word lenght size {} ".format(input_word_len.size()), self.verbose, verbose_level=5)
             printing("SOURCE : Word  length  {}  ".format(input_word_len), self.verbose, verbose_level=3)
+            _input_word_len = input_word_len.clone()
             input_word_len, perm_idx = input_word_len.squeeze().sort(0, descending=True)
             # reordering by sequence len
             # [batch, seq_len]
+            _inp = input.clone()
             input = input[perm_idx, :]
+            inverse_perm_idx = torch.from_numpy(np.argsort(perm_idx.numpy()))
+            assert torch.equal(input[inverse_perm_idx,:], _inp), " ERROR : two tensors should be equal but are not "
+
         # [batch, max seq_len, dim char embedding]
         char_vecs = self.char_embedding_(input)
 
@@ -61,24 +68,29 @@ class CharEncoder(nn.Module):
                      self.verbose, verbose_level=3)
             output, _ = pad_packed_sequence(output, batch_first=True)
             # useless a we only use h_n as oupput !
+            output = output[inverse_perm_idx, :]
+            h_n = h_n[:, inverse_perm_idx, :]
         else:
             output, h_n = self.seq_encoder(char_vecs)
+
         printing("SOURCE ENCODED UNPACKED {}  , hidden {}  (output (includes all the "
                  "hidden states of last layers), last hidden hidden for each dir+layers)".format(output.data.shape, h_n.size()),
                  self.verbose, verbose_level=3)
         # TODO : check that usinh packed sequence indded privdes the last state of the sequence (not the end of the padded one ! )
         # + check this dimension ? why are we loosing a dimension
-        return h_n
+        return h_n, (perm_idx,input_word_len, _input_word_len)
 
 
 class CharDecoder(nn.Module):
-    def __init__(self, char_embedding, input_dim, hidden_size_decoder, verbose=0):
+    def __init__(self, char_embedding, input_dim, hidden_size_decoder,
+                        verbose=0):
         super(CharDecoder, self).__init__()
         self.char_embedding_decoder = char_embedding
         self.seq_decoder = nn.GRU(input_size=input_dim, hidden_size=hidden_size_decoder,
                                   num_layers=1, #nonlinearity='tanh',
                                   bias=True, batch_first=True, bidirectional=False)
         self.verbose = verbose
+
         #self.pre_output_layer = nn.Linear(hidden_size_decoder,, bias=False)
 
     def forward_step(self, hidden, prev_embed):
@@ -98,16 +110,20 @@ class CharDecoder(nn.Module):
 
         return output, hidden, output
 
-    def forward(self, output, conditioning, output_mask, output_word_len):
+    def forward(self, output, conditioning, output_mask, output_word_len, perm_encoder=None):
         # TODO DEAL WITH MASKING (padding and prediction oriented ?)
         printing("TARGET size {} ".format(output.size()), verbose=self.verbose, verbose_level=3)
         printing("TARGET data {} ".format(output), verbose=self.verbose, verbose_level=5)
-        printing("TARGET mask data {} mask {} ".format(output_mask, output_mask.size()), verbose=self.verbose,verbose_level=6)
+        printing("TARGET mask data {} mask {} ".format(output_mask, output_mask.size()), verbose=self.verbose,
+                 verbose_level=6)
         printing("TARGET  : Word  length  {}  ".format(output_word_len), self.verbose, verbose_level=5)
 
         if DEV and DEV_2:
             output_word_len, perm_idx_output = output_word_len.squeeze().sort(0, descending=True)
             output = output[perm_idx_output, :]
+            inverse_perm_idx_output = torch.from_numpy(np.argsort(perm_idx_output.numpy()))
+
+            #print("WARNING : REORDERED {} len {} ENCODER SIDE {}  ".format(perm_idx_output, output_word_len, perm_encoder))
 
         char_vecs = self.char_embedding_decoder(output)
 
@@ -116,7 +132,9 @@ class CharDecoder(nn.Module):
 
         max_len = output_word_len.max().data
         pre_output_vectors = []
-        #  UNROLLING BY HAND
+        # ordering the conditioning as the target sequence
+        conditioning = conditioning[:, perm_idx_output, :]
+        #  UNROLLING BY HAN
         if DEV_3:
             # NB 1 : I think it is needed for
             # having a target side contextual attention layer on the source but that packed sequence
@@ -148,6 +166,8 @@ class CharDecoder(nn.Module):
             printing("TARGET ENCODED  SIZE {} output {} h_n (output (includes all the hidden states of last layers), "
                      "last hidden hidden for each dir+layers)".format(output.data.shape, h_n.size()), verbose=self.verbose, verbose_level=3)
             output, output_sizes = pad_packed_sequence(output, batch_first=True)
+            # reoredring output
+            output = output[inverse_perm_idx_output, :, :]
         # First implementation without accounted for padding
         elif not DEV_3:
             output, h_n = self.seq_decoder(char_vecs, conditioning)
@@ -160,7 +180,8 @@ class CharDecoder(nn.Module):
                  "  the hidden states of last layers),"
                  "last hidden hidden for each dir+layers)".format(output.size(), h_n.size()),
                  verbose=self.verbose, verbose_level=3)
-        return output, h_n
+
+        return output #, h_n
 
 
 class LexNormalizer(nn.Module):
@@ -197,7 +218,8 @@ class LexNormalizer(nn.Module):
                               }
 
         else:
-            assert model_full_name is not None and dir_model is not None, "ERROR  model_full_name is {} and dir_model {}  ".format(model_full_name, dir_model)
+            assert model_full_name is not None and dir_model is not None, \
+                "ERROR  model_full_name is {} and dir_model {}  ".format(model_full_name, dir_model)
             printing("Loading existing model {} from {} ".format(model_full_name, dir_model), verbose=verbose, verbose_level=0)
             assert char_embedding_dim is None and hidden_size_encoder is None and hidden_size_decoder is None and output_dim is None
 
@@ -206,7 +228,7 @@ class LexNormalizer(nn.Module):
             args = args["hyperparameters"]
             # -1 because when is passed for checking it accounts for the unkwnown which is
             # actually not appear in the dictionary
-            assert args["voc_size"] == voc_size-1, "ERROR : voc_size loaded and voc_size " \
+            assert args["voc_size"] == voc_size, "ERROR : voc_size loaded and voc_size " \
                                                  "redefined in dictionnaries do not " \
                                                  "match {} vs {} ".format(args["voc_size"], voc_size)
             char_embedding_dim, hidden_size_encoder, \
@@ -236,19 +258,19 @@ class LexNormalizer(nn.Module):
         # [batch, seq_len ] , batch of sequences of indexes (that corresponds to character 1-hot encoded)
         #char_vecs_input = self.char_embedding(input_seq)
         # [batch, seq_len, input_dim] n batch of sequences of embedded character
-        h = self.encoder.forward(input_seq, input_mask, input_word_len)
+        h, perm = self.encoder.forward(input_seq, input_mask, input_word_len)
         # [] [batch, , hiden_size_decoder]
         #char_vecs_output = self.char_embedding(output_seq)
         h = self.bridge(h)
-        output, h_n = self.decoder.forward(output_seq, h, output_mask, output_word_len)
-
+        output = self.decoder.forward(output_seq, h, output_mask, output_word_len, perm_encoder=perm)
+        #
         # output_score = nn.ReLU()(self.output_predictor(h_out))
         # [batch, output_voc_size], one score per output character token
         # return output
         printing("DECODER full  output sequence encoded of size {} ".format(output.size()), verbose=self.verbose,
                  verbose_level=3)
         printing("DECODER full  output sequence encoded of {}  ".format(output), verbose=self.verbose, verbose_level=5)
-        return output
+        return output, perm
 
 
     @staticmethod
@@ -312,5 +334,3 @@ class Generator(nn.Module):
         if self.verbose >= 5:
             print("PROJECTION data {} ".format(proj))
         return proj
-
-

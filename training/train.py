@@ -32,7 +32,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
     loss_developing = []
 
     print_raw = False
-    nbatch = 60
+    nbatch = 30
     lr = 0.001
     add_end_char = 0
 

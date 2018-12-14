@@ -17,12 +17,12 @@ dev_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/ow
 test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
 
 normalization = False
-add_start_char = 0
+add_start_char = 1
 
 word_dictionary, char_dictionary, pos_dictionary,\
 xpos_dictionary, type_dictionary = \
         conllu_data.create_dict(dict_path=dict_path,
-                                train_path=train_path,
+                                train_path=dev_path,
                                 dev_path=dev_path,
                                 test_path=None,
                                 add_start_char=add_start_char,
@@ -32,14 +32,16 @@ xpos_dictionary, type_dictionary = \
 
 verbose = 2
 _dir = os.path.dirname(os.path.realpath(__file__))
-model = LexNormalizer(generator=Generator, load=True, model_full_name="auto_encoder_TEST_93a3",#"6437",
+voc_size = len(char_dictionary.instance2index)+1
+model = LexNormalizer(generator=Generator, load=True, model_full_name="auto_encoder_TEST_ffdc",#"6437",
+                      voc_size=voc_size,
                       dir_model=os.path.join(_dir, "..", "checkpoints"),
                       verbose=verbose)
-batch_size = 10
-nbatch = 60
-verbose = 2
+batch_size = 2
+nbatch = 30
+
 #data_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo"
-data_path = train_path
+data_path = dev_path
 batchIter = data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
                             type_dictionary, batch_size=batch_size, nbatch=nbatch, add_start_char=add_start_char,
                             add_end_char=0,

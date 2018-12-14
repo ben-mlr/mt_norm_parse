@@ -27,8 +27,6 @@ class MaskBatch(object):
         self.input_seq_len = torch.argmin(_input_seq_mask, dim=2)
         printing("BATCH : SOURCE true dim {} ".format(self.input_seq.size()),verbose, verbose_level=3)
         printing("BATCH : SOURCE input_seq_len  {} ".format(self.input_seq_len),verbose, verbose_level=5)
-
-
         self.output_seq = output_seq
         if output_seq is not None:
 
