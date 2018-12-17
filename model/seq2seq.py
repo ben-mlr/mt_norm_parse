@@ -38,7 +38,7 @@ class CharEncoder(nn.Module):
 
         printing("SOURCE dim {} ".format(input.size()), self.verbose, verbose_level=3)
         printing("SOURCE DATA {} ".format(input), self.verbose, verbose_level=5)
-        printing("SOURCE DATA mask {} ".format(input_mask), self.verbose, verbose_level=6)
+        #printing("SOURCE DATA mask {} ".format(input_mask), self.verbose, verbose_level=6)
         if DEV:
             printing("SOURCE Word lenght size {} ".format(input_word_len.size()), self.verbose, verbose_level=5)
             printing("SOURCE : Word  length  {}  ".format(input_word_len), self.verbose, verbose_level=3)
@@ -49,11 +49,10 @@ class CharEncoder(nn.Module):
             _inp = input.clone()
             input = input[perm_idx, :]
             inverse_perm_idx = torch.from_numpy(np.argsort(perm_idx.numpy()))
-            assert torch.equal(input[inverse_perm_idx,:], _inp), " ERROR : two tensors should be equal but are not "
+            assert torch.equal(input[inverse_perm_idx, :], _inp), " ERROR : two tensors should be equal but are not "
 
         # [batch, max seq_len, dim char embedding]
         char_vecs = self.char_embedding_(input)
-
         printing("SOURCE embedding dim {} ".format(char_vecs.size()), self.verbose, verbose_level=3)
         if DEV:
             printing("SOURCE  word lengths after  {} dim".format(input_word_len.size()), self.verbose, verbose_level=4)
@@ -78,9 +77,9 @@ class CharEncoder(nn.Module):
                  self.verbose, verbose_level=3)
         # TODO : check that usinh packed sequence indded privdes the last state of the sequence (not the end of the padded one ! )
         # + check this dimension ? why are we loosing a dimension
-        return h_n#, (perm_idx,input_word_len, _input_word_len)
+        return h_n #, (perm_idx,input_word_len, _input_word_len)
 
-    def forward_sent(self,input, input_mask, input_word_len=None, verbose=0):
+    def forward_sent(self, input, input_mask, input_word_len=None, verbose=0):
         # input should be sentence
         # should we have a loop
         #sent_hidden is the accumulation of h_n over past and/or future words (it's the context)
@@ -105,7 +104,6 @@ class CharEncoder(nn.Module):
         # just append sent_hidden to the decoding step # provides source context
         # then you can do the same on the target side having a conditioning : which is a concatanation of the source token,
         # the source context and the target context : with attention on each context
-
 
 
 class CharDecoder(nn.Module):
@@ -243,8 +241,7 @@ class LexNormalizer(nn.Module):
                                                   "hidden_size_encoder": hidden_size_encoder,
                                                   "hidden_size_decoder": hidden_size_decoder,
                                                   "voc_size": voc_size, "output_dim": output_dim
-                                                 }
-                              }
+                                                 }}
 
         else:
             assert model_full_name is not None and dir_model is not None, \
@@ -266,8 +263,6 @@ class LexNormalizer(nn.Module):
             self.args_dir = args_dir
 
         self.model_full_name = model_full_name
-
-        #TODO : add projection of hidden_encoder for getting more flexibility
 
         printing("Model arguments are {} ".format(self.arguments), verbose, verbose_level=0)
         # 1 share character embedding layer
@@ -320,7 +315,8 @@ class LexNormalizer(nn.Module):
         # the arguments dir does not change !
         arguments_dir = os.path.join(dir,  model.model_full_name + "-" + "args.json")
         model.args_dir = arguments_dir
-        assert not os.path.isfile(checkpoint_dir), "Don't want to overwrite {} ".format(checkpoint_dir)
+        printing("Warning : overwriting checkpoint {} ".format(checkpoint_dir), verbose=verbose, verbose_level=0)
+        #assert not os.path.isfile(checkpoint_dir), "Don't want to overwrite {} ".format(checkpoint_dir)
         #assert not os.path.isfile(arguments_dir), "Don't want to overwrite {} ".format(arguments_dir)
         if os.path.isfile(arguments_dir):
             printing("Overwriting argument file (checkpoint dir updated with {}  ) ".format(checkpoint_dir),

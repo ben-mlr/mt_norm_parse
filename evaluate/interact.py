@@ -17,17 +17,17 @@ from training.epoch_train import run_epoch
 dict_path = "../dictionariesbackup/"
 train_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/en-ud-train.conllu"
 dev_pat = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/owoputi.integrated"
-test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
+test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo"
 
-normalization = True
+normalization = False
 add_start_char = 1
 add_end_char = 1
 
 word_dictionary, char_dictionary, pos_dictionary,\
 xpos_dictionary, type_dictionary = \
         conllu_data.create_dict(dict_path=dict_path,
-                                train_path=dev_pat,
-                                dev_path=dev_pat,
+                                train_path=test_path,
+                                dev_path=test_path,
                                 test_path=None,
                                 add_start_char=add_start_char,
                                 word_embed_dict={},
@@ -41,10 +41,9 @@ verbose = 2
 #1782
 #cd05
 script_dir = os.path.dirname(os.path.realpath(__file__))
-
 model = LexNormalizer(generator=Generator,
                       voc_size=len(char_dictionary.instance2index)+1,
-                      load=True, model_full_name="auto_encoder_TEST_212b", dir_model=os.path.join(script_dir,"..","checkpoints"),
+                      load=True, model_full_name="normalizer_small_c6e7", dir_model=os.path.join(script_dir,"..","checkpoints"),
                       verbose=verbose)
 batch_size = 2
 nbatch = 20
@@ -74,5 +73,5 @@ if sequence_decoding:
     decode_seq_str(seq_string="eabf", dictionary=char_dictionary, max_len=10, model=model, char_dictionary=char_dictionary,
                 )
 if interactive_mode:
-    decode_interacively(dictionary=char_dictionary, max_len=10, model=model, char_dictionary=char_dictionary,
+    decode_interacively(dictionary=char_dictionary, max_len=20, model=model, char_dictionary=char_dictionary,
                         verbose=2)

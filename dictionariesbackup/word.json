@@ -1,15 +1,15 @@
 {
-    "singletions": [],
-    "instance2index": {
-        "_ROOT": 2,
-        "_END": 3,
-        "_PAD": 1,
-        ":)": 4
-    },
     "instances": [
         "_PAD",
         "_ROOT",
         "_END",
         ":)"
-    ]
+    ],
+    "singletions": [],
+    "instance2index": {
+        "_END": 3,
+        "_PAD": 1,
+        "_ROOT": 2,
+        ":)": 4
+    }
 }

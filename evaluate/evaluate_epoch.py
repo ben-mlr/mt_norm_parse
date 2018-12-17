@@ -16,7 +16,7 @@ train_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/
 dev_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/owoputi.integrated"
 test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo"
 
-normalization = False
+normalization = True
 add_start_char = 1
 add_end_char = 1
 word_dictionary, char_dictionary, pos_dictionary,\
@@ -33,15 +33,19 @@ xpos_dictionary, type_dictionary = \
 verbose = 2
 _dir = os.path.dirname(os.path.realpath(__file__))
 voc_size = len(char_dictionary.instance2index)+1
-model = LexNormalizer(generator=Generator, load=True, model_full_name="auto_encoder_TEST_6273",#"6437",
+
+# NORMALIZATION DEMO auto_encoder_TEST_70b7
+# autoencoder demo auto_encoder_TEST_f7ab
+# NORMALIZATION BIG : auto_encoder_TEST_21ac
+model = LexNormalizer(generator=Generator, load=True, model_full_name="normalizer_small_c6e7",#"6437",
                       voc_size=voc_size,
                       dir_model=os.path.join(_dir, "..", "checkpoints"),
                       verbose=verbose)
 batch_size = 2
 nbatch = 30
 
-#data_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo"
-data_path = test_path
+data_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
+#data_path = dev_path
 batchIter = data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
                             type_dictionary, batch_size=batch_size, nbatch=nbatch, add_start_char=add_start_char,
                             add_end_char=add_end_char,
@@ -57,12 +61,14 @@ batch_decoding = True
 #                     verbose=verbose,
 #                     log_every_x_batch=100)
 #print("LOSS", loss)
+
 if batch_decoding:
     score_to_compute_ls = ["edit", "exact"]
     score_dic = greedy_decode_batch(char_dictionary=char_dictionary, verbose=2, gold_output=True,
                                     score_to_compute_ls=score_to_compute_ls,
-                                    evaluation_metric="mean",
+                                    stat="sum",
                                     batchIter=batchIter, model=model, batch_size=batch_size)
+    print("-->", score_dic)
     # NB : each batch should have the same size !! same number of words : otherwise averaging is wrong
     try:
         for score in score_to_compute_ls:
@@ -74,11 +80,13 @@ if batch_decoding:
     for score in score_to_compute_ls:
         report = report_template(metric_val=score, info_score_val="None", score_val=score_dic[score]/score_dic[score+"total_tokens"],
                                  model_full_name_val=model.model_full_name,
+                                 task="normalization",
                                  report_path_val=model.arguments["checkpoint_dir"],
                                  evaluation_script_val="normalization_"+score,
                                  model_args_dir=model.args_dir,
                                  data_val=test_path)
-        dir_report = os.path.join("..", "checkpoints", model.model_full_name+"-folder",model.model_full_name+"-"+score+"-report-2.json")
+        dir_report = os.path.join("..", "checkpoints", model.model_full_name+"-folder",model.model_full_name+"-"+score+"-report-owuputi.json")
+
         json.dump(report, open(dir_report, "w"))
         print("Report saved {} ".format(dir_report))
 

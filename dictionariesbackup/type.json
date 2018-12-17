@@ -1,25 +1,4 @@
 {
-    "instance2index": {
-        "expl": 18,
-        "_<END>": 3,
-        "root": 4,
-        "nmod:poss": 9,
-        "punct": 16,
-        "obj": 6,
-        "advmod": 12,
-        "cop": 15,
-        "case": 17,
-        "nmod": 19,
-        "amod": 7,
-        "_<PAD>": 1,
-        "discourse": 10,
-        "_<ROOT>": 2,
-        "aux": 11,
-        "compound": 5,
-        "vocative": 13,
-        "obl:tmod": 8,
-        "nsubj": 14
-    },
     "instances": [
         "_<PAD>",
         "_<ROOT>",
@@ -40,5 +19,26 @@
         "case",
         "expl",
         "nmod"
-    ]
+    ],
+    "instance2index": {
+        "expl": 18,
+        "punct": 16,
+        "obj": 6,
+        "amod": 7,
+        "cop": 15,
+        "_<PAD>": 1,
+        "case": 17,
+        "advmod": 12,
+        "vocative": 13,
+        "_<ROOT>": 2,
+        "discourse": 10,
+        "nmod:poss": 9,
+        "nmod": 19,
+        "obl:tmod": 8,
+        "_<END>": 3,
+        "nsubj": 14,
+        "root": 4,
+        "compound": 5,
+        "aux": 11
+    }
 }

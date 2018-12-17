@@ -15,11 +15,10 @@ def _init_metric_report(score_to_compute_ls):
 
 
 def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
-                        gold_output=False, score_to_compute_ls=None,evaluation_metric=None,
+                        gold_output=False, score_to_compute_ls=None, stat=None,
                         verbose=0):
 
         score_dic = _init_metric_report(score_to_compute_ls)
-        print(score_dic)
         with torch.no_grad():
 
             for batch in batchIter:
@@ -48,7 +47,7 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                     if score_to_compute_ls is not None:
                         for metric in score_to_compute_ls:
                             _score, _n_tokens = score_ls(text_decoded_ls, gold_text_seq_ls, score=metric,
-                                                         metric=evaluation_metric)
+                                                         stat=stat)
                             score_dic[metric] += _score
                             score_dic[metric+"total_tokens"] += _n_tokens
             return score_dic
@@ -121,7 +120,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
     return text_decoded, src_text_ls, target_seq_gold_ls
 
 
-def decode_seq_str(seq_string, dictionary, model, char_dictionary, pad=1, max_len=10, verbose=2):
+def decode_seq_str(seq_string, dictionary, model, char_dictionary, pad=1, max_len=20, verbose=2):
     with torch.no_grad():
         _seq_string = ["_START"]
         printing("WARNING : we added _START symbol and _END_CHAR ! ", verbose=verbose, verbose_level=0)

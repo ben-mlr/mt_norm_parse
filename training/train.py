@@ -56,13 +56,14 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
                           char_embedding_dim=char_embedding_dim, voc_size=voc_size,
                           dir_model=model_dir,
                           hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,
-                          model_id_pref="auto_encoder_TEST", model_full_name=model_full_name,
+                          model_id_pref=model_id_pref, model_full_name=model_full_name,
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose)
 
     if not reload:
-        model_dir = os.path.join(PROJECT_PATH,"checkpoints", "{}-folder".format(model.model_full_name))
+        model_dir = os.path.join(PROJECT_PATH, "checkpoints", "{}-folder".format(model.model_full_name))
         os.mkdir(model_dir)
         printing("Dir {} created".format(model_dir), verbose=verbose, verbose_level=0)
+
 
     starting_epoch = model.arguments["info_checkpoint"]["n_epochs"] if reload else 0
     n_epochs += starting_epoch
@@ -89,24 +90,32 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
                                log_every_x_batch=100)
         model.eval()
         batchIter_eval = data_gen_conllu(dev_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
-                                         type_dictionary, batch_size=batch_size,add_start_char=add_start_char,
+                                         type_dictionary, batch_size=batch_size, add_start_char=add_start_char,
                                          add_end_char=add_end_char,
                                          normalization=normalization,
                                          nbatch=nbatch, verbose=verbose)
         printing("Starting evaluation ", verbose=verbose, verbose_level=1)
         loss_dev = run_epoch(batchIter_eval, model, LossCompute(model.generator, verbose=verbose),
-                         i_epoch=epoch, n_epochs=n_epochs,
-                         verbose=verbose,
-                         log_every_x_batch=100)
+                             i_epoch=epoch, n_epochs=n_epochs,
+                             verbose=verbose,
+                             log_every_x_batch=100)
 
         loss_training.append(loss_train)
         loss_developing.append(loss_dev)
 
         # WARNING : only saving if we decrease not loading former model if we relaod
-        if checkpointing and epoch%freq_checkpointing==0:
+        if checkpointing and epoch%freq_checkpointing == 0 or epoch+1 == n_epochs:
+
+            dir_plot = simple_plot(final_loss=loss_train, loss_2=loss_developing,loss_ls=loss_training, epochs="last",
+                                   save=True, dir=model_dir,
+                                   verbose=verbose, verbose_level=1,
+                                   lr=lr, prefix=model.model_full_name,
+                                   show=False)
+
             model, _loss_dev = checkpoint(loss_former=_loss_dev, loss=loss_dev, model=model, model_dir=model_dir,
                                           info_checkpoint={"n_epochs": n_epochs, "batch_size": batch_size,
-                                                           "train_data_path": train_path, "dev_data_path": dev_path},
+                                                           "train_data_path": train_path, "dev_data_path": dev_path,
+                                                           "other": {"error_curves": dir_plot}},
                                           epoch=epoch, epochs=n_epochs,
                                           verbose=verbose)
 
@@ -115,14 +124,11 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
                  verbose=verbose,
                  verbose_level=1)
 
-        dir_plot = simple_plot(final_loss=loss_train, loss_2=loss_developing,loss_ls=loss_training, epochs=epoch, save=True,
-                               verbose=verbose, verbose_level=1,
-                               lr=lr, prefix=model.model_full_name,
-                               show=False)
 
-    model.save(model_dir, model,info_checkpoint={"n_epochs": n_epochs, "batch_size": batch_size,
-                                                 "train_data_path": train_path, "dev_data_path": dev_path,
-                                                 "other": {"error_curves": dir_plot}})
+
+    #model.save(model_dir, model, info_checkpoint={"n_epochs": n_epochs, "batch_size": batch_size,
+    #                                             "train_data_path": train_path, "dev_data_path": dev_path,
+    #                                             "other": {"error_curves": dir_plot}})
 
     #report_model(parameters=True, ,arguments_dic=model.arguments, dir_models_repositories=REPOSITORIES)
 

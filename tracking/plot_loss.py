@@ -5,7 +5,9 @@ import git
 from io_.info_print import printing
 
 
-def simple_plot(final_loss, loss_ls, loss_2=None, epochs=None, V=None, seq_len=None, lr=None, save=False, show=True, prefix="test", verbose=0, verbose_level=1):
+def simple_plot(final_loss, loss_ls, loss_2=None, epochs=None, V=None, seq_len=None,
+                dir="/Users/benjaminmuller/Desktop/Work/INRIA/dev/mt_norm_parse/test/test_logs",
+                lr=None, save=False, show=True, prefix="test", verbose=0, verbose_level=1):
 
     printing("Final Loss to be plotted {} ".format(final_loss), verbose=0, verbose_level=1)
     plt.title("Training Loss with {} lr".format(lr))
@@ -20,7 +22,7 @@ def simple_plot(final_loss, loss_ls, loss_2=None, epochs=None, V=None, seq_len=N
 
     plt.legend(handles=patches)
 
-    dir_fig = os.path.join("/Users/benjaminmuller/Desktop/Work/INRIA/dev/mt_norm_parse/test/test_logs","{}-{}-plo-seq.png".format(prefix, epochs, V, lr, seq_len))
+    dir_fig = os.path.join(dir, "{}-{}-plo-seq.png".format(prefix, epochs, V, lr, seq_len))
     if save:
         plt.savefig(dir_fig )
         printing("Loss of the test saved to {} ".format(dir_fig), verbose=verbose, verbose_level=verbose_level)

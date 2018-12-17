@@ -17,48 +17,74 @@ def subsequent_mask(size):
 class MaskBatch(object):
     def __init__(self, input_seq, output_seq, pad=0, verbose=0):
         # input mask
-        assert output_seq.size(0)>1, "ERROR  batch_size should be strictly above 1 "
+        assert output_seq.size(0) >1 , "ERROR  batch_size should be strictly above 1 "
+        # originnaly batch_size, word len
         self.input_seq = input_seq
+        # unsqueeze add 1 dim between batch and word len ##- ?   ##- for commenting on context implementaiton
         self.input_seq_mask = (input_seq != pad).unsqueeze(-2)
-
         _input_seq_mask = self.input_seq_mask.clone()
-        _input_seq_mask[:, :, -1] = 0
+        ##- would be the same
+        from model.seq2seq import DEV_4
+        if not DEV_4:
+            _input_seq_mask[:, :, -1] = 0
+        elif DEV_4:
+            _input_seq_mask[:, :, :, -1] = 0
         # Handle long unpadded sequence
-        self.input_seq_len = torch.argmin(_input_seq_mask, dim=2)
-        printing("BATCH : SOURCE true dim {} ".format(self.input_seq.size()),verbose, verbose_level=3)
-        printing("BATCH : SOURCE input_seq_len  {} ".format(self.input_seq_len),verbose, verbose_level=5)
+        ##- still last dimension : maybe 3
+        self.input_seq_len = torch.argmin(_input_seq_mask, dim=-1)
+        printing("BATCH : SOURCE true dim size {} ".format(self.input_seq.size()), verbose, verbose_level=3)
+        printing("BATCH : SOURCE input_seq_len  {} ".format(self.input_seq_len), verbose, verbose_level=5)
+        printing("BATCH : SOURCE input_seq_len size {} ".format(self.input_seq_len.size()), verbose, verbose_level=5)
         self.output_seq = output_seq
         if output_seq is not None:
-
+            ##- would be last dim also !
             self.output_seq_x = output_seq[:, :-1]
+            ##- ? what unsequeeze
             _output_mask_x = (self.output_seq_x != pad).unsqueeze(-2)
             # Handle long unpadded sequence
             # we force the last token to be masked so that we ensure the argmin computation we'll be correct
-            _output_mask_x[:, : , -1] = 0
-            self.output_seq_len = torch.argmin(_output_mask_x, dim=2) #if not bool(_output_mask_x.sum().data == _output_mask_x.size(0)*_output_mask_x.size(2)) else
-            self.output_seq_y = output_seq[:, 1:]
+            if DEV_4:
+                _output_mask_x[:, :, :, -1] = 0
+                self.output_seq_y = output_seq[:,:, 1:]
+            else:
+                _output_mask_x[:, :, -1] = 0
+                self.output_seq_y = output_seq[:, 1:]
+            ##- last dim also
+            self.output_seq_len = torch.argmin(_output_mask_x, dim=-1) #if not bool(_output_mask_x.sum().data == _output_mask_x.size(0)*_output_mask_x.size(2)) else
+
             self.output_mask = self.make_mask(self.output_seq_x, pad)
             printing("BATCH : OUTPUT self.output_mask  subsequent {} {} ".format(self.output_mask.size(),  self.output_mask),  verbose, verbose_level=5)
             printing("BATCH : OUTPUT self.output_seq_x,  subsequent {} {} ".format(self.output_seq_x.size(), self.output_seq_x),  verbose, verbose_level=5)
-
+            printing("BATCH : OUTPUT self.output_seq_len,  {} {} ".format(self.output_seq_len.size(), self.output_seq_len),  verbose, verbose_level=5)
             self.ntokens = (self.output_seq_y != pad).data.sum()
             # dealing with bach_size == 1
             if self.output_seq_len.size(0) > 1:
+                if DEV_4:
+                    self.output_seq_y = self.output_seq_y.view(self.output_seq_y.size(0)*self.output_seq_y.size(1), self.output_seq_y.size(2))
+                    self.output_seq_len = self.output_seq_len.view(self.output_seq_len.size(0)*self.output_seq_len.size(1))
                 output_seq_len, perm_idx = self.output_seq_len.squeeze().sort(0, descending=True)
+                inverse_perm_idx = torch.from_numpy(np.argsort(perm_idx.numpy()))
                 self.output_seq_y = self.output_seq_y[perm_idx, :]
             else:
                 # TODO should be able to handle batch_size == 1 but is not
                 output_seq_len, perm_idx = self.output_seq_len, torch.zeros([1],dtype=torch.eq_len)
+            printing("BATCH : TARGET before packed true size {} ".format(self.output_seq_y.size()),verbose,
+                     verbose_level=4)
             printing("BATCH : TARGET before packed true {} ".format(self.output_seq_y),verbose, verbose_level=5)
-            printing("BATCH : output seq len {} ".format(output_seq_len),verbose, verbose_level=5)
+            printing("BATCH : output seq len {} ".format(output_seq_len), verbose, verbose_level=5)
+            printing("BATCH : output seq len packed {} ".format(output_seq_len.size()), verbose, verbose_level=4)
+            ##- check out pack_padded_sequence again
+            #print("self.output_seq_y 0", self.output_seq_y )
+            if True:
+                self.output_seq_y = pack_padded_sequence(self.output_seq_y, output_seq_len.squeeze().cpu().numpy(),
+                                                         batch_first=True)
 
-            self.output_seq_y = pack_padded_sequence(self.output_seq_y, output_seq_len.squeeze().cpu().numpy(),
-                                                     batch_first=True)
-
-            self.output_seq_y, lenghts = pad_packed_sequence(self.output_seq_y, batch_first=True)
-            printing("BATCH : TARGET true dim {} ".format(self.output_seq_y.size()),verbose, verbose_level=3)
+                self.output_seq_y, lenghts = pad_packed_sequence(self.output_seq_y, batch_first=True, padding_value=1.0)
+                #useless but bug raised of not packeding (would like to remove packing which I think is useless ?)
+                self.output_seq_y = self.output_seq_y[inverse_perm_idx]
+            printing("self.output_seq_y 1 {} ".format(self.output_seq_y), verbose=verbose,verbose_level=6)
+            printing("BATCH : TARGET true dim {} ".format(self.output_seq_y.size()), verbose, verbose_level=3)
             printing("BATCH : TARGET after packed true {} ".format(self.output_seq_y),verbose, verbose_level=5)
-
 
     @staticmethod
     def make_mask(output_seq, padding):

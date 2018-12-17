@@ -1,8 +1,10 @@
 
 VERBOSE_1_LOG_EVERY_x_BATCH = 25
+DEBUG = False
 
 
 def printing(message, verbose, verbose_level):
+    verbose_level = 0 if DEBUG else verbose_level
     if verbose >= verbose_level:
         print(message)
 
