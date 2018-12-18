@@ -1,11 +1,13 @@
 from training.train import train
 import os
+from env.env_variables import PROJECT_PATH
 
-if __name__=="__main__":
+if __name__ == "__main__":
 
-    train_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/en-ud-train.conllu"
-    dev_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/owoputi.integrated"
-    test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
+    # we assume the normpar project located ../parsing/
+    train_path = os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-train.conllu")
+    dev_path = os.path.join(PROJECT_PATH, "../parsing/normpar/data/owoputi.integrated")
+    test_path = os.path.join(PROJECT_PATH, "../parsing/normpar/data/lexnorm.integrated")
     n_epochs = 300
     normalization = True
     batch_size = 2
@@ -22,7 +24,7 @@ if __name__=="__main__":
     add_start_char = 1
     add_end_char = 1
 
-    model_dir = os.path.join("/Users/benjaminmuller/Desktop/Work/INRIA/dev/mt_norm_parse/checkpoints")
+    model_dir = "./checkpoints"
 
     if reload:
         train(test_path, test_path, n_epochs=n_epochs, normalization=normalization, batch_size=batch_size,

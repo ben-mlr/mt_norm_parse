@@ -10,8 +10,9 @@ import pdb
 from toolbox.checkpointing import checkpoint
 import os
 from io_.info_print import disable_tqdm_level, printing
+from env.env_variables import PROJECT_PATH
 
-PROJECT_PATH = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/mt_norm_parse"
+
 def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=10,
           hidden_size_encoder=None, output_dim=None, char_embedding_dim=None, hidden_size_decoder=None,
           checkpointing=True, freq_checkpointing=None, model_dir=None,
