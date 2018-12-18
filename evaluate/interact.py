@@ -17,7 +17,7 @@ from training.epoch_train import run_epoch
 dict_path = "../dictionariesbackup/"
 train_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/en-ud-train.conllu"
 dev_pat = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/owoputi.integrated"
-test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo"
+test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
 
 normalization = False
 add_start_char = 1
@@ -43,7 +43,7 @@ verbose = 2
 script_dir = os.path.dirname(os.path.realpath(__file__))
 model = LexNormalizer(generator=Generator,
                       voc_size=len(char_dictionary.instance2index)+1,
-                      load=True, model_full_name="normalizer_small_c6e7", dir_model=os.path.join(script_dir,"..","checkpoints"),
+                      load=True, model_full_name="normalizer_lexnorm_ad6e", dir_model=os.path.join(script_dir,"..","checkpoints"),
                       verbose=verbose)
 batch_size = 2
 nbatch = 20

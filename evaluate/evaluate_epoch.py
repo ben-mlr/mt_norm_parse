@@ -14,7 +14,7 @@ from reporting.write_to_performance_repo import report_template, write_dic
 dict_path = "../dictionariesbackup/"
 train_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/en-ud-train.conllu"
 dev_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/owoputi.integrated"
-test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo"
+test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
 
 normalization = True
 add_start_char = 1
@@ -37,15 +37,15 @@ voc_size = len(char_dictionary.instance2index)+1
 # NORMALIZATION DEMO auto_encoder_TEST_70b7
 # autoencoder demo auto_encoder_TEST_f7ab
 # NORMALIZATION BIG : auto_encoder_TEST_21ac
-model = LexNormalizer(generator=Generator, load=True, model_full_name="normalizer_small_c6e7",#"6437",
+model = LexNormalizer(generator=Generator, load=True, model_full_name="normalizer_lexnorm_ad6e",#"6437",
                       voc_size=voc_size,
                       dir_model=os.path.join(_dir, "..", "checkpoints"),
                       verbose=verbose)
 batch_size = 2
-nbatch = 30
+nbatch = 300
 
-data_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
-#data_path = dev_path
+#data_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
+data_path = test_path
 batchIter = data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
                             type_dictionary, batch_size=batch_size, nbatch=nbatch, add_start_char=add_start_char,
                             add_end_char=add_end_char,
@@ -85,7 +85,8 @@ if batch_decoding:
                                  evaluation_script_val="normalization_"+score,
                                  model_args_dir=model.args_dir,
                                  data_val=test_path)
-        dir_report = os.path.join("..", "checkpoints", model.model_full_name+"-folder",model.model_full_name+"-"+score+"-report-owuputi.json")
+        dir_report = os.path.join("..", "checkpoints", model.model_full_name+"-folder",
+                                  model.model_full_name+"-"+score+"-report-test.json")
 
         json.dump(report, open(dir_report, "w"))
         print("Report saved {} ".format(dir_report))
