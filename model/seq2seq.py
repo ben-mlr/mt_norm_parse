@@ -6,15 +6,17 @@ from uuid import uuid4
 import pdb
 import torch.nn.functional as F
 import git
+from env.project_variables import CHECKPOINT_DIR
 import torch
 from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 from io_.info_print import printing
 from toolbox.git_related import get_commit_id
 from toolbox.sanity_check import sanity_check_info_checkpoint
+import re
 DEV = True
 DEV_2 = True
 DEV_3 = False
-DEV_4 = False
+DEV_4 = True
 TEMPLATE_INFO_CHECKPOINT = {"n_epochs": 0, "batch_size": None, "train_data_path": None, "dev_data_path": None,
                             "other": None, "git_id": None}
 
@@ -56,12 +58,19 @@ class CharEncoder(nn.Module):
         printing("SOURCE embedding dim {} ".format(char_vecs.size()), self.verbose, verbose_level=3)
         if DEV:
             printing("SOURCE  word lengths after  {} dim".format(input_word_len.size()), self.verbose, verbose_level=4)
+
+            # As the target sequence if the word is empty we still encode the first PAD symbol : We will be cautious not to take it as input of our SENTENCE ENCODER !
+            input_word_len[input_word_len == 0] = 1
+            pdb.set_trace()
             packed_char_vecs = pack_padded_sequence(char_vecs, input_word_len.squeeze().cpu().numpy(), batch_first=True)
+            print("PACKED SEQUENCE")
+            pdb.set_trace()
             printing("SOURCE Packed data shape {} ".format(packed_char_vecs.data.shape), self.verbose, verbose_level=4)
         # all sequence encoding [batch, max seq_len, n_dir x encoding dim] ,
         # last complete hidden state: [dir*n_layer, batch, dim encoding dim]
         if DEV:
             output, h_n = self.seq_encoder(packed_char_vecs)
+            # TODO add attention out of the output (or maybe output the all output and define attention later)
             printing("SOURCE ENCODED all {}  , hidden {}  (output (includes all the "
                      "hidden states of last layers), last hidden hidden for each dir+layers)".format(output.data.shape, h_n.size()),
                      self.verbose, verbose_level=3)
@@ -87,19 +96,38 @@ class CharEncoder(nn.Module):
         #input_word = input[:,x,:]
         #input_mask_word = input_mask[:,x,:]
         printing("input size {}  mask  {} size length size {} ".format(input.size(), input_mask.size(), input_word_len.size()),verbose=verbose,verbose_level=0)
+        input_shape = input.size()
         input = input.view(input.size(0)*input.size(1), input.size(2))
+        input_mask = input_mask.view(input_mask.size(0)*input_mask.size(1), input_mask.size(2), input_mask.size(-1))
 
-        input_mask = input_mask.view(input.size(0)*input.size(1), input.size(2))
-        input_word_len = input_word_len.view(input.size(0)*input.size(1))
-        printing("input new size {}  mask  {} size length size {} ".format(input.size(), input_mask.size(), input_word_len.size()), verbose=verbose,verbose_level=0)
+        pdb.set_trace()
+        input_word_len = input_word_len.view(input.size(0))
+        printing("input new size {}  mask  {} size length size {} ".format(input.size(), input_mask.size(),
+                                                                           input_word_len.size()), verbose=verbose,
+                 verbose_level=0)
+        print("FEEDING TO WORD ENCODER")
         h_w = self.forward(input=input, input_mask=input_mask, input_word_len=input_word_len)
-        # For thte sentence :
-        ##
+        print("output hw")
+        pdb.set_trace()
+        h_w = h_w.view(input_shape[0], input_shape[1], h_w.size(2))
+        print("reshape hw")
+        h_w = torch.sum(h_w, dim=1)
+        h_w = h_w.unsqueeze(0)
+
+        pdb.set_trace()
+        # For the sentence :
         ### reshape the input_word (real one with 4 d and the all sequence ) so that it's [batch_size*sent_length, word_len] padded same for len
         ### Feed it to the self.forward [batch_size*sent_length, word_len, encoding ]
         ### reshape to get again [batch_size, sent_len , word_len, encoding_dim]
-        ### SUM on dim = 1  and substract the one of the word you want to encode
-        ### conditioning = CAT(SUM\WORD, WORD)
+        ##
+        ### then feed to a word level encoder like SUM , like LSTM  without the one word you want to encode
+        ### conditioning = CAT(ENCODE\WORDS, WORD)
+
+        # TODO
+        #   1 we want one conditionning vector for the sentence possible one sentence conditionning per token + one word contioning
+        #   11 we start with : the same context vector for all which corredpsons to the sum -->
+        #   2 make the sentence level encoder more complex (it's a sum !) and factorize it
+        return h_w
 
         # just append sent_hidden to the decoding step # provides source context
         # then you can do the same on the target side having a conditioning : which is a concatanation of the source token,
@@ -148,6 +176,7 @@ class CharDecoder(nn.Module):
             output = output[perm_idx_output, :]
             inverse_perm_idx_output = torch.from_numpy(np.argsort(perm_idx_output.numpy()))
 
+
             #print("WARNING : REORDERED {} len {} ENCODER SIDE {}  ".format(perm_idx_output, output_word_len, perm_encoder))
 
         char_vecs = self.char_embedding_decoder(output)
@@ -158,8 +187,16 @@ class CharDecoder(nn.Module):
         max_len = output_word_len.max().data
         pre_output_vectors = []
         # ordering the conditioning as the target sequence
-        conditioning = conditioning[:, perm_idx_output, :]
-        #  UNROLLING BY HAN
+        print("CONDITIONING ")
+        pdb.set_trace()
+        if not DEV_4:
+
+            conditioning = conditioning[:, perm_idx_output, :]
+        else:
+            # TODO : reshape confitioning as in the forward_sent 
+            pass
+            #conditioning = conditioning[:,# make it as big as the number of token to decode ,:]
+            #  UNROLLING BY HAN
         if DEV_3:
             # NB 1 : I think it is needed for
             # having a target side contextual attention layer on the source but that packed sequence
@@ -209,6 +246,31 @@ class CharDecoder(nn.Module):
                  verbose=self.verbose, verbose_level=3)
 
         return output #, h_n
+
+    def forward_sent(self, output, conditioning, output_mask, output_word_len, perm_encoder=None, verbose=0):
+
+        # condiionning is for now the same for every decoded token
+        printing("output_mask size {}  mask  {} size length size {} ".format(output_mask.size(), output_mask.size(),
+                                                                       output_mask.size()), verbose=verbose, verbose_level=0)
+        output_shape = output.size()
+        # reshape to feed the decoder
+        print("output_shape")
+        pdb.set_trace()
+        output = output.contiguous()
+        output = output.view(output_shape[0]*output_shape[1], output_shape[2])
+        print("output_reshaped")
+        output_mask = output_mask.view(output_mask.size(0) * output_mask.size(1), output_mask.size(2), output_mask.size(-1))
+        pdb.set_trace()
+        print("output_rmask reshaped")
+        #TODO
+        # reshape conditioning so that it maps output dimension
+        # --> each source sentence conditionning should map output target sentence
+        output_w_decoder = self.forward(output, conditioning, output_mask, output_word_len)
+        print("output_decoder")
+        pdb.set_trace()
+        output_w_decoder = output_w_decoder.view(output_shape[0], output_shape[1], output_w_decoder.size(2))
+        print("decoder reshaped ")
+        pdb.set_trace()
 
 
 class LexNormalizer(nn.Module):
@@ -285,11 +347,14 @@ class LexNormalizer(nn.Module):
         if not DEV_4:
             h = self.encoder.forward(input_seq, input_mask, input_word_len)
         elif DEV_4:
-            self.encoder.forward_sent(input_seq, input_mask, input_word_len)
+            h = self.encoder.forward_sent(input_seq, input_mask, input_word_len)
         # [] [batch, , hiden_size_decoder]
-        #char_vecs_output = self.char_embedding(output_seq)
+        # char_vecs_output = self.char_embedding(output_seq)
         h = self.bridge(h)
-        output = self.decoder.forward(output_seq, h, output_mask, output_word_len)
+        if not DEV_4:
+            output = self.decoder.forward(output_seq, h, output_mask, output_word_len)
+        elif DEV_4:
+            output = self.decoder.forward_sent(output_seq, h, output_mask, output_word_len)
         #
         # output_score = nn.ReLU()(self.output_predictor(h_out))
         # [batch, output_voc_size], one score per output character token
@@ -337,8 +402,16 @@ class LexNormalizer(nn.Module):
         assert os.path.isfile(args_dir), "ERROR {} does not exits".format(args_dir)
         args = json.load(open(args_dir, "r"))
         args_checkpoint = args["checkpoint_dir"] #model_full_name+"-checkpoint.pt"
-        assert os.path.isfile(args_checkpoint), "ERROR {} does not exits".format(args_checkpoint)
+        if not os.path.isfile(args_checkpoint):
+            printing("WARNING : checkpoint_dir as indicated in args.json is not found, "
+                     "lt checkpoint_dir {}".format(CHECKPOINT_DIR), verbose=verbose, verbose_level=0)
+            # we assume the naming convention /model_name-folder/model_name--checkpoint.pt
+            match = re.match(".*/(.*-folder/.*)$", args_checkpoint)
+            assert match.group(1) is not None, "ERROR : no match found in {}".format(args_checkpoint)
 
+            args_checkpoint = os.path.join(CHECKPOINT_DIR, match.group(1))
+        assert os.path.isfile(args_checkpoint), "ERROR {} does not exits".format(args_checkpoint)
+        printing("Checkpoint dir is {} ".format(args_checkpoint), verbose=verbose, verbose_level=1)
         return args, args_checkpoint, args_dir
 
 

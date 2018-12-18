@@ -10,7 +10,7 @@ import pdb
 from toolbox.checkpointing import checkpoint
 import os
 from io_.info_print import disable_tqdm_level, printing
-from env.env_variables import PROJECT_PATH
+from env.project_variables import PROJECT_PATH
 
 
 def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=10,

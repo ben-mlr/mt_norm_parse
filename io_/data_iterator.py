@@ -62,7 +62,7 @@ def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
         if not DEV_4:
             yield MaskBatch(char[:, word_ind, :], chars_norm[:, word_ind, :], pad=padding, verbose=verbose)
         else:
-            yield MaskBatch(char[:, :, :], chars_norm[:, :, :], pad=padding, verbose=verbose)
+            yield MaskBatch(char, chars_norm, pad=padding, verbose=verbose)
 
 
 def data_gen_dummy(V, batch, nbatches,seq_len=10,

@@ -6,15 +6,15 @@ from io_.dat import conllu_data
 import os
 import json
 import sys
-sys.path.insert(0, "/Users/benjaminmuller/Desktop/Work/INRIA/dev/experimental_pipe")
-
+from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, DEMO, DEMO2
+sys.path.insert(0, os.path.join(PROJECT_PATH, "..", "experimental_pipe"))
 from reporting.write_to_performance_repo import report_template, write_dic
 
 
 dict_path = "../dictionariesbackup/"
-train_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/en-ud-train.conllu"
-dev_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/owoputi.integrated"
-test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
+train_path = TRAINING
+dev_path = DEV
+test_path = TEST
 
 normalization = True
 add_start_char = 1
@@ -37,9 +37,9 @@ voc_size = len(char_dictionary.instance2index)+1
 # NORMALIZATION DEMO auto_encoder_TEST_70b7
 # autoencoder demo auto_encoder_TEST_f7ab
 # NORMALIZATION BIG : auto_encoder_TEST_21ac
-model = LexNormalizer(generator=Generator, load=True, model_full_name="normalizer_lexnorm_ad6e",#"6437",
+model = LexNormalizer(generator=Generator, load=True, model_full_name="normalizer_lexnorm_ad6e",#"6437","#"auto_encoder_TEST_f7ab",#="normalizer_lexnorm_ad6e",#"6437",
                       voc_size=voc_size,
-                      dir_model=os.path.join(_dir, "..", "checkpoints"),
+                      dir_model=os.path.join(PROJECT_PATH, "checkpoints"),
                       verbose=verbose)
 batch_size = 2
 nbatch = 300

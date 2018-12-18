@@ -23,11 +23,11 @@ class LossCompute:
         #    for di in range(y.size(1)):
 
         printing("LOSS input x candidate scores size {} ".format(x.size()), self.verbose, verbose_level=3)
-        printing("LOSS input y observations size {} ".format(y.size()), self.verbose, verbose_level=3)
-        printing("LOSS input x candidate scores {} reshaped {} ".format(x, x.view(-1, x.size(-1))), self.verbose,
-                 verbose_level=5)
+        printing("LOSS input y observations size {} ".format(y.size()), self.verbose, verbose_level=0)
+        printing("LOSS input x candidate scores   {} ".format(x), self.verbose,verbose_level=5)
+        printing("LOSS input x candidate scores  reshaped {} ".format(x.view(-1, x.size(-1))), self.verbose,verbose_level=0)
         printing("LOSS input y observations {} reshaped {} ".format(y, y.contiguous().view(-1)),
-                 self.verbose, verbose_level=5)
+                 self.verbose, verbose_level=0)
         loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1))
         printing("LOSS loss size {}".format(loss.size()), verbose=self.verbose, verbose_level=3)
         # define loss_distance as --> Cross-entropy
