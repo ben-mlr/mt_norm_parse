@@ -14,8 +14,9 @@ from reporting.write_to_performance_repo import report_template, write_dic
 dict_path = "../dictionariesbackup/"
 train_path = TRAINING
 dev_path = DEV
-test_path = TEST
+test_path = DEMO2#TEST
 
+debug = False
 normalization = True
 add_start_char = 1
 add_end_char = 1
@@ -30,6 +31,8 @@ xpos_dictionary, type_dictionary = \
                                 dry_run=False,
                                 vocab_trim=True)
 
+if not debug:
+    pdb.set_trace = lambda: 1
 verbose = 2
 _dir = os.path.dirname(os.path.realpath(__file__))
 voc_size = len(char_dictionary.instance2index)+1
@@ -37,12 +40,13 @@ voc_size = len(char_dictionary.instance2index)+1
 # NORMALIZATION DEMO auto_encoder_TEST_70b7
 # autoencoder demo auto_encoder_TEST_f7ab
 # NORMALIZATION BIG : auto_encoder_TEST_21ac
-model = LexNormalizer(generator=Generator, load=True, model_full_name="normalizer_lexnorm_ad6e",#"6437","#"auto_encoder_TEST_f7ab",#="normalizer_lexnorm_ad6e",#"6437",
+model = LexNormalizer(generator=Generator, load=True, model_full_name="normalizer_lexnorm_12bf",#"normalizer_lexnorm_ad6e",#"normalizer_lexnorm_12bf",
+                      # "6437","#"auto_encoder_TEST_f7ab",#="normalizer_lexnorm_ad6e",#"6437",
                       voc_size=voc_size,
                       dir_model=os.path.join(PROJECT_PATH, "checkpoints"),
                       verbose=verbose)
 batch_size = 2
-nbatch = 300
+nbatch = 5
 
 #data_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
 data_path = test_path

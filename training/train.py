@@ -107,7 +107,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
         # WARNING : only saving if we decrease not loading former model if we relaod
         if checkpointing and epoch%freq_checkpointing == 0 or epoch+1 == n_epochs:
 
-            dir_plot = simple_plot(final_loss=loss_train, loss_2=loss_developing,loss_ls=loss_training, epochs="last",
+            dir_plot = simple_plot(final_loss=loss_train, loss_2=loss_developing, loss_ls=loss_training, epochs="last",
                                    save=True, dir=model_dir,
                                    verbose=verbose, verbose_level=1,
                                    lr=lr, prefix=model.model_full_name,

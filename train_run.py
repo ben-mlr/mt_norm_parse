@@ -56,6 +56,6 @@ if __name__ == "__main__":
         train(test_path, test_path, n_epochs=n_epochs, normalization=normalization, batch_size=batch_size,
               dict_path=dict_path, model_dir=None, add_start_char=add_start_char,add_end_char=add_end_char,
               freq_checkpointing=freq_checkpointing, reload=reload, model_id_pref="normalizer_lexnorm",
-              hidden_size_encoder=35, output_dim=50, char_embedding_dim=20, debug=False,
-              hidden_size_decoder=40, print_raw=False
+              hidden_size_encoder=35, output_dim=50, char_embedding_dim=20, debug=True,
+              hidden_size_decoder=40, print_raw=False, checkpointing=True,
               )
