@@ -3,7 +3,7 @@ from torch.autograd import Variable
 from io_.info_print import printing
 from io_.from_array_to_text import output_text, output_text_
 import numpy as np
-from evaluate.normalization_errors import score_ls
+from evaluate.normalization_errors import score_ls, score_ls_
 from io_.dat.constants import CHAR_START_ID
 import pdb
 from model.seq2seq import DEV_4
@@ -43,13 +43,13 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
 
                 printing("Source text {} ".format(src_text_ls), verbose=verbose, verbose_level=2)
                 printing("Prediction {} ".format(text_decoded_ls), verbose=verbose, verbose_level=2)
-
+                scores_ls_func = "scores_ls" if not DEV_4 else "score_ls_"
                 if gold_output:
                     printing("Gold {} ".format(gold_text_seq_ls), verbose=verbose, verbose_level=2)
                     if score_to_compute_ls is not None:
                         for metric in score_to_compute_ls:
-                            _score, _n_tokens = score_ls(text_decoded_ls, gold_text_seq_ls, score=metric,
-                                                         stat=stat)
+                            _score, _n_tokens = eval(scores_ls_func)(text_decoded_ls, gold_text_seq_ls,
+                                                                     score=metric, stat=stat)
                             score_dic[metric] += _score
                             score_dic[metric+"total_tokens"] += _n_tokens
             return score_dic
@@ -103,7 +103,11 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         scores = model.generator.forward(x=decoding_states)
         # each time step predict the most likely
         # len
-        output_len = Variable(torch.from_numpy(np.ones(src_seq.size(0)*src_seq.size(1), dtype=np.int64)), requires_grad=False)
+        if DEV_4:
+            output_len = Variable(torch.from_numpy(np.ones(src_seq.size(0)*src_seq.size(1), dtype=np.int64)), requires_grad=False)
+        else:
+            output_len = Variable(torch.from_numpy(np.ones(src_seq.size(0), dtype=np.int64)),
+                                  requires_grad=False)
         output_len[:] = char_decode
         # mask
         output_mask = np.ones(src_seq.size(), dtype=np.int64)
@@ -148,6 +152,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         print("STEP SEQ DECODED")
         pdb.set_trace()
     text_ = "output_text_" if DEV_4 else "output_text"
+    pdb.set_trace()
     _, src_text = eval(text_)(src_seq, char_dictionary, single_sequence=single_sequence)
     src_text_ls.extend(src_text)
     if target_seq_gold is not None:

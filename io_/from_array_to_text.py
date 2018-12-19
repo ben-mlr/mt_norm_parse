@@ -37,15 +37,15 @@ def output_text_(one_code_prediction, char_dic, start_symbol=CHAR_START ,
         for word_i in range(one_code_prediction.size(1)):
             word = []
             word_to_print = ""
-            for char in range(one_code_prediction.size(2)):
+            for i_char, char in enumerate(range(one_code_prediction.size(2))):
                 char_decoded = char_dic.get_instance(one_code_prediction[batch, word_i, char])
                 word.append(char_decoded)
                 #if not char_decoded == stop_symbol and not char_decoded == start_symbol:
-                if char_decoded == stop_symbol:
+                if char_decoded == stop_symbol or (i_char==0 and char_decoded == PAD_CHAR):
+                    # we break if only one padded symbok witout adding anything to word to print : only one PADDED symbol to the array
                     break
                 if not char_decoded == start_symbol:
                     word_to_print += char_decoded
-
             sent.append(word)
             if single_sequence:
                 str_decoded = word_to_print

@@ -17,7 +17,7 @@ dev_path = DEV
 test_path = DEMO2#TEST
 
 debug = False
-normalization = True
+normalization = False
 add_start_char = 1
 add_end_char = 1
 word_dictionary, char_dictionary, pos_dictionary,\
@@ -46,7 +46,7 @@ model = LexNormalizer(generator=Generator, load=True, model_full_name="normalize
                       dir_model=os.path.join(PROJECT_PATH, "checkpoints"),
                       verbose=verbose)
 batch_size = 2
-nbatch = 5
+nbatch = 1
 
 #data_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
 data_path = test_path

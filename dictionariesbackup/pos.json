@@ -8,11 +8,11 @@
         "NOUN"
     ],
     "instance2index": {
-        "VERB": 4,
         "PROPN": 5,
-        "NOUN": 6,
-        "_END_POS": 3,
+        "_ROOT_POS": 2,
         "_PAD_POS": 1,
-        "_ROOT_POS": 2
+        "VERB": 4,
+        "_END_POS": 3,
+        "NOUN": 6
     }
 }
