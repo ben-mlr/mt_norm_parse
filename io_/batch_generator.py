@@ -38,14 +38,17 @@ class MaskBatch(object):
         self.output_seq = output_seq
         if output_seq is not None:
             ##- would be last dim also !
-            self.output_seq_x = output_seq[:, :-1]
+            if not DEV_4:
+                self.output_seq_x = output_seq[:, :-1]
+            else:
+                self.output_seq_x = output_seq[:, :, :-1]
             ##- ? what unsequeeze
             _output_mask_x = (self.output_seq_x != pad).unsqueeze(-2)
             # Handle long unpadded sequence
             # we force the last token to be masked so that we ensure the argmin computation we'll be correct
             if DEV_4:
                 _output_mask_x[:, :, :, -1] = 0
-                self.output_seq_y = output_seq[:,:, 1:]
+                self.output_seq_y = output_seq[:, :, 1:]
             else:
                 _output_mask_x[:, :, -1] = 0
                 self.output_seq_y = output_seq[:, 1:]
@@ -95,7 +98,7 @@ class MaskBatch(object):
 
                 self.output_seq_y = self.output_seq_y[inverse_perm_idx]
                 pdb.set_trace()
-                print("WARNING : to confirm ")
+                #print("Warning confirm shape of")
                 # we reshape so that it fits tthe generated sequence
                 if DEV_4:
                     self.output_seq_y = self.output_seq_y.view(output_y_shape[0], -1, torch.max(lenghts))
@@ -103,7 +106,6 @@ class MaskBatch(object):
             printing("self.output_seq_y 1 {} ".format(self.output_seq_y), verbose=verbose,verbose_level=6)
             printing("BATCH : TARGET true dim {} ".format(self.output_seq_y.size()), verbose, verbose_level=3)
             printing("BATCH : TARGET after packed true {} ".format(self.output_seq_y),verbose, verbose_level=5)
-            print("DEBUG,END ", self.output_seq_y, self.output_seq_y.size())
 
 
     @staticmethod

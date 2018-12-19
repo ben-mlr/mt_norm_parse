@@ -5,7 +5,7 @@ from model.seq2seq import Generator
 import matplotlib.pyplot as plt
 import numpy as np
 from io_.info_print import printing
-
+import pdb
 
 class LossCompute:
     def __init__(self, generator, opt=None, pad=1, verbose=0):
@@ -23,12 +23,15 @@ class LossCompute:
         #    for di in range(y.size(1)):
 
         printing("LOSS input x candidate scores size {} ".format(x.size()), self.verbose, verbose_level=3)
-        printing("LOSS input y observations size {} ".format(y.size()), self.verbose, verbose_level=0)
+        printing("LOSS input y observations size {} ".format(y.size()), self.verbose, verbose_level=3)
         printing("LOSS input x candidate scores   {} ".format(x), self.verbose,verbose_level=5)
-        printing("LOSS input x candidate scores  reshaped {} ".format(x.view(-1, x.size(-1))), self.verbose,verbose_level=0)
+        printing("LOSS input x candidate scores  reshaped {} ".format(x.view(-1, x.size(-1))),
+                 self.verbose,verbose_level=5)
         printing("LOSS input y observations {} reshaped {} ".format(y, y.contiguous().view(-1)),
-                 self.verbose, verbose_level=0)
+                 self.verbose, verbose_level=5)
+        pdb.set_trace()
         loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1))
+        pdb.set_trace()
         printing("LOSS loss size {}".format(loss.size()), verbose=self.verbose, verbose_level=3)
         # define loss_distance as --> Cross-entropy
         loss.backward()
