@@ -23,6 +23,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
 
     freq_checkpointing = int(n_epochs/10) if checkpointing and freq_checkpointing is None else freq_checkpointing
     printing("Warning : add_start_char is {} ".format(add_start_char), verbose=verbose, verbose_level=0)
+
     if reload:
         assert model_full_name is not None and len(model_id_pref) == 0 and model_dir is not None
     else:
@@ -65,8 +66,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
         os.mkdir(model_dir)
         printing("Dir {} created".format(model_dir), verbose=verbose, verbose_level=0)
 
-
     starting_epoch = model.arguments["info_checkpoint"]["n_epochs"] if reload else 0
+    reloading = "" if not reload else "reloaded_from_"+str(starting_epoch)
     n_epochs += starting_epoch
 
     adam = torch.optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.98), eps=1e-9)
@@ -105,9 +106,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
         loss_developing.append(loss_dev)
 
         # WARNING : only saving if we decrease not loading former model if we relaod
-        if checkpointing and epoch%freq_checkpointing == 0 or epoch+1 == n_epochs:
+        if (checkpointing and epoch % freq_checkpointing == 0) or (epoch+1 == n_epochs):
 
-            dir_plot = simple_plot(final_loss=loss_train, loss_2=loss_developing, loss_ls=loss_training, epochs="last",
+            dir_plot = simple_plot(final_loss=loss_train, loss_2=loss_developing, loss_ls=loss_training, epochs="last"+reloading,
                                    save=True, dir=model_dir,
                                    verbose=verbose, verbose_level=1,
                                    lr=lr, prefix=model.model_full_name,

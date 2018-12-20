@@ -14,9 +14,9 @@ from reporting.write_to_performance_repo import report_template, write_dic
 dict_path = "../dictionariesbackup/"
 train_path = TRAINING
 dev_path = DEV
-test_path = DEMO2#TEST
+test_path = TEST#TEST
 
-debug = False
+debug = True
 normalization = False
 add_start_char = 1
 add_end_char = 1
@@ -40,16 +40,16 @@ voc_size = len(char_dictionary.instance2index)+1
 # NORMALIZATION DEMO auto_encoder_TEST_70b7
 # autoencoder demo auto_encoder_TEST_f7ab
 # NORMALIZATION BIG : auto_encoder_TEST_21ac
-model = LexNormalizer(generator=Generator, load=True, model_full_name="normalizer_lexnorm_12bf",#"normalizer_lexnorm_ad6e",#"normalizer_lexnorm_12bf",
+model = LexNormalizer(generator=Generator, load=True, model_full_name="auto_encoder_all_data_bddf",#"normalizer_lexnorm_ad6e",#"normalizer_lexnorm_12bf",
                       # "6437","#"auto_encoder_TEST_f7ab",#="normalizer_lexnorm_ad6e",#"6437",
                       voc_size=voc_size,
                       dir_model=os.path.join(PROJECT_PATH, "checkpoints"),
                       verbose=verbose)
 batch_size = 2
-nbatch = 1
+nbatch = 30
 
 #data_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
-data_path = test_path
+data_path = DEV
 batchIter = data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
                             type_dictionary, batch_size=batch_size, nbatch=nbatch, add_start_char=add_start_char,
                             add_end_char=add_end_char,
@@ -82,7 +82,8 @@ if batch_decoding:
         print("ERROR catched {} ".format(e))
 
     for score in score_to_compute_ls:
-        report = report_template(metric_val=score, info_score_val="None", score_val=score_dic[score]/score_dic[score+"total_tokens"],
+        report = report_template(metric_val=score, info_score_val="None",
+                                 score_val=score_dic[score]/score_dic[score+"total_tokens"],
                                  model_full_name_val=model.model_full_name,
                                  task="normalization",
                                  report_path_val=model.arguments["checkpoint_dir"],
@@ -90,7 +91,7 @@ if batch_decoding:
                                  model_args_dir=model.args_dir,
                                  data_val=test_path)
         dir_report = os.path.join("..", "checkpoints", model.model_full_name+"-folder",
-                                  model.model_full_name+"-"+score+"-report-test.json")
+                                  model.model_full_name+"-"+score+"-report-owuputi.json")
 
         json.dump(report, open(dir_report, "w"))
         print("Report saved {} ".format(dir_report))

@@ -17,6 +17,7 @@ DEV = True
 DEV_2 = True
 DEV_3 = False
 DEV_4 = True
+DEV_5 = False
 TEMPLATE_INFO_CHECKPOINT = {"n_epochs": 0, "batch_size": None, "train_data_path": None, "dev_data_path": None,
                             "other": None, "git_id": None}
 
@@ -28,6 +29,11 @@ class CharEncoder(nn.Module):
         super(CharEncoder, self).__init__()
 
         self.char_embedding_ = char_embedding
+        if DEV_5:
+            self.sent_encoder = nn.LSTM(input_size=hidden_size_encoder,
+                                    hidden_size=hidden_size_encoder,
+                                    num_layers=1, bias=True, batch_first=True,
+                                    bidirectional=False)
         self.verbose = verbose
         self.seq_encoder = nn.GRU(input_size=input_dim, hidden_size=hidden_size_encoder,
                                   num_layers=1, #nonlinearity='tanh',
@@ -66,6 +72,7 @@ class CharEncoder(nn.Module):
         # all sequence encoding [batch, max seq_len, n_dir x encoding dim] ,
         # last complete hidden state: [dir*n_layer, batch, dim encoding dim]
         if DEV:
+            # [batch, max seq_len, dim encoding ]
             output, h_n = self.seq_encoder(packed_char_vecs)
             # TODO add attention out of the output (or maybe output the all output and define attention later)
             printing("SOURCE ENCODED all {}  , hidden {}  (output (includes all the "
@@ -105,21 +112,25 @@ class CharEncoder(nn.Module):
 
         #pdb.set_trace()
         h_w = h_w.view(input_shape[0], input_shape[1], h_w.size(2))
-
-        #h_w = torch.sum(h_w, dim=1)
-        #h_w = h_w.unsqueeze(0)
+        # 1 - pack the sequence--> need the length
+        # 2 - feed it to a LSTM
+        # 3 - unpack
+        # 4 - take the output : that should be the same shape concate with h_w and that's it
+        #sent_ = self.sent_encoder()
+        #pdb.set_trace()
+        # h_w = torch.sum(h_w, dim=1)
+        # h_w = h_w.unsqueeze(0)
         # For the sentence :
-        ### reshape the input_word (real one with 4 d and the all sequence ) so that it's [batch_size*sent_length, word_len] padded same for len
-        ### Feed it to the self.forward [batch_size*sent_length, word_len, encoding ]
-        ### reshape to get again [batch_size, sent_len , word_len, encoding_dim]
-        ##
-        ### then feed to a word level encoder like SUM , like LSTM  without the one word you want to encode
-        ### conditioning = CAT(ENCODE\WORDS, WORD)
+        # reshape the input_word (real one with 4 d and the all sequence )
+        # so that it's [batch_size*sent_length, word_len] padded same for len
+        #
+        # then feed to a word level encoder like SUM , like LSTM  without the one word you want to encode
+        # conditioning = CAT(ENCODE\WORDS, WORD)
 
         # TODO
-        #  1 we want one conditionning vector for the sentence possible one sentence conditionning per token + one word contioning
-        #  11 we start with : the same context vector for all which corredpsons to the sum -->
-        #  2 make the sentence level encoder more complex (it's a sum !) and factorize it
+        # 1 we want one conditionning vector for the sentence possible one sentence conditionning per token + one word contioning
+        # 11 we start with : the same context vector for all which corredpsons to the sum -->
+        # 2 make the sentence level encoder more complex (it's a sum !) and factorize it
         return h_w
 
         # just append sent_hidden to the decoding step # provides source context
@@ -233,7 +244,7 @@ class CharDecoder(nn.Module):
                  "  the hidden states of last layers),"
                  "last hidden hidden for each dir+layers)".format(output.size(), h_n.size()),
                  verbose=self.verbose, verbose_level=3)
-        print("OUTPUT FORWARD")
+
         return output #, h_n
 
     def forward_sent(self, output, conditioning, output_mask, output_word_len, perm_encoder=None, verbose=0):
@@ -252,7 +263,6 @@ class CharDecoder(nn.Module):
         # conditioning = conditioning.view()
         conditioning = conditioning.view(1, output_shape[0]*output_shape[1], -1)
         output_w_decoder = self.forward(output, conditioning, output_mask, output_word_len)
-        print("FORWARD DECODER DONE")
         output_w_decoder = output_w_decoder.view(output_shape[0], output_shape[1], -1, output_w_decoder.size(2))
 
         return output_w_decoder

@@ -97,7 +97,7 @@ class MaskBatch(object):
                 #useless but bug raised of not packeding (would like to remove packing which I think is useless ?)
 
                 self.output_seq_y = self.output_seq_y[inverse_perm_idx]
-                pdb.set_trace()
+                #pdb.set_trace()
                 #print("Warning confirm shape of")
                 # we reshape so that it fits tthe generated sequence
                 if DEV_4:

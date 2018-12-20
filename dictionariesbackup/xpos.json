@@ -1,14 +1,14 @@
 {
+    "instance2index": {
+        "_PAD_POS": 1,
+        "_END_POS": 3,
+        "_ROOT_POS": 2,
+        "_": 4
+    },
     "instances": [
         "_PAD_POS",
         "_ROOT_POS",
         "_END_POS",
         "_"
-    ],
-    "instance2index": {
-        "_PAD_POS": 1,
-        "_": 4,
-        "_ROOT_POS": 2,
-        "_END_POS": 3
-    }
+    ]
 }

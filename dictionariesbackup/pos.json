@@ -1,18 +1,46 @@
 {
+    "instance2index": {
+        "PART": 11,
+        "_END_POS": 3,
+        "_ROOT_POS": 2,
+        "ADP": 15,
+        "X": 19,
+        "NUM": 17,
+        "SYM": 9,
+        "VERB": 4,
+        "ADJ": 7,
+        "DET": 16,
+        "PROPN": 5,
+        "PUNCT": 14,
+        "_PAD_POS": 1,
+        "PRON": 8,
+        "ADV": 12,
+        "INTJ": 13,
+        "AUX": 10,
+        "NOUN": 6,
+        "SCONJ": 20,
+        "CCONJ": 18
+    },
     "instances": [
         "_PAD_POS",
         "_ROOT_POS",
         "_END_POS",
         "VERB",
         "PROPN",
-        "NOUN"
-    ],
-    "instance2index": {
-        "PROPN": 5,
-        "_ROOT_POS": 2,
-        "_PAD_POS": 1,
-        "VERB": 4,
-        "_END_POS": 3,
-        "NOUN": 6
-    }
+        "NOUN",
+        "ADJ",
+        "PRON",
+        "SYM",
+        "AUX",
+        "PART",
+        "ADV",
+        "INTJ",
+        "PUNCT",
+        "ADP",
+        "DET",
+        "NUM",
+        "CCONJ",
+        "X",
+        "SCONJ"
+    ]
 }

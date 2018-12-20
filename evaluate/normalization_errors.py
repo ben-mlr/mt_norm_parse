@@ -1,6 +1,7 @@
 
 import numpy as np
 from nltk import edit_distance
+from io_.info_print import printing
 SUPPORTED_STAT = ["sum"]
 def exact_match(pred, gold):
     if pred == gold :
@@ -15,7 +16,7 @@ def edit_inverse(pred, gold):
 METRIC_DIC = {"exact": exact_match, "edit": edit_inverse}
 
 
-def score_ls(ls_pred, ls_gold, score, stat="mean"):
+def score_ls(ls_pred, ls_gold, score, stat="mean", verbose=0):
     assert stat in SUPPORTED_STAT , "ERROR : metric should be in {} ".format(str(SUPPORTED_STAT))
     assert len(ls_gold) == len(ls_pred), "ERROR ls_gold is len {} while ls_pred is len {} ".format(len(ls_gold), len(ls_pred))
 
@@ -30,7 +31,7 @@ def score_ls(ls_pred, ls_gold, score, stat="mean"):
     return score, len(scores)
 
 
-def score_ls_(ls_pred, ls_gold, score, stat="mean"):
+def score_ls_(ls_pred, ls_gold, score, stat="mean", verbose=0):
     assert stat in SUPPORTED_STAT, "ERROR : metric should be in {} ".format(str(SUPPORTED_STAT))
     assert len(ls_gold) == len(ls_pred), "ERROR ls_gold is len {} while ls_pred is len {} ".format(len(ls_gold),
                                                                                                    len(ls_pred))
@@ -44,12 +45,14 @@ def score_ls_(ls_pred, ls_gold, score, stat="mean"):
             eval_func = METRIC_DIC[score]
             sent_score.append(eval_func(sent_pred, sent_gold))
             scores.append(eval_func(sent_pred, sent_gold))
+            printing("{} score ,  predicted word {} sentence predicted {} ".format(eval_func(sent_pred, sent_gold),sent_pred, sent_gold),
+                     verbose=verbose, verbose_level=6)
         sent_score_ls.append(scores)
     # TODO output sentence level score in some way
     if stat == "sum":
         score = np.sum(scores)
 
-    return score, len(scores)*len(ls_gold[0])
+    return score, len(scores)
 
 #print(score_ls(["aad"], ["abcccc"], score="edit"))
 

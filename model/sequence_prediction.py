@@ -30,7 +30,10 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                 src_mask = batch.input_seq_mask
                 target_gold = batch.output_seq if gold_output else None
                 # do something with it : When do you stop decoding ?
-                max_len = src_seq.size(1)
+                #if not DEV_4:
+                max_len = src_seq.size(-1)
+                #else
+
 
                 text_decoded_ls, src_text_ls, gold_text_seq_ls = decode_sequence(model=model,
                                                                                  char_dictionary=char_dictionary,
@@ -49,7 +52,8 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                     if score_to_compute_ls is not None:
                         for metric in score_to_compute_ls:
                             _score, _n_tokens = eval(scores_ls_func)(text_decoded_ls, gold_text_seq_ls,
-                                                                     score=metric, stat=stat)
+                                                                     score=metric, stat=stat,
+                                                                     verbose=verbose)
                             score_dic[metric] += _score
                             score_dic[metric+"total_tokens"] += _n_tokens
             return score_dic
@@ -87,7 +91,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
     printing("Data Start ".format(output_seq, output_len, output_mask), verbose=verbose, verbose_level=6)
 
     for step, char_decode in enumerate(range(2,  max_len)):
-        pdb.set_trace()
+        #pdb.set_trace()
 
         decoding_states = model.forward(input_seq=src_seq,
                                         output_seq=output_seq,
@@ -95,7 +99,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                                         input_word_len=src_len, output_mask=output_mask,
                                         output_word_len=output_len)
 
-        pdb.set_trace()
+        #pdb.set_trace()
         # decoding_states = model.forward(input_seq=src_seq, output_seq=None, input_mask=src_mask,
         # input_word_len=src_len, output_mask=None, output_word_len=None)
         # [batch, seq_len, V]
@@ -132,16 +136,18 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         if not DEV_4:
             output_seq[:, char_decode-1] = predictions[:, -1]
         else:
-            output_seq[:,:, char_decode - 1] = predictions[:, :, -1]
+            output_seq[:, :, char_decode - 1] = predictions[:, :, -1]
+
         if DEV_4:
-            sequence = [" ".join([char_dictionary.get_instance(output_seq[sent,word_ind, char_i]) for char_i in range(max_len)])
-                    + "/" for sent in range(batch_size) for word_ind in range(output_seq.size(1))]
+            sequence = [" ".join([char_dictionary.get_instance(output_seq[sent, word_ind, char_i]) for char_i in range(max_len)])
+                        + "/" for sent in range(batch_size) for word_ind in range(output_seq.size(1))]
+
         else:
             sequence = [" ".join(
                 [char_dictionary.get_instance(output_seq[sent, char_i]) for char_i in range(max_len)])
                         + "/" for sent in range(batch_size) ]
-        printing("Decoding step {} decoded target {} ".format(step, sequence), verbose=verbose, verbose_level=0)
-        pdb.set_trace()
+        printing("Decoding step {} decoded target {} ".format(step, sequence), verbose=verbose, verbose_level=3)
+        #pdb.set_trace()
         if DEV_4:
             text_decoded_array, text_decoded = output_text_(predictions, char_dictionary,single_sequence=single_sequence)
         else:
@@ -149,10 +155,9 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         printing("PREDICTION : {} array text {} ".format(text_decoded_array, text_decoded),
                                                          verbose=verbose, verbose_level=6)
 
-        print("STEP SEQ DECODED")
-        pdb.set_trace()
+        #pdb.set_trace()
     text_ = "output_text_" if DEV_4 else "output_text"
-    pdb.set_trace()
+    #pdb.set_trace()
     _, src_text = eval(text_)(src_seq, char_dictionary, single_sequence=single_sequence)
     src_text_ls.extend(src_text)
     if target_seq_gold is not None:
