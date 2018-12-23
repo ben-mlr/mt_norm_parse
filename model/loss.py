@@ -31,7 +31,7 @@ class LossCompute:
                  self.verbose, verbose_level=5)
         pdb.set_trace()
         loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1))
-        pdb.set_trace()
+
         printing("LOSS loss size {}".format(loss.size()), verbose=self.verbose, verbose_level=3)
         # define loss_distance as --> Cross-entropy
         loss.backward()

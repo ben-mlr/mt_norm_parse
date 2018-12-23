@@ -14,7 +14,8 @@ from env.project_variables import PROJECT_PATH
 
 
 def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=10,
-          hidden_size_encoder=None, output_dim=None, char_embedding_dim=None, hidden_size_decoder=None,
+          hidden_size_encoder=None, output_dim=None, char_embedding_dim=None,
+          hidden_size_decoder=None, hidden_size_sent_encoder=None,
           checkpointing=True, freq_checkpointing=None, model_dir=None,
           reload=False, model_full_name=None, model_id_pref="",print_raw=False,
           add_start_char=1, add_end_char=1,
@@ -59,6 +60,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
                           dir_model=model_dir,
                           hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,
                           model_id_pref=model_id_pref, model_full_name=model_full_name,
+                          hidden_size_sent_encoder=hidden_size_sent_encoder,
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose)
 
     if not reload:

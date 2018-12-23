@@ -5,7 +5,7 @@ import pdb
 import matplotlib.pyplot as plt
 from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 from io_.info_print import printing
-
+from model.seq2seq import DEV_4, DEV_5
 
 def subsequent_mask(size):
     "Mask out subsequent positions."
@@ -24,7 +24,7 @@ class MaskBatch(object):
         self.input_seq_mask = (input_seq != pad).unsqueeze(-2)
         _input_seq_mask = self.input_seq_mask.clone()
         ##- would be the same
-        from model.seq2seq import DEV_4
+
         if not DEV_4:
             _input_seq_mask[:, :, -1] = 0
         elif DEV_4:
@@ -67,9 +67,10 @@ class MaskBatch(object):
                 if DEV_4:
                     output_y_shape = self.output_seq_y.size()
                     self.output_seq_y = self.output_seq_y.view(self.output_seq_y.size(0)*self.output_seq_y.size(1), self.output_seq_y.size(2))
-                    self.output_seq_len = self.output_seq_len.view(self.output_seq_len.size(0)*self.output_seq_len.size(1))
+                    output_seq_len = self.output_seq_len.view(self.output_seq_len.size(0)*self.output_seq_len.size(1))
                     #pdb.set_trace()
-                output_seq_len, perm_idx = self.output_seq_len.squeeze().sort(0, descending=True)
+                    #self.output_seq_len = output_seq_len
+                output_seq_len, perm_idx = output_seq_len.squeeze().sort(0, descending=True)
                 inverse_perm_idx = torch.from_numpy(np.argsort(perm_idx.numpy()))
                 self.output_seq_y = self.output_seq_y[perm_idx, :]
             else:
@@ -97,12 +98,12 @@ class MaskBatch(object):
                 #useless but bug raised of not packeding (would like to remove packing which I think is useless ?)
 
                 self.output_seq_y = self.output_seq_y[inverse_perm_idx]
-                #pdb.set_trace()
+
                 #print("Warning confirm shape of")
                 # we reshape so that it fits tthe generated sequence
                 if DEV_4:
                     self.output_seq_y = self.output_seq_y.view(output_y_shape[0], -1, torch.max(lenghts))
-
+            pdb.set_trace()
             printing("self.output_seq_y 1 {} ".format(self.output_seq_y), verbose=verbose,verbose_level=6)
             printing("BATCH : TARGET true dim {} ".format(self.output_seq_y.size()), verbose, verbose_level=3)
             printing("BATCH : TARGET after packed true {} ".format(self.output_seq_y),verbose, verbose_level=5)

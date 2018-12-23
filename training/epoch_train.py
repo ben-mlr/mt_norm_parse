@@ -51,7 +51,7 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
             out = 0
             printing("DATA : \n input Sequence {} \n Target sequence {} ".format(batch.input_seq, batch.output_seq), verbose, verbose_level=1)
         if not empty_run:
-            pdb.set_trace()
+
             loss = loss_compute(out, batch.output_seq_y)#, batch.ntokens)
             total_loss += loss
             total_tokens += batch.ntokens.type(torch.FloatTensor)
