@@ -10,26 +10,6 @@ if __name__ == "__main__":
     test_path = DEMO2
     n_epochs = 10
 
-    # -> if not DEV_4:
-    # output_seq.size()
-    # torch.Size(c[2, 27])
-    # conditioning.size()
-    # torch.Size([1, 2, 40])
-    # output_mask.size()
-    # torch.Size([2, 27, 27])
-    # output_word_len
-    # output_word_len.size()
-    # torch.Size([2, 1])
-    ## if Dev 4 :
-    # (Pdb) output.size()output_mask
-    # toccrch.Size([48, 28])
-    # (Pdb) output_mask.size()output_word_len
-    # torch.Size([48, 28, 28])
-    # (Pdb) output_word_len.size()
-    # torch.Size([48])
-    # (Pdb) conditioning.size()
-    # torch.Size([1, 2, 40]) --> to transform in 1, 48, 40 : one same conditionning for each vector
-
     normalization = False
     batch_size = 2
     hidden_size_encoder = None

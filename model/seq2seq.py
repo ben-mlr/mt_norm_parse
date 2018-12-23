@@ -40,10 +40,9 @@ class CharEncoder(nn.Module):
                                   bias=True, batch_first=True,
                                   bidirectional=False)
 
-    def forward(self, input, input_mask, input_word_len=None):
+    def word_encoder_source(self, input, input_mask, input_word_len=None):
         # [batch, seq_len] , batch of (already) padded sequences
         # of indexes (that corresponds to character 1-hot encoded)
-
         printing("SOURCE dim {} ".format(input.size()), self.verbose, verbose_level=3)
         printing("SOURCE DATA {} ".format(input), self.verbose, verbose_level=5)
         #printing("SOURCE DATA mask {} ".format(input_mask), self.verbose, verbose_level=6)
@@ -95,17 +94,13 @@ class CharEncoder(nn.Module):
         # + check this dimension ? why are we loosing a dimension
         return h_n #(perm_idx,input_word_len, _input_word_len)
 
-    def forward_sent(self, input, input_mask, input_word_len=None, verbose=0):
+    def sent_encoder_source(self, input, input_mask, input_word_len=None, verbose=0):
         # input should be sentence
-        # should we have a loop
-        #sent_hidden is the accumulation of h_n over past and/or future words (it's the context)
+        # sent_hidden is the accumulation of h_n over past and/or future words (it's the context)
         # h_n is self.forward()
-        #input_word = input[:,x,:]
-        #input_mask_word = input_mask[:,x,:]
         printing("input size {}  mask  {} size length size {} ".format(input.size(),
                                                                        input_mask.size(),
                                                                        input_word_len.size()), verbose=verbose, verbose_level=5)
-        input_shape = input.size()
         if DEV_5:
             _input_word_len = input_word_len.clone()
             # handle sentence that take the all sequence
@@ -131,13 +126,11 @@ class CharEncoder(nn.Module):
             shape_sent_seq = input_char_vecs.size()
             input_char_vecs = input_char_vecs.view(input_char_vecs.size(0) * input_char_vecs.size(1),
                                                    input_char_vecs.size(2))
-            # remove empty words
 
             # [] representation of each word
-            h_w = self.forward(input=input_char_vecs, input_mask=input_mask, input_word_len=input_word_len)
+            h_w = self.word_encoder_source(input=input_char_vecs, input_mask=input_mask, input_word_len=input_word_len)
             pdb.set_trace()
             h_w = h_w.view(shape_sent_seq[0], shape_sent_seq[1], -1)
-            #h_w, h_w_sizes = pad_packed_sequence(h_w, batch_first=True, padding_value=1.0)
 
             pdb.set_trace()
             # [] source contextual word level representaiton
@@ -150,19 +143,12 @@ class CharEncoder(nn.Module):
 
         elif not DEV_5:
             input = input.view(input.size(0)*input.size(1), input.size(2))
-
             input_mask = input_mask.view(input_mask.size(0)*input_mask.size(1), input_mask.size(2), input_mask.size(-1))
             # TODO : I think you should packed it
-
             input_word_len = input_word_len.view(input.size(0))
             printing("input new size {}  mask  {} size length size {} ".format(input.size(), input_mask.size(),
-                                                                               input_word_len.size()), verbose=verbose,
-                     verbose_level=5)
+                                                                               input_word_len.size()), verbose=verbose, verbose_level=5)
             h_w = self.forward(input=input, input_mask=input_mask, input_word_len=input_word_len)
-            #pdb.set_trace()
-            #h_w = h_w.view(input_shape[0], input_shape[1], h_w.size(2))
-
-
 
         # 1 - pack the sequence--> need the length
         # 2 - feed it to a LSTM
@@ -200,24 +186,8 @@ class CharDecoder(nn.Module):
         self.verbose = verbose
         #self.pre_output_layer = nn.Linear(hidden_size_decoder,, bias=False)
 
-    def forward_step(self, hidden, prev_embed):
-        #char_vecs = self.char_embedding_decoder(output_seq)
-        # no attention on the target sequence
-        #context_vector = conditionning
-        # for now straight concatanation of source encoding and c_{t-1}
-        #rnn_input = torch.cat([prev_embed, context_vector])
-        #output, h_n = self.seq_decoder(rnn_input , hidden)
-        #pre_output = self.pre_output_layer(pre_output)
-        # update rnn hidden state
-        rnn_input = prev_embed#torch.cat([prev_embed, conditionning], dim=2)
-        output, hidden = self.seq_decoder(rnn_input, hidden)
-        # TOD we can make pre_output more complex later
-        #  TOD : we can add context_vector that can be made more complex with some decoding step  attention
-        pre_output = output#torch.cat([prev_embed, output, conditionning], dim=2)
 
-        return output, hidden, output
-
-    def forward(self, output, conditioning, output_mask, output_word_len, perm_encoder=None):
+    def word_encoder_target(self, output, conditioning, output_mask, output_word_len, perm_encoder=None):
         # TODO DEAL WITH MASKING (padding and prediction oriented ?)
         printing("TARGET size {} ".format(output.size()), verbose=self.verbose, verbose_level=3)
         printing("TARGET data {} ".format(output), verbose=self.verbose, verbose_level=5)
@@ -271,7 +241,7 @@ class CharDecoder(nn.Module):
         # TODO : output is not shorted in regard to max sent len --> how to handle gold sequence ?
         return output
 
-    def forward_sent(self, output, conditioning, output_mask, output_word_len, perm_encoder=None, verbose=0):
+    def sent_encoder_target(self, output, conditioning, output_mask, output_word_len, perm_encoder=None, verbose=0):
 
         # condiionning is for now the same for every decoded token
         printing("output_mask size {}  mask  {} size length size {} ".format(output_mask.size(), output_mask.size(),
@@ -313,7 +283,7 @@ class CharDecoder(nn.Module):
             output_word_len = output_word_len.contiguous()
             output_word_len = output_word_len.view(output_word_len.size(0)*output_word_len.size(1))
 
-        output_w_decoder = self.forward(output_seq, conditioning, output_mask, output_word_len)
+        output_w_decoder = self.word_encoder_target(output_seq, conditioning, output_mask, output_word_len)
 
         output_w_decoder = output_w_decoder.view(output_char_vecs.size(0), output_char_vecs.size(1), -1, output_w_decoder.size(2))
 
@@ -395,18 +365,18 @@ class LexNormalizer(nn.Module):
         # [batch, seq_len, input_dim] n batch of sequences of embedded character
 
         if not DEV_4:
-            h = self.encoder.forward(input_seq, input_mask, input_word_len)
+            h = self.encoder.word_encoder_source(input_seq, input_mask, input_word_len)
         elif DEV_4:
-            h = self.encoder.forward_sent(input_seq, input_mask, input_word_len)
+            h = self.encoder.sent_encoder_source(input_seq, input_mask, input_word_len)
         # [] [batch, , hiden_size_decoder]
         pdb.set_trace()
         h = self.bridge(h)
 
         if not DEV_4:
-            output = self.decoder.forward(output_seq, h, output_mask, output_word_len)
+            output = self.decoder.word_encoder_target(output_seq, h, output_mask, output_word_len)
         elif DEV_4:
             pdb.set_trace()
-            output = self.decoder.forward_sent(output_seq, h, output_mask, output_word_len)
+            output = self.decoder.sent_encoder_target(output_seq, h, output_mask, output_word_len)
         #
         # output_score = nn.ReLU()(self.output_predictor(h_out))
         # [batch, output_voc_size], one score per output character token
