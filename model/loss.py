@@ -30,8 +30,8 @@ class LossCompute:
         printing("LOSS input y observations {} reshaped {} ".format(y, y.contiguous().view(-1)),
                  self.verbose, verbose_level=5)
         pdb.set_trace()
+        y = y[:,:x.size(1),:]
         loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1))
-
         printing("LOSS loss size {}".format(loss.size()), verbose=self.verbose, verbose_level=3)
         # define loss_distance as --> Cross-entropy
         loss.backward()

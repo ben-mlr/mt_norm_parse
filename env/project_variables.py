@@ -8,8 +8,10 @@ PROJECT_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 CHECKPOINT_DIR = os.path.join(PROJECT_PATH,"checkpoints")
 
 # DATASETS
-TRAINING = os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-train.conllu")
-DEV = os.path.join(PROJECT_PATH, "../parsing/normpar/data/owoputi.integrated")
-TEST = os.path.join(PROJECT_PATH, "../parsing/normpar/data/lexnorm.integrated")
-DEMO = os.path.join(PROJECT_PATH, "../parsing/normpar/data/lexnorm.integrated.demo")
-DEMO2 = os.path.join(PROJECT_PATH, "../parsing/normpar/data/lexnorm.integrated.demo2")
+TRAINING_LABEL, TRAINING = "en-ud-train", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-train.conllu")
+DEV_LABEL, DEV = "owoputi", os.path.join(PROJECT_PATH, "../parsing/normpar/data/owoputi.integrated")
+TEST_LABEL, TEST = "lexnorm", os.path.join(PROJECT_PATH, "../parsing/normpar/data/lexnorm.integrated")
+DEMO_LABEL, DEMO = "lexnorm-demo", os.path.join(PROJECT_PATH, "../parsing/normpar/data/lexnorm.integrated.demo")
+DEMO2_LABEL, DEMO2 = "lexnorm-demo2", os.path.join(PROJECT_PATH, "../parsing/normpar/data/lexnorm.integrated.demo2")
+
+REPO_DATASET = {TRAINING:TRAINING_LABEL, DEV:DEV_LABEL, DEMO:DEMO_LABEL, DEMO2:DEMO2_LABEL, TEST:TEST_LABEL}

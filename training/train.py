@@ -10,14 +10,15 @@ import pdb
 from toolbox.checkpointing import checkpoint
 import os
 from io_.info_print import disable_tqdm_level, printing
-from env.project_variables import PROJECT_PATH
+from env.project_variables import PROJECT_PATH, REPO_DATASET
 
 
 def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=10,
+          label_train="", label_dev="",
           hidden_size_encoder=None, output_dim=None, char_embedding_dim=None,
           hidden_size_decoder=None, hidden_size_sent_encoder=None,
           checkpointing=True, freq_checkpointing=None, model_dir=None,
-          reload=False, model_full_name=None, model_id_pref="",print_raw=False,
+          reload=False, model_full_name=None, model_id_pref="", print_raw=False,
           add_start_char=1, add_end_char=1,
           debug=False,
           verbose=1):
@@ -110,7 +111,10 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
         # WARNING : only saving if we decrease not loading former model if we relaod
         if (checkpointing and epoch % freq_checkpointing == 0) or (epoch+1 == n_epochs):
 
-            dir_plot = simple_plot(final_loss=loss_train, loss_2=loss_developing, loss_ls=loss_training, epochs="last"+reloading,
+            dir_plot = simple_plot(final_loss=loss_train, loss_2=loss_developing, loss_ls=loss_training,
+                                   epochs=str(epoch)+reloading,
+                                   label=label_train+"-train",
+                                   label_2=label_dev+"-dev",
                                    save=True, dir=model_dir,
                                    verbose=verbose, verbose_level=1,
                                    lr=lr, prefix=model.model_full_name,
@@ -137,4 +141,5 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
     #report_model(parameters=True, ,arguments_dic=model.arguments, dir_models_repositories=REPOSITORIES)
 
     simple_plot(final_loss=loss_dev, loss_ls=loss_training, loss_2=loss_developing,epochs=n_epochs, save=True,
+                dir=model_dir,
                 lr=lr, prefix=model.model_full_name+"-LAST")

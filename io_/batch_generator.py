@@ -74,7 +74,7 @@ class MaskBatch(object):
                 inverse_perm_idx = torch.from_numpy(np.argsort(perm_idx.numpy()))
                 self.output_seq_y = self.output_seq_y[perm_idx, :]
             else:
-                # TODO should be able to handle batch_size == 1 but is not
+                # TODO should beƒy able to handle batch_size == 1 but is not
                 output_seq_len, perm_idx = self.output_seq_len, torch.zeros([1],dtype=torch.eq_len)
             printing("BATCH : TARGET before packed true size {} ".format(self.output_seq_y.size()),verbose,
                      verbose_level=4)

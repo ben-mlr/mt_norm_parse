@@ -297,7 +297,7 @@ class CharDecoder(nn.Module):
                  "  the hidden states of last layers),"
                  "last hidden hidden for each dir+layers)".format(output.size(), h_n.size()),
                  verbose=self.verbose, verbose_level=3)
-        # TODO : output is not shorted in regard to max sent len --> how to handle gold sequence ? 
+        # TODO : output is not shorted in regard to max sent len --> how to handle gold sequence ?
         return output #, h_n
 
     def forward_sent(self, output, conditioning, output_mask, output_word_len, perm_encoder=None, verbose=0):
