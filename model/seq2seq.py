@@ -235,33 +235,8 @@ class CharDecoder(nn.Module):
         printing("TARGET EMBEDDING size {} ".format(char_vecs.size()), verbose=self.verbose, verbose_level=3)
         printing("TARGET EMBEDDING data {} ".format(char_vecs), verbose=self.verbose, verbose_level=5)
 
-        max_len = output_word_len.max().data
-        pre_output_vectors = []
-        # ordering the conditioning as the target sequence
-        #if not DEV_4:
         conditioning = conditioning[:, perm_idx_output, :]
-        # else:
-        #    # TODO : reshape confitioning as in the forward_sent
-        #    pass
-            # conditioning = conditioning[:,# make it as big as the number of token to decode ,:]
-            # UNROLLING BY HAN
-        if DEV_3:
-            # NB 1 : I think it is needed for
-            # having a target side contextual attention layer on the source but that packed sequence
-            # is fine when we do simpler model as in DEV+DEV_2
-            # NB 2 : but actually in this case I don't see how you really handle masking :
-            # as you still at training time padded sequence to the rnn --> Does having ignore
-            # _index in the loss is enough ?
-            decoder_states = []
-            hidden = conditioning
 
-            for i in range(max_len):
-                prev_embed = char_vecs[:, i, :].unsqueeze(1) #we need 3 dim ; batch, seq, dim emb
-                output, h_n, pre_output = self.forward_step(hidden, prev_embed)
-                decoder_states.append(output)
-                pre_output_vectors.append(pre_output)
-            output = torch.cat(pre_output_vectors, dim=1)
-            # NB : output is defined very differently here than in the DEV{_2}
         #  USING PACKED SEQUENCE
         if DEV and DEV_2:
             # THe shapes are fine !! -->
@@ -280,11 +255,7 @@ class CharDecoder(nn.Module):
             printing("TARGET ENCODED  SIZE {} output {} h_n (output (includes all the hidden states of last layers), "
                      "last hidden hidden for each dir+layers)".format(output.data.shape, h_n.size()), verbose=self.verbose, verbose_level=3)
             output, output_sizes = pad_packed_sequence(output, batch_first=True)
-            # reoredring output
-            #_ouptut = output.clone()
-
             output = output[inverse_perm_idx_output, :, :]
-            #_ouptut =
         # First implementation without accounted for padding
         elif not DEV_3:
             output, h_n = self.seq_decoder(char_vecs, conditioning)
@@ -298,14 +269,13 @@ class CharDecoder(nn.Module):
                  "last hidden hidden for each dir+layers)".format(output.size(), h_n.size()),
                  verbose=self.verbose, verbose_level=3)
         # TODO : output is not shorted in regard to max sent len --> how to handle gold sequence ?
-        return output #, h_n
+        return output
 
     def forward_sent(self, output, conditioning, output_mask, output_word_len, perm_encoder=None, verbose=0):
 
         # condiionning is for now the same for every decoded token
         printing("output_mask size {}  mask  {} size length size {} ".format(output_mask.size(), output_mask.size(),
-                                                                       output_mask.size()), verbose=verbose,
-                 verbose_level=3)
+                                                                       output_mask.size()), verbose=verbose, verbose_level=3)
 
         if DEV_5:
             _output_word_len = output_word_len.clone()
@@ -331,16 +301,11 @@ class CharDecoder(nn.Module):
             output_seq = output_char_vecs.view(output_char_vecs.size(0)*output_char_vecs.size(1), output_char_vecs.size(2))
             output_shape = output_seq.size()
 
-        ## ----
         if not DEV_5:
             output_shape = output.size()
             # reshape to feed the decoder
             output = output.contiguous()
             output = output.view(output_shape[0]*output_shape[1], output_shape[2])
-        # output_mask = output_mask.view(output_mask.size(0) * output_mask.size(1),
-        # - output_mask.size(2), output_mask.size(-1))
-        # so far conditioning is a sequence of context vector on the source side
-        # conditioning = conditioning.view()
         if not DEV_5:
             conditioning = conditioning.view(1, output_shape[0]*output_shape[1], -1)
         if DEV_5:
@@ -424,8 +389,6 @@ class LexNormalizer(nn.Module):
         if load:
             self.load_state_dict(torch.load(checkpoint_dir))
 
-        #self.output_predictor = nn.Linear(in_features=hidden_size_decoder, out_features=voc_size)
-
     def forward(self, input_seq, output_seq, input_mask, input_word_len, output_mask, output_word_len):
         # [batch, seq_len ] , batch of sequences of indexes (that corresponds to character 1-hot encoded)
         # char_vecs_input = self.char_embedding(input_seq)
@@ -436,7 +399,6 @@ class LexNormalizer(nn.Module):
         elif DEV_4:
             h = self.encoder.forward_sent(input_seq, input_mask, input_word_len)
         # [] [batch, , hiden_size_decoder]
-        # char_vecs_output = self.char_embedding(output_seq)
         pdb.set_trace()
         h = self.bridge(h)
 
@@ -448,11 +410,10 @@ class LexNormalizer(nn.Module):
         #
         # output_score = nn.ReLU()(self.output_predictor(h_out))
         # [batch, output_voc_size], one score per output character token
-        # return output
         printing("DECODER full  output sequence encoded of size {} ".format(output.size()), verbose=self.verbose,
                  verbose_level=3)
         printing("DECODER full  output sequence encoded of {}  ".format(output), verbose=self.verbose, verbose_level=5)
-        return output #perm
+        return output
 
     @staticmethod
     def save(dir, model, info_checkpoint,
