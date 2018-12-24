@@ -54,7 +54,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
 
     voc_size = len(char_dictionary.instance2index)+1
     printing("char_dictionary".format(char_dictionary.instance2index), verbose=verbose, verbose_level=0)
-    printing("Character vocabulary is {} length".format(len(char_dictionary.instance2index)+1), verbose=verbose, verbose_level=0)
+    printing("Character vocabulary is {} length".format(len(char_dictionary.instance2index)+1), verbose=verbose,
+             verbose_level=0)
 
     model = LexNormalizer(generator=Generator, load=reload,
                           char_embedding_dim=char_embedding_dim, voc_size=voc_size,
@@ -70,7 +71,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
         printing("Dir {} created".format(model_dir), verbose=verbose, verbose_level=0)
 
     starting_epoch = model.arguments["info_checkpoint"]["n_epochs"] if reload else 0
-    reloading = "" if not reload else "reloaded_from_"+str(starting_epoch)
+    reloading = "" if not reload else " reloaded from "+str(starting_epoch)
     n_epochs += starting_epoch
 
     adam = torch.optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.98), eps=1e-9)
@@ -140,6 +141,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
 
     #report_model(parameters=True, ,arguments_dic=model.arguments, dir_models_repositories=REPOSITORIES)
 
-    simple_plot(final_loss=loss_dev, loss_ls=loss_training, loss_2=loss_developing,epochs=n_epochs, save=True,
-                dir=model_dir,
+    simple_plot(final_loss=loss_dev, loss_ls=loss_training, loss_2=loss_developing, epochs=n_epochs, save=True,
+                dir=model_dir,label=label_train, label_2=label_dev,
                 lr=lr, prefix=model.model_full_name+"-LAST")

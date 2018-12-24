@@ -39,7 +39,7 @@ def score_ls_(ls_pred, ls_gold, score, stat="mean", verbose=0):
     scores = []
     sent_score_ls = []
     for gold, pred in zip(ls_gold, ls_pred):
-        assert len(gold)==len(pred), ""
+        assert len(gold)==len(pred), "pred {} gold {} ".format(pred, gold)
         sent_score = []
         for sent_gold, sent_pred in zip(gold, pred):
             eval_func = METRIC_DIC[score]

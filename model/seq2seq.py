@@ -120,6 +120,7 @@ class CharEncoder(nn.Module):
             input_char_vecs = input_char_vecs[inverse_perm_idx_input_sent, :, :]
             # cut input_word_len so that it fits packed_padded sequence
             input_word_len = input_word_len[:, :input_char_vecs.size(1), :]
+            sent_len_max_source = input_char_vecs.size(1)
             input_word_len = input_word_len.contiguous()
             # reshape word_len and word_char_vecs matrix --> for feeding to word level encoding
             input_word_len = input_word_len.view(input_word_len.size(0) * input_word_len.size(1))
@@ -139,7 +140,7 @@ class CharEncoder(nn.Module):
             source_context_word_vector = torch.cat((sent_encoded, h_w), dim=2)
             pdb.set_trace()
             source_context_word_vector = source_context_word_vector.view(1, source_context_word_vector.size(0)*source_context_word_vector.size(1),-1)
-            return source_context_word_vector
+            return source_context_word_vector, sent_len_max_source
 
         elif not DEV_5:
             input = input.view(input.size(0)*input.size(1), input.size(2))
@@ -186,7 +187,6 @@ class CharDecoder(nn.Module):
         self.verbose = verbose
         #self.pre_output_layer = nn.Linear(hidden_size_decoder,, bias=False)
 
-
     def word_encoder_target(self, output, conditioning, output_mask, output_word_len, perm_encoder=None):
         # TODO DEAL WITH MASKING (padding and prediction oriented ?)
         printing("TARGET size {} ".format(output.size()), verbose=self.verbose, verbose_level=3)
@@ -195,7 +195,9 @@ class CharDecoder(nn.Module):
                  verbose_level=6)
         printing("TARGET  : Word  length  {}  ".format(output_word_len), self.verbose, verbose_level=5)
         if DEV and DEV_2:
+            pdb.set_trace()
             output_word_len, perm_idx_output = output_word_len.squeeze().sort(0, descending=True)
+
             output = output[perm_idx_output, :]
             inverse_perm_idx_output = torch.from_numpy(np.argsort(perm_idx_output.numpy()))
             #print("WARNING : REORDERED {} len {} ENCODER SIDE {}  ".format(perm_idx_output, output_word_len, perm_encoder))
@@ -204,8 +206,10 @@ class CharDecoder(nn.Module):
 
         printing("TARGET EMBEDDING size {} ".format(char_vecs.size()), verbose=self.verbose, verbose_level=3)
         printing("TARGET EMBEDDING data {} ".format(char_vecs), verbose=self.verbose, verbose_level=5)
-
-        conditioning = conditioning[:, perm_idx_output, :]
+        pdb.set_trace()
+        GREEDY = True
+        if not GREEDY:
+            conditioning = conditioning[:, perm_idx_output, :]
 
         #  USING PACKED SEQUENCE
         if DEV and DEV_2:
@@ -214,7 +218,6 @@ class CharDecoder(nn.Module):
             # same as target sequence and source ..
             output_word_len[output_word_len == 0] = 1
             pdb.set_trace()
-
             packed_char_vecs_output = pack_padded_sequence(char_vecs, output_word_len.squeeze().cpu().numpy(), batch_first=True)
             printing("TARGET packed_char_vecs {}  dim".format(packed_char_vecs_output.data.shape), verbose=self.verbose, verbose_level=3)#.size(), packed_char_vecs)
             # conditioning is the output of the encoder (work as the first initial state of the decoder)
@@ -235,13 +238,13 @@ class CharDecoder(nn.Module):
                  verbose_level=5)
 
         printing("TARGET ENCODED UNPACKED SIZE {} output {} h_n (output (includes all "
-                 "  the hidden states of last layers),"
+                 "the hidden states of last layers),"
                  "last hidden hidden for each dir+layers)".format(output.size(), h_n.size()),
                  verbose=self.verbose, verbose_level=3)
         # TODO : output is not shorted in regard to max sent len --> how to handle gold sequence ?
         return output
 
-    def sent_encoder_target(self, output, conditioning, output_mask, output_word_len, perm_encoder=None, verbose=0):
+    def sent_encoder_target(self, output, conditioning, output_mask, output_word_len, perm_encoder=None, sent_len_max_source=None,verbose=0):
 
         # condiionning is for now the same for every decoded token
         printing("output_mask size {}  mask  {} size length size {} ".format(output_mask.size(), output_mask.size(),
@@ -267,7 +270,9 @@ class CharDecoder(nn.Module):
             output_char_vecs = output_char_vecs[inverse_perm_idx_input_sent, :, :]
             # cut input_word_len so that it fits packed_padded sequence
             output_word_len = output_word_len[:, :output_char_vecs.size(1), :]
+            # cut again (should be done in one step I guess) to fit sent len source
             pdb.set_trace()
+            output_word_len = output_word_len[:, :sent_len_max_source, :]
             output_seq = output_char_vecs.view(output_char_vecs.size(0)*output_char_vecs.size(1), output_char_vecs.size(2))
             output_shape = output_seq.size()
 
@@ -282,10 +287,10 @@ class CharDecoder(nn.Module):
             pdb.set_trace()
             output_word_len = output_word_len.contiguous()
             output_word_len = output_word_len.view(output_word_len.size(0)*output_word_len.size(1))
-
+        pdb.set_trace()
         output_w_decoder = self.word_encoder_target(output_seq, conditioning, output_mask, output_word_len)
 
-        output_w_decoder = output_w_decoder.view(output_char_vecs.size(0), output_char_vecs.size(1), -1, output_w_decoder.size(2))
+        output_w_decoder = output_w_decoder.view(output_char_vecs.size(0), sent_len_max_source, -1, output_w_decoder.size(2))
 
         return output_w_decoder
 
@@ -319,6 +324,7 @@ class LexNormalizer(nn.Module):
                                                   "git_id": git_commit_id},
                               "hyperparameters": {"char_embedding_dim": char_embedding_dim,
                                                   "hidden_size_encoder": hidden_size_encoder,
+                                                  "hidden_size_sent_encoder":hidden_size_sent_encoder,
                                                   "hidden_size_decoder": hidden_size_decoder,
                                                   "voc_size": voc_size, "output_dim": output_dim
                                                  }}
@@ -338,8 +344,8 @@ class LexNormalizer(nn.Module):
                                                  "redefined in dictionnaries do not " \
                                                  "match {} vs {} ".format(args["voc_size"], voc_size)
             char_embedding_dim, hidden_size_encoder, \
-            hidden_size_decoder, voc_size, output_dim = args["char_embedding_dim"], args["hidden_size_encoder"], \
-                                                        args["hidden_size_decoder"], args["voc_size"], args.get("output_dim")
+            hidden_size_decoder, voc_size, output_dim, hidden_size_sent_encoder = args["char_embedding_dim"], args["hidden_size_encoder"], \
+                                                        args["hidden_size_decoder"], args["voc_size"], args.get("output_dim"), args.get("hidden_size_sent_encoder")
             self.args_dir = args_dir
 
         self.model_full_name = model_full_name
@@ -366,8 +372,9 @@ class LexNormalizer(nn.Module):
 
         if not DEV_4:
             h = self.encoder.word_encoder_source(input_seq, input_mask, input_word_len)
+            sent_len_max_source = None
         elif DEV_4:
-            h = self.encoder.sent_encoder_source(input_seq, input_mask, input_word_len)
+            h, sent_len_max_source = self.encoder.sent_encoder_source(input_seq, input_mask, input_word_len)
         # [] [batch, , hiden_size_decoder]
         pdb.set_trace()
         h = self.bridge(h)
@@ -376,7 +383,8 @@ class LexNormalizer(nn.Module):
             output = self.decoder.word_encoder_target(output_seq, h, output_mask, output_word_len)
         elif DEV_4:
             pdb.set_trace()
-            output = self.decoder.sent_encoder_target(output_seq, h, output_mask, output_word_len)
+            output = self.decoder.sent_encoder_target(output_seq, h, output_mask, output_word_len,
+                                                      sent_len_max_source=sent_len_max_source)
         #
         # output_score = nn.ReLU()(self.output_predictor(h_out))
         # [batch, output_voc_size], one score per output character token
@@ -417,7 +425,7 @@ class LexNormalizer(nn.Module):
     @staticmethod
     def load(dir, model_full_name, verbose=0):
         args = model_full_name+"-args.json"
-        args_dir = os.path.join(dir, model_full_name+"-folder", args)
+        args_dir = os.path.join(dir, args)#, model_full_name+"-folder", args)
         #args_checkpoint = os.path.join(dir, checkpoint)
         assert os.path.isfile(args_dir), "ERROR {} does not exits".format(args_dir)
         args = json.load(open(args_dir, "r"))

@@ -43,7 +43,7 @@ verbose = 2
 script_dir = os.path.dirname(os.path.realpath(__file__))
 model = LexNormalizer(generator=Generator,
                       voc_size=len(char_dictionary.instance2index)+1,
-                      load=True, model_full_name="normalizer_lexnorm_ad6e", dir_model=os.path.join(script_dir,"..","checkpoints"),
+                      load=True, model_full_name="normalization_all_data_aa46", dir_model=os.path.join(script_dir,"..","checkpoints"),
                       verbose=verbose)
 batch_size = 2
 nbatch = 20
