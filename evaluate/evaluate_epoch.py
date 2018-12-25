@@ -14,7 +14,7 @@ from reporting.write_to_performance_repo import report_template, write_dic
 dict_path = "../dictionariesbackup/"
 train_path = TRAINING
 dev_path = DEV
-test_path = DEMO2#TEST
+test_path = DEMO2 #TEST
 
 debug = False
 normalization = False
@@ -51,7 +51,7 @@ batch_size = 2
 nbatch = 30
 
 #data_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
-data_path = DEV
+data_path = DEMO2
 batchIter = data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
                             type_dictionary, batch_size=batch_size, nbatch=nbatch, add_start_char=add_start_char,
                             add_end_char=add_end_char,

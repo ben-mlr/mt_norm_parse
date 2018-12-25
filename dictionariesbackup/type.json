@@ -8,11 +8,11 @@
         "obj"
     ],
     "instance2index": {
-        "_<ROOT>": 2,
-        "_<PAD>": 1,
+        "obj": 6,
         "root": 4,
         "compound": 5,
-        "_<END>": 3,
-        "obj": 6
+        "_<ROOT>": 2,
+        "_<PAD>": 1,
+        "_<END>": 3
     }
 }

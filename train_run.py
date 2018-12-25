@@ -39,7 +39,7 @@ if __name__ == "__main__":
               add_end_char=add_end_char,
               label_train=REPO_DATASET[test_path], label_dev=REPO_DATASET[test_path],
               freq_checkpointing=freq_checkpointing, reload=reload, model_id_pref="normalization_all_data",
-              hidden_size_encoder=35, output_dim=50, char_embedding_dim=20, debug=True,
+              hidden_size_encoder=35, output_dim=50, char_embedding_dim=20, debug=False,
               hidden_size_sent_encoder=13,
               hidden_size_decoder=40, print_raw=False, checkpointing=True
               )

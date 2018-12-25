@@ -41,7 +41,7 @@ def output_text_(one_code_prediction, char_dic, start_symbol=CHAR_START ,
                 char_decoded = char_dic.get_instance(one_code_prediction[batch, word_i, char])
                 word.append(char_decoded)
                 #if not char_decoded == stop_symbol and not char_decoded == start_symbol:
-                if char_decoded == stop_symbol or (i_char==0 and char_decoded == PAD_CHAR):
+                if char_decoded == stop_symbol or (i_char == 0 and char_decoded == PAD_CHAR):
                     # we break if only one padded symbok witout adding anything to word to print : only one PADDED symbol to the array
                     break
                 if not char_decoded == start_symbol:
@@ -50,7 +50,10 @@ def output_text_(one_code_prediction, char_dic, start_symbol=CHAR_START ,
             if single_sequence:
                 str_decoded = word_to_print
             else:
-                word_str_decoded.append(word_to_print)
+                if len(word_to_print)>0:
+                    word_str_decoded.append(word_to_print)
+                else:
+                    print("Word to print empty ")
         str_decoded.append(word_str_decoded)
         decoding.append(sent)
     return np.array(decoding), str_decoded

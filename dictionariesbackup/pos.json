@@ -9,10 +9,10 @@
     ],
     "instance2index": {
         "NOUN": 6,
-        "_ROOT_POS": 2,
-        "_PAD_POS": 1,
+        "PROPN": 5,
         "_END_POS": 3,
+        "_ROOT_POS": 2,
         "VERB": 4,
-        "PROPN": 5
+        "_PAD_POS": 1
     }
 }

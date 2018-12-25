@@ -11,7 +11,13 @@ def exact_match(pred, gold):
 
 def edit_inverse(pred, gold):
     edit = edit_distance(pred, gold)
-    return 1-edit/max(len(pred), len(gold))
+    try:
+        return 1-edit/max(len(pred), len(gold))
+    except Exception as e:
+        print("ERROR {} ".format(e))
+        print("pred {} gold {}".format(pred, gold))
+
+
 
 METRIC_DIC = {"exact": exact_match, "edit": edit_inverse}
 
@@ -39,7 +45,7 @@ def score_ls_(ls_pred, ls_gold, score, stat="mean", verbose=0):
     scores = []
     sent_score_ls = []
     for gold, pred in zip(ls_gold, ls_pred):
-        assert len(gold)==len(pred), "pred {} gold {} ".format(pred, gold)
+        assert len(gold) == len(pred), "len : pred {}, gold {} - pred {} gold {} ".format(len(pred), len(gold), pred, gold)
         sent_score = []
         for sent_gold, sent_pred in zip(gold, pred):
             eval_func = METRIC_DIC[score]
