@@ -1,4 +1,12 @@
 {
+    "instance2index": {
+        "_PAD_POS": 1,
+        "VERB": 4,
+        "NOUN": 6,
+        "PROPN": 5,
+        "_END_POS": 3,
+        "_ROOT_POS": 2
+    },
     "instances": [
         "_PAD_POS",
         "_ROOT_POS",
@@ -6,13 +14,5 @@
         "VERB",
         "PROPN",
         "NOUN"
-    ],
-    "instance2index": {
-        "NOUN": 6,
-        "PROPN": 5,
-        "_END_POS": 3,
-        "_ROOT_POS": 2,
-        "VERB": 4,
-        "_PAD_POS": 1
-    }
+    ]
 }

@@ -156,7 +156,7 @@ class CharEncoder(nn.Module):
         # 3 - unpack
         # 4 - take the output : that should be the same shape concate with h_w and that's it
         #sent_ = self.sent_encoder()
-        pdb.set_trace()
+
         # h_w = torch.sum(h_w, dim=1)
         # h_w = h_w.unsqueeze(0)
         # For the sentence :
@@ -206,10 +206,8 @@ class CharDecoder(nn.Module):
 
         printing("TARGET EMBEDDING size {} ".format(char_vecs.size()), verbose=self.verbose, verbose_level=3)
         printing("TARGET EMBEDDING data {} ".format(char_vecs), verbose=self.verbose, verbose_level=5)
-        pdb.set_trace()
-        GREEDY = False
-        if not GREEDY:
-            conditioning = conditioning[:, perm_idx_output, :]
+
+        conditioning = conditioning[:, perm_idx_output, :]
 
         #  USING PACKED SEQUENCE
         if DEV and DEV_2:
@@ -261,7 +259,6 @@ class CharDecoder(nn.Module):
             sent_len, perm_idx_input_sent = sent_len.squeeze().sort(0, descending=True)
             inverse_perm_idx_input_sent = torch.from_numpy(np.argsort(perm_idx_input_sent.numpy()))
             # [batch x sent_len , dim hidden word lebel] # this remove empty words
-            pdb.set_trace()
             packed_char_vecs_output = pack_padded_sequence(output[perm_idx_input_sent, :, :],
                                                            sent_len.squeeze().cpu().numpy(), batch_first=True)
             # unpacked for the word level representation
@@ -285,20 +282,13 @@ class CharDecoder(nn.Module):
         if not DEV_5:
             conditioning = conditioning.view(1, output_shape[0]*output_shape[1], -1)
         if DEV_5:
-            pdb.set_trace()
             output_word_len = output_word_len.contiguous()
             output_word_len = output_word_len.view(output_word_len.size(0)*output_word_len.size(1))
-        pdb.set_trace()
         output_w_decoder = self.word_encoder_target(output_seq, conditioning, output_mask, output_word_len)
 
-        # ? is using sent_len_max_source required ??
-        if output_char_vecs.size(1) != sent_len_max_source:
-            print("WARNINING : output_char_vecs.size(0) {} and "
-                  "sent_len_max_source {} ".format(output_char_vecs.size(1), sent_len_max_source))
-        pdb.set_trace()
-
+        # TODO is sent_len_max_source still usefull ?
         output_w_decoder = output_w_decoder.view(output_char_vecs.size(0),output_w_decoder.size(0)/output_char_vecs.size(0), -1, output_w_decoder.size(2))
-        #output_w_decoder = output_w_decoder.view(output_char_vecs.size(0), output_char_vecs.size(1), -1, output_w_decoder.size(2))
+
 
         return output_w_decoder
 
@@ -382,11 +372,9 @@ class LexNormalizer(nn.Module):
             h = self.encoder.word_encoder_source(input_seq, input_mask, input_word_len)
             sent_len_max_source = None
         elif DEV_4:
-            pdb.set_trace()
             h, sent_len_max_source = self.encoder.sent_encoder_source(input_seq, input_mask, input_word_len)
 
         # [] [batch, , hiden_size_decoder]
-        pdb.set_trace()
         h = self.bridge(h)
 
         if not DEV_4:
@@ -401,6 +389,7 @@ class LexNormalizer(nn.Module):
         printing("DECODER full  output sequence encoded of size {} ".format(output.size()), verbose=self.verbose,
                  verbose_level=3)
         printing("DECODER full  output sequence encoded of {}  ".format(output), verbose=self.verbose, verbose_level=5)
+        pdb.set_trace()
         return output
 
     @staticmethod

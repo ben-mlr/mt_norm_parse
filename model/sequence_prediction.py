@@ -68,7 +68,9 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         output_seq[:,  0] = CHAR_START_ID
     else:
         pdb.set_trace()
+
         output_seq[:, :, 0] = src_seq[:,:,0] #CHAR_START_ID
+        print("output_seq {} src_seq {} ".format(output_seq,src_seq ))
 
     src_text_ls = []
     target_seq_gold_ls = [] if target_seq_gold is not None else None
@@ -94,7 +96,6 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
     printing("Data Start ".format(output_seq, output_len, output_mask), verbose=verbose, verbose_level=6)
 
     for step, char_decode in enumerate(range(2,  max_len)):
-        pdb.set_trace()
         decoding_states = model.forward(input_seq=src_seq,
                                         output_seq=output_seq,
                                         input_mask=src_mask,
@@ -121,14 +122,14 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
 
             output_len[:] = char_decode
         else:
-            pdb.set_trace()
+
             output_len[:] = char_decode
         # mask
         output_mask = np.ones(src_seq.size(), dtype=np.int64)
         output_mask[:, char_decode:] = 0
         output_mask = Variable(torch.from_numpy(output_mask), requires_grad=False)
         # new seq
-        pdb.set_trace()
+
         predictions = scores.argmax(dim=-1)
 
         #predictions = predictions[perm[0], :]
@@ -144,33 +145,34 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         if not DEV_4:
             output_seq[:, char_decode-1] = predictions[:, -1]
         else:
-            pdb.set_trace()
+
             #predictions[:, : , -1] = torch.cat((predictions[:, :, -1],
             #                                torch.ones((output_seq.size(0), output_seq.size(1) - predictions.size(1)),
             #                                           dtype=torch.long)), dim=1)
-            pdb.set_trace()
+
             #predictions.size(1)
             output_seq = output_seq[:, :scores.size(1), :]
             output_seq[:, :, char_decode - 1] = predictions[:, :, -1]
 
         if DEV_4:
             sequence = [" ".join([char_dictionary.get_instance(output_seq[sent, word_ind, char_i]) for char_i in range(max_len)])
-                        + "/" for sent in range(batch_size) for word_ind in range(output_seq.size(1))]
+                        + "|sent-{}|".format(sent) for sent in range(batch_size) for word_ind in range(output_seq.size(1))]
 
         else:
             sequence = [" ".join(
                 [char_dictionary.get_instance(output_seq[sent, char_i]) for char_i in range(max_len)])
-                        + "/" for sent in range(batch_size)]
-        printing("Decoding step {} decoded target {} ".format(step, sequence), verbose=verbose, verbose_level=3)
+                        + "|sent-{}|".format(sent) for sent in range(batch_size)]
+        printing("Decoding step {} decoded target {} ".format(step, sequence), verbose=verbose, verbose_level=6)
         #pdb.set_trace()
         if DEV_4:
             pdb.set_trace()
-            text_decoded_array, text_decoded = output_text_(predictions,#predictions,
+            text_decoded_array, text_decoded = output_text_(output_seq,#predictions,
                                                             char_dictionary, single_sequence=single_sequence)
         else:
             text_decoded_array, text_decoded = output_text(predictions, char_dictionary,single_sequence=single_sequence)
         printing("PREDICTION : {} array text {} ".format(text_decoded_array, text_decoded),
-                                                         verbose=verbose, verbose_level=6)
+                 verbose=verbose,
+                 verbose_level=6)
 
         #pdb.set_trace()
     text_ = "output_text_" if DEV_4 else "output_text"

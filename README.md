@@ -29,3 +29,8 @@ When any new features is implemented the impact the training process :
 verbose == 4 to see decoding
 
 
+### To document
+
+- assumptions : 
+    - should have word to word mapping between source and target sequence
+

@@ -103,7 +103,6 @@ class MaskBatch(object):
                 # we reshape so that it fits tthe generated sequence
                 if DEV_4:
                     self.output_seq_y = self.output_seq_y.view(output_y_shape[0], -1, torch.max(lenghts))
-            pdb.set_trace()
             printing("self.output_seq_y 1 {} ".format(self.output_seq_y), verbose=verbose,verbose_level=6)
             printing("BATCH : TARGET true dim {} ".format(self.output_seq_y.size()), verbose, verbose_level=3)
             printing("BATCH : TARGET after packed true {} ".format(self.output_seq_y),verbose, verbose_level=5)

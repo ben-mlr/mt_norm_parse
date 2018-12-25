@@ -41,7 +41,7 @@ voc_size = len(char_dictionary.instance2index)+1
 # autoencoder demo auto_encoder_TEST_f7ab
 # NORMALIZATION BIG : auto_encoder_TEST_21ac
 
-model_full_name = "normalization_all_data_2ea6"
+model_full_name = "autoencoder_demo2_de4a"
 model = LexNormalizer(generator=Generator, load=True, model_full_name=model_full_name,#"normalizer_lexnorm_ad6e",#"normalizer_lexnorm_12bf",
                       # "6437","#"auto_encoder_TEST_f7ab",#="normalizer_lexnorm_ad6e",#"6437",
                       voc_size=voc_size,
@@ -51,7 +51,7 @@ batch_size = 2
 nbatch = 30
 
 #data_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
-data_path = DEMO2
+data_path = DEMO
 batchIter = data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
                             type_dictionary, batch_size=batch_size, nbatch=nbatch, add_start_char=add_start_char,
                             add_end_char=add_end_char,
@@ -93,7 +93,7 @@ if batch_decoding:
                                  model_args_dir=model.args_dir,
                                  data_val=test_path)
         dir_report = os.path.join("..", "checkpoints", model.model_full_name+"-folder",
-                                  model.model_full_name+"-"+score+"-report-owuputi.json")
+                                  model.model_full_name+"-"+score+"-report-test_demo.json")
 
         json.dump(report, open(dir_report, "w"))
         print("Report saved {} ".format(dir_report))
