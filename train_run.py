@@ -11,7 +11,7 @@ if __name__ == "__main__":
     n_epochs = 40
 
     normalization = True
-    batch_size = 2
+    batch_size = 20
     hidden_size_encoder = None
     output_dim = None
     char_embedding_dim = None
@@ -24,6 +24,7 @@ if __name__ == "__main__":
     model_id_pref = ""
     add_start_char = 1
     add_end_char = 1
+
 
     model_dir = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder")
 

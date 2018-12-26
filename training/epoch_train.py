@@ -4,6 +4,7 @@ import numpy as np
 from io_.info_print import printing, VERBOSE_1_LOG_EVERY_x_BATCH
 import pdb
 
+
 def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
               n_epochs=None, n_batches=None, empty_run=False,
 
@@ -26,7 +27,8 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
         #nput_seq, output_seq, input_mask, input_word_len, output_mask
         printing("DATA : \n input Sequence {} \n Target sequence {} ".format(batch.input_seq, batch.output_seq), verbose, verbose_level=5)
         if not empty_run:
-            if True:
+            teacher_force = True
+            if teacher_force:
                 out = model.forward(input_seq=batch.input_seq,
                                     output_seq=batch.output_seq_x,
                                     input_mask=batch.input_seq_mask,
@@ -36,7 +38,7 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
             else:
                 # DEV : implement teacher force
                 from model.sequence_prediction import decode_sequence
-                decode_sequence(model=model,generator=model.generator,char_dictionary=char_dictionary,
+                decode_sequence(model=model, generator=model.generator,char_dictionary=char_dictionary,
                                 src_seq=batch.input_seq, src_mask=batch.input_seq_mask, src_len=batch.input_seq_len,
                                 batch_size=batch.input_seq.size(0))
                 out = model.forward(input_seq=batch.input_seq,

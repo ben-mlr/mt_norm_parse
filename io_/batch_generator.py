@@ -15,7 +15,7 @@ def subsequent_mask(size):
 
 
 class MaskBatch(object):
-    def __init__(self, input_seq, output_seq, pad=0, verbose=0):
+    def __init__(self, input_seq, output_seq, pad=0, verbose=0, use_gpu=False):
         # input mask
         assert output_seq.size(0) >1 , "ERROR  batch_size should be strictly above 1 "
         # originnaly batch_size, word len
@@ -84,28 +84,30 @@ class MaskBatch(object):
             ##- check out pack_padded_sequence again
             #print("self.output_seq_y 0", self.output_seq_y )
             #pdb.set_trace()
-            if True:
-                # we set word with len 0 to 1 --> which means that we account for on
-                # PADDED CHARACTER --> assert that they do not impact the loss
-                # # they shouldn't because of the pad option in the loss that ignores 1
-                output_seq_len[output_seq_len == 0] = 1
-                #pdb.set_trace()
-                self.output_seq_y = pack_padded_sequence(self.output_seq_y, output_seq_len.squeeze().cpu().numpy(),
-                                                         batch_first=True)
+            # we set word with len 0 to 1 --> which means that we account for on
+            # PADDED CHARACTER --> assert that they do not impact the loss
+            # # they shouldn't because of the pad option in the loss that ignores 1
+            output_seq_len[output_seq_len == 0] = 1
+            #pdb.set_trace()
+            self.output_seq_y = pack_padded_sequence(self.output_seq_y, output_seq_len.squeeze().cpu().numpy(),
+                                                     batch_first=True)
 
-                #pdb.set_trace()
-                self.output_seq_y, lenghts = pad_packed_sequence(self.output_seq_y, batch_first=True, padding_value=1.0)
-                #useless but bug raised of not packeding (would like to remove packing which I think is useless ?)
+            #pdb.set_trace()
+            self.output_seq_y, lenghts = pad_packed_sequence(self.output_seq_y, batch_first=True, padding_value=1.0)
+            #useless but bug raised of not packeding (would like to remove packing which I think is useless ?)
 
-                self.output_seq_y = self.output_seq_y[inverse_perm_idx]
+            self.output_seq_y = self.output_seq_y[inverse_perm_idx]
 
-                #print("Warning confirm shape of")
-                # we reshape so that it fits tthe generated sequence
-                if DEV_4:
-                    self.output_seq_y = self.output_seq_y.view(output_y_shape[0], -1, torch.max(lenghts))
+            #print("Warning confirm shape of")
+            # we reshape so that it fits tthe generated sequence
+            if DEV_4:
+                self.output_seq_y = self.output_seq_y.view(output_y_shape[0], -1, torch.max(lenghts))
             printing("self.output_seq_y 1 {} ".format(self.output_seq_y), verbose=verbose,verbose_level=6)
             printing("BATCH : TARGET true dim {} ".format(self.output_seq_y.size()), verbose, verbose_level=3)
             printing("BATCH : TARGET after packed true {} ".format(self.output_seq_y),verbose, verbose_level=5)
+            if use_gpu:
+                pass
+                #self.output_seq_y = self.output_seq_y.cuda()
 
 
     @staticmethod

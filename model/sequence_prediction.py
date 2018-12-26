@@ -70,7 +70,6 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         pdb.set_trace()
 
         output_seq[:, :, 0] = src_seq[:,:,0] #CHAR_START_ID
-        print("output_seq {} src_seq {} ".format(output_seq,src_seq ))
 
     src_text_ls = []
     target_seq_gold_ls = [] if target_seq_gold is not None else None

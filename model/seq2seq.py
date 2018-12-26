@@ -18,7 +18,9 @@ DEV_2 = True
 DEV_3 = False
 DEV_4 = True
 DEV_5 = True
-TEMPLATE_INFO_CHECKPOINT = {"n_epochs": 0, "batch_size": None, "train_data_path": None, "dev_data_path": None,
+
+TEMPLATE_INFO_CHECKPOINT = {"n_epochs": 0, "batch_size": None,
+                            "train_data_path": None, "dev_data_path": None,
                             "other": None, "git_id": None}
 
 
@@ -298,7 +300,7 @@ class LexNormalizer(nn.Module):
     def __init__(self, generator, char_embedding_dim=None, hidden_size_encoder=None,output_dim=None,
                  hidden_size_sent_encoder=None,
                  hidden_size_decoder=None, voc_size=None, model_id_pref="", model_name="",
-                 verbose=0, load=False, dir_model=None, model_full_name=None):
+                 verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False):
         super(LexNormalizer, self).__init__()
         if not load:
             printing("Defining new model ", verbose=verbose, verbose_level=0)
@@ -362,6 +364,9 @@ class LexNormalizer(nn.Module):
         self.bridge = nn.Linear(hidden_size_encoder+hidden_size_sent_encoder, hidden_size_decoder)
         if load:
             self.load_state_dict(torch.load(checkpoint_dir))
+        if use_gpu:
+            printing("Loading model to GPU ", verbose=verbose, verbose_level=0)
+            self.cuda()
 
     def forward(self, input_seq, output_seq, input_mask, input_word_len, output_mask, output_word_len):
         # [batch, seq_len ] , batch of sequences of indexes (that corresponds to character 1-hot encoded)
@@ -443,12 +448,16 @@ class LexNormalizer(nn.Module):
 
 
 class Generator(nn.Module):
-    " Define standard linear + softmax generation step."
-    def __init__(self, hidden_size_decoder, output_dim, voc_size, verbose=0):
+    " Define standard linear + softmax generation step "
+    def __init__(self, hidden_size_decoder, output_dim,
+                 voc_size, verbose=0, use_gpu=False):
         super(Generator, self).__init__()
         self.dense = nn.Linear(hidden_size_decoder, output_dim)
         self.proj = nn.Linear(output_dim, voc_size)
         self.verbose = verbose
+        if use_gpu:
+            printing("Loading generator to GPU ", verbose_level=0, verbose=0)
+            self.cuda()
     # TODO : check if relu is needed or not
     # Is not masking needed here ?
 

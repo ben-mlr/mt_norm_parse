@@ -22,7 +22,11 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
           add_start_char=1, add_end_char=1,
           debug=False,
           verbose=1):
-
+    use_gpu = torch.cuda.is_available()
+    if use_gpu:
+        printing("GPU was found use_gpu set to True ", verbose_level=0, verbose=verbose)
+    else:
+        printing("CPU mode ", verbose_level=0, verbose=verbose)
     freq_checkpointing = int(n_epochs/10) if checkpointing and freq_checkpointing is None else freq_checkpointing
     printing("Warning : add_start_char is {} ".format(add_start_char), verbose=verbose, verbose_level=0)
 
@@ -36,7 +40,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
     loss_training = []
     loss_developing = []
 
-    nbatch = 30
+    nbatch = None
     lr = 0.001
 
     printing("WARNING : n_batch {} lr {} and add_end_char {} are hardcoded ".format(nbatch, lr, add_end_char), verbose=verbose, verbose_level=0)
@@ -78,7 +82,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
 
     _loss_dev = 1000
 
-    printing("STARTING running from {} to {} ".format(starting_epoch, n_epochs), verbose=verbose, verbose_level=0)
+    printing("Running from {} to {} epochs : training on {} evaluating on {}".format(starting_epoch, n_epochs, train_path, dev_path), verbose=verbose, verbose_level=0)
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
 
         printing("Starting new epoch {} ".format(epoch), verbose=verbose, verbose_level=1)
@@ -89,7 +93,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
                                     add_end_char=add_end_char,
                                     normalization=normalization,
                                     batch_size=batch_size, print_raw=print_raw,
-                                    nbatch=nbatch, verbose=verbose)
+                                    verbose=verbose)
 
         loss_train = run_epoch(batchIter, model, LossCompute(model.generator, opt=adam, verbose=verbose),
                                verbose=verbose, i_epoch=epoch, n_epochs=n_epochs,
@@ -99,7 +103,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
                                          type_dictionary, batch_size=batch_size, add_start_char=add_start_char,
                                          add_end_char=add_end_char,
                                          normalization=normalization,
-                                         nbatch=nbatch, verbose=verbose)
+                                         verbose=verbose)
         printing("Starting evaluation ", verbose=verbose, verbose_level=1)
         loss_dev = run_epoch(batchIter_eval, model, LossCompute(model.generator, verbose=verbose),
                              i_epoch=epoch, n_epochs=n_epochs,

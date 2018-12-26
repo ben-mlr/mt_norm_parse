@@ -12,7 +12,7 @@ from model.seq2seq import DEV_4
 
 
 def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
-                    xpos_dictionary, type_dictionary, batch_size, nbatch,
+                    xpos_dictionary, type_dictionary, batch_size,
                     add_start_char=1,
                     add_end_char=1, padding=1, print_raw=False, normalization=False,
                     symbolic_root=False, symbolic_end=False,
@@ -20,10 +20,13 @@ def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
 
     data = conllu_data.read_data_to_variable(data_path, word_dictionary, char_dictionary,
                                              pos_dictionary, xpos_dictionary, type_dictionary,
-                                             use_gpu=0, symbolic_root=symbolic_root, symbolic_end=symbolic_end, dry_run=0, lattice=False,verbose=verbose,
+                                             use_gpu=0, symbolic_root=symbolic_root,
+                                             symbolic_end=symbolic_end, dry_run=0, lattice=False,verbose=verbose,
                                              normalization=normalization,
                                              add_start_char=add_start_char, add_end_char=add_end_char)
-
+    n_sents = data[-1]
+    nbatch = n_sents//batch_size
+    print("Running {} batches of {} dim (nsent : {}) ".format(nbatch, batch_size, n_sents))
     for ibatch in tqdm(range(1, nbatch+1), disable=disable_tqdm_level(verbose, verbose_level=2)):
         # word, char, pos, xpos, heads, types, masks, lengths, morph
         printing("Data : getting {} out of {} batches".format(ibatch, nbatch+1), verbose, verbose_level=2)

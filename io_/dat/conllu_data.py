@@ -11,7 +11,7 @@ np.random.seed(123)
 import torch
 torch.manual_seed(123)
 from torch.autograd import Variable
-
+from io_.info_print import printing
 
 def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
                 dry_run, vocab_trim=False, add_start_char=0):
@@ -174,11 +174,14 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
                         normalization=normalization)
 
   while inst is not None and (not dry_run or counter < 100):
+    printing("Sentence : counter {} inst : {}".format(counter, inst.sentence.raw_lines[1]),
+             verbose=verbose, verbose_level=5)
     inst_size = inst.length()
     sent = inst.sentence
     for bucket_id, bucket_size in enumerate(_buckets):
       if inst_size < bucket_size or bucket_id == last_bucket_id:
-        data[bucket_id].append([sent.word_ids, sent.char_id_seqs, sent.char_norm_ids_seq, inst.pos_ids, inst.heads, inst.type_ids, counter, sent.words, sent.raw_lines, inst.xpos_ids])
+        data[bucket_id].append([sent.word_ids, sent.char_id_seqs, sent.char_norm_ids_seq, inst.pos_ids, inst.heads, inst.type_ids,
+                                counter, sent.words, sent.raw_lines, inst.xpos_ids])
         #
         max_char_len = max([len(char_seq) for char_seq in sent.char_seqs])
         if normalization:
@@ -193,12 +196,16 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
         if bucket_id == last_bucket_id and _buckets[last_bucket_id] < len(sent.word_ids):
           _buckets[last_bucket_id] = len(sent.word_ids)
         break
-    inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end, normalization=normalization)
+    inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end,
+                          normalization=normalization)
     counter += 1
+    if inst is None or not (not dry_run or counter < 100):
+      printing("Breaking : breaking because inst {} counter<100 {} dry {} ".format(inst is None, counter < 100, dry_run),
+                verbose=verbose, verbose_level=3)
 
   reader.close()
 
-  return data, {"max_char_length": max_char_length, "max_char_norm_length": max_char_norm_length}, _buckets
+  return data, {"max_char_length": max_char_length, "max_char_norm_length": max_char_norm_length, "n_sent":counter}, _buckets
 
 
 def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
@@ -209,9 +216,11 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
   """
   Given data ovject form read_variable creates array-like  variables for character, word, pos, relation, heads ready to be fed to a network
   """
-  data, max_char_length_dic, _buckets = read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary,
-                                              verbose=verbose, max_size=max_size,normalization=normalization,
-                                              normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end, dry_run=dry_run)
+  data, max_char_length_dic, _buckets = read_data(source_path, word_dictionary, char_dictionary, pos_dictionary,
+                                                  xpos_dictionary, type_dictionary,
+                                                  verbose=verbose, max_size=max_size, normalization=normalization,
+                                                  normalize_digits=normalize_digits, symbolic_root=symbolic_root,
+                                                  symbolic_end=symbolic_end, dry_run=dry_run)
 
   max_char_length = max_char_length_dic["max_char_length"]
   max_char_norm_length = max_char_length_dic["max_char_norm_length"]
@@ -340,7 +349,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       lengths = lengths.cuda()
     data_variable.append((words, chars, chars_norm, pos, xpos, heads, types,
                           masks, single, lengths, order_inputs, raw_word_inputs, raw_lines))
-  return data_variable, bucket_sizes, _buckets
+  return data_variable, bucket_sizes, _buckets, max_char_length_dic["n_sent"]
 
 
 def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
@@ -348,7 +357,7 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
   """
   Given read_data_to_variable() get a random batch
   """
-  data_variable, bucket_sizes, _buckets = data
+  data_variable, bucket_sizes, _buckets, _ = data
   total_size = float(sum(bucket_sizes))
   # A bucket scale is a list of increasing numbers from 0 to 1 that we'll use
   # to select a bucket. Length of [scale[i], scale[i+1]] is proportional to
