@@ -97,7 +97,7 @@ class CoNLLReader(object):
 
       if normalization:
         match = re.match("^Norm=([^|]+)|.+", tokens[9])
-        assert match.group(1) is not None, " ERROR : not normalization found for token {} ".format(tokens[9])
+        assert match.group(1) is not None, " ERROR : not normalization found for token {} ".format(tokens)
         normalized_token = match.group(1)
         normalized_token_id = self.__word_dictionary.get_index(normalized_token)
         norm_ids.append(normalized_token_id )

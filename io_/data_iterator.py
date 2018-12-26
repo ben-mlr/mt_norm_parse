@@ -62,8 +62,7 @@ def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
             character_norm_display = [" ".join([char_dictionary.get_instance(chars_norm[batch, word_ind, char_i]) for char_i in range(word_len)]) + " / " for batch in range(chars_norm.size(0))]
         else:
             character_norm_display = [" ".join([char_dictionary.get_instance(chars_norm[sent, word_ind, char_i])
-                                           for char_i in range(word_len)]) + " |SENT {} WORD {}| ".format(ind_sent,
-                                                                                                          ind_w)
+                                           for char_i in range(chars_norm.size(2))]) + " |SENT {} WORD {}| ".format(ind_sent, ind_w)
                                  for ind_sent, sent in enumerate(range(chars_norm.size(0)))
                                  for ind_w, word_ind in enumerate(range(chars_norm.size(1)))]
 
