@@ -60,18 +60,20 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
             tokens += batch.ntokens.type(torch.FloatTensor)
             elapsed = torch.from_numpy(np.array(time.time() - start)).float()
             start = time.time() if verbose>=2 else start
-            printing("Epoch {} Step: {}  Loss: {}  Tokens per Sec: {}  ".format(i_epoch+1, i, loss / batch.ntokens.type(torch.FloatTensor), tokens / elapsed), verbose=verbose, verbose_level=2)
+            _loss =  loss / float(batch.ntokens)
+            printing("Epoch {} Step: {}  Loss: {}  Tokens per Sec: {}  ".format(
+                i_epoch+1, i,_loss, tokens / elapsed), verbose=verbose, verbose_level=2)
             tokens = 0 if verbose >= 2 else tokens
             if i % log_every_x_batch == 1 and verbose == 1:
-                print("Epoch {} Step: {}  Loss: {}  Tokens per Sec: {}  ".format(i_epoch, i, loss / batch.ntokens.type(torch.FloatTensor), tokens / elapsed))
+                print("Epoch {} Step: {}  Loss: {}  Tokens per Sec: {}  ".format(i_epoch, i, loss / float(batch.ntokens), tokens / elapsed))
                 start = time.time()
                 tokens = 0
         else:
             total_loss, total_tokens = 0, 1
     if not empty_run:
         printing("INFO : epoch {} done ".format(n_epochs), verbose, verbose_level=1)
-        printing("Loss epoch {} is  {} total out of {} tokens ".format(i_epoch, total_loss/total_tokens, total_tokens), verbose, verbose_level=1)
+        printing("Loss epoch {} is  {} total out of {} tokens ".format(i_epoch, float(total_loss)/int(total_tokens), total_tokens), verbose, verbose_level=1)
 
     #training_report = {"n_epochs":n_epochs, "batch_size": batch.input_seq.size(0), "time_training": None, "total_tokens" : total_tokens, "loss": total_loss / total_tokens}
 
-    return total_loss / total_tokens
+    return float(total_loss) / int(total_tokens)

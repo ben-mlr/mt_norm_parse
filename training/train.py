@@ -11,7 +11,7 @@ from toolbox.checkpointing import checkpoint
 import os
 from io_.info_print import disable_tqdm_level, printing
 from env.project_variables import PROJECT_PATH, REPO_DATASET
-
+import time
 
 def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=10,
           label_train="", label_dev="",
@@ -72,7 +72,10 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
                           model_id_pref=model_id_pref, model_full_name=model_full_name,
                           hidden_size_sent_encoder=hidden_size_sent_encoder,
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose)
-
+    if use_gpu:
+      model = model.cuda()
+      printing("TYPE model is cuda : {} ".format(next(model.parameters()).is_cuda), verbose=verbose, verbose_level=0)
+   
     if not reload:
         model_dir = os.path.join(PROJECT_PATH, "checkpoints", "{}-folder".format(model.model_full_name))
         os.mkdir(model_dir)
@@ -83,10 +86,14 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
     n_epochs += starting_epoch
 
     adam = torch.optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.98), eps=1e-9)
-
+    #if use_gpu:
+    #  printing("Setting adam to GPU", verbose=verbose, verbose_level=0)
+    #  adam = adam.cuda()
     _loss_dev = 1000
 
     printing("Running from {} to {} epochs : training on {} evaluating on {}".format(starting_epoch, n_epochs, train_path, dev_path), verbose=verbose, verbose_level=0)
+    starting_time = time.time()
+    total_time = 0
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
 
         printing("Starting new epoch {} ".format(epoch), verbose=verbose, verbose_level=1)
@@ -100,7 +107,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
                                     batch_size=batch_size, print_raw=print_raw,
                                     verbose=verbose)
 
-        loss_train = run_epoch(batchIter, model, LossCompute(model.generator, opt=adam, verbose=verbose),
+        loss_train = run_epoch(batchIter, model, LossCompute(model.generator, opt=adam,  
+                                                             use_gpu=use_gpu,verbose=verbose),
                                verbose=verbose, i_epoch=epoch, n_epochs=n_epochs,
                                log_every_x_batch=100)
         model.eval()
@@ -110,14 +118,16 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
                                          normalization=normalization,
                                          verbose=verbose)
         printing("Starting evaluation ", verbose=verbose, verbose_level=1)
-        loss_dev = run_epoch(batchIter_eval, model, LossCompute(model.generator, verbose=verbose),
+        loss_dev = run_epoch(batchIter_eval, model, LossCompute(model.generator, use_gpu=use_gpu,verbose=verbose),
                              i_epoch=epoch, n_epochs=n_epochs,
                              verbose=verbose,
                              log_every_x_batch=100)
 
         loss_training.append(loss_train)
         loss_developing.append(loss_dev)
-
+        time_per_epoch = time.time() - starting_time
+        total_time += time_per_epoch
+        starting_time = time.time()
         # WARNING : only saving if we decrease not loading former model if we relaod
         if (checkpointing and epoch % freq_checkpointing == 0) or (epoch+1 == n_epochs):
 
@@ -133,7 +143,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
             model, _loss_dev = checkpoint(loss_former=_loss_dev, loss=loss_dev, model=model, model_dir=model_dir,
                                           info_checkpoint={"n_epochs": n_epochs, "batch_size": batch_size,
                                                            "train_data_path": train_path, "dev_data_path": dev_path,
-                                                           "other": {"error_curves": dir_plot}},
+                                                           "other": {"error_curves": dir_plot, 
+                                                           "time_training(min)":"{0:.2f}".format(total_time/60), "average_per_epoch(min)":"{0:.2f}".format((total_time/n_epochs)/60)}},
                                           epoch=epoch, epochs=n_epochs,
                                           verbose=verbose)
 

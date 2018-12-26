@@ -20,7 +20,7 @@ def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
 
     data = conllu_data.read_data_to_variable(data_path, word_dictionary, char_dictionary,
                                              pos_dictionary, xpos_dictionary, type_dictionary,
-                                             use_gpu=0, symbolic_root=symbolic_root,
+                                             use_gpu=use_gpu, symbolic_root=symbolic_root,
                                              symbolic_end=symbolic_end, dry_run=0, lattice=False,verbose=verbose,
                                              normalization=normalization,
                                              add_start_char=add_start_char, add_end_char=add_end_char)
@@ -36,6 +36,9 @@ def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
         #if min(lenght.data) < 3:
         #    print("MIN length.data ")
         #    continue
+        printing("TYPE {} word, char {} , chars_norm {} length {} ".format(word.is_cuda, char.is_cuda, 
+                                                                           chars_norm.is_cuda, lenght.is_cuda), 
+            verbose=verbose, verbose_level=5)
         assert min(lenght.data) > 0, "ERROR : min(lenght.data) is {} ".format(min(lenght.data))
 
         # TODO : you want to correct that : you're missing word !!
@@ -75,7 +78,8 @@ def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
                                                                                           character_norm_display),
                  verbose=_verbose, verbose_level=5)
         printing("Feeding source words {} ".format(word_display), verbose=_verbose, verbose_level=5)
-
+        printing("TYPE {}char before batch chars_norm {} ".format(char.is_cuda, chars_norm.is_cuda), 
+            verbose=verbose, verbose_level=5)
         if not DEV_4:
             yield MaskBatch(char[:, word_ind, :], chars_norm[:, word_ind, :], pad=padding, verbose=verbose)
         else:

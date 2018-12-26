@@ -8,20 +8,23 @@ from io_.info_print import printing
 import pdb
 
 class LossCompute:
-    def __init__(self, generator, opt=None, pad=1, verbose=0):
+    def __init__(self, generator, opt=None, pad=1, use_gpu=False, verbose=0):
         self.generator = generator
         self.loss_distance = nn.CrossEntropyLoss(reduce=True, ignore_index=pad)
+        if use_gpu:
+            printing("Setting loss_distance to GPU mode", verbose=verbose, verbose_level=0)
+            self.loss_distance = self.loss_distance.cuda()
         self.opt = opt
+        self.use_gpu=use_gpu
         self.verbose = verbose
 
     def __call__(self, x, y):
 
         printing("LOSS decoding states {} ".format(x.size()), self.verbose, verbose_level=3)
-        if True:
-            x = self.generator(x)
-        #else:
-        #    for di in range(y.size(1)):
-
+        x = self.generator(x)
+        if self.use_gpu:
+            printing("use gpu is True", self.verbose, verbose_level=3)
+        
         printing("LOSS input x candidate scores size {} ".format(x.size()), self.verbose, verbose_level=3)
         printing("LOSS input y observations size {} ".format(y.size()), self.verbose, verbose_level=3)
         printing("LOSS input x candidate scores   {} ".format(x), self.verbose,verbose_level=5)
@@ -31,14 +34,20 @@ class LossCompute:
                  self.verbose, verbose_level=5)
         pdb.set_trace()
         y = y[:,:x.size(1),:]
+        printing("TYPE  y {} is cuda ".format(y.is_cuda), verbose=0, verbose_level=5)
         loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1))
         printing("LOSS loss size {}".format(loss.size()), verbose=self.verbose, verbose_level=3)
+        printing("TYPE  loss {} is cuda ".format(loss.is_cuda), verbose=0, verbose_level=5)
+
         # define loss_distance as --> Cross-entropy
-        loss.backward()
         if self.opt is not None:
+            loss.backward()
             printing("Optimizing", self.verbose, verbose_level=3)
             self.opt.step()
             self.opt.zero_grad()
+        else:
+            printing("WARNING no optimization : is backward required here ? (loss.py) ", verbose=self.verbose, verbose_level=0)
+
         return loss
 
 

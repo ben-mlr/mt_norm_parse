@@ -9,10 +9,10 @@ if __name__ == "__main__":
     train_path = TRAINING
     dev_path = DEV
     test_path = TEST
-    n_epochs = 40
+    n_epochs = 100
 
     normalization = True
-    batch_size = 20
+    batch_size = 50
     hidden_size_encoder = None
     output_dim = None
     char_embedding_dim = None
@@ -20,7 +20,7 @@ if __name__ == "__main__":
     
     dict_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"dictionaries")
     checkpointing = True
-    freq_checkpointing = 1
+    freq_checkpointing = 10
     reload = False
     model_full_name = "normalization_all_data_e2cb"
     model_id_pref = ""
@@ -39,12 +39,12 @@ if __name__ == "__main__":
         train(dev_path, test_path, n_epochs=n_epochs, normalization=normalization,
               batch_size=batch_size,
               dict_path=dict_path, model_dir=None, add_start_char=add_start_char,
-              add_end_char=add_end_char,use_gpu=False,
+              add_end_char=add_end_char, use_gpu=None,
               label_train=REPO_DATASET[test_path], label_dev=REPO_DATASET[test_path],
-              freq_checkpointing=freq_checkpointing, reload=reload, model_id_pref="normalization_all",
-              hidden_size_encoder=50, output_dim=50, char_embedding_dim=20, debug=False,
-              hidden_size_sent_encoder=50,
-              hidden_size_decoder=50, print_raw=False, checkpointing=True
+              freq_checkpointing=freq_checkpointing, reload=reload, model_id_pref="compare_normalization_all",
+              hidden_size_encoder=250, output_dim=300, char_embedding_dim=300, debug=False,
+              hidden_size_sent_encoder=250,
+              hidden_size_decoder=300, print_raw=False, checkpointing=True
               )
 # TODO : add DEV_5 to decode_sequence : 3d shapes in the decoded sequence also
 # make it run in Van der Goot settings

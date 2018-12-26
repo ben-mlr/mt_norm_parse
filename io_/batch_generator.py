@@ -71,7 +71,7 @@ class MaskBatch(object):
                     #pdb.set_trace()
                     #self.output_seq_len = output_seq_len
                 output_seq_len, perm_idx = output_seq_len.squeeze().sort(0, descending=True)
-                inverse_perm_idx = torch.from_numpy(np.argsort(perm_idx.numpy()))
+                inverse_perm_idx = torch.from_numpy(np.argsort(perm_idx.cpu().numpy()))
                 self.output_seq_y = self.output_seq_y[perm_idx, :]
             else:
                 # TODO should beƒy able to handle batch_size == 1 but is not
@@ -102,10 +102,11 @@ class MaskBatch(object):
             # we reshape so that it fits tthe generated sequence
             if DEV_4:
                 self.output_seq_y = self.output_seq_y.view(output_y_shape[0], -1, torch.max(lenghts))
-            printing("self.output_seq_y 1 {} ".format(self.output_seq_y), verbose=verbose,verbose_level=6)
+            printing("self.output_seq_y 1 {} ".format(self.output_seq_y), verbose=verbose, verbose_level=6)
             printing("BATCH : TARGET true dim {} ".format(self.output_seq_y.size()), verbose, verbose_level=3)
-            printing("BATCH : TARGET after packed true {} ".format(self.output_seq_y),verbose, verbose_level=5)
-            if use_gpu:
+            printing("BATCH : TARGET after packed true {} ".format(self.output_seq_y), verbose, verbose_level=5)
+            if use_gpu and False:
+                printing("Loading batch to GPU ", verbose=verbose,verbose_level=0)
                 # TODO : that should be done when you first load everything not here (loading into the gpu for each batch
                 self.output_seq_y = self.output_seq_y.cuda()
                 self.output_seq_x = self.output_seq_x.cuda()

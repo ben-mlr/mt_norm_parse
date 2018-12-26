@@ -59,7 +59,7 @@ class CharEncoder(nn.Module):
             #pdb.set_trace()
             input = input[perm_idx, :]
             #pdb.set_trace()
-            inverse_perm_idx = torch.from_numpy(np.argsort(perm_idx.numpy()))
+            inverse_perm_idx = torch.from_numpy(np.argsort(perm_idx.cpu().numpy()))
             assert torch.equal(input[inverse_perm_idx, :], _inp), " ERROR : two tensors should be equal but are not "
         # [batch, max seq_len, dim char embedding]
         char_vecs = self.char_embedding_(input)
@@ -111,7 +111,7 @@ class CharEncoder(nn.Module):
             sent_len = torch.argmin(_input_word_len, dim=1)
             # sort batch at the sentence length
             sent_len, perm_idx_input_sent = sent_len.squeeze().sort(0, descending=True)
-            inverse_perm_idx_input_sent = torch.from_numpy(np.argsort(perm_idx_input_sent.numpy()))
+            inverse_perm_idx_input_sent = torch.from_numpy(np.argsort(perm_idx_input_sent.cpu().numpy()))
             # [batch x sent_len , dim hidden word lebel] # this remove empty words
             packed_char_vecs_input = pack_padded_sequence(input[perm_idx_input_sent, :, :],
                                                           sent_len.squeeze().cpu().numpy(), batch_first=True)
@@ -142,6 +142,7 @@ class CharEncoder(nn.Module):
             source_context_word_vector = torch.cat((sent_encoded, h_w), dim=2)
             #pdb.set_trace()
             source_context_word_vector = source_context_word_vector.view(1, source_context_word_vector.size(0)*source_context_word_vector.size(1),-1)
+
             return source_context_word_vector, sent_len_max_source
 
         elif not DEV_5:
@@ -201,9 +202,9 @@ class CharDecoder(nn.Module):
             output_word_len, perm_idx_output = output_word_len.squeeze().sort(0, descending=True)
 
             output = output[perm_idx_output, :]
-            inverse_perm_idx_output = torch.from_numpy(np.argsort(perm_idx_output.numpy()))
+            inverse_perm_idx_output = torch.from_numpy(np.argsort(perm_idx_output.cpu().numpy()))
             #print("WARNING : REORDERED {} len {} ENCODER SIDE {}  ".format(perm_idx_output, output_word_len, perm_encoder))
-
+    
         char_vecs = self.char_embedding_decoder(output)
 
         printing("TARGET EMBEDDING size {} ".format(char_vecs.size()), verbose=self.verbose, verbose_level=3)
@@ -259,7 +260,7 @@ class CharDecoder(nn.Module):
             sent_len = torch.argmin(_output_word_len, dim=1)+1
             # sort batch at the sentence length
             sent_len, perm_idx_input_sent = sent_len.squeeze().sort(0, descending=True)
-            inverse_perm_idx_input_sent = torch.from_numpy(np.argsort(perm_idx_input_sent.numpy()))
+            inverse_perm_idx_input_sent = torch.from_numpy(np.argsort(perm_idx_input_sent.cpu().numpy()))
             # [batch x sent_len , dim hidden word lebel] # this remove empty words
             packed_char_vecs_output = pack_padded_sequence(output[perm_idx_input_sent, :, :],
                                                            sent_len.squeeze().cpu().numpy(), batch_first=True)
@@ -358,13 +359,13 @@ class LexNormalizer(nn.Module):
                                    hidden_size_sent_encoder=hidden_size_sent_encoder,
                                    verbose=verbose)
         self.decoder = CharDecoder(self.char_embedding, input_dim=char_embedding_dim, hidden_size_decoder=hidden_size_decoder, verbose=verbose)
-        self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size, output_dim = output_dim, verbose=verbose)
+        self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size, output_dim = output_dim, use_gpu=use_gpu, verbose=verbose)
         self.verbose = verbose
 
         self.bridge = nn.Linear(hidden_size_encoder+hidden_size_sent_encoder, hidden_size_decoder)
         if load:
             self.load_state_dict(torch.load(checkpoint_dir))
-        if use_gpu:
+        if use_gpu and False:
             printing("Loading model to GPU ", verbose=verbose, verbose_level=0)
             self.cuda()
 
@@ -377,10 +378,16 @@ class LexNormalizer(nn.Module):
             h = self.encoder.word_encoder_source(input_seq, input_mask, input_word_len)
             sent_len_max_source = None
         elif DEV_4:
+            printing("TYPE  input_seq {} input_word_len {} input_mask {} is cuda ".format(input_seq.is_cuda,
+                                                                                          input_word_len.is_cuda,
+                                                                                          input_mask.is_cuda), verbose=0, verbose_level=5)
+           
             h, sent_len_max_source = self.encoder.sent_encoder_source(input_seq, input_mask, input_word_len)
+
 
         # [] [batch, , hiden_size_decoder]
         h = self.bridge(h)
+        printing("TYPE  encoder {} is cuda ".format(h.is_cuda), verbose=0, verbose_level=5)
 
         if not DEV_4:
             output = self.decoder.word_encoder_target(output_seq, h, output_mask, output_word_len)
@@ -388,6 +395,7 @@ class LexNormalizer(nn.Module):
             pdb.set_trace()
             output = self.decoder.sent_encoder_target(output_seq, h, output_mask, output_word_len,
                                                       sent_len_max_source=sent_len_max_source)
+            printing("TYPE  decoder {} is cuda ".format(output.is_cuda), verbose=0, verbose_level=5)
         #
         # output_score = nn.ReLU()(self.output_predictor(h_out))
         # [batch, output_voc_size], one score per output character token
@@ -455,9 +463,6 @@ class Generator(nn.Module):
         self.dense = nn.Linear(hidden_size_decoder, output_dim)
         self.proj = nn.Linear(output_dim, voc_size)
         self.verbose = verbose
-        if use_gpu:
-            printing("Loading generator to GPU ", verbose_level=0, verbose=0)
-            self.cuda()
     # TODO : check if relu is needed or not
     # Is not masking needed here ?
 
@@ -466,6 +471,7 @@ class Generator(nn.Module):
         # the log_softmax is done within the loss
         y = nn.ReLU()(self.dense(x))
         proj = self.proj(y)
+        printing("TYPE  proj {} is cuda ".format(proj.is_cuda), verbose=0, verbose_level=5)
         if self.verbose >= 3:
             print("PROJECTION {} size".format(proj.size()))
         if self.verbose >= 5:
