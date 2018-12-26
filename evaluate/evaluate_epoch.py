@@ -93,7 +93,7 @@ if batch_decoding:
                                  report_path_val=model.arguments["checkpoint_dir"],
                                  evaluation_script_val="normalization_"+score,
                                  model_args_dir=model.args_dir,
-                                 data_val=test_path)
+                                 data_val=data_path)
         dir_report = os.path.join("..", "checkpoints", model.model_full_name+"-folder",
                                   model.model_full_name+"-"+score+"-report-"+label_report+".json")
 

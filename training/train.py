@@ -15,6 +15,7 @@ from env.project_variables import PROJECT_PATH, REPO_DATASET
 
 def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=10,
           label_train="", label_dev="",
+          use_gpu=None,
           hidden_size_encoder=None, output_dim=None, char_embedding_dim=None,
           hidden_size_decoder=None, hidden_size_sent_encoder=None,
           checkpointing=True, freq_checkpointing=None, model_dir=None,
@@ -22,7 +23,10 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
           add_start_char=1, add_end_char=1,
           debug=False,
           verbose=1):
-    use_gpu = torch.cuda.is_available()
+    if use_gpu is not None and use_gpu:
+      assert torch.cuda.is_available() , "ERROR : use_gpu was set to True but cuda not available "
+    use_gpu = torch.cuda.is_available() if use_gpu is None else use_gpu    
+
     if use_gpu:
         printing("GPU was found use_gpu set to True ", verbose_level=0, verbose=verbose)
     else:
@@ -63,7 +67,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
 
     model = LexNormalizer(generator=Generator, load=reload,
                           char_embedding_dim=char_embedding_dim, voc_size=voc_size,
-                          dir_model=model_dir,
+                          dir_model=model_dir,use_gpu=use_gpu,
                           hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,
                           model_id_pref=model_id_pref, model_full_name=model_full_name,
                           hidden_size_sent_encoder=hidden_size_sent_encoder,
@@ -92,6 +96,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
                                     add_start_char=add_start_char,
                                     add_end_char=add_end_char,
                                     normalization=normalization,
+                                    use_gpu=use_gpu,
                                     batch_size=batch_size, print_raw=print_raw,
                                     verbose=verbose)
 
@@ -101,7 +106,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
         model.eval()
         batchIter_eval = data_gen_conllu(dev_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
                                          type_dictionary, batch_size=batch_size, add_start_char=add_start_char,
-                                         add_end_char=add_end_char,
+                                         add_end_char=add_end_char,use_gpu=use_gpu,
                                          normalization=normalization,
                                          verbose=verbose)
         printing("Starting evaluation ", verbose=verbose, verbose_level=1)

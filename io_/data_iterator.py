@@ -13,7 +13,7 @@ from model.seq2seq import DEV_4
 
 def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
                     xpos_dictionary, type_dictionary, batch_size,
-                    add_start_char=1,
+                    add_start_char=1,use_gpu=False,
                     add_end_char=1, padding=1, print_raw=False, normalization=False,
                     symbolic_root=False, symbolic_end=False,
                     verbose=0):
@@ -79,7 +79,7 @@ def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
         if not DEV_4:
             yield MaskBatch(char[:, word_ind, :], chars_norm[:, word_ind, :], pad=padding, verbose=verbose)
         else:
-            yield MaskBatch(char, chars_norm, pad=padding, verbose=verbose)
+            yield MaskBatch(char, chars_norm, pad=padding, use_gpu=use_gpu,verbose=verbose)
 
 
 def data_gen_dummy(V, batch, nbatches,seq_len=10,

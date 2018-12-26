@@ -1,5 +1,6 @@
 from training.train import train
 import os
+import sys
 from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, CHECKPOINT_DIR, DEMO, DEMO2, REPO_DATASET
 
 if __name__ == "__main__":
@@ -16,9 +17,10 @@ if __name__ == "__main__":
     output_dim = None
     char_embedding_dim = None
     hidden_size_decoder = None
-    dict_path = "./dictionaries/"
+    
+    dict_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"dictionaries")
     checkpointing = True
-    freq_checkpointing = 5
+    freq_checkpointing = 1
     reload = False
     model_full_name = "normalization_all_data_e2cb"
     model_id_pref = ""
@@ -37,12 +39,12 @@ if __name__ == "__main__":
         train(dev_path, test_path, n_epochs=n_epochs, normalization=normalization,
               batch_size=batch_size,
               dict_path=dict_path, model_dir=None, add_start_char=add_start_char,
-              add_end_char=add_end_char,
+              add_end_char=add_end_char,use_gpu=False,
               label_train=REPO_DATASET[test_path], label_dev=REPO_DATASET[test_path],
               freq_checkpointing=freq_checkpointing, reload=reload, model_id_pref="normalization_all",
-              hidden_size_encoder=35, output_dim=50, char_embedding_dim=20, debug=False,
-              hidden_size_sent_encoder=13,
-              hidden_size_decoder=40, print_raw=False, checkpointing=True
+              hidden_size_encoder=50, output_dim=50, char_embedding_dim=20, debug=False,
+              hidden_size_sent_encoder=50,
+              hidden_size_decoder=50, print_raw=False, checkpointing=True
               )
 # TODO : add DEV_5 to decode_sequence : 3d shapes in the decoded sequence also
 # make it run in Van der Goot settings

@@ -106,7 +106,17 @@ class MaskBatch(object):
             printing("BATCH : TARGET true dim {} ".format(self.output_seq_y.size()), verbose, verbose_level=3)
             printing("BATCH : TARGET after packed true {} ".format(self.output_seq_y),verbose, verbose_level=5)
             if use_gpu:
-                pass
+                # TODO : that should be done when you first load everything not here (loading into the gpu for each batch
+                self.output_seq_y = self.output_seq_y.cuda()
+                self.output_seq_x = self.output_seq_x.cuda()
+                self.output_seq = self.output_seq.cuda()
+                self.output_seq_len = self.output_seq_len.cuda()
+                self.output_mask = self.output_mask.cuda()
+                self.input_seq = self.input_seq.cuda()
+                self.input_seq_len = self.input_seq_len.cuda()
+                self.input_seq_mask = self.input_seq_mask.cuda()
+
+
                 #self.output_seq_y = self.output_seq_y.cuda()
 
 
