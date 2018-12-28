@@ -12,22 +12,22 @@ from io_.batch_generator import MaskBatch
 #sys.path.insert(0,"/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/ELMoLex_sosweet/")
 from io_.dat import conllu_data
 from training.epoch_train import run_epoch
-
+from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, DEMO, DEMO2
 
 dict_path = "../dictionariesbackup/"
-train_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/en-ud-train.conllu"
-dev_pat = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/owoputi.integrated"
-test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated"
+train_path = DEV
+dev_path = TEST
 
 normalization = False
 add_start_char = 1
 add_end_char = 1
+debug = False
 
 word_dictionary, char_dictionary, pos_dictionary,\
 xpos_dictionary, type_dictionary = \
         conllu_data.create_dict(dict_path=dict_path,
-                                train_path=test_path,
-                                dev_path=test_path,
+                                train_path=train_path,
+                                dev_path=dev_path,
                                 test_path=None,
                                 add_start_char=add_start_char,
                                 word_embed_dict={},
@@ -40,10 +40,12 @@ verbose = 2
 #3b87
 #1782
 #cd05
+model_full_name = "compare_normalization_all_45e6"
 script_dir = os.path.dirname(os.path.realpath(__file__))
 model = LexNormalizer(generator=Generator,
                       voc_size=len(char_dictionary.instance2index)+1,
-                      load=True, model_full_name="normalization_all_data_aa46", dir_model=os.path.join(script_dir,"..","checkpoints"),
+                      load=True, model_full_name=model_full_name,
+                      dir_model=os.path.join(script_dir, "..", "checkpoints", model_full_name+"-folder"),
                       verbose=verbose)
 batch_size = 2
 nbatch = 20
@@ -58,6 +60,9 @@ V = model.arguments["hyperparameters"]["voc_size"]
 hidden_size_decoder = model.arguments["hyperparameters"]["hidden_size_decoder"]
 model.eval()
 
+if not debug:
+    pdb.set_trace = lambda: 1
+
 batch_decoding, sequence_decoding, interactive_mode = False, False, True
 
 #loss = run_epoch(batchIter, model, LossCompute(model.generator, verbose=verbose),
@@ -65,9 +70,6 @@ batch_decoding, sequence_decoding, interactive_mode = False, False, True
 #                     verbose=verbose,
 #                     log_every_x_batch=100)
 #print("LOSS", loss)
-if batch_decoding:
-    greedy_decode_batch(char_dictionary=char_dictionary, verbose=2, gold_output=True,evaluation_metric="mean",
-                               batchIter=batchIter, model=model, batch_size=batch_size)
 
 if sequence_decoding:
     decode_seq_str(seq_string="eabf", dictionary=char_dictionary, max_len=10, model=model, char_dictionary=char_dictionary,

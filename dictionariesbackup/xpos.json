@@ -6,9 +6,9 @@
         "_"
     ],
     "instance2index": {
-        "_": 4,
+        "_END_POS": 3,
         "_PAD_POS": 1,
-        "_ROOT_POS": 2,
-        "_END_POS": 3
+        "_": 4,
+        "_ROOT_POS": 2
     }
 }

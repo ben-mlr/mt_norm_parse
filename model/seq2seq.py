@@ -12,6 +12,8 @@ from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 from io_.info_print import printing
 from toolbox.git_related import get_commit_id
 from toolbox.sanity_check import sanity_check_info_checkpoint
+from env.project_variables import PROJECT_PATH
+from io_.dat.conllu_data import load_dict
 import re
 DEV = True
 DEV_2 = True
@@ -47,7 +49,6 @@ class CharEncoder(nn.Module):
         # of indexes (that corresponds to character 1-hot encoded)
         printing("SOURCE dim {} ".format(input.size()), self.verbose, verbose_level=3)
         printing("SOURCE DATA {} ".format(input), self.verbose, verbose_level=5)
-        #printing("SOURCE DATA mask {} ".format(input_mask), self.verbose, verbose_level=6)
         if DEV:
             printing("SOURCE Word lenght size {} ".format(input_word_len.size()), self.verbose, verbose_level=5)
             printing("SOURCE : Word  length  {}  ".format(input_word_len), self.verbose, verbose_level=3)
@@ -56,9 +57,7 @@ class CharEncoder(nn.Module):
             # reordering by sequence len
             # [batch, seq_len]
             _inp = input.clone()
-            #pdb.set_trace()
             input = input[perm_idx, :]
-            #pdb.set_trace()
             inverse_perm_idx = torch.from_numpy(np.argsort(perm_idx.cpu().numpy()))
             assert torch.equal(input[inverse_perm_idx, :], _inp), " ERROR : two tensors should be equal but are not "
         # [batch, max seq_len, dim char embedding]
@@ -70,7 +69,6 @@ class CharEncoder(nn.Module):
             # encode the first PAD symbol : We will be cautious not to take it as input of our SENTENCE ENCODER !
             input_word_len[input_word_len == 0] = 1
             packed_char_vecs = pack_padded_sequence(char_vecs, input_word_len.squeeze().cpu().numpy(), batch_first=True)
-            #pdb.set_trace()
             printing("SOURCE Packed data shape {} ".format(packed_char_vecs.data.shape), self.verbose, verbose_level=4)
         # all sequence encoding [batch, max seq_len, n_dir x encoding dim] ,
         # last complete hidden state: [dir*n_layer, batch, dim encoding dim]
@@ -132,15 +130,11 @@ class CharEncoder(nn.Module):
 
             # [] representation of each word
             h_w = self.word_encoder_source(input=input_char_vecs, input_mask=input_mask, input_word_len=input_word_len)
-            #pdb.set_trace()
             h_w = h_w.view(shape_sent_seq[0], shape_sent_seq[1], -1)
-
-            #pdb.set_trace()
             # [] source contextual word level representaiton
             sent_encoded, hidden = self.sent_encoder(h_w)
 
             source_context_word_vector = torch.cat((sent_encoded, h_w), dim=2)
-            #pdb.set_trace()
             source_context_word_vector = source_context_word_vector.view(1, source_context_word_vector.size(0)*source_context_word_vector.size(1),-1)
 
             return source_context_word_vector, sent_len_max_source
@@ -154,30 +148,7 @@ class CharEncoder(nn.Module):
                                                                                input_word_len.size()), verbose=verbose, verbose_level=5)
             h_w = self.forward(input=input, input_mask=input_mask, input_word_len=input_word_len)
 
-        # 1 - pack the sequence--> need the length
-        # 2 - feed it to a LSTM
-        # 3 - unpack
-        # 4 - take the output : that should be the same shape concate with h_w and that's it
-        #sent_ = self.sent_encoder()
-
-        # h_w = torch.sum(h_w, dim=1)
-        # h_w = h_w.unsqueeze(0)
-        # For the sentence :
-        # reshape the input_word (real one with 4 d and the all sequence )
-        # so that it's [batch_size*sent_length, word_len] padded same for len
-        #
-        # then feed to a word level encoder like SUM , like LSTM  without the one word you want to encode
-        # conditioning = CAT(ENCODE\WORDS, WORD)
-
-        # TODO
-        # 1 we want one conditionning vector for the sentence possible one sentence conditionning per token + one word contioning
-        # 11 we start with : the same context vector for all which corredpsons to the sum -->
-        # 2 make the sentence level encoder more complex (it's a sum !) and factorize it
         return h_w
-
-        # just append sent_hidden to the decoding step # provides source context
-        # then you can do the same on the target side having a conditioning : which is a concatanation of the source token,
-        # the source context and the target context : with attention on each context
 
 
 class CharDecoder(nn.Module):
@@ -198,7 +169,6 @@ class CharDecoder(nn.Module):
                  verbose_level=6)
         printing("TARGET  : Word  length  {}  ".format(output_word_len), self.verbose, verbose_level=5)
         if DEV and DEV_2:
-            #pdb.set_trace()
             output_word_len, perm_idx_output = output_word_len.squeeze().sort(0, descending=True)
 
             output = output[perm_idx_output, :]
@@ -254,7 +224,6 @@ class CharDecoder(nn.Module):
         if DEV_5:
             _output_word_len = output_word_len.clone()
             # handle sentence that take the all sequence
-            #pdb.set_trace()
             _output_word_len[:, -1, :] = 0
             # when input_word_len is 0 means we reached end of sentence
             sent_len = torch.argmin(_output_word_len, dim=1)+1
@@ -272,7 +241,6 @@ class CharDecoder(nn.Module):
             # cut input_word_len so that it fits packed_padded sequence
             output_word_len = output_word_len[:, :output_char_vecs.size(1), :]
             # cut again (should be done in one step I guess) to fit sent len source
-            #pdb.set_trace()
             output_word_len = output_word_len[:, :sent_len_max_source, :]
             output_seq = output_char_vecs.view(output_char_vecs.size(0)*output_char_vecs.size(1), output_char_vecs.size(2))
             output_shape = output_seq.size()
@@ -292,7 +260,6 @@ class CharDecoder(nn.Module):
         # TODO is sent_len_max_source still usefull ?
         output_w_decoder = output_w_decoder.view(output_char_vecs.size(0),output_w_decoder.size(0)/output_char_vecs.size(0), -1, output_w_decoder.size(2))
 
-
         return output_w_decoder
 
 
@@ -301,12 +268,16 @@ class LexNormalizer(nn.Module):
     def __init__(self, generator, char_embedding_dim=None, hidden_size_encoder=None,output_dim=None,
                  hidden_size_sent_encoder=None,
                  hidden_size_decoder=None, voc_size=None, model_id_pref="", model_name="",
+                 dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False):
         super(LexNormalizer, self).__init__()
+
+        # initialize dictionaries
+        self.word_dictionary, self.char_dictionary, self.pos_dictionary, self.xpos_dictionary, self.type_dictionary = None, None, None, None, None
+        # we create the id , the directory of the model
         if not load:
             printing("Defining new model ", verbose=verbose, verbose_level=0)
             assert dir_model is None and model_full_name is None
-
             model_id = str(uuid4())[0:4]
             model_id_pref += "_" if len(model_id_pref) > 0 else ""
             model_id += "_" if len(model_name) > 0 else ""
@@ -318,18 +289,57 @@ class LexNormalizer(nn.Module):
             # defined at save time
             checkpoint_dir = ""
             self.args_dir = None
+            dir_model = os.path.join(PROJECT_PATH, "checkpoints", "{}-folder".format(model_full_name))
+            os.mkdir(dir_model)
+            printing("Dir {} created".format(dir_model), verbose=verbose, verbose_level=0)
             git_commit_id = get_commit_id()
+            # create dictionary
+        # we create/load model specific dictionary
+        if model_specific_dictionary:
+            if not load:
+                # as new model : we neeed data_path to create nex dctionary
+                assert train_path is not None and dev_path is not None and add_start_char is not None, \
+                "ERROR train_path {} dev_path  {} and add_start_char {} are required to load/create dictionary ".format(train_path, dev_path, add_start_char)
+                assert voc_size is None and dict_path is None, "ERROR voc_size will be defined with the new dictionary , dict_path should be None"
+                dict_path = os.path.join(dir_model, "dictionaries")
+                os.mkdir(dict_path)
+                print("INFO making dict_path {} ".format(dict_path))
+            else:
+                assert train_path is None and dev_path is None and add_start_char is None
+                #we make sure the dictionary exists and is located
+                pdb.set_trace()
+                assert dict_path is not None, "ERROR dict_path should be specified"
+                assert os.path.isdir(dict_path), "ERROR : dict_path {} does not exist".format(dict_path)
+
+            self.word_dictionary, self.char_dictionary, \
+            self.pos_dictionary, self.xpos_dictionary, self.type_dictionary = \
+                load_dict(dict_path=dict_path,
+                          train_path=train_path, dev_path=dev_path, test_path=None,
+                          word_embed_dict={}, dry_run=False, vocab_trim=True,
+                          add_start_char=add_start_char, verbose=1)
+            voc_size = len(self.char_dictionary.instance2index) + 1
+            printing("char_dictionary {} ".format(self.char_dictionary.instance2index), verbose=verbose, verbose_level=1)
+            printing("Character vocabulary is {} length".format(len(self.char_dictionary.instance2index) + 1),
+                     verbose=verbose, verbose_level=0)
+
+        if not load:
             self.arguments = {"checkpoint_dir": checkpoint_dir,
                               "info_checkpoint": {"n_epochs": 0, "batch_size": None, "train_data_path": None,
                                                   "dev_data_path": None, "other": None,
                                                   "git_id": git_commit_id},
                               "hyperparameters": {"char_embedding_dim": char_embedding_dim,
+                                                  "encoder_arch": {"cell_word": "GRU", "cell_sentence": "GRU",
+                                                                   "attention": "No", "dir_word": "uni",
+                                                                   "dir_sent": "uni"},
+                                                  "decoder_arch": {"cell_word": "GRU", "cell_sentence": "GRU",
+                                                                   "attention": "No", "dir_word": "uni",
+                                                                   "dir_sent": "uni"},
                                                   "hidden_size_encoder": hidden_size_encoder,
-                                                  "hidden_size_sent_encoder":hidden_size_sent_encoder,
+                                                  "hidden_size_sent_encoder": hidden_size_sent_encoder,
                                                   "hidden_size_decoder": hidden_size_decoder,
                                                   "voc_size": voc_size, "output_dim": output_dim
                                                  }}
-
+        # we load argument.json and define load weights
         else:
             assert model_full_name is not None and dir_model is not None, \
                 "ERROR  model_full_name is {} and dir_model {}  ".format(model_full_name, dir_model)
@@ -349,8 +359,8 @@ class LexNormalizer(nn.Module):
                                                         args["hidden_size_decoder"], args["voc_size"], args.get("output_dim"), args.get("hidden_size_sent_encoder")
             self.args_dir = args_dir
 
+        self.dir_model = dir_model
         self.model_full_name = model_full_name
-
         printing("Model arguments are {} ".format(self.arguments), verbose, verbose_level=0)
         # 1 share character embedding layer
         self.char_embedding = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
@@ -364,7 +374,12 @@ class LexNormalizer(nn.Module):
 
         self.bridge = nn.Linear(hidden_size_encoder+hidden_size_sent_encoder, hidden_size_decoder)
         if load:
-            self.load_state_dict(torch.load(checkpoint_dir))
+            # TODO : see if can be factorized
+            if use_gpu:
+                self.load_state_dict(torch.load(checkpoint_dir))
+            else:
+                self.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
+
         if use_gpu and False:
             printing("Loading model to GPU ", verbose=verbose, verbose_level=0)
             self.cuda()
@@ -438,7 +453,6 @@ class LexNormalizer(nn.Module):
     def load(dir, model_full_name, verbose=0):
         args = model_full_name+"-args.json"
         args_dir = os.path.join(dir, args)#, model_full_name+"-folder", args)
-        #args_checkpoint = os.path.join(dir, checkpoint)
         assert os.path.isfile(args_dir), "ERROR {} does not exits".format(args_dir)
         args = json.load(open(args_dir, "r"))
         args_checkpoint = args["checkpoint_dir"] #model_full_name+"-checkpoint.pt"
@@ -464,7 +478,6 @@ class Generator(nn.Module):
         self.proj = nn.Linear(output_dim, voc_size)
         self.verbose = verbose
     # TODO : check if relu is needed or not
-    # Is not masking needed here ?
 
     def forward(self, x):
         # return F.log_softmax(self.proj(x), dim=-1)

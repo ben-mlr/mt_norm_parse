@@ -26,9 +26,7 @@ def simple_plot(final_loss, loss_ls, loss_2=None, epochs=None, V=None, seq_len=N
         color_dev = "blue"
         plt.plot(loss_2, label="plot2",color=color_dev)
         patches.append(mpatches.Patch(color=color_dev, label=label_2))
-
     plt.legend(handles=patches)
-
     dir_fig = os.path.join(dir, "{}-{}-plo-seq.png".format(prefix, "last", V, lr, seq_len))
     if save:
         plt.savefig(dir_fig )

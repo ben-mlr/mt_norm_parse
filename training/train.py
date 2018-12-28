@@ -13,14 +13,16 @@ from io_.info_print import disable_tqdm_level, printing
 from env.project_variables import PROJECT_PATH, REPO_DATASET
 import time
 
-def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=10,
+
+def train(train_path, dev_path, n_epochs, normalization, dict_path =None, batch_size=10,
           label_train="", label_dev="",
           use_gpu=None,
           hidden_size_encoder=None, output_dim=None, char_embedding_dim=None,
           hidden_size_decoder=None, hidden_size_sent_encoder=None,
           checkpointing=True, freq_checkpointing=None, model_dir=None,
           reload=False, model_full_name=None, model_id_pref="", print_raw=False,
-          add_start_char=1, add_end_char=1,
+          model_specific_dictionary=False,
+          add_start_char=None, add_end_char=1,
           debug=False,
           verbose=1):
     if use_gpu is not None and use_gpu:
@@ -35,7 +37,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
     printing("Warning : add_start_char is {} ".format(add_start_char), verbose=verbose, verbose_level=0)
 
     if reload:
-        assert model_full_name is not None and len(model_id_pref) == 0 and model_dir is not None
+        assert model_full_name is not None and len(model_id_pref) == 0 and model_dir is not None and dict_path is not None
+
     else:
         assert model_full_name is None and model_dir is None
 
@@ -50,36 +53,50 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
     printing("WARNING : n_batch {} lr {} and add_end_char {} are hardcoded ".format(nbatch, lr, add_end_char), verbose=verbose, verbose_level=0)
 
     printing("INFO : dictionary is computed (re)created from scratcch on train_path {} and dev_path {}".format(train_path, dev_path), verbose=verbose, verbose_level=1)
-    word_dictionary, char_dictionary, pos_dictionary,\
-    xpos_dictionary, type_dictionary = \
-            conllu_data.create_dict(dict_path=dict_path,
-                                    train_path=train_path,
-                                    dev_path=dev_path,
-                                    test_path=None,
-                                    word_embed_dict={},
-                                    dry_run=False,
-                                    vocab_trim=True, add_start_char=add_start_char)
 
-    voc_size = len(char_dictionary.instance2index)+1
-    printing("char_dictionary".format(char_dictionary.instance2index), verbose=verbose, verbose_level=0)
-    printing("Character vocabulary is {} length".format(len(char_dictionary.instance2index)+1), verbose=verbose,
-             verbose_level=0)
+    if not model_specific_dictionary:
+        word_dictionary, char_dictionary, pos_dictionary, \
+        xpos_dictionary, type_dictionary = \
+        conllu_data.load_dict(dict_path=dict_path,
+                              train_path=train_path,
+                              dev_path=dev_path,
+                              test_path=None,
+                              word_embed_dict={},
+                              dry_run=False,
+                              vocab_trim=True,
+                              force_new_dic=True,
+                              add_start_char=add_start_char, verbose=1)
+
+        voc_size = len(char_dictionary.instance2index)+1
+        printing("char_dictionary".format(char_dictionary.instance2index), verbose=verbose, verbose_level=0)
+        printing("Character vocabulary is {} length".format(len(char_dictionary.instance2index)+1), verbose=verbose,
+                 verbose_level=0)
+        _train_path, _dev_path, _add_start_char = None, None, None
+    else:
+        voc_size = None
+        if not reload:
+            # we need to feed the model the data so that it computes the model_specific_dictionary
+            _train_path, _dev_path, _add_start_char = train_path, dev_path, add_start_char
+        else:
+            # as it reload : we don't need data
+            _train_path, _dev_path, _add_start_char = None, None, None
 
     model = LexNormalizer(generator=Generator, load=reload,
                           char_embedding_dim=char_embedding_dim, voc_size=voc_size,
-                          dir_model=model_dir,use_gpu=use_gpu,
+                          dir_model=model_dir, use_gpu=use_gpu,dict_path=dict_path,
+                          train_path=_train_path, dev_path=_dev_path, add_start_char=_add_start_char,
+                          model_specific_dictionary=model_specific_dictionary,
                           hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,
                           model_id_pref=model_id_pref, model_full_name=model_full_name,
                           hidden_size_sent_encoder=hidden_size_sent_encoder,
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose)
     if use_gpu:
-      model = model.cuda()
-      printing("TYPE model is cuda : {} ".format(next(model.parameters()).is_cuda), verbose=verbose, verbose_level=0)
-   
-    if not reload:
-        model_dir = os.path.join(PROJECT_PATH, "checkpoints", "{}-folder".format(model.model_full_name))
-        os.mkdir(model_dir)
-        printing("Dir {} created".format(model_dir), verbose=verbose, verbose_level=0)
+        model = model.cuda()
+        printing("TYPE model is cuda : {} ".format(next(model.parameters()).is_cuda), verbose=verbose, verbose_level=0)
+    if not model_specific_dictionary:
+        model.word_dictionary, model.char_dictionary, model.pos_dictionary, \
+        model.xpos_dictionary, model.type_dictionary = word_dictionary, char_dictionary, pos_dictionary, \
+                                                       xpos_dictionary, type_dictionary
 
     starting_epoch = model.arguments["info_checkpoint"]["n_epochs"] if reload else 0
     reloading = "" if not reload else " reloaded from "+str(starting_epoch)
@@ -98,8 +115,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
 
         printing("Starting new epoch {} ".format(epoch), verbose=verbose, verbose_level=1)
         model.train()
-        batchIter = data_gen_conllu(train_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
-                                    type_dictionary,
+        batchIter = data_gen_conllu(train_path,
+                                    model.word_dictionary, model.char_dictionary, model.pos_dictionary, model.xpos_dictionary, model.type_dictionary,
                                     add_start_char=add_start_char,
                                     add_end_char=add_end_char,
                                     normalization=normalization,
@@ -112,8 +129,10 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
                                verbose=verbose, i_epoch=epoch, n_epochs=n_epochs,
                                log_every_x_batch=100)
         model.eval()
-        batchIter_eval = data_gen_conllu(dev_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
-                                         type_dictionary, batch_size=batch_size, add_start_char=add_start_char,
+        batchIter_eval = data_gen_conllu(dev_path,
+                                         model.word_dictionary, model.char_dictionary, model.pos_dictionary,
+                                         model.xpos_dictionary, model.type_dictionary,
+                                         batch_size=batch_size, add_start_char=add_start_char,
                                          add_end_char=add_end_char,use_gpu=use_gpu,
                                          normalization=normalization,
                                          verbose=verbose)
@@ -135,12 +154,12 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
                                    epochs=str(epoch)+reloading,
                                    label=label_train+"-train",
                                    label_2=label_dev+"-dev",
-                                   save=True, dir=model_dir,
+                                   save=True, dir=model.dir_model,
                                    verbose=verbose, verbose_level=1,
                                    lr=lr, prefix=model.model_full_name,
                                    show=False)
 
-            model, _loss_dev = checkpoint(loss_former=_loss_dev, loss=loss_dev, model=model, model_dir=model_dir,
+            model, _loss_dev = checkpoint(loss_former=_loss_dev, loss=loss_dev, model=model, model_dir=model.dir_model,
                                           info_checkpoint={"n_epochs": n_epochs, "batch_size": batch_size,
                                                            "train_data_path": train_path, "dev_data_path": dev_path,
                                                            "other": {"error_curves": dir_plot, 
@@ -162,5 +181,5 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path , batch_size=
     #report_model(parameters=True, ,arguments_dic=model.arguments, dir_models_repositories=REPOSITORIES)
 
     simple_plot(final_loss=loss_dev, loss_ls=loss_training, loss_2=loss_developing, epochs=n_epochs, save=True,
-                dir=model_dir,label=label_train, label_2=label_dev,
+                dir=model.dir_model,label=label_train, label_2=label_dev,
                 lr=lr, prefix=model.model_full_name+"-LAST")

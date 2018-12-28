@@ -2,6 +2,14 @@
 
 multitask learning model for normalization and dependency parsing
 
+
+### Dictionary 
+
+2 modes :
+- one model specific : we create the dictionary inside the model folder
+- other is stanart
+- TODO : should make the dict_path in argument.json 
+
 ## Test guidelines
 
 When any new features is implemented the impact the training process : 

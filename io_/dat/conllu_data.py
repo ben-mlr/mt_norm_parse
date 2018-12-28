@@ -9,9 +9,40 @@ from .dictionary import Dictionary
 import numpy as np
 np.random.seed(123)
 import torch
+import os
+import sys
 torch.manual_seed(123)
 from torch.autograd import Variable
 from io_.info_print import printing
+
+
+def load_dict(dict_path, train_path=None, dev_path=None, test_path=None, word_embed_dict=None,
+                dry_run=0, vocab_trim=False, add_start_char=None, verbose=1, force_new_dic=False):
+
+  to_create = False
+  for dict_type in ["word","character","pos","xpos","type"]:
+    if not os.path.isfile(os.path.join(dict_path, "{}.json".format(dict_type))):
+      to_create = True
+  to_create = True if force_new_dic else to_create
+  if to_create:
+    assert train_path is not None and dev_path is not None and add_start_char is not None
+    printing("Creating dictionary in {} ".format(dict_path), verbose=verbose, verbose_level=1)
+    word_dictionary, char_dictionary, pos_dictionary, \
+    xpos_dictionary, type_dictionary = create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
+                                                   dry_run, vocab_trim=False, add_start_char=add_start_char)
+  else:
+    assert train_path is None and dev_path is None and test_path is None and add_start_char is None
+    printing("Loading dictionary from {} ".format(dict_path), verbose=verbose, verbose_level=1)
+    word_dictionary = Dictionary('word', default_value=True, singleton=True)
+    char_dictionary = Dictionary('character', default_value=True)
+    pos_dictionary = Dictionary('pos', default_value=True)
+    xpos_dictionary = Dictionary('xpos', default_value=True)
+    type_dictionary = Dictionary('type', default_value=True)
+    for name, dic in zip(["word","character","pos","xpos","type"], [word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary]):
+      dic.load(input_directory=dict_path, name=name)
+
+  return word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary
+
 
 def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
                 dry_run, vocab_trim=False, add_start_char=0):
@@ -126,14 +157,13 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
             if dry_run and li == 100:
               break
   expand_vocab([dev_path])
-  if not vocab_trim:
+  if not vocab_trim and test_path is not None:
     expand_vocab([test_path])
 
   for word in vocab_list:
     word_dictionary.add(word)
     if word in singletons:
       word_dictionary.add_singleton(word_dictionary.get_index(word))
-
   word_dictionary.save(dict_path)
   char_dictionary.save(dict_path)
   pos_dictionary.save(dict_path)

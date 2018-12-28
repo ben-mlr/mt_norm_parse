@@ -155,7 +155,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
 
         if DEV_4:
             sequence = [" ".join([char_dictionary.get_instance(output_seq[sent, word_ind, char_i]) for char_i in range(max_len)])
-                        + "|sent-{}|".format(sent) for sent in range(batch_size) for word_ind in range(output_seq.size(1))]
+                        + "|sent-{}|".format(sent) for sent in range(output_seq.size(0)) for word_ind in range(output_seq.size(1))]
 
         else:
             sequence = [" ".join(
@@ -185,7 +185,9 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
     return text_decoded, src_text_ls, target_seq_gold_ls
 
 
-def decode_seq_str(seq_string, dictionary, model, char_dictionary, pad=1, max_len=20, verbose=2):
+def decode_seq_str(seq_string, dictionary, model, char_dictionary, pad=1,
+                   max_len=20, verbose=2):
+
     with torch.no_grad():
         _seq_string = ["_START"]
         printing("WARNING : we added _START symbol and _END_CHAR ! ", verbose=verbose, verbose_level=0)
@@ -197,11 +199,15 @@ def decode_seq_str(seq_string, dictionary, model, char_dictionary, pad=1, max_le
             seq_string = seq_string[:max_len-1]+["_PAD_CHAR"]
         printing("INPUT SEQ is {} ".format(seq_string), verbose=verbose, verbose_level=2)
         sequence_characters = [dictionary.get_index(letter) for letter in seq_string]+[pad for _ in range(max_len-len(seq_string))]
+        sequence_characters = Variable(torch.from_numpy(np.array([sequence_characters, sequence_characters])), requires_grad=False)
+        sequence_characters.unsqueeze(dim=0)
+        print(sequence_characters)
         masks = [1 for _ in seq_string]+[0 for _ in range(max_len-len(seq_string))]
         # we have to create batch_size == 2 because of bug
-        char_seq = Variable(torch.from_numpy(np.array([sequence_characters, sequence_characters])), requires_grad=False)
-        char_mask = Variable(torch.from_numpy(np.array([masks, masks])), requires_grad=False)
-        char_len = Variable(torch.from_numpy(np.array([[min(max_len, len(seq_string))],[min(max_len, len(seq_string))]])))
+        if not DEV_5:
+            char_seq = Variable(torch.from_numpy(np.array([sequence_characters, sequence_characters])), requires_grad=False)
+            char_mask = Variable(torch.from_numpy(np.array([masks, masks])), requires_grad=False)
+            char_len = Variable(torch.from_numpy(np.array([[min(max_len, len(seq_string))],[min(max_len, len(seq_string))]])))
         batch_size = 2
 
         text_decoded, src_text, target = decode_sequence(model=model, char_dictionary=char_dictionary,
