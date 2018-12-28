@@ -12,6 +12,7 @@ import os
 from io_.info_print import disable_tqdm_level, printing
 from env.project_variables import PROJECT_PATH, REPO_DATASET
 import time
+from toolbox.gpu_related import use_gpu_
 
 
 def train(train_path, dev_path, n_epochs, normalization, dict_path =None, batch_size=10,
@@ -25,9 +26,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None, batch_
           add_start_char=None, add_end_char=1,
           debug=False,
           verbose=1):
-    if use_gpu is not None and use_gpu:
-      assert torch.cuda.is_available() , "ERROR : use_gpu was set to True but cuda not available "
-    use_gpu = torch.cuda.is_available() if use_gpu is None else use_gpu    
+
+    use_gpu = use_gpu_(use_gpu)
 
     if use_gpu:
         printing("GPU was found use_gpu set to True ", verbose_level=0, verbose=verbose)
