@@ -15,7 +15,8 @@ import time
 from toolbox.gpu_related import use_gpu_
 
 
-def train(train_path, dev_path, n_epochs, normalization, dict_path =None, batch_size=10,
+def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
+          batch_size=10,
           label_train="", label_dev="",
           use_gpu=None,
           hidden_size_encoder=None, output_dim=None, char_embedding_dim=None,
@@ -34,6 +35,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None, batch_
     else:
         printing("CPU mode ", verbose_level=0, verbose=verbose)
     freq_checkpointing = int(n_epochs/10) if checkpointing and freq_checkpointing is None else freq_checkpointing
+    assert add_start_char == 1, "ERROR : add_start_char must be activated due decoding behavior of output_text_"
     printing("Warning : add_start_char is {} and add_end_char {}  ".format(add_start_char, add_end_char), verbose=verbose, verbose_level=0)
 
     if reload:
@@ -121,7 +123,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None, batch_
                                     add_end_char=add_end_char,
                                     normalization=normalization,
                                     use_gpu=use_gpu,
-                                    batch_size=batch_size, print_raw=print_raw,
+                                    batch_size=batch_size,
+                                    print_raw=print_raw,
                                     verbose=verbose)
 
         loss_train = run_epoch(batchIter, model, LossCompute(model.generator, opt=adam,  

@@ -161,7 +161,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
             sequence = [" ".join(
                 [char_dictionary.get_instance(output_seq[sent, char_i]) for char_i in range(max_len)])
                         + "|sent-{}|".format(sent) for sent in range(batch_size)]
-        printing("Decoding step {} decoded target {} ".format(step, sequence), verbose=verbose, verbose_level=6)
+        printing("Decoding step {} decoded target {} ".format(step, sequence), verbose=verbose, verbose_level=3)
         #pdb.set_trace()
         if DEV_4:
             pdb.set_trace()

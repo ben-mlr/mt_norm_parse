@@ -26,6 +26,10 @@ def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
                                              add_start_char=add_start_char, add_end_char=add_end_char)
     n_sents = data[-1]
     nbatch = n_sents//batch_size
+    if nbatch==0:
+        printing("INFO : n_sents < batch_size so nbatch set to 1 ", verbose=verbose, verbose_level=0)
+    nbatch = 1 if nbatch == 0 else nbatch
+
     print("Running {} batches of {} dim (nsent : {}) ".format(nbatch, batch_size, n_sents))
     for ibatch in tqdm(range(1, nbatch+1), disable=disable_tqdm_level(verbose, verbose_level=2)):
         # word, char, pos, xpos, heads, types, masks, lengths, morph
@@ -59,6 +63,9 @@ def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
                                            for char_i in range(word_len)]) + " |SENT {} WORD {}| ".format(ind_sent, ind_w)
                                  for ind_sent,sent in enumerate(range(char.size(0)))
                                  for ind_w , word_ind in enumerate(range(char.size(1)))]
+        else:
+            character_display = []
+
         if not normalization:
             chars_norm = char.clone()
             printing("Normalisation is False : model is a autoencoder ", verbose=_verbose, verbose_level=5)
@@ -70,6 +77,8 @@ def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
                                            for char_i in range(chars_norm.size(2))]) + " |SENT {} WORD {}| ".format(ind_sent, ind_w)
                                  for ind_sent, sent in enumerate(range(chars_norm.size(0)))
                                  for ind_w, word_ind in enumerate(range(chars_norm.size(1)))]
+        else:
+            character_norm_display = []
 
         word_display = [word_dictionary.get_instance(word[batch, word_ind]) + " " for batch in range(char.size(0))]
         printing("Feeding source characters {} target characters {}  "

@@ -13,7 +13,7 @@ from io_.info_print import printing
 from toolbox.git_related import get_commit_id
 from toolbox.sanity_check import sanity_check_info_checkpoint
 from env.project_variables import PROJECT_PATH
-from io_.dat.conllu_data import load_dict
+from io_.dat import conllu_data
 import re
 DEV = True
 DEV_2 = True
@@ -313,7 +313,7 @@ class LexNormalizer(nn.Module):
 
             self.word_dictionary, self.char_dictionary, \
             self.pos_dictionary, self.xpos_dictionary, self.type_dictionary = \
-                load_dict(dict_path=dict_path,
+                conllu_data.load_dict(dict_path=dict_path,
                           train_path=train_path, dev_path=dev_path, test_path=None,
                           word_embed_dict={}, dry_run=False, vocab_trim=True,
                           add_start_char=add_start_char, verbose=1)
