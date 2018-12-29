@@ -19,7 +19,7 @@ if __name__ == "__main__":
     hidden_size_decoder = None
     checkpointing = True
     freq_checkpointing = 10
-    reload = True
+    reload = False
     model_full_name = "test_dbc4"
     model_id_pref = ""
     add_start_char = 1
@@ -39,7 +39,7 @@ if __name__ == "__main__":
         train(dev_path, test_path, n_epochs=n_epochs, normalization=normalization,
               batch_size=batch_size,
               model_specific_dictionary=True,
-              dict_path=dict_path, model_dir=None, add_start_char=add_start_char,
+              dict_path=None, model_dir=None, add_start_char=add_start_char,
               add_end_char=add_end_char, use_gpu=None,
               label_train=REPO_DATASET[test_path], label_dev=REPO_DATASET[test_path],
               freq_checkpointing=freq_checkpointing, reload=reload, model_id_pref="test",#"compare_normalization_all",

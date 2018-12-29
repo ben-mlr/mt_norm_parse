@@ -45,15 +45,19 @@ def score_ls_(ls_pred, ls_gold, score, stat="mean", verbose=0):
     scores = []
     sent_score_ls = []
     for gold, pred in zip(ls_gold, ls_pred):
-        assert len(gold) == len(pred), "len : pred {}, gold {} - pred {} gold {} ".format(len(pred), len(gold), pred, gold)
-        sent_score = []
-        for sent_gold, sent_pred in zip(gold, pred):
-            eval_func = METRIC_DIC[score]
-            sent_score.append(eval_func(sent_pred, sent_gold))
-            scores.append(eval_func(sent_pred, sent_gold))
-            printing("{} score ,  predicted word {} sentence predicted {} ".format(eval_func(sent_pred, sent_gold),sent_pred, sent_gold),
-                     verbose=verbose, verbose_level=6)
-        sent_score_ls.append(scores)
+        try:
+            assert len(gold) == len(pred), "len : pred {}, gold {} - pred {} gold {} ".format(len(pred), len(gold), pred, gold)
+            sent_score = []
+            for sent_gold, sent_pred in zip(gold, pred):
+                eval_func = METRIC_DIC[score]
+                sent_score.append(eval_func(sent_pred, sent_gold))
+                scores.append(eval_func(sent_pred, sent_gold))
+                printing("{} score ,  predicted word {} sentence predicted {} ".format(eval_func(sent_pred, sent_gold),sent_pred, sent_gold),
+                         verbose=verbose, verbose_level=6)
+            sent_score_ls.append(scores)
+        except Exception as e:
+            print("EXCEPTION e {} ".format(e))
+            print("GOLD {} , PRED {}".format(gold, pred))
     # TODO output sentence level score in some way
     if stat == "sum":
         score = np.sum(scores)

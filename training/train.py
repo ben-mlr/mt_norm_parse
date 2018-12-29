@@ -34,7 +34,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None, batch_
     else:
         printing("CPU mode ", verbose_level=0, verbose=verbose)
     freq_checkpointing = int(n_epochs/10) if checkpointing and freq_checkpointing is None else freq_checkpointing
-    printing("Warning : add_start_char is {} ".format(add_start_char), verbose=verbose, verbose_level=0)
+    printing("Warning : add_start_char is {} and add_end_char {}  ".format(add_start_char, add_end_char), verbose=verbose, verbose_level=0)
 
     if reload:
         assert model_full_name is not None and len(model_id_pref) == 0 and model_dir is not None and dict_path is not None
@@ -47,10 +47,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None, batch_
     loss_training = []
     loss_developing = []
 
-    nbatch = None
     lr = 0.001
 
-    printing("WARNING : n_batch {} lr {} and add_end_char {} are hardcoded ".format(nbatch, lr, add_end_char), verbose=verbose, verbose_level=0)
+    printing("WARNING :  lr {} ".format(lr, add_start_char, add_end_char), verbose=verbose, verbose_level=0)
 
     printing("INFO : dictionary is computed (re)created from scratcch on train_path {} and dev_path {}".format(train_path, dev_path), verbose=verbose, verbose_level=1)
 
@@ -107,6 +106,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None, batch_
     #  printing("Setting adam to GPU", verbose=verbose, verbose_level=0)
     #  adam = adam.cuda()
     _loss_dev = 1000
+    _loss_train = 1000
 
     printing("Running from {} to {} epochs : training on {} evaluating on {}".format(starting_epoch, n_epochs, train_path, dev_path), verbose=verbose, verbose_level=0)
     starting_time = time.time()
@@ -159,7 +159,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None, batch_
                                    lr=lr, prefix=model.model_full_name,
                                    show=False)
 
-            model, _loss_dev = checkpoint(loss_former=_loss_dev, loss=loss_dev, model=model, model_dir=model.dir_model,
+            model, _loss_train = checkpoint(loss_former=_loss_train, loss=loss_train, model=model, model_dir=model.dir_model,
                                           info_checkpoint={"n_epochs": n_epochs, "batch_size": batch_size,
                                                            "train_data_path": train_path, "dev_data_path": dev_path,
                                                            "other": {"error_curves": dir_plot, 
@@ -183,3 +183,5 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None, batch_
     simple_plot(final_loss=loss_dev, loss_ls=loss_training, loss_2=loss_developing, epochs=n_epochs, save=True,
                 dir=model.dir_model,label=label_train, label_2=label_dev,
                 lr=lr, prefix=model.model_full_name+"-LAST")
+
+    return model.model_full_name

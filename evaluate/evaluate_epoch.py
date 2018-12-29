@@ -114,8 +114,9 @@ if use_old_code:
 
 
 def evaluate(dict_path, model_full_name, batch_size, data_path, write_report=True, dir_report=None,
-             model_specific_dictionary=True, label_report="",
+             model_specific_dictionary=True, label_report="",print_raw=False,
              normalization=True, debug=False, force_new_dic=False, use_gpu=None, verbose=0):
+
     use_gpu = use_gpu_(use_gpu)
     if write_report:
         assert dir_report is not None
@@ -134,7 +135,6 @@ def evaluate(dict_path, model_full_name, batch_size, data_path, write_report=Tru
     if not debug:
         pdb.set_trace = lambda: 1
 
-
     model = LexNormalizer(generator=Generator, load=True, model_full_name=model_full_name,
                           voc_size=voc_size, use_gpu=use_gpu, dict_path=dict_path,model_specific_dictionary=True,
                           dir_model=os.path.join(PROJECT_PATH, "checkpoints", model_full_name + "-folder"),
@@ -143,7 +143,7 @@ def evaluate(dict_path, model_full_name, batch_size, data_path, write_report=Tru
                                 model.type_dictionary, batch_size=batch_size,  add_start_char=1,
                                 add_end_char=1,
                                 normalization=normalization,
-                                print_raw=True,  verbose=verbose)
+                                print_raw=print_raw,  verbose=verbose)
 
     model.eval()
     batch_decoding = True
@@ -158,8 +158,8 @@ def evaluate(dict_path, model_full_name, batch_size, data_path, write_report=Tru
         # NB : each batch should have the same size !! same number of words : otherwise averaging is wrong
         try:
           for score in score_to_compute_ls:
-              print("MODEL Normalization {} score is {} in average out of {} tokens on {} batches evaluation based on {} "
-                    .format(score, score_dic[score]/score_dic[score+"total_tokens"], score_dic[score+"total_tokens"], nbatch, data_path))
+              print("MODEL Normalization {} score is {} in average out of {} tokens on evaluation based on {} "
+                    .format(score, score_dic[score]/score_dic[score+"total_tokens"], score_dic[score+"total_tokens"], data_path))
         except ZeroDivisionError as e:
           print("ERROR catched {} ".format(e))
 
@@ -172,14 +172,23 @@ def evaluate(dict_path, model_full_name, batch_size, data_path, write_report=Tru
                                    evaluation_script_val="normalization_"+score,
                                    model_args_dir=model.args_dir,
                                    data_val=data_path)
-          dir_report = os.path.join("..", "checkpoints", model.model_full_name+"-folder",
+          _dir_report = os.path.join(dir_report,
                                     model.model_full_name+"-"+score+"-report-"+label_report+".json")
-
-          json.dump(report, open(dir_report, "w"))
-          print("Report saved {} ".format(dir_report))
+          json.dump(report, open(_dir_report , "w"))
+          print("Report saved {} ".format(_dir_report ))
 
 
 if __name__=="__main__":
-    evaluate(model_full_name="test_dbc4", data_path=DEV, dict_path="../checkpoints/test_dbc4-folder/dictionaries", label_report="test",
-             normalization=True, model_specific_dictionary=True, batch_size=2, dir_report="../checkpoints/test_dbc4-folder",
-             verbose=1)
+    evaluate(model_full_name="test_dbc4", data_path=DEV, dict_path="../checkpoints/test_dbc4-folder/dictionaries",
+             label_report="test",
+             normalization=True, model_specific_dictionary=True, batch_size=2,
+             dir_report="../checkpoints/test_dbc4-folder", verbose=1)
+
+
+#reporting = False
+#              if reporting:
+#                 report_path = ""
+#                 report_generation_script = "normalizer_edit"
+#                 dir_performance_json = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/experimental_pipe/model_repository/performancecopy.json"
+#                 metric = "edit"
+#                 write_dic(report_path, report_generation_script, dir_performance_json, metric, "None", model.model_full_name, test_path, 0)
