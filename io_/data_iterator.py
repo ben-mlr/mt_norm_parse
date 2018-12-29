@@ -65,7 +65,6 @@ def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
                                  for ind_w , word_ind in enumerate(range(char.size(1)))]
         else:
             character_display = []
-
         if not normalization:
             chars_norm = char.clone()
             printing("Normalisation is False : model is a autoencoder ", verbose=_verbose, verbose_level=5)

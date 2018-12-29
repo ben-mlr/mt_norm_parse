@@ -60,7 +60,7 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
 
 def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                     batch_size, pad=1, target_seq_gold=None,
-                    single_sequence=False,verbose=2):
+                    single_sequence=False, verbose=2):
 
     output_seq = pad*np.ones(src_seq.size(), dtype=np.int64)
     # we start with the _START symbol
@@ -68,8 +68,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         output_seq[:,  0] = CHAR_START_ID
     else:
         pdb.set_trace()
-
-        output_seq[:, :, 0] = src_seq[:,:,0] #CHAR_START_ID
+        output_seq[:, :, 0] = src_seq[:, :, 0] #CHAR_START_ID
 
     src_text_ls = []
     target_seq_gold_ls = [] if target_seq_gold is not None else None
@@ -185,7 +184,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
     return text_decoded, src_text_ls, target_seq_gold_ls
 
 
-def decode_seq_str(seq_string, dictionary, model, char_dictionary, pad=1,
+def decode_seq_str(seq_string, model, char_dictionary, pad=1,
                    max_len=20, verbose=2):
 
     with torch.no_grad():
@@ -198,9 +197,8 @@ def decode_seq_str(seq_string, dictionary, model, char_dictionary, pad=1,
             # cutting to respect dim requirements
             seq_string = seq_string[:max_len-1]+["_PAD_CHAR"]
         printing("INPUT SEQ is {} ".format(seq_string), verbose=verbose, verbose_level=2)
-        sequence_characters = [dictionary.get_index(letter) for letter in seq_string]+[pad for _ in range(max_len-len(seq_string))]
-        sequence_characters = Variable(torch.from_numpy(np.array([sequence_characters, sequence_characters])), requires_grad=False)
-        sequence_characters.unsqueeze(dim=0)
+        sequence_characters = [char_dictionary.get_index(letter) for letter in seq_string]+[pad for _ in range(max_len-len(seq_string))]
+
         print(sequence_characters)
         masks = [1 for _ in seq_string]+[0 for _ in range(max_len-len(seq_string))]
         # we have to create batch_size == 2 because of bug
@@ -208,6 +206,17 @@ def decode_seq_str(seq_string, dictionary, model, char_dictionary, pad=1,
             char_seq = Variable(torch.from_numpy(np.array([sequence_characters, sequence_characters])), requires_grad=False)
             char_mask = Variable(torch.from_numpy(np.array([masks, masks])), requires_grad=False)
             char_len = Variable(torch.from_numpy(np.array([[min(max_len, len(seq_string))],[min(max_len, len(seq_string))]])))
+        else:
+            sequence_characters = Variable(torch.from_numpy(np.array([sequence_characters, sequence_characters])), requires_grad=False)
+            char_seq = sequence_characters.unsqueeze(dim=1)
+            #char_seq = Variable(torch.from_numpy(np.array([sequence_characters, sequence_characters])), requires_grad=False)
+            char_mask = Variable(torch.from_numpy(np.array([masks, masks])), requires_grad=False)
+            char_mask = char_mask.unsqueeze(dim=1)
+            char_len = Variable(torch.from_numpy(np.array([[min(max_len, len(seq_string)),0],
+                                                           [min(max_len, len(seq_string)), 0]])))
+            char_len = char_len.unsqueeze(dim=2)
+
+
         batch_size = 2
 
         text_decoded, src_text, target = decode_sequence(model=model, char_dictionary=char_dictionary,
@@ -218,8 +227,11 @@ def decode_seq_str(seq_string, dictionary, model, char_dictionary, pad=1,
         print("DECODED text is : {} ".format(text_decoded))
 
 
-def decode_interacively(dictionary, model , char_dictionary,  max_len, verbose,pad=1):
-
+def decode_interacively(model , char_dictionary,  max_len, pad=1, verbose=0):
+    if char_dictionary is None:
+        printing("INFO : dictionary is None so setting char_dictionary to model.char_dictionary",
+                 verbose=verbose, verbose_level=0)
+        char_dictionary = model.char_dictionary
     while True:
         seq_string = input("Please type what you want to normalize ? to stop type : 'stop'    ")
         if seq_string == "":
@@ -227,4 +239,4 @@ def decode_interacively(dictionary, model , char_dictionary,  max_len, verbose,p
         if seq_string == "stop":
             break
         else:
-            decode_seq_str(seq_string, dictionary, model, char_dictionary, pad, max_len, verbose)
+            decode_seq_str(seq_string, model, char_dictionary, pad, max_len, verbose)

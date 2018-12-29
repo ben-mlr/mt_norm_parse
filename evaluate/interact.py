@@ -14,66 +14,53 @@ from io_.dat import conllu_data
 from training.epoch_train import run_epoch
 from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, DEMO, DEMO2
 
-dict_path = "../dictionariesbackup/"
-train_path = DEV
-dev_path = TEST
+MAX_LEN = 20
+#dict_path = "../dictionariesbackup/"
 
-normalization = False
-add_start_char = 1
-add_end_char = 1
-debug = False
 
-word_dictionary, char_dictionary, pos_dictionary,\
-xpos_dictionary, type_dictionary = \
-        conllu_data.create_dict(dict_path=dict_path,
-                                train_path=train_path,
-                                dev_path=dev_path,
-                                test_path=None,
-                                add_start_char=add_start_char,
-                                word_embed_dict={},
-                                dry_run=False,
-                                vocab_trim=True)
+def interact(dic_path, model_full_name, dir_model,
+             model_specific_dictionary=True, verbose=2):
 
-verbose = 2
+    if not model_specific_dictionary:
+        assert train_path is not None and dev_path is not None
+    if not model_specific_dictionary:
+        word_dictionary, char_dictionary, pos_dictionary,\
+        xpos_dictionary, type_dictionary = \
+            conllu_data.create_dict(dict_path=dict_path,
+                                    train_path=train_path,
+                                    dev_path=dev_path,
+                                    test_path=None,
+                                    add_start_char=1,
+                                    word_embed_dict={},
+                                    dry_run=False,
+                                    vocab_trim=True)
+        voc_size = len(char_dictionary.instance2index) + 1,
+    else:
+        char_dictionary = None
+        voc_size = None
 
-#verbose = 2
-#3b87
-#1782
-#cd05
-model_full_name = "compare_normalization_all_45e6"
-script_dir = os.path.dirname(os.path.realpath(__file__))
-model = LexNormalizer(generator=Generator,
-                      voc_size=len(char_dictionary.instance2index)+1,
-                      load=True, model_full_name=model_full_name,
-                      dir_model=os.path.join(script_dir, "..", "checkpoints", model_full_name+"-folder"),
-                      verbose=verbose)
-batch_size = 2
-nbatch = 20
-verbose = 2
-#batchIter = data_gen_conllu(dev_pat,
-#                            word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
-#                            type_dictionary, batch_size=batch_size, nbatch=nbatch, add_start_char=add_start_char,add_end_char=add_end_char,
-#                            normalization=normalization,
-#                            print_raw=True,  verbose=verbose)
+    if not debug:
+        pdb.set_trace = lambda: 1
+    model = LexNormalizer(generator=Generator,
+                          voc_size=voc_size,
+                          load=True, model_full_name=model_full_name,
+                          model_specific_dictionary=model_specific_dictionary,
+                          dict_path=dic_path,
+                          dir_model=dir_model,
+                          verbose=verbose)
+    model.eval()
+    decode_interacively(max_len=MAX_LEN, model=model, char_dictionary=char_dictionary,
+                        verbose=verbose)
 
-V = model.arguments["hyperparameters"]["voc_size"]
-hidden_size_decoder = model.arguments["hyperparameters"]["hidden_size_decoder"]
-model.eval()
 
-if not debug:
-    pdb.set_trace = lambda: 1
+if __name__=="__main__":
+    debug = False
+    model_specific_dictionary = True
+    script_dir = os.path.dirname(os.path.realpath(__file__))
 
-batch_decoding, sequence_decoding, interactive_mode = False, False, True
+    model_full_name = "TEST2_37be"
+    dic_path = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder", "dictionaries")
+    model_dir = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder")
 
-#loss = run_epoch(batchIter, model, LossCompute(model.generator, verbose=verbose),
-#                     i_epoch=0, n_epochs=1,
-#                     verbose=verbose,
-#                     log_every_x_batch=100)
-#print("LOSS", loss)
-
-if sequence_decoding:
-    decode_seq_str(seq_string="eabf", dictionary=char_dictionary, max_len=10, model=model, char_dictionary=char_dictionary,
-                )
-if interactive_mode:
-    decode_interacively(dictionary=char_dictionary, max_len=20, model=model, char_dictionary=char_dictionary,
-                        verbose=2)
+    interact(dic_path=dic_path, dir_model=model_dir,
+             model_full_name=model_full_name)

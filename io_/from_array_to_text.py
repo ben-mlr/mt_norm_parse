@@ -59,13 +59,16 @@ def output_text_(one_code_prediction, char_dic, start_symbol=CHAR_START ,
 
             sent.append(word)
             if single_sequence:
-                str_decoded = word_to_print
+                word_str_decoded = word_to_print
             else:
                 # we want to remove gold empty words (coming from the sentence level padding)
                 if len(word_to_print) > 0 or empty_decoded_word:
                     word_str_decoded.append(word_to_print)
                 #else:     printing("Word to print empty ")
-        str_decoded.append(word_str_decoded)
+        if not single_sequence:
+            str_decoded.append(word_str_decoded)
+        else:
+            str_decoded = word_to_print
         decoding.append(sent)
     return np.array(decoding), str_decoded
 

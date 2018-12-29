@@ -102,9 +102,13 @@ class CharEncoder(nn.Module):
                                                                        input_mask.size(),
                                                                        input_word_len.size()), verbose=verbose, verbose_level=5)
         if DEV_5:
+
             _input_word_len = input_word_len.clone()
             # handle sentence that take the all sequence
+            #if _input_word_len.size(1) > 1:
             _input_word_len[:, -1, :] = 0
+            #else:   print("WARNING _input_word_len.size(1) is 1 ")
+            #pdb.set_trace()
             # when input_word_len is 0 means we reached end of sentence
             sent_len = torch.argmin(_input_word_len, dim=1)
             # sort batch at the sentence length
@@ -307,7 +311,7 @@ class LexNormalizer(nn.Module):
             else:
                 assert train_path is None and dev_path is None and add_start_char is None
                 #we make sure the dictionary exists and is located
-                pdb.set_trace()
+                #pdb.set_trace()
                 assert dict_path is not None, "ERROR dict_path should be specified"
                 assert os.path.isdir(dict_path), "ERROR : dict_path {} does not exist".format(dict_path)
 
@@ -407,7 +411,7 @@ class LexNormalizer(nn.Module):
         if not DEV_4:
             output = self.decoder.word_encoder_target(output_seq, h, output_mask, output_word_len)
         elif DEV_4:
-            pdb.set_trace()
+            #pdb.set_trace()
             output = self.decoder.sent_encoder_target(output_seq, h, output_mask, output_word_len,
                                                       sent_len_max_source=sent_len_max_source)
             printing("TYPE  decoder {} is cuda ".format(output.is_cuda), verbose=0, verbose_level=5)
@@ -417,7 +421,6 @@ class LexNormalizer(nn.Module):
         printing("DECODER full  output sequence encoded of size {} ".format(output.size()), verbose=self.verbose,
                  verbose_level=3)
         printing("DECODER full  output sequence encoded of {}  ".format(output), verbose=self.verbose, verbose_level=5)
-        pdb.set_trace()
         return output
 
     @staticmethod

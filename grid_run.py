@@ -98,7 +98,7 @@ if __name__ == "__main__":
           model_id_pref = "TEST2"
           print("STARTING MODEL {} with param {} ".format(model_id_pref, param))
           train_eval(train_path, test_path, model_id_pref, warmup=True, args=param,
-                     print_raw=False,
+                     print_raw=False,debug=False,
                      use_gpu=None, verbose=0)
           print("DONE MODEL {} with param {} ".format(model_id_pref, param))
           break
