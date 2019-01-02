@@ -8,7 +8,7 @@ from io_.info_print import printing
 
 def simple_plot(final_loss, loss_ls, loss_2=None, epochs=None, V=None, seq_len=None,
                 label="", label_2="",
-                dir="/Users/benjaminmuller/Desktop/Work/INRIA/dev/mt_norm_parse/test/test_logs",
+                dir="/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/test_/test_logs",
                 lr=None, save=False, show=True, prefix="test", verbose=0, verbose_level=1):
 
     if loss_2 is None:

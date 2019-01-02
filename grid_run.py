@@ -46,25 +46,25 @@ def train_eval(train_path, test_path, model_id_pref,n_epochs=11, warmup=False, a
 
 if __name__ == "__main__":
 
-      train_path = DEMO2
-      test_path = DEMO2
+      train_path = DEV
+      test_path = TEST
       params = []
       model_id_pref_list = ["comparison_ablation-big","comparison_ablation-big","comparison_ablation-big"]
       params.append({"hidden_size_encoder": 250, "output_dim": 300, "char_embedding_dim": 300,
-               "hidden_size_sent_encoder": 250, "hidden_size_decoder": 300, "batch_size": 50})
+                     "hidden_size_sent_encoder": 250, "hidden_size_decoder": 300, "batch_size": 50})
       params.append({"hidden_size_encoder": 250, "output_dim": 300, "char_embedding_dim": 300,
-               "hidden_size_sent_encoder": 250, "hidden_size_decoder": 300, "batch_size": 20})
+                     "hidden_size_sent_encoder": 250, "hidden_size_decoder": 300, "batch_size": 20})
       params.append({"hidden_size_encoder": 250, "output_dim": 300, "char_embedding_dim": 300,
-               "hidden_size_sent_encoder": 250, "hidden_size_decoder": 300, "batch_size": 2})
+                     "hidden_size_sent_encoder": 250, "hidden_size_decoder": 300, "batch_size": 2})
       # new pparam
       model_id_pref_list.append("comparison_ablation-medium")
       model_id_pref_list.append("comparison_ablation-medium")
       model_id_pref_list.append("comparison_ablation-medium")
 
       params.append({"hidden_size_encoder": 51, "output_dim": 50, "char_embedding_dim": 20,
-               "hidden_size_sent_encoder": 50, "hidden_size_decoder": 50, "batch_size": 50})
+                     "hidden_size_sent_encoder": 50, "hidden_size_decoder": 50, "batch_size": 50})
       params.append({"hidden_size_encoder": 51, "output_dim": 50, "char_embedding_dim": 20,
-               "hidden_size_sent_encoder": 50, "hidden_size_decoder": 50, "batch_size": 20})
+                     "hidden_size_sent_encoder": 50, "hidden_size_decoder": 50, "batch_size": 20})
       params.append({"hidden_size_encoder": 51, "output_dim": 50, "char_embedding_dim": 20,
                "hidden_size_sent_encoder": 50, "hidden_size_decoder": 50, "batch_size": 2})
       #
@@ -97,6 +97,6 @@ if __name__ == "__main__":
           print("STARTING MODEL {} with param {} ".format(model_id_pref, param))
           train_eval(train_path, test_path, model_id_pref, warmup=False, args=param, use_gpu=None, n_epochs=3)
           print("DONE MODEL {} with param {} ".format(model_id_pref, param))
-          if i >=1 :
+          if i >=5 :
               break
 

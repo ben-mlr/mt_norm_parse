@@ -86,17 +86,17 @@ def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
         yield MaskBatch(char, chars_norm, pad=padding, use_gpu=use_gpu, verbose=verbose)
 
 
-def data_gen_dummy(V, batch, nbatches,seq_len=10,
+def data_gen_dummy(V, batch, nbatches,sent_len=9, word_len=5,
                    verbose=0, seed=None):
     "Generate random data for a src-tgt copy task."
     if seed is not None:
         np.random.seed(seed)
     for i in tqdm(range(nbatches), disable=disable_tqdm_level(verbose, verbose_level=2)):
-        data = torch.from_numpy(np.random.randint(low=2,high=V, size=(batch, seq_len)))
-        data[:, 0] = 2
+        data = torch.from_numpy(np.random.randint(low=2, high=V, size=(batch, sent_len, word_len)))
+        data[:, :,0] = 2
         # we force padding in the dummy model
-        data[:, -1] = 1
-        data[:, -2] = 1
+        data[:, :, -1] = 1
+        data[:, :, -2] = 1
         printing("DATA dummy {} ".format(data), verbose=verbose, verbose_level=5)
         src = Variable(data, requires_grad=False)
         tgt = Variable(data, requires_grad=False)
@@ -114,7 +114,7 @@ def data_gen(V, batch, nbatches,seq_len=10):
 
 
 if __name__=="__main__":
-    dummy , conll = False, True
+    dummy , conll = True, False
     if dummy:
         iter = data_gen_dummy(V=5, batch=2, nbatches=1)
 

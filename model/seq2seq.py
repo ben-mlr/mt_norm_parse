@@ -124,6 +124,8 @@ class LexNormalizer(nn.Module):
                 "ERROR  model_full_name is {} and dir_model {}  ".format(model_full_name, dir_model)
             printing("Loading existing model {} from {} ".format(model_full_name, dir_model), verbose=verbose, verbose_level=5)
             assert char_embedding_dim is None and hidden_size_encoder is None and hidden_size_decoder is None and output_dim is None
+            if not model_specific_dictionary:
+                assert voc_size is not None, "ERROR : voc_size is required for sanity checking as wr recompute the dictionary "
 
             args, checkpoint_dir, args_dir = self.load(dir_model, model_full_name, verbose=verbose)
             self.arguments = args
