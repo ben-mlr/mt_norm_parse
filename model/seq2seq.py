@@ -17,7 +17,6 @@ from io_.dat import conllu_data
 import re
 DEV = True
 DEV_2 = True
-DEV_3 = False
 DEV_4 = True
 DEV_5 = True
 
@@ -204,9 +203,6 @@ class CharDecoder(nn.Module):
                      "last hidden hidden for each dir+layers)".format(output.data.shape, h_n.size()), verbose=self.verbose, verbose_level=3)
             output, output_sizes = pad_packed_sequence(output, batch_first=True)
             output = output[inverse_perm_idx_output, :, :]
-        # First implementation without accounted for padding
-        elif not DEV_3:
-            output, h_n = self.seq_decoder(char_vecs, conditioning)
 
         printing("TARGET ENCODED UNPACKED  {} output {} h_n (output (includes all the hidden states of last layers), "
                  "last hidden hidden for each dir+layers)".format(output, h_n), verbose=self.verbose,
