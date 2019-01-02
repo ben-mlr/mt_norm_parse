@@ -11,6 +11,7 @@ from toolbox.git_related import get_commit_id
 from toolbox.sanity_check import sanity_check_info_checkpoint
 from env.project_variables import PROJECT_PATH
 from io_.dat import conllu_data
+from toolbox.deep_learning_toolbox import count_trainable_parameters
 import re
 #DEV = True
 #DEV_2 = True
@@ -26,7 +27,9 @@ class LexNormalizer(nn.Module):
 
     def __init__(self, generator, char_embedding_dim=None, hidden_size_encoder=None,output_dim=None,
                  hidden_size_sent_encoder=None,
+                 n_layers_word_encoder=1,
                  hidden_size_decoder=None, voc_size=None, model_id_pref="", model_name="",
+                 dropout_sent_encoder=0., dropout_word_encoder=0., dropout_word_decoder=0.,
                  dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False):
         """
@@ -106,18 +109,24 @@ class LexNormalizer(nn.Module):
                               "info_checkpoint": {"n_epochs": 0, "batch_size": None, "train_data_path": None,
                                                   "dev_data_path": None, "other": None,
                                                   "git_id": git_commit_id},
-                              "hyperparameters": {"char_embedding_dim": char_embedding_dim,
-                                                  "encoder_arch": {"cell_word": "GRU", "cell_sentence": "GRU",
-                                                                   "attention": "No", "dir_word": "uni",
-                                                                   "dir_sent": "uni"},
-                                                  "decoder_arch": {"cell_word": "GRU", "cell_sentence": "GRU",
-                                                                   "attention": "No", "dir_word": "uni",
-                                                                   "dir_sent": "uni"},
-                                                  "hidden_size_encoder": hidden_size_encoder,
-                                                  "hidden_size_sent_encoder": hidden_size_sent_encoder,
-                                                  "hidden_size_decoder": hidden_size_decoder,
-                                                  "voc_size": voc_size, "output_dim": output_dim
-                                                 }}
+                              "hyperparameters": {
+                                  "n_trainable_parameters": None,
+                                  "char_embedding_dim": char_embedding_dim,
+                                  "encoder_arch": {"cell_word": "GRU", "cell_sentence": "GRU",
+                                                   "n_layers_word_encoder":n_layers_word_encoder,
+                                                   "attention": "No", "dir_word": "uni",
+                                                   "dropout_word_encoder":dropout_word_decoder,
+                                                   "dropout_sent_encoder":dropout_sent_encoder,
+                                                   "dir_sent": "uni"},
+                                  "decoder_arch": {"cell_word": "GRU", "cell_sentence": "GRU",
+                                                   "attention": "No", "dir_word": "uni",
+                                                   "dropout_word_decoder": dropout_word_decoder,
+                                                   "dir_sent": "uni"},
+                                  "hidden_size_encoder": hidden_size_encoder,
+                                  "hidden_size_sent_encoder": hidden_size_sent_encoder,
+                                  "hidden_size_decoder": hidden_size_decoder,
+                                  "voc_size": voc_size, "output_dim": output_dim
+                                 }}
         # we load argument.json and define load weights
         else:
             assert model_full_name is not None and dir_model is not None, \
@@ -136,26 +145,38 @@ class LexNormalizer(nn.Module):
                                                  "redefined in dictionnaries do not " \
                                                  "match {} vs {} ".format(args["voc_size"], voc_size)
             char_embedding_dim, hidden_size_encoder, \
-            hidden_size_decoder, voc_size, output_dim, hidden_size_sent_encoder = args["char_embedding_dim"], args["hidden_size_encoder"], \
-                                                        args["hidden_size_decoder"], args["voc_size"], args.get("output_dim"), args.get("hidden_size_sent_encoder")
+            hidden_size_decoder, voc_size, output_dim, hidden_size_sent_encoder, \
+             dropout_sent_encoder, dropout_word_encoder, dropout_word_decoder, n_layers_word_encoder = \
+                args["char_embedding_dim"], args["hidden_size_encoder"], \
+                    args["hidden_size_decoder"], args["voc_size"], \
+                        args.get("output_dim"), args.get("hidden_size_sent_encoder"), \
+                                args["encoder_arch"].get("dropout_sent_encoder"), \
+                args["encoder_arch"].get("dropout_word_encoder"), args["decoder_arch"].get("dropout_word_decoder"), \
+                    args["encoder_arch"].get("n_layers_word_encoder")
+
             self.args_dir = args_dir
 
         self.dir_model = dir_model
         self.model_full_name = model_full_name
         printing("Model arguments are {} ".format(self.arguments), verbose, verbose_level=0)
+        printing("Model : NB : defined drop outs are the reloaded one ", verbose, verbose_level=0)
         # 1 shared character embedding layer
         self.char_embedding = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
         self.encoder = CharEncoder(self.char_embedding, input_dim=char_embedding_dim,
                                    hidden_size_encoder=hidden_size_encoder,
+                                   dropout_sent_cell=dropout_sent_encoder, dropout_word_cell=dropout_word_encoder,
                                    hidden_size_sent_encoder=hidden_size_sent_encoder,
+                                   n_layers_word_cell=n_layers_word_encoder,
                                    verbose=verbose)
         self.decoder = CharDecoder(self.char_embedding, input_dim=char_embedding_dim,
-                                   hidden_size_decoder=hidden_size_decoder, verbose=verbose)
+                                   hidden_size_decoder=hidden_size_decoder,
+                                   dropout_word_cell=dropout_word_decoder,
+                                   verbose=verbose)
         self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size,
                                    output_dim=output_dim, verbose=verbose)
         self.verbose = verbose
         # bridge between encoder hidden representation and decoder
-        self.bridge = nn.Linear(hidden_size_encoder+hidden_size_sent_encoder, hidden_size_decoder)
+        self.bridge = nn.Linear(hidden_size_encoder*n_layers_word_encoder+hidden_size_sent_encoder, hidden_size_decoder)
         if load:
             # TODO : see if can be factorized
             if use_gpu:
@@ -197,6 +218,7 @@ class LexNormalizer(nn.Module):
         assert os.path.isdir(dir), " ERROR : dir {} does not exist".format(dir)
         checkpoint_dir = os.path.join(dir, model.model_full_name + "-"+ suffix_name + "-" + "checkpoint.pt")
         # we update the checkpoint_dir
+        model.arguments["hyperparameters"]["n_trainable_parameters"] = count_trainable_parameters(model)
         model.arguments["info_checkpoint"] = info_checkpoint
         model.arguments["info_checkpoint"]["git_id"] = get_commit_id()
         model.arguments["checkpoint_dir"] = checkpoint_dir

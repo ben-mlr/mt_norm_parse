@@ -13,21 +13,24 @@ DEV_5 = True
 class CharEncoder(nn.Module):
 
     def __init__(self, char_embedding, input_dim, hidden_size_encoder, hidden_size_sent_encoder,
-                 word_recurrent_cell=None,
+                 word_recurrent_cell=None, dropout_sent_cell=0, dropout_word_cell=0,
+                 n_layers_word_cell=1,
                  verbose=2):
         super(CharEncoder, self).__init__()
         self.char_embedding_ = char_embedding
-        self.sent_encoder = nn.LSTM(input_size=hidden_size_encoder,
+        self.sent_encoder = nn.LSTM(input_size=hidden_size_encoder*n_layers_word_cell,
                                     hidden_size=hidden_size_sent_encoder,
                                     num_layers=1, bias=True, batch_first=True,
+                                    dropout=dropout_sent_cell,
                                     bidirectional=False)
         self.verbose = verbose
         word_recurrent_cell = nn.GRU if word_recurrent_cell is None else nn.GRU
         printing("MODEL Encoder : word_recurrent_cell has been set to {} ".format(str(word_recurrent_cell)),
                  verbose=verbose, verbose_level=0)
         self.seq_encoder = word_recurrent_cell(input_size=input_dim, hidden_size=hidden_size_encoder,
-                                                num_layers=1, #nonlinearity='tanh',
-                                                bias=True, batch_first=True, bidirectional=False)
+                                               dropout=dropout_word_cell,
+                                               num_layers=n_layers_word_cell, #nonlinearity='tanh',
+                                               bias=True, batch_first=True, bidirectional=False)
 
     def word_encoder_source(self, input, input_word_len=None):
         # input : [word batch dim, max character length],  input_word_len [word batch dim]

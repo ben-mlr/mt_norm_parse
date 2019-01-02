@@ -6,7 +6,7 @@ from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, CHECKPOINT_
 #DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
 
-def train_eval(train_path, test_path, model_id_pref,n_epochs=11, warmup=False, args={},use_gpu=None,
+def train_eval(train_path, test_path, model_id_pref, n_epochs=11, warmup=False, args={},use_gpu=None,
                verbose=0):
     hidden_size_encoder = args.get("hidden_size_encoder", 10)
     output_dim = args.get("output_dim",10)
@@ -14,6 +14,9 @@ def train_eval(train_path, test_path, model_id_pref,n_epochs=11, warmup=False, a
     hidden_size_sent_encoder = args.get("hidden_size_sent_encoder", 10)
     hidden_size_decoder = args.get("hidden_size_decoder", 10)
     batch_size = args.get("batch_size", 2)
+    dropout_sent_encoder, dropout_word_encoder, dropout_word_decoder = args.get("dropout_sent_encoder",0), \
+    args.get("dropout_word_encoder",0), args.get("dropout_word_decoder",0)
+    n_layers_word_encoder = args.get("n_layers_word_encoder",1)
 
     n_epochs = 1 if warmup else n_epochs
 
@@ -24,12 +27,15 @@ def train_eval(train_path, test_path, model_id_pref,n_epochs=11, warmup=False, a
                             batch_size=batch_size, model_specific_dictionary=True,
                             dict_path=None, model_dir=None, add_start_char=1,
                             add_end_char=1, use_gpu=use_gpu,
+                            dropout_sent_encoder=dropout_sent_encoder, dropout_word_encoder=dropout_word_encoder, dropout_word_decoder=dropout_word_decoder,
                             label_train=REPO_DATASET[train_path], label_dev=REPO_DATASET[test_path],
                             freq_checkpointing=10, reload=False, model_id_pref=model_id_pref,
                             hidden_size_encoder=hidden_size_encoder, output_dim=output_dim, char_embedding_dim=char_embedding_dim,
                             hidden_size_sent_encoder=hidden_size_sent_encoder, hidden_size_decoder=hidden_size_decoder,
+                            n_layers_word_encoder=n_layers_word_encoder,
                             print_raw=False, debug=False,
                             checkpointing=True)
+
 
     model_dir = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder")
     dict_path = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder", "dictionaries")
@@ -51,11 +57,15 @@ if __name__ == "__main__":
       params = []
       model_id_pref_list = ["comparison_ablation-big","comparison_ablation-big","comparison_ablation-big"]
       params.append({"hidden_size_encoder": 250, "output_dim": 300, "char_embedding_dim": 300,
+                     "dropout_sent_encoder": 0., "dropout_word_encoder" : 0.5, "dropout_word_decoder": 0.,
+                     "n_layers_word_encoder":2,
                      "hidden_size_sent_encoder": 250, "hidden_size_decoder": 300, "batch_size": 50})
       params.append({"hidden_size_encoder": 250, "output_dim": 300, "char_embedding_dim": 300,
                      "hidden_size_sent_encoder": 250, "hidden_size_decoder": 300, "batch_size": 20})
       params.append({"hidden_size_encoder": 250, "output_dim": 300, "char_embedding_dim": 300,
                      "hidden_size_sent_encoder": 250, "hidden_size_decoder": 300, "batch_size": 2})
+
+
       # new pparam
       model_id_pref_list.append("comparison_ablation-medium")
       model_id_pref_list.append("comparison_ablation-medium")
@@ -66,7 +76,7 @@ if __name__ == "__main__":
       params.append({"hidden_size_encoder": 51, "output_dim": 50, "char_embedding_dim": 20,
                      "hidden_size_sent_encoder": 50, "hidden_size_decoder": 50, "batch_size": 20})
       params.append({"hidden_size_encoder": 51, "output_dim": 50, "char_embedding_dim": 20,
-               "hidden_size_sent_encoder": 50, "hidden_size_decoder": 50, "batch_size": 2})
+                     "hidden_size_sent_encoder": 50, "hidden_size_decoder": 50, "batch_size": 2})
       #
       model_id_pref_list.append("comparison_ablation-small")
       model_id_pref_list.append("comparison_ablation-small")

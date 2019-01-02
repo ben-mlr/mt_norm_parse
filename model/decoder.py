@@ -7,12 +7,14 @@ import pdb
 
 class CharDecoder(nn.Module):
     def __init__(self, char_embedding, input_dim, hidden_size_decoder, word_recurrent_cell=None,
+                 dropout_word_cell=0,
                  verbose=0):
         super(CharDecoder, self).__init__()
         self.char_embedding_decoder = char_embedding
         word_recurrent_cell = nn.GRU if word_recurrent_cell is None else nn.GRU
         self.seq_decoder = word_recurrent_cell(input_size=input_dim, hidden_size=hidden_size_decoder,
                                                num_layers=1,  # nonlinearity='tanh',
+                                               dropout=dropout_word_cell,
                                                bias=True, batch_first=True, bidirectional=False)
         printing("MODEL Decoder : word_recurrent_cell has been set to {} ".format(str(word_recurrent_cell)),
                  verbose=verbose, verbose_level=0)
