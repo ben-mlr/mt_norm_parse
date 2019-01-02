@@ -31,7 +31,8 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                 target_gold = batch.output_seq if gold_output else None
                 # do something with it : When do you stop decoding ?
                 max_len = src_seq.size(-1)
-                printing("WARNING : max_len set to src_seq.size(-1) {} ".format(max_len), verbose=verbose, verbose_level=0)
+                printing("WARNING : word max_len set to src_seq.size(-1) {} ".format(max_len), verbose=verbose,
+                         verbose_level=0)
                 pdb.set_trace()
                 text_decoded_ls, src_text_ls, gold_text_seq_ls = decode_sequence(model=model,
                                                                                  char_dictionary=char_dictionary,
@@ -76,7 +77,6 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
     printing("Data Start source {} {} ".format(src_seq, src_seq.size()), verbose=verbose, verbose_level=6)
 
     printing("Data Start ".format(output_seq, output_len, output_mask), verbose=verbose, verbose_level=6)
-
     for step, char_decode in enumerate(range(2,  max_len)):
         decoding_states = model.forward(input_seq=src_seq,
                                         output_seq=output_seq,
@@ -154,7 +154,7 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
         #char_seq = Variable(torch.from_numpy(np.array([sequence_characters, sequence_characters])), requires_grad=False)
         char_mask = Variable(torch.from_numpy(np.array([masks, masks])), requires_grad=False)
         char_mask = char_mask.unsqueeze(dim=1)
-        char_len = Variable(torch.from_numpy(np.array([[min(max_len, len(seq_string)),0],
+        char_len = Variable(torch.from_numpy(np.array([[min(max_len, len(seq_string)), 0],
                                                        [min(max_len, len(seq_string)), 0]])))
         char_len = char_len.unsqueeze(dim=2)
 

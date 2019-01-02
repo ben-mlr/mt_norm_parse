@@ -180,10 +180,11 @@ def evaluate(dict_path, model_full_name, batch_size, data_path, write_report=Tru
 
 
 if __name__=="__main__":
-    evaluate(model_full_name="test_dbc4", data_path=DEV, dict_path="../checkpoints/test_dbc4-folder/dictionaries",
+    evaluate(model_full_name="comparison_ablation-big2_b8a1", data_path=TEST,
+             dict_path="../checkpoints/comparison_ablation-big2_b8a1-folder/dictionaries",
              label_report="test",
              normalization=True, model_specific_dictionary=True, batch_size=2,
-             dir_report="../checkpoints/test_dbc4-folder", verbose=1)
+             dir_report="../checkpoints/comparison_ablation-big2_b8a1-folder", verbose=1)
 
 
 #reporting = False

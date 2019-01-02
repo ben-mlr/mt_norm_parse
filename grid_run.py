@@ -97,6 +97,6 @@ if __name__ == "__main__":
           print("STARTING MODEL {} with param {} ".format(model_id_pref, param))
           train_eval(train_path, test_path, model_id_pref, warmup=False, args=param, use_gpu=None, n_epochs=3)
           print("DONE MODEL {} with param {} ".format(model_id_pref, param))
-          if i >=5 :
+          if i >=1 :
               break
 

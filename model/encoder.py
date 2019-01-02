@@ -25,7 +25,7 @@ class CharEncoder(nn.Module):
         word_recurrent_cell = nn.GRU if word_recurrent_cell is None else nn.GRU
         printing("MODEL Encoder : word_recurrent_cell has been set to {} ".format(str(word_recurrent_cell)),
                  verbose=verbose, verbose_level=0)
-        self.word_encoder = word_recurrent_cell(input_size=input_dim, hidden_size=hidden_size_encoder,
+        self.seq_encoder = word_recurrent_cell(input_size=input_dim, hidden_size=hidden_size_encoder,
                                                 num_layers=1, #nonlinearity='tanh',
                                                 bias=True, batch_first=True, bidirectional=False)
 
@@ -55,7 +55,7 @@ class CharEncoder(nn.Module):
         printing("SOURCE Packed data shape {} ".format(packed_char_vecs.data.shape), self.verbose, verbose_level=4)
         # all sequence encoding [batch, max seq_len, n_dir x encoding dim] ,
         # last complete hidden state: [dir*n_layer, batch, dim encoding dim]
-        output, h_n = self.word_encoder(packed_char_vecs)
+        output, h_n = self.seq_encoder(packed_char_vecs)
         # TODO add attention out of the output (or maybe output the all output and define attention later)
         printing("SOURCE ENCODED all {}  , hidden {}  (output (includes all the "
                  "hidden states of last layers), last hidden hidden for each dir+layers)".format(output.data.shape,
@@ -81,6 +81,7 @@ class CharEncoder(nn.Module):
         # handle sentence that take the all sequence
         _input_word_len[:, -1, :] = 0
         # when input_word_len is 0 means we reached end of sentence
+        # I think +1 is required
         sent_len = torch.argmin(_input_word_len, dim=1)
         # sort batch based on sentence length
         sent_len, perm_idx_input_sent = sent_len.squeeze().sort(0, descending=True)

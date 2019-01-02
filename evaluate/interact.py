@@ -3,7 +3,8 @@ import pdb
 from model.loss import LossCompute
 import os
 from io_.info_print import printing
-from model.seq2seq import LexNormalizer, Generator
+from model.seq2seq import LexNormalizer
+from model.generator import Generator
 import torch.nn as nn
 import torch
 import sys
@@ -18,12 +19,11 @@ MAX_LEN = 20
 #dict_path = "../dictionariesbackup/"
 
 
-def interact(dic_path, model_full_name, dir_model,
+def interact(dic_path, model_full_name, dir_model, debug=False,
              model_specific_dictionary=True, verbose=2):
 
     if not model_specific_dictionary:
         assert train_path is not None and dev_path is not None
-    if not model_specific_dictionary:
         word_dictionary, char_dictionary, pos_dictionary,\
         xpos_dictionary, type_dictionary = \
             conllu_data.create_dict(dict_path=dict_path,
@@ -58,9 +58,9 @@ if __name__=="__main__":
     model_specific_dictionary = True
     script_dir = os.path.dirname(os.path.realpath(__file__))
 
-    model_full_name = "TEST2_37be"
+    model_full_name = "comparison_ablation-big2_b8a1"
     dic_path = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder", "dictionaries")
     model_dir = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder")
 
     interact(dic_path=dic_path, dir_model=model_dir,
-             model_full_name=model_full_name)
+             model_full_name=model_full_name, debug=debug)
