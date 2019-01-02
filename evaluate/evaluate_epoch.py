@@ -4,7 +4,8 @@ sys.path.insert(0,"..")
 #TODO  why is it necessary fo rioc ? 
 from model.sequence_prediction import greedy_decode_batch, decode_seq_str, decode_interacively
 import pdb
-from model.seq2seq import LexNormalizer, Generator
+from model.seq2seq import LexNormalizer
+from model.generator import Generator
 from io_.data_iterator import data_gen_conllu
 from io_.dat import conllu_data
 from io_.info_print import printing

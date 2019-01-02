@@ -1,5 +1,6 @@
 from io_.dat import conllu_data
-from model.seq2seq import LexNormalizer, Generator
+from model.seq2seq import LexNormalizer
+from model.generator import  Generator
 from io_.data_iterator import data_gen_conllu
 from training.epoch_train import run_epoch
 from model.loss import LossCompute

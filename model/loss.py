@@ -1,7 +1,7 @@
 from torch.autograd import Variable
 import torch.nn as nn
 import torch
-from model.seq2seq import Generator
+from model.generator import Generator
 import matplotlib.pyplot as plt
 import numpy as np
 from io_.info_print import printing

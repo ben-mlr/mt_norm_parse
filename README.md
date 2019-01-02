@@ -24,11 +24,11 @@ When any new features is implemented the impact the training process :
 
 ### Model + batching
 
-- 0 is only starting , end with final loss 
+- 0 is only starting , end with final loss and must read warnings/info
 - 1 includes 0 + epoch-wise information : loss, + info about the epochs 
-- 2 includes 0 + 1 + batch wise information like loss êr batch + summary info on each batch 
+- 2 includes 0 + 1 + batch wise information like loss per batch + summary info for each batch 
 - 3 includes 0 + 1 + 2 + dimensions information of each tensors of the input, output the model, the loss 
-- 4 : add masking info + packed_sequence info 
+- 4 : add masking info + packed_sequence info + type info 
 - 5 : printing data 
 
 

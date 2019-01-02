@@ -19,7 +19,7 @@ def train_eval(train_path, test_path, model_id_pref,n_epochs=11, warmup=False, a
 
     if warmup:
         printing("Warm up : running 1 epoch ", verbose=verbose, verbose_level=0)
-
+    printing("START TRAINING ", verbose_level=0, verbose=verbose)
     model_full_name = train(train_path, test_path, n_epochs=n_epochs, normalization=True,
                             batch_size=batch_size, model_specific_dictionary=True,
                             dict_path=None, model_dir=None, add_start_char=1,
@@ -33,7 +33,7 @@ def train_eval(train_path, test_path, model_id_pref,n_epochs=11, warmup=False, a
 
     model_dir = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder")
     dict_path = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder", "dictionaries")
-
+    printing("START EVALUATION ", verbose_level=0, verbose=verbose)
     for eval_data, eval_label in zip([train_path, test_path], ["owputi_train", "lexnorm_test"]):
             evaluate(model_full_name=model_full_name, data_path=eval_data,
                      dict_path=dict_path,use_gpu=use_gpu,
@@ -97,6 +97,6 @@ if __name__ == "__main__":
           print("STARTING MODEL {} with param {} ".format(model_id_pref, param))
           train_eval(train_path, test_path, model_id_pref, warmup=False, args=param, use_gpu=None, n_epochs=3)
           print("DONE MODEL {} with param {} ".format(model_id_pref, param))
-          if i >=3 :
+          if i >=1 :
               break
 
