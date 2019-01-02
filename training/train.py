@@ -52,8 +52,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
     lr = 0.001
 
     printing("WARNING :  lr {} ".format(lr, add_start_char, add_end_char), verbose=verbose, verbose_level=0)
-
-    printing("INFO : dictionary is computed (re)created from scratcch on train_path {} and dev_path {}".format(train_path, dev_path), verbose=verbose, verbose_level=1)
+    printing("INFO : dictionary is computed (re)created from scratch on train_path {} and dev_path {}".format(train_path, dev_path), verbose=verbose, verbose_level=1)
 
     if not model_specific_dictionary:
         word_dictionary, char_dictionary, pos_dictionary, \
@@ -152,7 +151,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
         starting_time = time.time()
         # WARNING : only saving if we decrease not loading former model if we relaod
         if (checkpointing and epoch % freq_checkpointing == 0) or (epoch+1 == n_epochs):
-
+            print("epochs ,", epoch, loss_training)
             dir_plot = simple_plot(final_loss=loss_train, loss_2=loss_developing, loss_ls=loss_training,
                                    epochs=str(epoch)+reloading,
                                    label=label_train+"-train",
@@ -184,7 +183,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
     #report_model(parameters=True, ,arguments_dic=model.arguments, dir_models_repositories=REPOSITORIES)
 
     simple_plot(final_loss=loss_dev, loss_ls=loss_training, loss_2=loss_developing, epochs=n_epochs, save=True,
-                dir=model.dir_model,label=label_train, label_2=label_dev,
+                dir=model.dir_model, label=label_train, label_2=label_dev,
                 lr=lr, prefix=model.model_full_name+"-LAST")
 
     return model.model_full_name

@@ -6,9 +6,7 @@ from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, CHECKPOINT_
 #DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
 
-def train_eval(train_path, test_path, model_id_pref,n_epochs=11,
-               warmup=False, args={},use_gpu=None,debug=False,
-               print_raw=False,
+def train_eval(train_path, test_path, model_id_pref,n_epochs=11, warmup=False, args={},use_gpu=None,
                verbose=0):
     hidden_size_encoder = args.get("hidden_size_encoder", 10)
     output_dim = args.get("output_dim",10)
@@ -30,7 +28,7 @@ def train_eval(train_path, test_path, model_id_pref,n_epochs=11,
                             freq_checkpointing=10, reload=False, model_id_pref=model_id_pref,
                             hidden_size_encoder=hidden_size_encoder, output_dim=output_dim, char_embedding_dim=char_embedding_dim,
                             hidden_size_sent_encoder=hidden_size_sent_encoder, hidden_size_decoder=hidden_size_decoder,
-                            print_raw=print_raw, debug=debug,
+                            print_raw=False, debug=False,
                             checkpointing=True)
 
     model_dir = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder")
@@ -39,68 +37,66 @@ def train_eval(train_path, test_path, model_id_pref,n_epochs=11,
     for eval_data, eval_label in zip([train_path, test_path], ["owputi_train", "lexnorm_test"]):
             evaluate(model_full_name=model_full_name, data_path=eval_data,
                      dict_path=dict_path,use_gpu=use_gpu,
-                     label_report=eval_label, debug=debug,
-                     normalization=True,print_raw=print_raw,
+                     label_report=eval_label,
+                     normalization=True,print_raw=False,
                      model_specific_dictionary=True,
                      batch_size=batch_size,
-                     dir_report=model_dir, verbose=verbose)
+                     dir_report=model_dir, verbose=1)
 
 
 if __name__ == "__main__":
 
-      train_path = DEMO
-      test_path = DEMO
+      train_path = DEMO2
+      test_path = DEMO2
       params = []
-      model_id_pref_list = []
-      all = False
-      if all:
-          model_id_pref_list.extend( ["comparison_ablation-big","comparison_ablation-big","comparison_ablation-big"])
-          params.append({"hidden_size_encoder": 250, "output_dim": 300, "char_embedding_dim": 300,
-                         "hidden_size_sent_encoder": 250, "hidden_size_decoder": 300, "batch_size": 50})
-          params.append({"hidden_size_encoder": 250, "output_dim": 300, "char_embedding_dim": 300,
-                         "hidden_size_sent_encoder": 250, "hidden_size_decoder": 300, "batch_size": 20})
-          params.append({"hidden_size_encoder": 250, "output_dim": 300, "char_embedding_dim": 300,
-                         "hidden_size_sent_encoder": 250, "hidden_size_decoder": 300, "batch_size": 2})
-          # new pparam
+      model_id_pref_list = ["comparison_ablation-big","comparison_ablation-big","comparison_ablation-big"]
+      params.append({"hidden_size_encoder": 250, "output_dim": 300, "char_embedding_dim": 300,
+               "hidden_size_sent_encoder": 250, "hidden_size_decoder": 300, "batch_size": 50})
+      params.append({"hidden_size_encoder": 250, "output_dim": 300, "char_embedding_dim": 300,
+               "hidden_size_sent_encoder": 250, "hidden_size_decoder": 300, "batch_size": 20})
+      params.append({"hidden_size_encoder": 250, "output_dim": 300, "char_embedding_dim": 300,
+               "hidden_size_sent_encoder": 250, "hidden_size_decoder": 300, "batch_size": 2})
+      # new pparam
       model_id_pref_list.append("comparison_ablation-medium")
       model_id_pref_list.append("comparison_ablation-medium")
       model_id_pref_list.append("comparison_ablation-medium")
 
       params.append({"hidden_size_encoder": 51, "output_dim": 50, "char_embedding_dim": 20,
-                     "hidden_size_sent_encoder": 50, "hidden_size_decoder": 50, "batch_size": 50})
+               "hidden_size_sent_encoder": 50, "hidden_size_decoder": 50, "batch_size": 50})
       params.append({"hidden_size_encoder": 51, "output_dim": 50, "char_embedding_dim": 20,
-                     "hidden_size_sent_encoder": 50, "hidden_size_decoder": 50, "batch_size": 20})
+               "hidden_size_sent_encoder": 50, "hidden_size_decoder": 50, "batch_size": 20})
       params.append({"hidden_size_encoder": 51, "output_dim": 50, "char_embedding_dim": 20,
-                     "hidden_size_sent_encoder": 50, "hidden_size_decoder": 50, "batch_size": 2})
+               "hidden_size_sent_encoder": 50, "hidden_size_decoder": 50, "batch_size": 2})
       #
       model_id_pref_list.append("comparison_ablation-small")
       model_id_pref_list.append("comparison_ablation-small")
       model_id_pref_list.append("comparison_ablation-small")
       params.append({"hidden_size_encoder": 20, "output_dim": 20, "char_embedding_dim": 10,
-                     "hidden_size_sent_encoder": 20, "hidden_size_decoder": 20, "batch_size": 2})
+               "hidden_size_sent_encoder": 20, "hidden_size_decoder": 20, "batch_size": 2})
       params.append({"hidden_size_encoder": 20, "output_dim": 20, "char_embedding_dim": 10,
-                     "hidden_size_sent_encoder": 20, "hidden_size_decoder": 20, "batch_size": 2})
+               "hidden_size_sent_encoder": 20, "hidden_size_decoder": 20, "batch_size": 2})
       params.append({"hidden_size_encoder": 20, "output_dim": 20, "char_embedding_dim": 10,
-                     "hidden_size_sent_encoder": 20, "hidden_size_decoder": 20, "batch_size": 2})
+               "hidden_size_sent_encoder": 20, "hidden_size_decoder": 20, "batch_size": 2})
       #
       model_id_pref_list.append("comparison_ablation-various")
       model_id_pref_list.append("comparison_ablation-various")
       model_id_pref_list.append("comparison_ablation-various")
       params.append({"hidden_size_encoder": 50, "output_dim": 20, "char_embedding_dim": 20,
-                     "hidden_size_sent_encoder": 50, "hidden_size_decoder": 100, "batch_size": 2})
+               "hidden_size_sent_encoder": 50, "hidden_size_decoder": 100, "batch_size": 2})
       params.append({"hidden_size_encoder": 50, "output_dim": 20, "char_embedding_dim": 20,
-                     "hidden_size_sent_encoder": 50, "hidden_size_decoder": 100, "batch_size": 20})
+               "hidden_size_sent_encoder": 50, "hidden_size_decoder": 100, "batch_size": 20})
       params.append({"hidden_size_encoder": 50, "output_dim": 20, "char_embedding_dim": 20,
-                     "hidden_size_sent_encoder": 50, "hidden_size_decoder": 100, "batch_size": 50})
+               "hidden_size_sent_encoder": 50, "hidden_size_decoder": 100, "batch_size": 50})
 
+      i = 0
       for param, model_id_pref in zip(params,model_id_pref_list):
+          i+=1
           param["batch_size"] = 2
-          model_id_pref = "TEST2"
+          model_id_pref = "TEST"
+          model_id_pref = model_id_pref + "2"
           print("STARTING MODEL {} with param {} ".format(model_id_pref, param))
-          train_eval(train_path, test_path, model_id_pref, warmup=True, args=param,
-                     print_raw=False,debug=False,
-                     use_gpu=None, verbose=0)
+          train_eval(train_path, test_path, model_id_pref, warmup=False, args=param, use_gpu=None, n_epochs=3)
           print("DONE MODEL {} with param {} ".format(model_id_pref, param))
-          break
-
+          if i >=3 :
+              break
 

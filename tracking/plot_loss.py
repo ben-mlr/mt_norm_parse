@@ -17,6 +17,7 @@ def simple_plot(final_loss, loss_ls, loss_2=None, epochs=None, V=None, seq_len=N
         assert len(label) > 0, "label should be specified as label_2 is "
 
     printing("Final Loss to be plotted {} ".format(final_loss), verbose=0, verbose_level=1)
+    plt.figure()
     plt.title("Training Loss with after {} epo (lr {}) ".format(epochs, lr))
     plt.xlabel("epoch")
     color_train = "red"
@@ -29,7 +30,7 @@ def simple_plot(final_loss, loss_ls, loss_2=None, epochs=None, V=None, seq_len=N
     plt.legend(handles=patches)
     dir_fig = os.path.join(dir, "{}-{}-plo-seq.png".format(prefix, "last", V, lr, seq_len))
     if save:
-        plt.savefig(dir_fig )
+        plt.savefig(dir_fig)
         printing("Loss of the test saved to {} ".format(dir_fig), verbose=verbose, verbose_level=verbose_level)
 
     if show:

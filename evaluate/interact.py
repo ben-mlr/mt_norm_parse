@@ -52,8 +52,8 @@ def interact(dic_path, model_full_name, dir_model,
     decode_interacively(max_len=MAX_LEN, model=model, char_dictionary=char_dictionary,
                         verbose=verbose)
 
-
 if __name__=="__main__":
+    
     debug = False
     model_specific_dictionary = True
     script_dir = os.path.dirname(os.path.realpath(__file__))
