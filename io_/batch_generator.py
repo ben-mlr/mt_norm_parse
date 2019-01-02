@@ -5,7 +5,7 @@ import pdb
 import matplotlib.pyplot as plt
 from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 from io_.info_print import printing
-from model.seq2seq import DEV_4, DEV_5
+
 
 def subsequent_mask(size):
     "Mask out subsequent positions."
@@ -24,11 +24,7 @@ class MaskBatch(object):
         self.input_seq_mask = (input_seq != pad).unsqueeze(-2)
         _input_seq_mask = self.input_seq_mask.clone()
         ##- would be the same
-
-        if not DEV_4:
-            _input_seq_mask[:, :, -1] = 0
-        elif DEV_4:
-            _input_seq_mask[:, :, :, -1] = 0
+        _input_seq_mask[:, :, :, -1] = 0
         # Handle long unpadded sequence
         ##- still last dimension : maybe 3
         self.input_seq_len = torch.argmin(_input_seq_mask, dim=-1)
@@ -38,20 +34,13 @@ class MaskBatch(object):
         self.output_seq = output_seq
         if output_seq is not None:
             ##- would be last dim also !
-            if not DEV_4:
-                self.output_seq_x = output_seq[:, :-1]
-            else:
-                self.output_seq_x = output_seq[:, :, :-1]
+            self.output_seq_x = output_seq[:, :, :-1]
             ##- ? what unsequeeze
             _output_mask_x = (self.output_seq_x != pad).unsqueeze(-2)
             # Handle long unpadded sequence
             # we force the last token to be masked so that we ensure the argmin computation we'll be correct
-            if DEV_4:
-                _output_mask_x[:, :, :, -1] = 0
-                self.output_seq_y = output_seq[:, :, 1:]
-            else:
-                _output_mask_x[:, :, -1] = 0
-                self.output_seq_y = output_seq[:, 1:]
+            _output_mask_x[:, :, :, -1] = 0
+            self.output_seq_y = output_seq[:, :, 1:]
             ##- last dim also
             self.output_seq_len = torch.argmin(_output_mask_x, dim=-1)
             # if not bool(_output_mask_x.sum().data ==
@@ -64,12 +53,10 @@ class MaskBatch(object):
             self.ntokens = (self.output_seq_y != pad).data.sum()
             # dealing with bach_size == 1
             if self.output_seq_len.size(0) > 1:
-                if DEV_4:
-                    output_y_shape = self.output_seq_y.size()
-                    self.output_seq_y = self.output_seq_y.view(self.output_seq_y.size(0)*self.output_seq_y.size(1), self.output_seq_y.size(2))
-                    output_seq_len = self.output_seq_len.view(self.output_seq_len.size(0)*self.output_seq_len.size(1))
-                    #pdb.set_trace()
-                    #self.output_seq_len = output_seq_len
+                output_y_shape = self.output_seq_y.size()
+                self.output_seq_y = self.output_seq_y.view(self.output_seq_y.size(0)*self.output_seq_y.size(1), self.output_seq_y.size(2))
+                output_seq_len = self.output_seq_len.view(self.output_seq_len.size(0)*self.output_seq_len.size(1))
+                # self.output_seq_len = output_seq_len
                 output_seq_len, perm_idx = output_seq_len.squeeze().sort(0, descending=True)
                 inverse_perm_idx = torch.from_numpy(np.argsort(perm_idx.cpu().numpy()))
                 self.output_seq_y = self.output_seq_y[perm_idx, :]
@@ -100,8 +87,7 @@ class MaskBatch(object):
 
             #print("Warning confirm shape of")
             # we reshape so that it fits tthe generated sequence
-            if DEV_4:
-                self.output_seq_y = self.output_seq_y.view(output_y_shape[0], -1, torch.max(lenghts))
+            self.output_seq_y = self.output_seq_y.view(output_y_shape[0], -1, torch.max(lenghts))
             printing("self.output_seq_y 1 {} ".format(self.output_seq_y), verbose=verbose, verbose_level=6)
             printing("BATCH : TARGET true dim {} ".format(self.output_seq_y.size()), verbose, verbose_level=3)
             printing("BATCH : TARGET after packed true {} ".format(self.output_seq_y), verbose, verbose_level=5)
