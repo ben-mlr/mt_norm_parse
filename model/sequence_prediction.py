@@ -6,7 +6,6 @@ import numpy as np
 from evaluate.normalization_errors import score_ls, score_ls_
 from io_.dat.constants import CHAR_START_ID
 import pdb
-from model.seq2seq import DEV_4, DEV_5
 
 
 def _init_metric_report(score_to_compute_ls):
@@ -31,8 +30,8 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                 src_mask = batch.input_seq_mask
                 target_gold = batch.output_seq if gold_output else None
                 # do something with it : When do you stop decoding ?
-                #if not DEV_4:
                 max_len = src_seq.size(-1)
+                printing("WARNING : max_len set to src_seq.size(-1) {} ".format(max_len), verbose=verbose, verbose_level=0)
                 pdb.set_trace()
                 text_decoded_ls, src_text_ls, gold_text_seq_ls = decode_sequence(model=model,
                                                                                  char_dictionary=char_dictionary,
@@ -45,7 +44,7 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
 
                 printing("Source text {} ".format(src_text_ls), verbose=verbose, verbose_level=2)
                 printing("Prediction {} ".format(text_decoded_ls), verbose=verbose, verbose_level=2)
-                scores_ls_func = "scores_ls" if not DEV_4 else "score_ls_"
+                scores_ls_func = "score_ls_"
                 if gold_output:
                     printing("Gold {} ".format(gold_text_seq_ls), verbose=verbose, verbose_level=2)
                     if score_to_compute_ls is not None:
@@ -64,28 +63,13 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
 
     output_seq = pad*np.ones(src_seq.size(), dtype=np.int64)
     # we start with the _START symbol
-    if not DEV_4:
-        output_seq[:,  0] = CHAR_START_ID
-    else:
-        pdb.set_trace()
-        output_seq[:, :, 0] = src_seq[:, :, 0] #CHAR_START_ID
-
+    output_seq[:, :, 0] = src_seq[:, :, 0] #CHAR_START_ID
     src_text_ls = []
     target_seq_gold_ls = [] if target_seq_gold is not None else None
 
-    if not DEV_4:
-        output_mask = np.ones(src_seq.size(), dtype=np.int64)
-        output_mask[:, 1:] = 0
-
-    else:
-        output_mask = np.ones(src_mask.size(), dtype=np.int64)
-        output_mask[:, :, 1:] = 0
-        if not DEV_5:
-            output_len = Variable(torch.from_numpy(np.ones((src_seq.size(0) * src_seq.size(1)), dtype=np.int64)),
-                                  requires_grad=False)
-        else:
-            pdb.set_trace()
-            output_len = Variable(torch.from_numpy(np.ones((src_seq.size(0), src_seq.size(1), 1), dtype=np.int64)), requires_grad=False)
+    output_mask = np.ones(src_mask.size(), dtype=np.int64)
+    output_mask[:, :, 1:] = 0
+    output_len = Variable(torch.from_numpy(np.ones((src_seq.size(0), src_seq.size(1), 1), dtype=np.int64)), requires_grad=False)
 
     output_mask = Variable(torch.from_numpy(output_mask), requires_grad=False)
     output_seq = Variable(torch.from_numpy(output_seq), requires_grad=False)
@@ -99,29 +83,14 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                                         input_mask=src_mask,
                                         input_word_len=src_len, output_mask=output_mask,
                                         output_word_len=output_len)
-        # pdb.set_trace()
-        # decoding_states = model.forward(input_seq=src_seq, output_seq=None, input_mask=src_mask,
-        # input_word_len=src_len, output_mask=None, output_word_len=None)
         # [batch, seq_len, V]
-        #print("scores", scores, scores.size())
         scores = model.generator.forward(x=decoding_states)
         # each time step predict the most likely
         # len
-        if DEV_4:
-            if not DEV_5:
-                output_len = Variable(torch.from_numpy(np.ones(src_seq.size(0)*src_seq.size(1), dtype=np.int64)), requires_grad=False)
-            else:
-                output_len = Variable(torch.from_numpy(np.ones((src_seq.size(0), scores.size(1), 1), dtype=np.int64)),
-                                      requires_grad=False)
-        else:
-            output_len = Variable(torch.from_numpy(np.ones(src_seq.size(0), dtype=np.int64)),
-                                  requires_grad=False)
-        if not DEV_5:
-
-            output_len[:] = char_decode
-        else:
-
-            output_len[:] = char_decode
+        # output_len defined based on src_len to remove empty words
+        output_len = (src_len[:, :, 0] != 0).unsqueeze(dim=2)*char_decode
+        printing("DECODER step {} output len {} ".format(step,output_len), verbose=verbose, verbose_level=3)
+        #output_len[:] = char_decode # before debugging
         # mask
         output_mask = np.ones(src_seq.size(), dtype=np.int64)
         output_mask[:, char_decode:] = 0
@@ -130,8 +99,6 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
 
         predictions = scores.argmax(dim=-1)
 
-        #predictions = predictions[perm[0], :]
-        #print("WARNIN reodrered ", perm)
         printing("Prediction size {} ".format(predictions.size()), verbose=verbose, verbose_level=4)
         printing("Prediction {} ".format(predictions), verbose=verbose, verbose_level=5)
         printing("scores: {} scores {} scores sized  {} predicion size {} prediction {} outputseq ".format(scores,
@@ -140,41 +107,21 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                  predictions[:, -1],
                  output_seq.size()),
                  verbose=verbose, verbose_level=5)
-        if not DEV_4:
-            output_seq[:, char_decode-1] = predictions[:, -1]
-        else:
+        output_seq = output_seq[:, :scores.size(1), :]
+        output_seq[:, :, char_decode - 1] = predictions[:, :, -1]
 
-            #predictions[:, : , -1] = torch.cat((predictions[:, :, -1],
-            #                                torch.ones((output_seq.size(0), output_seq.size(1) - predictions.size(1)),
-            #                                           dtype=torch.long)), dim=1)
 
-            #predictions.size(1)
-            output_seq = output_seq[:, :scores.size(1), :]
-            output_seq[:, :, char_decode - 1] = predictions[:, :, -1]
+        sequence = [" ".join([char_dictionary.get_instance(output_seq[sent, word_ind, char_i]) for char_i in range(max_len)])
+                    + "|sent-{}|".format(sent) for sent in range(output_seq.size(0)) for word_ind in range(output_seq.size(1))]
 
-        if DEV_4:
-            sequence = [" ".join([char_dictionary.get_instance(output_seq[sent, word_ind, char_i]) for char_i in range(max_len)])
-                        + "|sent-{}|".format(sent) for sent in range(output_seq.size(0)) for word_ind in range(output_seq.size(1))]
-
-        else:
-            sequence = [" ".join(
-                [char_dictionary.get_instance(output_seq[sent, char_i]) for char_i in range(max_len)])
-                        + "|sent-{}|".format(sent) for sent in range(batch_size)]
         printing("Decoding step {} decoded target {} ".format(step, sequence), verbose=verbose, verbose_level=3)
-        #pdb.set_trace()
-        if DEV_4:
-            pdb.set_trace()
-            text_decoded_array, text_decoded = output_text_(output_seq,#predictions,
-                                                            char_dictionary, single_sequence=single_sequence)
-        else:
-            text_decoded_array, text_decoded = output_text(predictions, char_dictionary,single_sequence=single_sequence)
+        text_decoded_array, text_decoded = output_text_(output_seq,#predictions,
+                                                        char_dictionary, single_sequence=single_sequence)
         printing("PREDICTION : {} array text {} ".format(text_decoded_array, text_decoded),
                  verbose=verbose,
                  verbose_level=6)
 
-        #pdb.set_trace()
-    text_ = "output_text_" if DEV_4 else "output_text"
-    #pdb.set_trace()
+    text_ = "output_text_"
     _, src_text = eval(text_)(src_seq, char_dictionary, single_sequence=single_sequence)
     src_text_ls.extend(src_text)
     if target_seq_gold is not None:
@@ -202,19 +149,14 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
         print(sequence_characters)
         masks = [1 for _ in seq_string]+[0 for _ in range(max_len-len(seq_string))]
         # we have to create batch_size == 2 because of bug
-        if not DEV_5:
-            char_seq = Variable(torch.from_numpy(np.array([sequence_characters, sequence_characters])), requires_grad=False)
-            char_mask = Variable(torch.from_numpy(np.array([masks, masks])), requires_grad=False)
-            char_len = Variable(torch.from_numpy(np.array([[min(max_len, len(seq_string))],[min(max_len, len(seq_string))]])))
-        else:
-            sequence_characters = Variable(torch.from_numpy(np.array([sequence_characters, sequence_characters])), requires_grad=False)
-            char_seq = sequence_characters.unsqueeze(dim=1)
-            #char_seq = Variable(torch.from_numpy(np.array([sequence_characters, sequence_characters])), requires_grad=False)
-            char_mask = Variable(torch.from_numpy(np.array([masks, masks])), requires_grad=False)
-            char_mask = char_mask.unsqueeze(dim=1)
-            char_len = Variable(torch.from_numpy(np.array([[min(max_len, len(seq_string)),0],
-                                                           [min(max_len, len(seq_string)), 0]])))
-            char_len = char_len.unsqueeze(dim=2)
+        sequence_characters = Variable(torch.from_numpy(np.array([sequence_characters, sequence_characters])), requires_grad=False)
+        char_seq = sequence_characters.unsqueeze(dim=1)
+        #char_seq = Variable(torch.from_numpy(np.array([sequence_characters, sequence_characters])), requires_grad=False)
+        char_mask = Variable(torch.from_numpy(np.array([masks, masks])), requires_grad=False)
+        char_mask = char_mask.unsqueeze(dim=1)
+        char_len = Variable(torch.from_numpy(np.array([[min(max_len, len(seq_string)),0],
+                                                       [min(max_len, len(seq_string)), 0]])))
+        char_len = char_len.unsqueeze(dim=2)
 
 
         batch_size = 2

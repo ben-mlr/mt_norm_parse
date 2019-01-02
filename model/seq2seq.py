@@ -12,10 +12,10 @@ from toolbox.sanity_check import sanity_check_info_checkpoint
 from env.project_variables import PROJECT_PATH
 from io_.dat import conllu_data
 import re
-DEV = True
-DEV_2 = True
-DEV_4 = True
-DEV_5 = True
+#DEV = True
+#DEV_2 = True
+#DEV_4 = True
+#DEV_5 = True
 
 TEMPLATE_INFO_CHECKPOINT = {"n_epochs": 0, "batch_size": None,
                             "train_data_path": None, "dev_data_path": None,
