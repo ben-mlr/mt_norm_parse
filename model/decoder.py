@@ -81,8 +81,8 @@ class CharDecoder(nn.Module):
         _output_word_len[:, -1, :] = 0
 
         # when input_word_len is 0 means we reached end of sentence
-        # TODO : WARNING : is +1 required : as sent with 1
-        sent_len = torch.argmin(_output_word_len, dim=1)+1
+        # TODO : WARNING : is +1 required : as sent with 1 ??
+        sent_len = torch.argmin(_output_word_len, dim=1)
         # sort batch at the sentence length
         sent_len, perm_idx_input_sent = sent_len.squeeze().sort(0, descending=True)
         inverse_perm_idx_input_sent = torch.from_numpy(np.argsort(perm_idx_input_sent.cpu().numpy()))

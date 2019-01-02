@@ -46,8 +46,8 @@ def train_eval(train_path, test_path, model_id_pref,n_epochs=11, warmup=False, a
 
 if __name__ == "__main__":
 
-      train_path = DEV
-      test_path = TEST
+      train_path = DEMO2
+      test_path = DEMO2
       params = []
       model_id_pref_list = ["comparison_ablation-big","comparison_ablation-big","comparison_ablation-big"]
       params.append({"hidden_size_encoder": 250, "output_dim": 300, "char_embedding_dim": 300,
