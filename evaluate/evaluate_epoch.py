@@ -25,7 +25,7 @@ if use_old_code:
     dev_path = TEST
     #test_path = DEMO2
     use_gpu = torch.cuda.is_available()
-    printing("INFO : use_gpu is {}".format(use_gpu), verbose=0, verbose_level=0)
+    printing("INFO : use_gpu is {}", var=(use_gpu), verbose=0, verbose_level=0)
     debug = False
     normalization = True
     add_start_char = 1

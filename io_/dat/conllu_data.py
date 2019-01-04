@@ -415,11 +415,10 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
     ones = Variable(single.data.new(batch_size, bucket_length).fill_(1))
     noise = Variable(masks.data.new(batch_size, bucket_length).bernoulli_(unk_replace).long())
     words = words * (ones - single[index] * noise)
-  if normalization :
+  if normalization:
     chars_norm = chars_norm[index]
 
   return words, chars[index], chars_norm, pos[index], xpos[index], heads[index], types[index], masks[index], lengths[index], order_inputs[index]
-  #return words, chars, chars_norm, pos, xpos, heads, types, masks, lengths, order_inputs
 
 
 def iterate_batch_variable(data, batch_size, unk_replace=0., lattice=None, normalization=False):

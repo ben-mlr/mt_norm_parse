@@ -8,38 +8,41 @@ from tqdm import tqdm
 #sys.path.insert(0, "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/ELMoLex_sosweet/")
 from io_.dat import conllu_data
 from io_.info_print import printing, print_char_seq, disable_tqdm_level
+import time
+from toolbox.sanity_check import get_timing
 
 
-def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
+def data_gen_conllu(data, word_dictionary, char_dictionary, pos_dictionary,
                     xpos_dictionary, type_dictionary, batch_size,
                     add_start_char=1,use_gpu=False,
                     add_end_char=1, padding=1, print_raw=False, normalization=False,
-                    symbolic_root=False, symbolic_end=False,
+                    symbolic_root=False, symbolic_end=False,timing=False,
                     verbose=0):
+    
+    #    data = conllu_data.read_data_to_variable(data_path, word_dictionary, char_dictionary,
+    #                                         pos_dictionary, xpos_dictionary, type_dictionary,
+    #                                         use_gpu=use_gpu, symbolic_root=symbolic_root,
+    #                                         symbolic_end=symbolic_end, dry_run=0, lattice=False,verbose=verbose,
+    #                                         normalization=normalization,
+    #                                         add_start_char=add_start_char, add_end_char=add_end_char)
 
-    data = conllu_data.read_data_to_variable(data_path, word_dictionary, char_dictionary,
-                                             pos_dictionary, xpos_dictionary, type_dictionary,
-                                             use_gpu=use_gpu, symbolic_root=symbolic_root,
-                                             symbolic_end=symbolic_end, dry_run=0, lattice=False,verbose=verbose,
-                                             normalization=normalization,
-                                             add_start_char=add_start_char, add_end_char=add_end_char)
     n_sents = data[-1]
     nbatch = n_sents//batch_size
-    if nbatch==0:
+    if nbatch == 0:
         printing("INFO : n_sents < batch_size so nbatch set to 1 ", verbose=verbose, verbose_level=0)
     nbatch = 1 if nbatch == 0 else nbatch
 
     print("Running {} batches of {} dim (nsent : {}) ".format(nbatch, batch_size, n_sents))
     for ibatch in tqdm(range(1, nbatch+1), disable=disable_tqdm_level(verbose, verbose_level=2)):
         # word, char, pos, xpos, heads, types, masks, lengths, morph
-        printing("Data : getting {} out of {} batches".format(ibatch, nbatch+1), verbose, verbose_level=2)
+        printing("Data : getting {} out of {} batches", var=(ibatch, nbatch+1), verbose= verbose, verbose_level=2)
         word, char, chars_norm, _, _, _, _, _, lenght, _ = conllu_data.get_batch_variable(data, batch_size=batch_size,
                                                                                           normalization=normalization,
                                                                                           unk_replace=0)
         #if min(lenght.data) < 3:
         #    print("MIN length.data ")
         #    continue
-        printing("TYPE {} word, char {} , chars_norm {} length {} ".format(word.is_cuda, char.is_cuda, 
+        printing("TYPE {} word, char {} , chars_norm {} length {} ", var=(word.is_cuda, char.is_cuda,
                                                                            chars_norm.is_cuda, lenght.is_cuda), 
             verbose=verbose, verbose_level=5)
         assert min(lenght.data) > 0, "ERROR : min(lenght.data) is {} ".format(min(lenght.data))
@@ -48,26 +51,28 @@ def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
         #for sent_ind in range(char.size(1)):
         #for word_ind in range(min(lenght.data)):
         word_ind = 0
-        sent_len = min(lenght.data)
+
         word_len = char.size(2)
         if normalization:
-            printing("Normalized sequence {} ".format(chars_norm[:, word_ind, :]), verbose=verbose, verbose_level=5)
-        printing("Char {} word ind : word : {}  ".format(word_ind, char[:, word_ind, :]), verbose=verbose,
+            printing("Normalized sequence {} ", var=(chars_norm[:, word_ind, :]), verbose=verbose, verbose_level=5)
+        printing("Char {} word ind : word : {}  ", var=(word_ind, char[:, word_ind, :]), verbose=verbose,
                  verbose_level=5)
         _verbose = 5 if print_raw else verbose
 
-        if _verbose:
+        if _verbose and False:
             character_display = [" ".join([char_dictionary.get_instance(char[sent, word_ind, char_i])
                                            for char_i in range(word_len)]) + " |SENT {} WORD {}| ".format(ind_sent, ind_w)
                                  for ind_sent,sent in enumerate(range(char.size(0)))
                                  for ind_w , word_ind in enumerate(range(char.size(1)))]
+            word_display = [word_dictionary.get_instance(word[batch, word_ind]) + " " for batch in range(char.size(0))]
         else:
+            word_display = []
             character_display = []
         if not normalization:
             chars_norm = char.clone()
             printing("Normalisation is False : model is a autoencoder ", verbose=_verbose, verbose_level=5)
 
-        if _verbose:
+        if _verbose and False:
             character_norm_display = [" ".join([char_dictionary.get_instance(chars_norm[sent, word_ind, char_i])
                                            for char_i in range(chars_norm.size(2))]) + " |SENT {} WORD {}| ".format(ind_sent, ind_w)
                                  for ind_sent, sent in enumerate(range(chars_norm.size(0)))
@@ -75,15 +80,15 @@ def data_gen_conllu(data_path, word_dictionary, char_dictionary, pos_dictionary,
         else:
             character_norm_display = []
 
-        word_display = [word_dictionary.get_instance(word[batch, word_ind]) + " " for batch in range(char.size(0))]
         printing("Feeding source characters {} target characters {}  "
-                 "(NB : the character vocabulary is the same at input and output)".format(character_display,
+                 "(NB : the character vocabulary is the same at input and output)", var=(character_display,
                                                                                           character_norm_display),
                  verbose=_verbose, verbose_level=5)
-        printing("Feeding source words {} ".format(word_display), verbose=_verbose, verbose_level=5)
-        printing("TYPE {}char before batch chars_norm {} ".format(char.is_cuda, chars_norm.is_cuda), 
+
+        printing("Feeding source words {} ", var=(word_display), verbose=_verbose, verbose_level=5)
+        printing("TYPE {}char before batch chars_norm {} ", var=(char.is_cuda, chars_norm.is_cuda),
             verbose=verbose, verbose_level=5)
-        yield MaskBatch(char, chars_norm, pad=padding, use_gpu=use_gpu, verbose=verbose)
+        yield MaskBatch(char, chars_norm, pad=padding, timing=timing, verbose=verbose)
 
 
 def data_gen_dummy(V, batch, nbatches,sent_len=9, word_len=5,
@@ -97,7 +102,7 @@ def data_gen_dummy(V, batch, nbatches,sent_len=9, word_len=5,
         # we force padding in the dummy model
         data[:, :, -1] = 1
         data[:, :, -2] = 1
-        printing("DATA dummy {} ".format(data), verbose=verbose, verbose_level=5)
+        printing("DATA dummy {} ", var=(data), verbose=verbose, verbose_level=5)
         src = Variable(data, requires_grad=False)
         tgt = Variable(data, requires_grad=False)
         yield MaskBatch(src, tgt, pad=1)

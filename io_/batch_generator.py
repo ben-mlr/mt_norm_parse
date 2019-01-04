@@ -5,7 +5,9 @@ import pdb
 import matplotlib.pyplot as plt
 from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 from io_.info_print import printing
-
+import time
+from toolbox.sanity_check import get_timing
+from collections import OrderedDict
 
 def subsequent_mask(size):
     "Mask out subsequent positions."
@@ -15,97 +17,91 @@ def subsequent_mask(size):
 
 
 class MaskBatch(object):
-    def __init__(self, input_seq, output_seq, pad=0, verbose=0, use_gpu=False):
+    def __init__(self, input_seq, output_seq, pad=0, verbose=0, timing=False):
         # input mask
         assert output_seq.size(0) >1 , "ERROR  batch_size should be strictly above 1 "
         # originnaly batch_size, word len
         self.input_seq = input_seq
         # unsqueeze add 1 dim between batch and word len ##- ?   ##- for commenting on context implementaiton
+        start = time.time()
         self.input_seq_mask = (input_seq != pad).unsqueeze(-2)
-        _input_seq_mask = self.input_seq_mask.clone()
+        get_seq_mask, start = get_timing(start)
+        _input_seq_mask = self.input_seq_mask
         ##- would be the same
         _input_seq_mask[:, :, :, -1] = 0
+        zero_last, start = get_timing(start)
         # Handle long unpadded sequence
         ##- still last dimension : maybe 3
         self.input_seq_len = torch.argmin(_input_seq_mask, dim=-1)
-        printing("BATCH : SOURCE true dim size {} ".format(self.input_seq.size()), verbose, verbose_level=3)
-        printing("BATCH : SOURCE input_seq_len  {} ".format(self.input_seq_len), verbose, verbose_level=5)
-        printing("BATCH : SOURCE input_seq_len size {} ".format(self.input_seq_len.size()), verbose, verbose_level=5)
+        get_len_input, start = get_timing(start)
+        printing("BATCH : SOURCE true dim size {} ", var=(self.input_seq.size()), verbose=verbose, verbose_level=3)
+        printing("BATCH : SOURCE input_seq_len  {} ", var=(self.input_seq_len), verbose=verbose, verbose_level=5)
+        printing("BATCH : SOURCE input_seq_len size {} ", var=(self.input_seq_len.size()), verbose=verbose, verbose_level=5)
         self.output_seq = output_seq
         if output_seq is not None:
             ##- would be last dim also !
             self.output_seq_x = output_seq[:, :, :-1]
+            zero_last_output, start = get_timing(start)
             ##- ? what unsequeeze
             _output_mask_x = (self.output_seq_x != pad).unsqueeze(-2)
+            get_mask_output, start = get_timing(start)
             # Handle long unpadded sequence
             # we force the last token to be masked so that we ensure the argmin computation we'll be correct
             _output_mask_x[:, :, :, -1] = 0
+            zero_mask_output, start = get_timing(start)
             self.output_seq_y = output_seq[:, :, 1:]
             ##- last dim also
             self.output_seq_len = torch.argmin(_output_mask_x, dim=-1)
-            # if not bool(_output_mask_x.sum().data ==
-            # _output_mask_x.size(0)*_output_mask_x.size(2)) else
-
-            self.output_mask = self.make_mask(self.output_seq_x, pad)
-            printing("BATCH : OUTPUT self.output_mask  subsequent {} {} ".format(self.output_mask.size(),  self.output_mask),  verbose, verbose_level=5)
-            printing("BATCH : OUTPUT self.output_seq_x,  subsequent {} {} ".format(self.output_seq_x.size(), self.output_seq_x),  verbose, verbose_level=5)
-            printing("BATCH : OUTPUT self.output_seq_len,  {} {} ".format(self.output_seq_len.size(), self.output_seq_len),  verbose, verbose_level=5)
+            get_len_output, start = get_timing(start)
+            #printing("BATCH : OUTPUT self.output_mask  subsequent {} {} ", var=(self.output_mask.size(),  self.output_mask), verbose=verbose, verbose_level=5)
+            printing("BATCH : OUTPUT self.output_seq_x,  subsequent {} {} ", var=(self.output_seq_x.size(), self.output_seq_x),verbose= verbose, verbose_level=5)
+            printing("BATCH : OUTPUT self.output_seq_len,  {} {} ", var=(self.output_seq_len.size(), self.output_seq_len), verbose=verbose, verbose_level=5)
             self.ntokens = (self.output_seq_y != pad).data.sum()
+            get_n_token, start = get_timing(start)
             # dealing with bach_size == 1
             if self.output_seq_len.size(0) > 1:
                 output_y_shape = self.output_seq_y.size()
                 self.output_seq_y = self.output_seq_y.view(self.output_seq_y.size(0)*self.output_seq_y.size(1), self.output_seq_y.size(2))
                 output_seq_len = self.output_seq_len.view(self.output_seq_len.size(0)*self.output_seq_len.size(1))
                 # self.output_seq_len = output_seq_len
+                reshape_output_seq_and_len, start = get_timing(start)
                 output_seq_len, perm_idx = output_seq_len.squeeze().sort(0, descending=True)
                 inverse_perm_idx = torch.from_numpy(np.argsort(perm_idx.cpu().numpy()))
                 self.output_seq_y = self.output_seq_y[perm_idx, :]
+                reorder_output, start = get_timing(start)
+
             else:
-                # TODO should beƒy able to handle batch_size == 1 but is not
-                output_seq_len, perm_idx = self.output_seq_len, torch.zeros([1],dtype=torch.eq_len)
-            printing("BATCH : TARGET before packed true size {} ".format(self.output_seq_y.size()),verbose,
+                raise Exception("self.output_seq_len.size(0) <=1 not suppoerted {}".format(self.output_seq_len.size(0)))
+            printing("BATCH : TARGET before packed true size {} ", var=(self.output_seq_y.size()),verbose=verbose,
                      verbose_level=4)
-            printing("BATCH : TARGET before packed true {} ".format(self.output_seq_y),verbose, verbose_level=5)
-            printing("BATCH : output seq len {} ".format(output_seq_len), verbose, verbose_level=5)
-            printing("BATCH : output seq len packed {} ".format(output_seq_len.size()), verbose, verbose_level=4)
-            ##- check out pack_padded_sequence again
-            #print("self.output_seq_y 0", self.output_seq_y )
-            #pdb.set_trace()
-            # we set word with len 0 to 1 --> which means that we account for on
-            # PADDED CHARACTER --> assert that they do not impact the loss
-            # # they shouldn't because of the pad option in the loss that ignores 1
+            printing("BATCH : TARGET before packed true {} ", var=(self.output_seq_y),verbose=verbose, verbose_level=5)
+            printing("BATCH : output seq len {} ", var=(output_seq_len), verbose=verbose, verbose_level=5)
+            printing("BATCH : output seq len packed {} ", var=(output_seq_len.size()),verbose= verbose, verbose_level=4)
             output_seq_len[output_seq_len == 0] = 1
-            #pdb.set_trace()
+            zero_last_output_len, start = get_timing(start)
             self.output_seq_y = pack_padded_sequence(self.output_seq_y, output_seq_len.squeeze().cpu().numpy(),
                                                      batch_first=True)
-
+            pack_output_y, start = get_timing(start)
             #pdb.set_trace()
             self.output_seq_y, lenghts = pad_packed_sequence(self.output_seq_y, batch_first=True, padding_value=1.0)
+            pad_output_y, start = get_timing(start)
             #useless but bug raised of not packeding (would like to remove packing which I think is useless ?)
 
             self.output_seq_y = self.output_seq_y[inverse_perm_idx]
-
+            reorder_output_y, start = get_timing(start)
             #print("Warning confirm shape of")
             # we reshape so that it fits tthe generated sequence
             self.output_seq_y = self.output_seq_y.view(output_y_shape[0], -1, torch.max(lenghts))
-            printing("self.output_seq_y 1 {} ".format(self.output_seq_y), verbose=verbose, verbose_level=6)
-            printing("BATCH : TARGET true dim {} ".format(self.output_seq_y.size()), verbose, verbose_level=3)
-            printing("BATCH : TARGET after packed true {} ".format(self.output_seq_y), verbose, verbose_level=5)
-            if use_gpu and False:
-                printing("Loading batch to GPU ", verbose=verbose,verbose_level=0)
-                # TODO : that should be done when you first load everything not here (loading into the gpu for each batch
-                self.output_seq_y = self.output_seq_y.cuda()
-                self.output_seq_x = self.output_seq_x.cuda()
-                self.output_seq = self.output_seq.cuda()
-                self.output_seq_len = self.output_seq_len.cuda()
-                self.output_mask = self.output_mask.cuda()
-                self.input_seq = self.input_seq.cuda()
-                self.input_seq_len = self.input_seq_len.cuda()
-                self.input_seq_mask = self.input_seq_mask.cuda()
-
-
-                #self.output_seq_y = self.output_seq_y.cuda()
-
+            reshape_output_seq_y, start = get_timing(start)
+            printing("self.output_seq_y 1 {} ", var=(self.output_seq_y), verbose=verbose, verbose_level=6)
+            printing("BATCH : TARGET true dim {} ", var=(self.output_seq_y.size()), verbose=verbose, verbose_level=3)
+            printing("BATCH : TARGET after packed true {} ", var=(self.output_seq_y), verbose=verbose, verbose_level=5)
+            if timing:
+                print("Batch TIMING {}".format(OrderedDict([("reshape_output_seq_y",reshape_output_seq_y), ("reorder_output_y",reorder_output_y), ("pad_output_y",pad_output_y), ("zero_last_output_len",zero_last_output_len),
+                                                            ("reorder_output",reorder_output), ("reshape_output_seq_and_len",reshape_output_seq_and_len), ("get_n_token",get_n_token),
+                                                            ("get_len_output",get_len_output), ("zero_mask_output",zero_mask_output), ("get_mask_output",get_mask_output),
+                                                            ("zero_last_output",zero_last_output),  ("get_len_input",get_len_input), ("zero_last",zero_last),
+                                                             ("get_seq_mask", get_seq_mask)])))
 
     @staticmethod
     def make_mask(output_seq, padding):

@@ -31,7 +31,7 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                 target_gold = batch.output_seq if gold_output else None
                 # do something with it : When do you stop decoding ?
                 max_len = src_seq.size(-1)
-                printing("WARNING : word max_len set to src_seq.size(-1) {} ".format(max_len), verbose=verbose,
+                printing("WARNING : word max_len set to src_seq.size(-1) {} ", var=(max_len), verbose=verbose,
                          verbose_level=0)
                 pdb.set_trace()
                 text_decoded_ls, src_text_ls, gold_text_seq_ls = decode_sequence(model=model,
@@ -43,11 +43,11 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                                                                                  batch_size=batch_size, pad=pad,
                                                                                  verbose=verbose)
 
-                printing("Source text {} ".format(src_text_ls), verbose=verbose, verbose_level=2)
-                printing("Prediction {} ".format(text_decoded_ls), verbose=verbose, verbose_level=2)
+                printing("Source text {} ", var=(src_text_ls), verbose=verbose, verbose_level=2)
+                printing("Prediction {} ", var=(text_decoded_ls), verbose=verbose, verbose_level=2)
                 scores_ls_func = "score_ls_"
                 if gold_output:
-                    printing("Gold {} ".format(gold_text_seq_ls), verbose=verbose, verbose_level=2)
+                    printing("Gold {} ", var=(gold_text_seq_ls), verbose=verbose, verbose_level=2)
                     if score_to_compute_ls is not None:
                         for metric in score_to_compute_ls:
                             _score, _n_tokens = eval(scores_ls_func)(text_decoded_ls, gold_text_seq_ls,
@@ -74,9 +74,9 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
 
     output_mask = Variable(torch.from_numpy(output_mask), requires_grad=False)
     output_seq = Variable(torch.from_numpy(output_seq), requires_grad=False)
-    printing("Data Start source {} {} ".format(src_seq, src_seq.size()), verbose=verbose, verbose_level=6)
+    printing("Data Start source {} {} ", var=(src_seq, src_seq.size()), verbose=verbose, verbose_level=6)
 
-    printing("Data Start ".format(output_seq, output_len, output_mask), verbose=verbose, verbose_level=6)
+    printing("Data Start ", var=(output_seq, output_len, output_mask), verbose=verbose, verbose_level=6)
     for step, char_decode in enumerate(range(2,  max_len)):
         decoding_states = model.forward(input_seq=src_seq,
                                         output_seq=output_seq,
@@ -89,7 +89,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         # len
         # output_len defined based on src_len to remove empty words
         output_len = (src_len[:, :, 0] != 0).unsqueeze(dim=2)*char_decode
-        printing("DECODER step {} output len {} ".format(step,output_len), verbose=verbose, verbose_level=3)
+        printing("DECODER step {} output len {} ", var=(step,output_len), verbose=verbose, verbose_level=3)
         #output_len[:] = char_decode # before debugging
         # mask
         output_mask = np.ones(src_seq.size(), dtype=np.int64)
@@ -99,9 +99,9 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
 
         predictions = scores.argmax(dim=-1)
 
-        printing("Prediction size {} ".format(predictions.size()), verbose=verbose, verbose_level=4)
-        printing("Prediction {} ".format(predictions), verbose=verbose, verbose_level=5)
-        printing("scores: {} scores {} scores sized  {} predicion size {} prediction {} outputseq ".format(scores,
+        printing("Prediction size {} ", var=(predictions.size()), verbose=verbose, verbose_level=4)
+        printing("Prediction {} ", var=(predictions), verbose=verbose, verbose_level=5)
+        printing("scores: {} scores {} scores sized  {} predicion size {} prediction {} outputseq ", var=(scores,
                  scores.size(),
                  predictions.size(),
                  predictions[:, -1],
@@ -114,10 +114,10 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         sequence = [" ".join([char_dictionary.get_instance(output_seq[sent, word_ind, char_i]) for char_i in range(max_len)])
                     + "|sent-{}|".format(sent) for sent in range(output_seq.size(0)) for word_ind in range(output_seq.size(1))]
 
-        printing("Decoding step {} decoded target {} ".format(step, sequence), verbose=verbose, verbose_level=3)
+        printing("Decoding step {} decoded target {} ", var=(step, sequence), verbose=verbose, verbose_level=3)
         text_decoded_array, text_decoded = output_text_(output_seq,#predictions,
                                                         char_dictionary, single_sequence=single_sequence)
-        printing("PREDICTION : {} array text {} ".format(text_decoded_array, text_decoded),
+        printing("PREDICTION : {} array text {} ", var=(text_decoded_array, text_decoded),
                  verbose=verbose,
                  verbose_level=6)
 
@@ -143,7 +143,7 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
         if len(seq_string) > max_len:
             # cutting to respect dim requirements
             seq_string = seq_string[:max_len-1]+["_PAD_CHAR"]
-        printing("INPUT SEQ is {} ".format(seq_string), verbose=verbose, verbose_level=2)
+        printing("INPUT SEQ is {} ", var=(seq_string), verbose=verbose, verbose_level=2)
         sequence_characters = [char_dictionary.get_index(letter) for letter in seq_string]+[pad for _ in range(max_len-len(seq_string))]
 
         print(sequence_characters)
@@ -166,7 +166,7 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
                                                          src_seq=char_seq, src_len=char_len,
                                                          src_mask=char_mask,single_sequence=True,
                                                          pad=pad, verbose=verbose)
-        print("DECODED text is : {} ".format(text_decoded))
+        print("DECODED text is : {} ", var=(text_decoded))
 
 
 def decode_interacively(model , char_dictionary,  max_len, pad=1, verbose=0):

@@ -6,9 +6,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from io_.info_print import printing
 import pdb
+import time
+from toolbox.sanity_check import get_timing
+from collections import OrderedDict
 
 class LossCompute:
-    def __init__(self, generator, opt=None, pad=1, use_gpu=False, verbose=0):
+    def __init__(self, generator, opt=None, pad=1, use_gpu=False, timing=False, verbose=0):
         self.generator = generator
         self.loss_distance = nn.CrossEntropyLoss(reduce=True, ignore_index=pad)
         if use_gpu:
@@ -17,37 +20,51 @@ class LossCompute:
         self.opt = opt
         self.use_gpu=use_gpu
         self.verbose = verbose
+        self.timing = timing
 
     def __call__(self, x, y):
 
-        printing("LOSS decoding states {} ".format(x.size()), self.verbose, verbose_level=3)
+        printing("LOSS decoding states {} ", var=(x.size()), verbose=self.verbose, verbose_level=3)
+        start = time.time() if self.timing else None
         x = self.generator(x)
+        generate_time, start = get_timing(start)
         if self.use_gpu:
             printing("use gpu is True", self.verbose, verbose_level=3)
         
-        printing("LOSS input x candidate scores size {} ".format(x.size()), self.verbose, verbose_level=3)
-        printing("LOSS input y observations size {} ".format(y.size()), self.verbose, verbose_level=3)
-        printing("LOSS input x candidate scores   {} ".format(x), self.verbose,verbose_level=5)
-        printing("LOSS input x candidate scores  reshaped {} ".format(x.view(-1, x.size(-1))),
-                 self.verbose,verbose_level=5)
-        printing("LOSS input y observations {} reshaped {} ".format(y, y.contiguous().view(-1)),
-                 self.verbose, verbose_level=5)
+        printing("LOSS input x candidate scores size {} ", var=(x.size()),verbose= self.verbose, verbose_level=3)
+        printing("LOSS input y observations size {} ", var=(y.size()), verbose=self.verbose, verbose_level=3)
+        printing("LOSS input x candidate scores   {} ", var=(x), verbose=self.verbose,verbose_level=5)
+        printing("LOSS input x candidate scores  reshaped {} ", var=(x.view(-1, x.size(-1))),
+                 verbose=self.verbose,verbose_level=5)
+        printing("LOSS input y observations {} reshaped {} ", var=(y, y.contiguous().view(-1)),
+                 verbose=self.verbose, verbose_level=5)
         pdb.set_trace()
         y = y[:,:x.size(1),:]
-        printing("TYPE  y {} is cuda ".format(y.is_cuda), verbose=0, verbose_level=5)
+        printing("TYPE  y {} is cuda ", var=(y.is_cuda), verbose=0, verbose_level=5)
+        reshaping, start = get_timing(start)
         loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1))
-        printing("LOSS loss size {}".format(loss.size()), verbose=self.verbose, verbose_level=3)
-        printing("TYPE  loss {} is cuda ".format(loss.is_cuda), verbose=0, verbose_level=5)
+        loss_distance_time, start = get_timing(start)
+        printing("LOSS loss size {} ", var=(str(loss.size())), verbose=self.verbose, verbose_level=3)
+        printing("TYPE  loss {} is cuda ", var=(loss.is_cuda), verbose=0, verbose_level=5)
 
         # define loss_distance as --> Cross-entropy
+
         if self.opt is not None:
+
             loss.backward()
+            loss_backwrd_time, start = get_timing(start)
             printing("Optimizing", self.verbose, verbose_level=3)
             self.opt.step()
+            step_opt_time, start = get_timing(start)
             self.opt.zero_grad()
+            zerp_gradtime, start = get_timing(start)
         else:
             printing("WARNING no optimization : is backward required here ? (loss.py) ", verbose=self.verbose, verbose_level=0)
-
+        if self.timing:
+            print("run loss timing : {} ".format(OrderedDict([("loss_distance_time", loss_distance_time),
+                                                             ("reshaping",reshaping), ("generate_time", generate_time),
+                                                              ("loss_backwrd_time", loss_backwrd_time),
+                                                               ("step_opt_time",step_opt_time), ("zerp_gradtime", zerp_gradtime)])))
         return loss
 
 

@@ -14,6 +14,8 @@ from io_.info_print import disable_tqdm_level, printing
 from env.project_variables import PROJECT_PATH, REPO_DATASET
 import time
 from toolbox.gpu_related import use_gpu_
+from toolbox.sanity_check import get_timing
+from collections import OrderedDict
 
 
 def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
@@ -28,7 +30,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           reload=False, model_full_name=None, model_id_pref="", print_raw=False,
           model_specific_dictionary=False,
           add_start_char=None, add_end_char=1,
-          debug=False,
+          debug=False,timing=False,
           verbose=1):
 
     use_gpu = use_gpu_(use_gpu)
@@ -71,8 +73,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                               add_start_char=add_start_char, verbose=1)
 
         voc_size = len(char_dictionary.instance2index)+1
-        printing("char_dictionary".format(char_dictionary.instance2index), verbose=verbose, verbose_level=0)
-        printing("Character vocabulary is {} length".format(len(char_dictionary.instance2index)+1), verbose=verbose,
+        printing("char_dictionary", var=(char_dictionary.instance2index), verbose=verbose, verbose_level=0)
+        printing("Character vocabulary is {} length", var=(len(char_dictionary.instance2index)+1), verbose=verbose,
                  verbose_level=0)
         _train_path, _dev_path, _add_start_char = None, None, None
     else:
@@ -95,10 +97,10 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                           hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,
                           model_id_pref=model_id_pref, model_full_name=model_full_name,
                           hidden_size_sent_encoder=hidden_size_sent_encoder,
-                          hidden_size_decoder=hidden_size_decoder, verbose=verbose)
+                          hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
     if use_gpu:
         model = model.cuda()
-        printing("TYPE model is cuda : {} ".format(next(model.parameters()).is_cuda), verbose=verbose, verbose_level=0)
+        printing("TYPE model is cuda : {} ", var=(next(model.parameters()).is_cuda), verbose=verbose, verbose_level=0)
     if not model_specific_dictionary:
         model.word_dictionary, model.char_dictionary, model.pos_dictionary, \
         model.xpos_dictionary, model.type_dictionary = word_dictionary, char_dictionary, pos_dictionary, \
@@ -115,29 +117,46 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
     _loss_dev = 1000
     _loss_train = 1000
 
-    printing("Running from {} to {} epochs : training on {} evaluating on {}".format(starting_epoch, n_epochs, train_path, dev_path), verbose=verbose, verbose_level=0)
+    printing("Running from {} to {} epochs : training on {} evaluating on {}", var=(starting_epoch, n_epochs, train_path, dev_path), verbose=verbose, verbose_level=0)
     starting_time = time.time()
     total_time = 0
+
+    data_read_train = conllu_data.read_data_to_variable(train_path, model.word_dictionary, model.char_dictionary,
+                                                         model.pos_dictionary,
+                                                        model.xpos_dictionary, model.type_dictionary,
+                                                        use_gpu=use_gpu, symbolic_root=False,
+                                                        symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,
+                                                        normalization=normalization,
+                                                        add_start_char=add_start_char, add_end_char=add_end_char)
+    data_read_dev = conllu_data.read_data_to_variable(dev_path, model.word_dictionary, model.char_dictionary,
+                                                       model.pos_dictionary,
+                                                       model.xpos_dictionary, model.type_dictionary,
+                                                       use_gpu=use_gpu, symbolic_root=False,
+                                                       symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,
+                                                       normalization=normalization,
+                                                       add_start_char=add_start_char, add_end_char=add_end_char)
+
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
 
-        printing("Starting new epoch {} ".format(epoch), verbose=verbose, verbose_level=1)
+        printing("Starting new epoch {} ", var=(epoch), verbose=verbose, verbose_level=1)
         model.train()
-        batchIter = data_gen_conllu(train_path,
+        batchIter = data_gen_conllu(data_read_train,
                                     model.word_dictionary, model.char_dictionary, model.pos_dictionary, model.xpos_dictionary, model.type_dictionary,
                                     add_start_char=add_start_char,
                                     add_end_char=add_end_char,
                                     normalization=normalization,
                                     use_gpu=use_gpu,
                                     batch_size=batch_size,
-                                    print_raw=print_raw,
+                                    print_raw=print_raw,timing=timing, 
                                     verbose=verbose)
-
-        loss_train = run_epoch(batchIter, model, LossCompute(model.generator, opt=adam,  
-                                                             use_gpu=use_gpu,verbose=verbose),
-                               verbose=verbose, i_epoch=epoch, n_epochs=n_epochs,
+        start = time.time()
+        loss_train = run_epoch(batchIter, model, LossCompute(model.generator, opt=adam,
+                                                             use_gpu=use_gpu,verbose=verbose, timing=timing),
+                               verbose=verbose, i_epoch=epoch, n_epochs=n_epochs,timing=timing,
                                log_every_x_batch=100)
+        _train_ep_time, start = get_timing(start)
         model.eval()
-        batchIter_eval = data_gen_conllu(dev_path,
+        batchIter_eval = data_gen_conllu(data_read_dev,
                                          model.word_dictionary, model.char_dictionary, model.pos_dictionary,
                                          model.xpos_dictionary, model.type_dictionary,
                                          batch_size=batch_size, add_start_char=add_start_char,
@@ -145,11 +164,12 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                          normalization=normalization,
                                          verbose=verbose)
         printing("Starting evaluation ", verbose=verbose, verbose_level=1)
+        _create_iter_time, start = get_timing(start)
         loss_dev = run_epoch(batchIter_eval, model, LossCompute(model.generator, use_gpu=use_gpu,verbose=verbose),
                              i_epoch=epoch, n_epochs=n_epochs,
-                             verbose=verbose,
+                             verbose=verbose,timing=timing,
                              log_every_x_batch=100)
-
+        _eval_time, start = get_timing(start)
         loss_training.append(loss_train)
         loss_developing.append(loss_dev)
         time_per_epoch = time.time() - starting_time
@@ -168,19 +188,20 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                    show=False)
 
             model, _loss_train = checkpoint(loss_former=_loss_train, loss=loss_train, model=model, model_dir=model.dir_model,
-                                          info_checkpoint={"n_epochs": n_epochs, "batch_size": batch_size,
+                                            info_checkpoint={"n_epochs": n_epochs, "batch_size": batch_size,
                                                            "train_data_path": train_path, "dev_data_path": dev_path,
                                                            "other": {"error_curves": dir_plot, 
                                                            "time_training(min)":"{0:.2f}".format(total_time/60), "average_per_epoch(min)":"{0:.2f}".format((total_time/n_epochs)/60)}},
-                                          epoch=epoch, epochs=n_epochs,
-                                          verbose=verbose)
+                                            epoch=epoch, epochs=n_epochs,
+                                            verbose=verbose)
 
-        printing("LOSS train {:.3f}, dev {:.3f} for epoch {} out of {} epochs ".format(loss_train, loss_dev,
+        printing("LOSS train {:.3f}, dev {:.3f} for epoch {} out of {} epochs ", var=(loss_train, loss_dev,
                                                                                        epoch, n_epochs),
                  verbose=verbose,
                  verbose_level=1)
 
-
+        if timing:
+            print("Summaru : {}".format(OrderedDict([("_train_ep_time", _train_ep_time),("_create_iter_time", _create_iter_time), ("_eval_time",_eval_time) ])))
 
     #model.save(model_dir, model, info_checkpoint={"n_epochs": n_epochs, "batch_size": batch_size,
     #                                             "train_data_path": train_path, "dev_data_path": dev_path,
@@ -191,5 +212,5 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
     simple_plot(final_loss=loss_dev, loss_ls=loss_training, loss_2=loss_developing, epochs=n_epochs, save=True,
                 dir=model.dir_model, label=label_train, label_2=label_dev,
                 lr=lr, prefix=model.model_full_name+"-LAST")
-
+   
     return model.model_full_name

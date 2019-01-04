@@ -2,13 +2,19 @@ import sys
 VERBOSE_1_LOG_EVERY_x_BATCH = 25
 DEBUG = False
 
-
-def printing(message, verbose, verbose_level):
+from collections import Iterable, Sequence
+def printing(message, verbose, verbose_level,var=None):
     verbose_level = 0 if DEBUG else verbose_level
     if verbose >= verbose_level:
-        print(message)
-        sys.stdout.flush()
+        if var is not None:
+            if isinstance(var, Iterable):
+                print(message.format(*var))
+            else:
+                print(message.format(var))
+        else:
+            print(message)
 
+    sys.stdout.flush()
 
 
 def print_char_seq(active=False, nbatch=None, sent_len=None, word_len=None, char_array=None, dic=None):

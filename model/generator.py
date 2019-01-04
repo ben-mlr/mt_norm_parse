@@ -19,7 +19,7 @@ class Generator(nn.Module):
         # the log_softmax is done within the loss
         y = nn.ReLU()(self.dense(x))
         proj = self.proj(y)
-        printing("TYPE  proj {} is cuda ".format(proj.is_cuda), verbose=0, verbose_level=4)
+        printing("TYPE  proj {} is cuda ", var=(proj.is_cuda), verbose=0, verbose_level=4)
         if self.verbose >= 3:
             print("PROJECTION {} size".format(proj.size()))
         if self.verbose >= 5:

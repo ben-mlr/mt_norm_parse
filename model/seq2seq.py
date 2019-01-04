@@ -12,7 +12,11 @@ from toolbox.sanity_check import sanity_check_info_checkpoint
 from env.project_variables import PROJECT_PATH
 from io_.dat import conllu_data
 from toolbox.deep_learning_toolbox import count_trainable_parameters
+from toolbox.sanity_check import get_timing
+import time
 import re
+from collections import OrderedDict
+
 #DEV = True
 #DEV_2 = True
 #DEV_4 = True
@@ -31,7 +35,7 @@ class LexNormalizer(nn.Module):
                  hidden_size_decoder=None, voc_size=None, model_id_pref="", model_name="",
                  dropout_sent_encoder=0., dropout_word_encoder=0., dropout_word_decoder=0.,
                  dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None,
-                 verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False):
+                 verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
         character level Sequence to Sequence model for normalization
         :param generator:
@@ -56,6 +60,7 @@ class LexNormalizer(nn.Module):
         """
         super(LexNormalizer, self).__init__()
         # initialize dictionaries
+        self.timing = timing
         self.word_dictionary, self.char_dictionary, self.pos_dictionary, self.xpos_dictionary, self.type_dictionary = None, None, None, None, None
         # new model : we create an id , and a saving directory for the model (checkpoints, reporting, arguments)
         if not load:
@@ -66,14 +71,14 @@ class LexNormalizer(nn.Module):
             model_id += "_" if len(model_name) > 0 else ""
             model_full_name = model_id_pref+model_id+model_name
             printing("Model name is {} with pref_id {} , "
-                     "generated id {} and label {} ".format(model_full_name, model_id_pref, model_id, model_name),
+                     "generated id {} and label {} ", var=(model_full_name, model_id_pref, model_id, model_name),
                      verbose=verbose, verbose_level=5)
             # defined at save time
             checkpoint_dir = ""
             self.args_dir = None
             dir_model = os.path.join(PROJECT_PATH, "checkpoints", "{}-folder".format(model_full_name))
             os.mkdir(dir_model)
-            printing("Dir {} created".format(dir_model), verbose=verbose, verbose_level=0)
+            printing("Dir {} created", var=(dir_model), verbose=verbose, verbose_level=0)
             git_commit_id = get_commit_id()
             # create dictionary
         # we create/load model specific dictionary
@@ -100,8 +105,8 @@ class LexNormalizer(nn.Module):
                           word_embed_dict={}, dry_run=False, vocab_trim=True,
                           add_start_char=add_start_char, verbose=1)
             voc_size = len(self.char_dictionary.instance2index) + 1
-            printing("char_dictionary {} ".format(self.char_dictionary.instance2index), verbose=verbose, verbose_level=1)
-            printing("Character vocabulary is {} length".format(len(self.char_dictionary.instance2index) + 1),
+            printing("char_dictionary {} ", var=(self.char_dictionary.instance2index), verbose=verbose, verbose_level=1)
+            printing("Character vocabulary is {} length", var=(len(self.char_dictionary.instance2index) + 1),
                      verbose=verbose, verbose_level=0)
 
         if not load:
@@ -131,7 +136,7 @@ class LexNormalizer(nn.Module):
         else:
             assert model_full_name is not None and dir_model is not None, \
                 "ERROR  model_full_name is {} and dir_model {}  ".format(model_full_name, dir_model)
-            printing("Loading existing model {} from {} ".format(model_full_name, dir_model), verbose=verbose, verbose_level=5)
+            printing("Loading existing model {} from {} ", var=(model_full_name, dir_model), verbose=verbose, verbose_level=5)
             assert char_embedding_dim is None and hidden_size_encoder is None and hidden_size_decoder is None and output_dim is None
             if not model_specific_dictionary:
                 assert voc_size is not None, "ERROR : voc_size is required for sanity checking as wr recompute the dictionary "
@@ -166,10 +171,10 @@ class LexNormalizer(nn.Module):
                                    hidden_size_encoder=hidden_size_encoder,
                                    dropout_sent_cell=dropout_sent_encoder, dropout_word_cell=dropout_word_encoder,
                                    hidden_size_sent_encoder=hidden_size_sent_encoder,
-                                   n_layers_word_cell=n_layers_word_encoder,
+                                   n_layers_word_cell=n_layers_word_encoder,timing=timing,
                                    verbose=verbose)
         self.decoder = CharDecoder(self.char_embedding, input_dim=char_embedding_dim,
-                                   hidden_size_decoder=hidden_size_decoder,
+                                   hidden_size_decoder=hidden_size_decoder,timing=timing,
                                    dropout_word_cell=dropout_word_decoder,
                                    verbose=verbose)
         self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size,
@@ -184,28 +189,36 @@ class LexNormalizer(nn.Module):
             else:
                 self.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
 
-    def forward(self, input_seq, output_seq, input_mask, input_word_len, output_mask, output_word_len):
+    def forward(self, input_seq, output_seq, input_mask, input_word_len, output_word_len):
         # [batch, seq_len ] , batch of sequences of indexes (that corresponds to character 1-hot encoded)
         # char_vecs_input = self.char_embedding(input_seq)
         # [batch, seq_len, input_dim] n batch of sequences of embedded character
-
-        printing("TYPE  input_seq {} input_word_len {} input_mask {} is cuda ".format(input_seq.is_cuda,
+        timing = self.timing
+        printing("TYPE  input_seq {} input_word_len {} input_mask {} is cuda ", var=(input_seq.is_cuda,
                                                                                       input_word_len.is_cuda,
                                                                                       input_mask.is_cuda),
                  verbose=0, verbose_level=4)
         # input_seq : [batch, max sentence length, max word length] : batch of sentences
+        start = time.time() if timing else None
         h, sent_len_max_source = self.encoder.sent_encoder_source(input_seq, input_mask, input_word_len)
+        source_encoder, start = get_timing(start)
         # [] [batch, , hiden_size_decoder]
         h = self.bridge(h)
-        printing("TYPE  encoder {} is cuda ".format(h.is_cuda), verbose=0, verbose_level=4)
-        output = self.decoder.sent_encoder_target(output_seq, h, output_mask, output_word_len,
+
+        bridge, start = get_timing(start)
+        printing("TYPE  encoder {} is cuda ", var=h.is_cuda, verbose=0, verbose_level=4)
+        output = self.decoder.sent_encoder_target(output_seq, h, output_word_len,
                                                   sent_len_max_source=sent_len_max_source)
-        printing("TYPE  decoder {} is cuda ".format(output.is_cuda), verbose=0, verbose_level=4)
+        target_encoder, start = get_timing(start)
+        printing("TYPE  decoder {} is cuda ", var=(output.is_cuda), verbose=0, verbose_level=4)
         # output_score = nn.ReLU()(self.output_predictor(h_out))
         # [batch, output_voc_size], one score per output character token
-        printing("DECODER full  output sequence encoded of size {} ".format(output.size()), verbose=self.verbose,
+        printing("DECODER full  output sequence encoded of size {} ", var=(output.size()), verbose=self.verbose,
                  verbose_level=3)
-        printing("DECODER full  output sequence encoded of {}  ".format(output), verbose=self.verbose, verbose_level=5)
+        printing("DECODER full  output sequence encoded of {}  ", var=(output), verbose=self.verbose, verbose_level=5)
+        time_report = OrderedDict([("source_encoder",source_encoder),("target_encoder",target_encoder), ("bridge",bridge)])
+        if timing :
+            print("time report {}".format(time_report))
 
         return output
 
@@ -225,17 +238,18 @@ class LexNormalizer(nn.Module):
         # the arguments dir does not change !
         arguments_dir = os.path.join(dir,  model.model_full_name + "-" + "args.json")
         model.args_dir = arguments_dir
-        printing("Warning : overwriting checkpoint {} ".format(checkpoint_dir), verbose=verbose, verbose_level=0)
+        printing("Warning : overwriting checkpoint {} ", var=(checkpoint_dir), verbose=verbose, verbose_level=0)
 
         if os.path.isfile(arguments_dir):
-            printing("Overwriting argument file (checkpoint dir updated with {}  ) ".format(checkpoint_dir),
+            printing("Overwriting argument file (checkpoint dir updated with {}  ) ", var=(checkpoint_dir),
                      verbose=verbose, verbose_level=0)
-        printing("Checkpoint info are now {} ".format(model.arguments["info_checkpoint"]), verbose=verbose,
+        printing("Checkpoint info are now {} ", var=(model.arguments["info_checkpoint"]), verbose=verbose,
                  verbose_level=1)
         torch.save(model.state_dict(), checkpoint_dir)
         printing(model.arguments, verbose=verbose, verbose_level=1)
         json.dump(model.arguments, open(arguments_dir, "w"))
-        printing("Saving model weights and arguments as {}  and {} ".format(checkpoint_dir, arguments_dir), verbose, verbose_level=0)
+        printing("Saving model weights and arguments as {}  and {} ", var=(checkpoint_dir, arguments_dir),
+                 verbose=verbose, verbose_level=0)
         return dir, model.model_full_name
 
     @staticmethod
@@ -247,12 +261,12 @@ class LexNormalizer(nn.Module):
         args_checkpoint = args["checkpoint_dir"]
         if not os.path.isfile(args_checkpoint):
             printing("WARNING : checkpoint_dir as indicated in args.json is not found, "
-                     "lt checkpoint_dir {}".format(CHECKPOINT_DIR), verbose=verbose, verbose_level=0)
+                     "lt checkpoint_dir {}", var=(CHECKPOINT_DIR), verbose=verbose, verbose_level=0)
             # we assume the naming convention /model_name-folder/model_name--checkpoint.pt
             match = re.match(".*/(.*-folder/.*)$", args_checkpoint)
             assert match.group(1) is not None, "ERROR : no match found in {}".format(args_checkpoint)
             args_checkpoint = os.path.join(CHECKPOINT_DIR, match.group(1))
         assert os.path.isfile(args_checkpoint), "ERROR {} does not exits".format(args_checkpoint)
-        printing("Checkpoint dir is {} ".format(args_checkpoint), verbose=verbose, verbose_level=1)
+        printing("Checkpoint dir is {} ", var=(args_checkpoint), verbose=verbose, verbose_level=1)
         return args, args_checkpoint, args_dir
 

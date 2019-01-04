@@ -36,6 +36,7 @@ def simple_plot(final_loss, loss_ls, loss_2=None, epochs=None, V=None, seq_len=N
     if show:
         print("Not Showing loss")
         #plt.show()
+    plt.close()
     return dir_fig
 
 if __name__=="__main__":
