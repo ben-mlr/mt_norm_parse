@@ -59,7 +59,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary, pos_dictionary,
                  verbose_level=5)
         _verbose = 5 if print_raw else verbose
 
-        if _verbose and False:
+        if _verbose >= 5:
             character_display = [" ".join([char_dictionary.get_instance(char[sent, word_ind, char_i])
                                            for char_i in range(word_len)]) + " |SENT {} WORD {}| ".format(ind_sent, ind_w)
                                  for ind_sent,sent in enumerate(range(char.size(0)))
@@ -72,7 +72,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary, pos_dictionary,
             chars_norm = char.clone()
             printing("Normalisation is False : model is a autoencoder ", verbose=_verbose, verbose_level=5)
 
-        if _verbose and False:
+        if _verbose >= 5:
             character_norm_display = [" ".join([char_dictionary.get_instance(chars_norm[sent, word_ind, char_i])
                                            for char_i in range(chars_norm.size(2))]) + " |SENT {} WORD {}| ".format(ind_sent, ind_w)
                                  for ind_sent, sent in enumerate(range(chars_norm.size(0)))
@@ -87,7 +87,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary, pos_dictionary,
 
         printing("Feeding source words {} ", var=(word_display), verbose=_verbose, verbose_level=5)
         printing("TYPE {}char before batch chars_norm {} ", var=(char.is_cuda, chars_norm.is_cuda),
-            verbose=verbose, verbose_level=5)
+                 verbose=verbose, verbose_level=5)
         yield MaskBatch(char, chars_norm, pad=padding, timing=timing, verbose=verbose)
 
 
