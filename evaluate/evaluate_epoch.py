@@ -140,19 +140,26 @@ def evaluate(dict_path, model_full_name, batch_size, data_path, write_report=Tru
                           voc_size=voc_size, use_gpu=use_gpu, dict_path=dict_path,model_specific_dictionary=True,
                           dir_model=os.path.join(PROJECT_PATH, "checkpoints", model_full_name + "-folder"),
                           verbose=verbose)
-    batchIter = data_gen_conllu(data_path, model.word_dictionary, model.char_dictionary, model.pos_dictionary, model.xpos_dictionary,
+    data_read = conllu_data.read_data_to_variable(data_path, model.word_dictionary, model.char_dictionary,
+                                                        model.pos_dictionary,
+                                                        model.xpos_dictionary, model.type_dictionary,
+                                                        use_gpu=use_gpu, symbolic_root=False,
+                                                        symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,
+                                                        normalization=normalization,
+                                                        add_start_char=1, add_end_char=1)
+    batchIter = data_gen_conllu(data_read, model.word_dictionary, model.char_dictionary, model.pos_dictionary,
+                                model.xpos_dictionary,
                                 model.type_dictionary, batch_size=batch_size,  add_start_char=1,
                                 add_end_char=1,
                                 normalization=normalization,
                                 print_raw=print_raw,  verbose=verbose)
-
     model.eval()
     batch_decoding = True
 
     if batch_decoding:
         score_to_compute_ls = ["edit", "exact"]
         score_dic = greedy_decode_batch(char_dictionary=model.char_dictionary, verbose=verbose, gold_output=True,
-                                      score_to_compute_ls=score_to_compute_ls,
+                                        score_to_compute_ls=score_to_compute_ls,
                                           stat="sum",
                                           batchIter=batchIter, model=model, batch_size=batch_size)
         print("-->", score_dic)

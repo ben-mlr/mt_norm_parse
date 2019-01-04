@@ -4,13 +4,13 @@ import torch
 from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 from io_.info_print import printing
 import time
-
+import pdb
 
 class CharEncoder(nn.Module):
 
     def __init__(self, char_embedding, input_dim, hidden_size_encoder, hidden_size_sent_encoder,
                  word_recurrent_cell=None, dropout_sent_cell=0, dropout_word_cell=0,
-                 n_layers_word_cell=1,timing=False,
+                 n_layers_word_cell=1,timing=False,bidir_sent=True,
                  verbose=2):
         super(CharEncoder, self).__init__()
         self.char_embedding_ = char_embedding
@@ -19,7 +19,7 @@ class CharEncoder(nn.Module):
                                     hidden_size=hidden_size_sent_encoder,
                                     num_layers=1, bias=True, batch_first=True,
                                     dropout=dropout_sent_cell,
-                                    bidirectional=False)
+                                    bidirectional=bidir_sent)
         self.verbose = verbose
         word_recurrent_cell = nn.GRU if word_recurrent_cell is None else nn.GRU
         printing("MODEL Encoder : word_recurrent_cell has been set to {} ", var=(str(word_recurrent_cell)),
@@ -72,7 +72,7 @@ class CharEncoder(nn.Module):
         # TODO: check that using packed sequence provides the last state of the sequence(not the end of the padded one!)
         return h_n
 
-    def sent_encoder_source(self, input, input_mask, input_word_len=None, verbose=0):
+    def sent_encoder_source(self, input, input_word_len=None, verbose=0):
         # input should be a batach of sentences
         # input : [batch, max sent len, max word len], input_word_len [batch, max_sent_len]
         printing("SOURCE : input size {}  length size {}" , var=(input.size(), input_word_len.size()),
@@ -118,9 +118,11 @@ class CharEncoder(nn.Module):
                  verbose=verbose, verbose_level=3)
         # concatanate
         source_context_word_vector = torch.cat((sent_encoded, h_w), dim=2)
+        pdb.set_trace()
         source_context_word_vector = source_context_word_vector.view(1, source_context_word_vector.size(0)*source_context_word_vector.size(1), -1)
         # source_context_word_vector : [1, batch x sent len, hidden_size_sent_encoder + hidden_size_encoder]
         printing("SOURCE contextual last representation : {} ", var=(source_context_word_vector.size()),
                  verbose=verbose, verbose_level=3)
+        pdb.set_trace()
 
         return source_context_word_vector, sent_len_max_source

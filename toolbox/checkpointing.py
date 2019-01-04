@@ -10,6 +10,6 @@ def checkpoint(loss_former, loss, model, model_dir, epoch, epochs, info_checkpoi
         #printing('Checkpoint info : Loss decreased so saving model', verbose=verbose, verbose_level=1)
         #model.load_state_dict(torch.load(checkpoint_dir))
         # TODO : load former checkpoint : and do change loss append IF error suddendly pick
-        printing("Checkpoint info : Loss did not decrease", verbose=verbose, verbose_level=1)
+        printing("Checkpoint info : Loss did not decrease so keeping former model of epoch {} ", var=epoch, verbose=verbose, verbose_level=1)
 
     return model, loss_former

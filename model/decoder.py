@@ -132,11 +132,12 @@ class CharDecoder(nn.Module):
         output_word_len = output_word_len.contiguous()
         output_word_len = output_word_len.view(output_word_len.size(0) * output_word_len.size(1))
         reshape_len, start = get_timing(start)
+        pdb.set_trace()
         output_w_decoder = self.word_encoder_target(output_seq, conditioning, output_word_len)
         word_encoders, start = get_timing(start)
         # output_w_decoder : [ batch x max sent len, max word len , hidden_size_decoder ]
         output_w_decoder = output_w_decoder.view(output_char_vecs.size(0),
-                                                 output_w_decoder.size(0 )/output_char_vecs.size(0), -1,
+                                                 output_w_decoder.size(0)/output_char_vecs.size(0), -1,
                                                  output_w_decoder.size(2))
         reshape, start = get_timing(start)
         # output_w_decoder : [ batch , max sent len, max word len , hidden_size_decoder ]

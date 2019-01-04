@@ -15,6 +15,8 @@ from toolbox.deep_learning_toolbox import count_trainable_parameters
 from toolbox.sanity_check import get_timing
 import time
 import re
+import pdb
+
 from collections import OrderedDict
 
 #DEV = True
@@ -34,6 +36,7 @@ class LexNormalizer(nn.Module):
                  n_layers_word_encoder=1,
                  hidden_size_decoder=None, voc_size=None, model_id_pref="", model_name="",
                  dropout_sent_encoder=0., dropout_word_encoder=0., dropout_word_decoder=0.,
+                 dir_sent_encoder=1,
                  dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
@@ -120,6 +123,7 @@ class LexNormalizer(nn.Module):
                                   "encoder_arch": {"cell_word": "GRU", "cell_sentence": "GRU",
                                                    "n_layers_word_encoder":n_layers_word_encoder,
                                                    "attention": "No", "dir_word": "uni",
+                                                   "dir_sent_encoder":dir_sent_encoder,
                                                    "dropout_word_encoder":dropout_word_decoder,
                                                    "dropout_sent_encoder":dropout_sent_encoder,
                                                    "dir_sent": "uni"},
@@ -151,13 +155,14 @@ class LexNormalizer(nn.Module):
                                                  "match {} vs {} ".format(args["voc_size"], voc_size)
             char_embedding_dim, hidden_size_encoder, \
             hidden_size_decoder, voc_size, output_dim, hidden_size_sent_encoder, \
-             dropout_sent_encoder, dropout_word_encoder, dropout_word_decoder, n_layers_word_encoder = \
+             dropout_sent_encoder, dropout_word_encoder, dropout_word_decoder, n_layers_word_encoder, \
+                    dir_sent_encoder = \
                 args["char_embedding_dim"], args["hidden_size_encoder"], \
                     args["hidden_size_decoder"], args["voc_size"], \
                         args.get("output_dim"), args.get("hidden_size_sent_encoder"), \
                                 args["encoder_arch"].get("dropout_sent_encoder"), \
                 args["encoder_arch"].get("dropout_word_encoder"), args["decoder_arch"].get("dropout_word_decoder"), \
-                    args["encoder_arch"].get("n_layers_word_encoder")
+                    args["encoder_arch"].get("n_layers_word_encoder"), args["encoder_arch"].get("dir_sent_encoder")
 
             self.args_dir = args_dir
 
@@ -170,7 +175,7 @@ class LexNormalizer(nn.Module):
         self.encoder = CharEncoder(self.char_embedding, input_dim=char_embedding_dim,
                                    hidden_size_encoder=hidden_size_encoder,
                                    dropout_sent_cell=dropout_sent_encoder, dropout_word_cell=dropout_word_encoder,
-                                   hidden_size_sent_encoder=hidden_size_sent_encoder,
+                                   hidden_size_sent_encoder=hidden_size_sent_encoder,bidir_sent=dir_sent_encoder-1,
                                    n_layers_word_cell=n_layers_word_encoder,timing=timing,
                                    verbose=verbose)
         self.decoder = CharDecoder(self.char_embedding, input_dim=char_embedding_dim,
@@ -181,7 +186,7 @@ class LexNormalizer(nn.Module):
                                    output_dim=output_dim, verbose=verbose)
         self.verbose = verbose
         # bridge between encoder hidden representation and decoder
-        self.bridge = nn.Linear(hidden_size_encoder*n_layers_word_encoder+hidden_size_sent_encoder, hidden_size_decoder)
+        self.bridge = nn.Linear(hidden_size_encoder*n_layers_word_encoder+hidden_size_sent_encoder*dir_sent_encoder, hidden_size_decoder)
         if load:
             # TODO : see if can be factorized
             if use_gpu:
@@ -189,22 +194,21 @@ class LexNormalizer(nn.Module):
             else:
                 self.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
 
-    def forward(self, input_seq, output_seq, input_mask, input_word_len, output_word_len):
+    def forward(self, input_seq, output_seq, input_word_len, output_word_len):
         # [batch, seq_len ] , batch of sequences of indexes (that corresponds to character 1-hot encoded)
         # char_vecs_input = self.char_embedding(input_seq)
         # [batch, seq_len, input_dim] n batch of sequences of embedded character
         timing = self.timing
-        printing("TYPE  input_seq {} input_word_len {} input_mask {} is cuda ", var=(input_seq.is_cuda,
-                                                                                      input_word_len.is_cuda,
-                                                                                      input_mask.is_cuda),
+        printing("TYPE  input_seq {} input_word_len ", var=(input_seq.is_cuda, input_word_len.is_cuda),
                  verbose=0, verbose_level=4)
         # input_seq : [batch, max sentence length, max word length] : batch of sentences
         start = time.time() if timing else None
-        h, sent_len_max_source = self.encoder.sent_encoder_source(input_seq, input_mask, input_word_len)
+        h, sent_len_max_source = self.encoder.sent_encoder_source(input_seq, input_word_len)
         source_encoder, start = get_timing(start)
         # [] [batch, , hiden_size_decoder]
+        pdb.set_trace()
         h = self.bridge(h)
-
+        pdb.set_trace()
         bridge, start = get_timing(start)
         printing("TYPE  encoder {} is cuda ", var=h.is_cuda, verbose=0, verbose_level=4)
         output = self.decoder.sent_encoder_target(output_seq, h, output_word_len,
@@ -215,9 +219,9 @@ class LexNormalizer(nn.Module):
         # [batch, output_voc_size], one score per output character token
         printing("DECODER full  output sequence encoded of size {} ", var=(output.size()), verbose=self.verbose,
                  verbose_level=3)
-        printing("DECODER full  output sequence encoded of {}  ", var=(output), verbose=self.verbose, verbose_level=5)
-        time_report = OrderedDict([("source_encoder",source_encoder),("target_encoder",target_encoder), ("bridge",bridge)])
-        if timing :
+        printing("DECODER full  output sequence encoded of {}", var=(output), verbose=self.verbose, verbose_level=5)
+        time_report = OrderedDict([("source_encoder", source_encoder), ("target_encoder",target_encoder), ("bridge",bridge)])
+        if timing:
             print("time report {}".format(time_report))
 
         return output

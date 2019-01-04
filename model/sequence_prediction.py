@@ -80,8 +80,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
     for step, char_decode in enumerate(range(2,  max_len)):
         decoding_states = model.forward(input_seq=src_seq,
                                         output_seq=output_seq,
-                                        input_mask=src_mask,
-                                        input_word_len=src_len, output_mask=output_mask,
+                                        input_word_len=src_len,
                                         output_word_len=output_len)
         # [batch, seq_len, V]
         scores = model.generator.forward(x=decoding_states)
