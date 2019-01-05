@@ -6,6 +6,7 @@ import pdb
 from toolbox.sanity_check import get_timing
 import time
 
+
 def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
               n_epochs=None, n_batches=None, empty_run=False,timing=False,
               log_every_x_batch=VERBOSE_1_LOG_EVERY_x_BATCH):
@@ -34,7 +35,7 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
                 start = time.time() if timing else None
                 out = model.forward(input_seq=batch.input_seq,
                                     output_seq=batch.output_seq_x,
-                                    input_word_len= batch.input_seq_len,
+                                    input_word_len=batch.input_seq_len,
                                     output_word_len=batch.output_seq_len)
                 forward_time, start = get_timing(start)
             else:

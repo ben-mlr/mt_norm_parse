@@ -118,7 +118,8 @@ def evaluate(dict_path, model_full_name, batch_size, data_path, write_report=Tru
              model_specific_dictionary=True, label_report="",print_raw=False,
              normalization=True, debug=False, force_new_dic=False, use_gpu=None, verbose=0):
 
-    use_gpu = use_gpu_(use_gpu)
+    use_gpu = False #use_gpu_(use_gpu)
+
     if write_report:
         assert dir_report is not None
 
