@@ -13,5 +13,7 @@ DEV_LABEL, DEV = "owoputi", os.path.join(PROJECT_PATH, "../parsing/normpar/data/
 TEST_LABEL, TEST = "lexnorm", os.path.join(PROJECT_PATH, "../parsing/normpar/data/lexnorm.integrated")
 DEMO_LABEL, DEMO = "lexnorm-demo", os.path.join(PROJECT_PATH, "../parsing/normpar/data/lexnorm.integrated.demo")
 DEMO2_LABEL, DEMO2 = "lexnorm-demo2", os.path.join(PROJECT_PATH, "../parsing/normpar/data/lexnorm.integrated.demo2")
+LIU_LABEL, LIU = "liu_data", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li.conll")
 
-REPO_DATASET = {TRAINING:TRAINING_LABEL, DEV:DEV_LABEL, DEMO:DEMO_LABEL, DEMO2:DEMO2_LABEL, TEST:TEST_LABEL}
+REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV:DEV_LABEL, DEMO:DEMO_LABEL, DEMO2:DEMO2_LABEL,
+                TEST: TEST_LABEL, LIU:LIU_LABEL}

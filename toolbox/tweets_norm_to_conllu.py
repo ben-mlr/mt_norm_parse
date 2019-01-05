@@ -15,7 +15,7 @@ def process(dir_src, dir_target):
                     norm = match_line.group(3)
                     if count_word==1:
                         out.write("# sent_id = {} \n".format(count_sent))
-                    out.write("{count}\t{word}\t_\t_\t_\t_\t_\t_\t_\tNorm={norm}\n".format(count=count_word,
+                    out.write("{count}\t{word}\t_\t_\t_\t_\t0\t_\t_\tNorm={norm}|\n".format(count=count_word,
                                                                                      word=origin,norm=norm))
                     count_word += 1
                 elif re.match("\n", line) is not None:

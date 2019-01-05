@@ -2,7 +2,7 @@ from training.train import train
 from io_.info_print import printing
 import os
 from evaluate.evaluate_epoch import evaluate
-from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, CHECKPOINT_DIR, DEMO, DEMO2, REPO_DATASET
+from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, CHECKPOINT_DIR, DEMO, DEMO2, REPO_DATASET, LIU
 #DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
 
@@ -53,8 +53,8 @@ def train_eval(train_path, test_path, model_id_pref, n_epochs=11, warmup=False, 
 
 if __name__ == "__main__":
 
-      train_path = DEV
-      test_path = TEST
+      train_path = LIU
+      test_path = LIU
       params = []
 
       model_id_pref_list = ["big_batch-no_dropout-bi-dir", "big_batch-no_dropout-bi-dir"]
@@ -113,13 +113,15 @@ if __name__ == "__main__":
       i = 0
       for param, model_id_pref in zip(params,model_id_pref_list):
           i+=1
-          #param["batch_size"] = 2
-          model_id_pref = "ABLATION_8-"+model_id_pref
-          epochs = 80
+          param["batch_size"] = 2
+          model_id_pref = "TEST"#"ABLATION_8-"+model_id_pref
+          epochs = 1
           #train_path, test_path = DEMO2, DEMO2
           print("STARTING MODEL {} with param {} ".format(model_id_pref, param))
-          train_eval(train_path, test_path, model_id_pref, warmup=False, args=param, use_gpu=True, n_epochs=epochs)
+          train_eval(train_path, test_path, model_id_pref, warmup=False, args=param,
+                     use_gpu=False, n_epochs=epochs)
           print("DONE MODEL {} with param {} ".format(model_id_pref, param))
+          break
           
 
 

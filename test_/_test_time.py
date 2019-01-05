@@ -8,10 +8,10 @@ import sys
 sys.path.insert(0,"/scratch/bemuller/mt_norm_parse")
 
 from training.train import train
-from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, CHECKPOINT_DIR, DEMO, DEMO2, REPO_DATASET
+from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, CHECKPOINT_DIR, DEMO, DEMO2, REPO_DATASET, LIU
 
-train_path = DEV
-test_path = TEST
+train_path = LIU
+test_path = LIU
 use_gpu = False
 batch_size = 2
 n_epochs = 1
@@ -37,6 +37,6 @@ model_full_name = train(train_path, test_path, n_epochs=n_epochs, normalization=
                         hidden_size_encoder=hidden_size_encoder, output_dim=output_dim, char_embedding_dim=char_embedding_dim,
                         hidden_size_sent_encoder=hidden_size_sent_encoder, hidden_size_decoder=hidden_size_decoder,
                         n_layers_word_encoder=n_layers_word_encoder,
-                        print_raw=False, debug=True, timing=False,
+                        print_raw=True, debug=False, timing=False,
                         dir_sent_encoder=2,
                         checkpointing=True)
