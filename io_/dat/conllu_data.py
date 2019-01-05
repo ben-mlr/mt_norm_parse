@@ -4,13 +4,16 @@ import os
 import pdb
 from .constants import MAX_CHAR_LENGTH, NUM_CHAR_PAD, PAD_CHAR, PAD_POS, PAD_TYPE, ROOT_CHAR, ROOT_POS,\
   ROOT_TYPE, END_CHAR, END_POS, END_TYPE, _START_VOCAB, ROOT, PAD_ID_WORD, PAD_ID_CHAR, PAD_ID_TAG, DIGIT_RE, CHAR_START_ID, CHAR_START, CHAR_END_ID
+from env.project_variables import SEED_NP, SEED_TORCH
 from .conllu_reader import CoNLLReader
 from .dictionary import Dictionary
 import numpy as np
-np.random.seed(123)
+
+
+np.random.seed(SEED_NP)
 import torch
 import os
-torch.manual_seed(123)
+torch.manual_seed(SEED_TORCH)
 from torch.autograd import Variable
 from io_.info_print import printing
 
@@ -392,14 +395,14 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
   # to select a bucket. Length of [scale[i], scale[i+1]] is proportional to
   # the size if i-th training bucket, as used later.
   buckets_scale = [sum(bucket_sizes[:i + 1]) / total_size for i in range(len(bucket_sizes))]
-
   # Choose a bucket according to data distribution. We pick a random number
   # in [0, 1] and use the corresponding interval in train_buckets_scale.
   random_number = np.random.random_sample()
   bucket_id = min([i for i in range(len(buckets_scale)) if buckets_scale[i] > random_number])
   bucket_length = _buckets[bucket_id]
 
-  words, chars, chars_norm, pos, xpos, heads, types, masks, single, lengths, order_inputs, _, _ = data_variable[bucket_id]
+  words, chars, chars_norm, pos, xpos, heads, types, masks, single, lengths, order_inputs, raw, _ = data_variable[bucket_id]
+  #printin(raw)
   bucket_size = bucket_sizes[bucket_id]
   #print("INFO : BUCKET SIZE {}  BATCH SIZE {} (in conllu_data)".format(bucket_size, batch_size))
 

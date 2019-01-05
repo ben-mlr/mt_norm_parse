@@ -1,8 +1,10 @@
-import sys 
+import sys
+from collections import Iterable, Sequence
 VERBOSE_1_LOG_EVERY_x_BATCH = 25
 DEBUG = False
 
-from collections import Iterable, Sequence
+
+
 def printing(message, verbose, verbose_level,var=None):
     verbose_level = 0 if DEBUG else verbose_level
     if verbose >= verbose_level:

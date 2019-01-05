@@ -16,7 +16,6 @@ from toolbox.sanity_check import get_timing
 import time
 import re
 import pdb
-
 from collections import OrderedDict
 
 #DEV = True

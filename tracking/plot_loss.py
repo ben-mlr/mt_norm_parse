@@ -31,7 +31,7 @@ def simple_plot(final_loss, loss_ls, loss_2=None, epochs=None, V=None, seq_len=N
     dir_fig = os.path.join(dir, "{}-{}-plo-seq.png".format(prefix, "last", V, lr, seq_len))
     if save:
         plt.savefig(dir_fig)
-        printing("Loss of the test saved to {} ".format(dir_fig), verbose=verbose, verbose_level=verbose_level)
+        printing("Learning curve saved at {} ", var= (dir_fig), verbose=verbose, verbose_level=verbose_level)
 
     if show:
         print("Not Showing loss")

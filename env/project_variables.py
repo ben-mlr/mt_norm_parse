@@ -1,7 +1,12 @@
 import os
 
+# SEEDS
+SEED_NP = 123+1
+SEED_TORCH = 123
+
 # ENVIRONMENT VARIABLES
 PROJECT_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
+
 
 # MODELS
 # checkpoint dir if not checkpoint_dir as defined in args.json not found

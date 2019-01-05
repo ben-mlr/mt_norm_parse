@@ -11,11 +11,12 @@ import pdb
 from toolbox.checkpointing import checkpoint
 import os
 from io_.info_print import disable_tqdm_level, printing
-from env.project_variables import PROJECT_PATH, REPO_DATASET
+from env.project_variables import PROJECT_PATH, REPO_DATASET, SEED_TORCH
 import time
 from toolbox.gpu_related import use_gpu_
 from toolbox.sanity_check import get_timing
 from collections import OrderedDict
+torch.manual_seed(SEED_TORCH)
 
 
 def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
@@ -116,6 +117,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
     #  adam = adam.cuda()
     _loss_dev = 1000
     _loss_train = 1000
+    counter_no_deacrease = 0
+    saved_epoch = 1
 
     printing("Running from {} to {} epochs : training on {} evaluating on {}", var=(starting_epoch, n_epochs, train_path, dev_path), verbose=verbose, verbose_level=0)
     starting_time = time.time()
@@ -129,17 +132,18 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                                         normalization=normalization,
                                                         add_start_char=add_start_char, add_end_char=add_end_char)
     data_read_dev = conllu_data.read_data_to_variable(dev_path, model.word_dictionary, model.char_dictionary,
-                                                       model.pos_dictionary,
-                                                       model.xpos_dictionary, model.type_dictionary,
-                                                       use_gpu=use_gpu, symbolic_root=False,
-                                                       symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,
-                                                       normalization=normalization,
-                                                       add_start_char=add_start_char, add_end_char=add_end_char)
+                                                      model.pos_dictionary,
+                                                      model.xpos_dictionary, model.type_dictionary,
+                                                      use_gpu=use_gpu, symbolic_root=False,
+                                                      symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,
+                                                      normalization=normalization,
+                                                      add_start_char=add_start_char, add_end_char=add_end_char)
 
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
 
         printing("Starting new epoch {} ", var=(epoch), verbose=verbose, verbose_level=1)
         model.train()
+        print("BATCH", batch_size)
         batchIter = data_gen_conllu(data_read_train,
                                     model.word_dictionary, model.char_dictionary, model.pos_dictionary, model.xpos_dictionary, model.type_dictionary,
                                     add_start_char=add_start_char,
@@ -156,6 +160,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                log_every_x_batch=100)
         _train_ep_time, start = get_timing(start)
         model.eval()
+        # TODO : should be added in the freq_checkpointing orhterwise useless
         batchIter_eval = data_gen_conllu(data_read_dev,
                                          model.word_dictionary, model.char_dictionary, model.pos_dictionary,
                                          model.xpos_dictionary, model.type_dictionary,
@@ -187,13 +192,24 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                    lr=lr, prefix=model.model_full_name,
                                    show=False)
 
-            model, _loss_train = checkpoint(loss_former=_loss_dev, loss=loss_dev, model=model, model_dir=model.dir_model,
-                                            info_checkpoint={"n_epochs": n_epochs, "batch_size": batch_size,
-                                                           "train_data_path": train_path, "dev_data_path": dev_path,
-                                                           "other": {"error_curves": dir_plot, 
-                                                           "time_training(min)":"{0:.2f}".format(total_time/60), "average_per_epoch(min)":"{0:.2f}".format((total_time/n_epochs)/60)}},
-                                            epoch=epoch, epochs=n_epochs,
-                                            verbose=verbose)
+            model, _loss_dev, counter_no_deacrease, saved_epoch = \
+                  checkpoint(loss_saved =_loss_dev, loss=loss_dev, model=model,
+                             counter_no_decrease=counter_no_deacrease, saved_epoch=saved_epoch,
+                             model_dir= model.dir_model,
+                             info_checkpoint={"n_epochs": n_epochs, "batch_size": batch_size,
+                                              "train_data_path": train_path, "dev_data_path": dev_path,
+                                               "other": {"error_curves": dir_plot,"loss":_loss_dev,
+                                                          "data": "dev","seed(np/torch)":(SEED_TORCH, SEED_TORCH),
+                                                          "time_training(min)": "{0:.2f}".format(total_time/60),
+                                                          "average_per_epoch(min)": "{0:.2f}".format((total_time/n_epochs)/60)}},
+                             epoch=epoch, epochs=n_epochs,
+                             verbose=verbose)
+            if counter_no_deacrease >= 10:
+                assert freq_checkpointing == 1, "ERROR : to implement"
+                printing("BREAKING : loss did not decrease on dev for 10 checkpoints "
+                         "so keeping model from {} epoch  ".format(saved_epoch),
+                         verbose=verbose, verbose_level=0)
+                break
 
         printing("LOSS train {:.3f}, dev {:.3f} for epoch {} out of {} epochs ", var=(loss_train, loss_dev,
                                                                                        epoch, n_epochs),

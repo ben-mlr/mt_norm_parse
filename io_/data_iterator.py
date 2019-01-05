@@ -39,6 +39,8 @@ def data_gen_conllu(data, word_dictionary, char_dictionary, pos_dictionary,
         word, char, chars_norm, _, _, _, _, _, lenght, _ = conllu_data.get_batch_variable(data, batch_size=batch_size,
                                                                                           normalization=normalization,
                                                                                           unk_replace=0)
+        if char.size(0)<=1:
+            print("char----> ", char)
         #if min(lenght.data) < 3:
         #    print("MIN length.data ")
         #    continue
