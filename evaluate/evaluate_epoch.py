@@ -115,11 +115,11 @@ if use_old_code:
 
 
 def evaluate(dict_path, model_full_name, batch_size, data_path, write_report=True, dir_report=None,
-             model_specific_dictionary=True, label_report="",print_raw=False,
+             model_specific_dictionary=True, label_report="",print_raw=False, model=None,
              normalization=True, debug=False, force_new_dic=False, use_gpu=None, verbose=0):
 
     use_gpu = False #use_gpu_(use_gpu)
-
+    print("WARNING use_gpu forced to False ")
     if write_report:
         assert dir_report is not None
 
@@ -136,8 +136,8 @@ def evaluate(dict_path, model_full_name, batch_size, data_path, write_report=Tru
         voc_size = None
     if not debug:
         pdb.set_trace = lambda: 1
-
-    model = LexNormalizer(generator=Generator, load=True, model_full_name=model_full_name,
+    if model is None:
+        model = LexNormalizer(generator=Generator, load=True, model_full_name=model_full_name,
                           voc_size=voc_size, use_gpu=use_gpu, dict_path=dict_path,model_specific_dictionary=True,
                           dir_model=os.path.join(PROJECT_PATH, "checkpoints", model_full_name + "-folder"),
                           verbose=verbose)
@@ -158,40 +158,49 @@ def evaluate(dict_path, model_full_name, batch_size, data_path, write_report=Tru
     batch_decoding = True
 
     if batch_decoding:
+
         score_to_compute_ls = ["edit", "exact"]
+        mode_norm_ls = ["all", "NORMED", "NEED_NORM"]
         score_dic = greedy_decode_batch(char_dictionary=model.char_dictionary, verbose=verbose, gold_output=True,
                                         score_to_compute_ls=score_to_compute_ls,
-                                          stat="sum",
-                                          batchIter=batchIter, model=model, batch_size=batch_size)
+                                        stat="sum", mode_norm_score_ls=mode_norm_ls,
+                                        batchIter=batchIter, model=model,
+                                        batch_size=batch_size)
         print("-->", score_dic)
         # NB : each batch should have the same size !! same number of words : otherwise averaging is wrong
         try:
           for score in score_to_compute_ls:
-              print("MODEL Normalization {} score is {} in average out of {} tokens on evaluation based on {} "
-                    .format(score, score_dic[score]/score_dic[score+"total_tokens"], score_dic[score+"total_tokens"], data_path))
-        except ZeroDivisionError as e:
+              for mode_norm in mode_norm_ls:
+                  print("MODEL Normalization {} on normalization {} score is {} in average out of {} tokens on evaluation based on {} "
+                        .format(score, mode_norm,score_dic[score+"-"+mode_norm]/score_dic[score+"-"+mode_norm+"-total_tokens"], score_dic[score+"-"+mode_norm+"-total_tokens"], data_path))
+        except ZeroDivisionError as e :
           print("ERROR catched {} ".format(e))
-
+        scoring_count = 0
         for score in score_to_compute_ls:
-          report = report_template(metric_val=score, info_score_val="None",
-                                   score_val=score_dic[score]/score_dic[score+"total_tokens"],
-                                   model_full_name_val=model.model_full_name,
-                                   task="normalization",
-                                   report_path_val=model.arguments["checkpoint_dir"],
-                                   evaluation_script_val="normalization_"+score,
-                                   model_args_dir=model.args_dir,
-                                   data_val=data_path)
-          _dir_report = os.path.join(dir_report,
-                                    model.model_full_name+"-"+score+"-report-"+label_report+".json")
-          json.dump(report, open(_dir_report , "w"))
-          print("Report saved {} ".format(_dir_report ))
+            for mode_norm in mode_norm_ls:
+              scoring_count += 1
+              writing_mode = "w" if scoring_count == 1 else "a"
+              report = report_template(metric_val=score, info_score_val=mode_norm,
+                                       score_val=score_dic[score+"-"+mode_norm]/score_dic[score+"-"+mode_norm+"-total_tokens"],
+                                       model_full_name_val=model.model_full_name,
+                                       task="normalization",
+                                       report_path_val=model.arguments["checkpoint_dir"],
+                                       evaluation_script_val="normalization_"+score,
+                                       model_args_dir=model.args_dir,
+                                       data_val=data_path)
+              _dir_report = os.path.join(dir_report, model.model_full_name+"-"+score+"-"+mode_norm+"-report-"+label_report+".json")
+              over_all_report_dir = os.path.join(dir_report, model.model_full_name+"-report-"+label_report+".json")
+              json.dump(report, open(_dir_report, "w"))
+              json.dump(report, open(over_all_report_dir, writing_mode))
+              print("Report saved {} ".format(_dir_report))
+        print("Overall Report saved {} ".format(over_all_report_dir))
 
 
-if __name__=="__main__":
-    evaluate(model_full_name="comparison_ablation-big2_b8a1", data_path=TEST,
-             dict_path="../checkpoints/comparison_ablation-big2_b8a1-folder/dictionaries",
+if __name__ == "__main__":
+    evaluate(model_full_name="761f-TEST-model_1_6c01", data_path=DEMO,
+             dict_path="../checkpoints/761f-TEST-model_1_6c01-folder/dictionaries",
              label_report="test",
-             normalization=True, model_specific_dictionary=True, batch_size=2,
+             normalization=True, model_specific_dictionary=True, batch_size=50,
              dir_report="../checkpoints/comparison_ablation-big2_b8a1-folder", verbose=1)
 
 

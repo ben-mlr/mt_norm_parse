@@ -63,7 +63,7 @@ class LexNormalizer(nn.Module):
         super(LexNormalizer, self).__init__()
         # initialize dictionaries
         self.timing = timing
-        self.word_dictionary, self.char_dictionary, self.pos_dictionary, self.xpos_dictionary, self.type_dictionary = None, None, None, None, None
+        self.dict_path, self.word_dictionary, self.char_dictionary, self.pos_dictionary, self.xpos_dictionary, self.type_dictionary = None, None, None, None, None, None
         # new model : we create an id , and a saving directory for the model (checkpoints, reporting, arguments)
         if not load:
             printing("Defining new model ", verbose=verbose, verbose_level=0)
@@ -93,6 +93,7 @@ class LexNormalizer(nn.Module):
                     "ERROR voc_size will be defined with the new dictionary , dict_path should be None"
                 dict_path = os.path.join(dir_model, "dictionaries")
                 os.mkdir(dict_path)
+                self.dict_path = dict_path
                 print("INFO making dict_path {} ".format(dict_path))
             else:
                 assert train_path is None and dev_path is None and add_start_char is None

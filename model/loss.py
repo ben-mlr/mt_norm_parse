@@ -50,16 +50,16 @@ class LossCompute:
         # define loss_distance as --> Cross-entropy
 
         if self.opt is not None:
-
             loss.backward()
             loss_backwrd_time, start = get_timing(start)
             printing("Optimizing", self.verbose, verbose_level=3)
             self.opt.step()
             step_opt_time, start = get_timing(start)
             self.opt.zero_grad()
+            # TODO : should it be before ?
             zerp_gradtime, start = get_timing(start)
         else:
-            printing("WARNING no optimization : is backward required here ? (loss.py) ", verbose=self.verbose, verbose_level=0)
+            printing("WARNING no optimization : is backward required here ? (loss.py) ", verbose=self.verbose, verbose_level=3)
         if self.timing:
             print("run loss timing : {} ".format(OrderedDict([("loss_distance_time", loss_distance_time),
                                                              ("reshaping",reshaping), ("generate_time", generate_time),

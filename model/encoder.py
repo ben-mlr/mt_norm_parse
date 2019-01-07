@@ -6,6 +6,7 @@ from io_.info_print import printing
 import time
 import pdb
 
+
 class CharEncoder(nn.Module):
 
     def __init__(self, char_embedding, input_dim, hidden_size_encoder, hidden_size_sent_encoder,

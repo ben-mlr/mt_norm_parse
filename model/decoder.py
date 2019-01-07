@@ -60,8 +60,7 @@ class CharDecoder(nn.Module):
         output, h_n = self.seq_decoder(packed_char_vecs_output, conditioning)
         recurrent_cell, start = get_timing(start)
         printing("TARGET ENCODED {} output {} h_n (output (includes all the hidden states of last layers), "
-                 "last hidden hidden for each dir+layers)", var=(output, h_n), verbose=self.verbose,
-                 verbose_level=5)
+                 "last hidden hidden for each dir+layers)", var=(output, h_n), verbose=self.verbose, verbose_level=5)
         printing("TARGET ENCODED  SIZE {} output {} h_n (output (includes all the hidden states of last layers), "
                  "last hidden hidden for each dir+layers)", var=(output.data.shape, h_n.size()), verbose=self.verbose, verbose_level=3)
         output, output_sizes = pad_packed_sequence(output, batch_first=True)

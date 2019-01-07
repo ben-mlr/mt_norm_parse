@@ -16,9 +16,10 @@ import time
 from toolbox.gpu_related import use_gpu_
 from toolbox.sanity_check import get_timing
 from collections import OrderedDict
+from evaluate.evaluate_epoch import evaluate
 torch.manual_seed(SEED_TORCH)
 
-
+  
 def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           batch_size=10,
           label_train="", label_dev="",
@@ -74,7 +75,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                               add_start_char=add_start_char, verbose=1)
 
         voc_size = len(char_dictionary.instance2index)+1
-        printing("char_dictionary", var=(char_dictionary.instance2index), verbose=verbose, verbose_level=0)
+        printing("char_dictionary {} ", var=str(char_dictionary.instance2index), verbose=verbose, verbose_level=0)
         printing("Character vocabulary is {} length", var=(len(char_dictionary.instance2index)+1), verbose=verbose,
                  verbose_level=0)
         _train_path, _dev_path, _add_start_char = None, None, None
@@ -143,7 +144,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
 
         printing("Starting new epoch {} ", var=(epoch), verbose=verbose, verbose_level=1)
         model.train()
-        print("BATCH", batch_size)
         batchIter = data_gen_conllu(data_read_train,
                                     model.word_dictionary, model.char_dictionary, model.pos_dictionary, model.xpos_dictionary, model.type_dictionary,
                                     add_start_char=add_start_char,
@@ -180,6 +180,26 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
         time_per_epoch = time.time() - starting_time
         total_time += time_per_epoch
         starting_time = time.time()
+
+        # computing exact/edit score
+        exact_edit_eval = 1
+        if exact_edit_eval:
+            print("STARTING EVALUATION EXACT/EDICT")
+            for eval_data in [train_path, dev_path]:
+                eval_label = REPO_DATASET[eval_data]
+                # TODO : clean what you padd as argument and add assertion : you should not be reloading anything : everything in memorty
+                # TODO : output score to a list
+                #   plot it (1 plot wit overall metric, second with 2 details )
+                #   add frequence
+                evaluate(model_full_name=model.model_full_name, data_path=eval_data,
+                         dict_path=model.dict_path, use_gpu=use_gpu,
+                         label_report=eval_label,model=model,
+                         normalization=True, print_raw=False,
+                         model_specific_dictionary=True,
+                         batch_size=batch_size,
+                         dir_report=model.dir_model,
+                         verbose=1)
+
         # WARNING : only saving if we decrease not loading former model if we relaod
         if (checkpointing and epoch % freq_checkpointing == 0) or (epoch+1 == n_epochs):
             print("epochs ,", epoch, loss_training)
@@ -193,13 +213,13 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                    show=False)
 
             model, _loss_dev, counter_no_deacrease, saved_epoch = \
-                  checkpoint(loss_saved =_loss_dev, loss=loss_dev, model=model,
+                    checkpoint(loss_saved =_loss_dev, loss=loss_dev, model=model,
                              counter_no_decrease=counter_no_deacrease, saved_epoch=saved_epoch,
                              model_dir= model.dir_model,
-                             info_checkpoint={"n_epochs": n_epochs, "batch_size": batch_size,
+                             info_checkpoint={"n_epochs": epoch, "batch_size": batch_size,
                                               "train_data_path": train_path, "dev_data_path": dev_path,
-                                               "other": {"error_curves": dir_plot,"loss":_loss_dev,
-                                                          "data": "dev","seed(np/torch)":(SEED_TORCH, SEED_TORCH),
+                                               "other": {"error_curves": dir_plot, "loss":_loss_dev,
+                                                          "data":"dev","seed(np/torch)":(SEED_TORCH, SEED_TORCH),
                                                           "time_training(min)": "{0:.2f}".format(total_time/60),
                                                           "average_per_epoch(min)": "{0:.2f}".format((total_time/n_epochs)/60)}},
                              epoch=epoch, epochs=n_epochs,

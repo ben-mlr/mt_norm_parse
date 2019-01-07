@@ -3,11 +3,16 @@ from io_.info_print import printing
 import os
 from evaluate.evaluate_epoch import evaluate
 from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, CHECKPOINT_DIR, DEMO, DEMO2, REPO_DATASET, LIU
+from uuid import uuid4
+
 
 
 def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,
                warmup=False, args={},use_gpu=None,freq_checkpointing=1,
                verbose=0):
+
+
+
     hidden_size_encoder = args.get("hidden_size_encoder", 10)
     output_dim = args.get("output_dim",10)
     char_embedding_dim = args.get("char_embedding_dim",10)
@@ -37,11 +42,11 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,
                             print_raw=False, debug=False,
                             checkpointing=True)
 
-
     model_dir = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder")
     dict_path = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder", "dictionaries")
     printing("START EVALUATION ", verbose_level=0, verbose=verbose)
-    for eval_data, eval_label in zip([train_path, dev_path], ["owputi_train", "lexnorm_test"]):
+    for eval_data in [dev_path, train_path] :
+            eval_label = REPO_DATASET[eval_data]
             evaluate(model_full_name=model_full_name, data_path=eval_data,
                      dict_path=dict_path,use_gpu=use_gpu,
                      label_report=eval_label,
@@ -50,83 +55,48 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,
                      batch_size=batch_size,
                      dir_report=model_dir, verbose=1)
 
-
 if __name__ == "__main__":
 
-      train_path = DEMO
-      dev_path = DEMO
+      train_path = LIU
+      dev_path = DEV
       params = []
 
-      model_id_pref_list = ["big_batch-no_dropout-bi-dir", "big_batch-no_dropout-bi-dir"]
-      params.append({"hidden_size_encoder": 50, "output_dim": 100, "char_embedding_dim": 100,
-                     "dropout_sent_encoder": 0., "dropout_word_encoder" : 0., "dropout_word_decoder": 0.,
-                     "n_layers_word_encoder": 1, "dir_sent_encoder": 2,
-                     "hidden_size_sent_encoder": 50, "hidden_size_decoder": 100, "batch_size": 50})
+      model_id_pref_list = ["50batch-bi-dir-no_dropout", "50b-unidir-no_dropout"]
+
+      if False:
+        params.append({"hidden_size_encoder": 50, "output_dim": 100, "char_embedding_dim": 100,
+                       "dropout_sent_encoder": 0., "dropout_word_encoder": 0., "dropout_word_decoder": 0.,
+                       "n_layers_word_encoder": 1, "dir_sent_encoder": 2,
+                       "hidden_size_sent_encoder": 50, "hidden_size_decoder": 100, "batch_size": 2})
+        
+        params.append({"hidden_size_encoder": 50, "output_dim": 100, "char_embedding_dim": 100,
+                       "dropout_sent_encoder": 0., "dropout_word_encoder": 0., "dropout_word_decoder": 0.,
+                       "n_layers_word_encoder": 1, "dir_sent_encoder": 2,
+                       "hidden_size_sent_encoder": 50, "hidden_size_decoder": 100, "batch_size": 10})
+        
       params.append({"hidden_size_encoder": 50, "output_dim": 100, "char_embedding_dim": 100,
                      "dropout_sent_encoder": 0., "dropout_word_encoder": 0., "dropout_word_decoder": 0.,
-                     "n_layers_word_encoder": 2, "dir_sent_encoder": 2,
+                     "n_layers_word_encoder": 1, "dir_sent_encoder": 2,
                      "hidden_size_sent_encoder": 50, "hidden_size_decoder": 100, "batch_size": 50})
-      if False:
-          model_id_pref_list.append("0_5_dropout-bi-dir")
-          model_id_pref_list.append("0_5_dropout-bi-dir")
 
-          params.append({"hidden_size_encoder": 50, "output_dim": 100, "char_embedding_dim": 100,
-                         "dropout_sent_encoder": 0., "dropout_word_encoder": 0.5, "dropout_word_decoder": 0.,
-                         "n_layers_word_encoder": 2, "dir_sent_encoder":2,
-                         "hidden_size_sent_encoder": 50, "hidden_size_decoder": 100, "batch_size": 2})
-          params.append({"hidden_size_encoder": 50, "output_dim": 100, "char_embedding_dim": 100,
-                         "dropout_sent_encoder": 0., "dropout_word_encoder": 0.5, "dropout_word_decoder": 0.,
-                         "n_layers_word_encoder": 2, "dir_sent_encoder":2,
-                         "hidden_size_sent_encoder": 50, "hidden_size_decoder": 100, "batch_size": 10})
-
-          model_id_pref_list.append("comparison_ablation_3-0_8_dropout")
-          model_id_pref_list.append("comparison_ablation_3-0_8_dropout")
-
-          params.append({"hidden_size_encoder": 125, "output_dim": 300, "char_embedding_dim": 300,
-                         "dropout_sent_encoder": 0., "dropout_word_encoder": 0.8, "dropout_word_decoder": 0.,
-                         "n_layers_word_encoder": 2,
-                         "hidden_size_sent_encoder": 250, "hidden_size_decoder": 300, "batch_size": 2})
-          params.append({"hidden_size_encoder": 125, "output_dim": 300, "char_embedding_dim": 300,
-                         "dropout_sent_encoder": 0., "dropout_word_encoder": 0.8, "dropout_word_decoder": 0.,
-                         "n_layers_word_encoder": 2,
-                         "hidden_size_sent_encoder": 250, "hidden_size_decoder": 300, "batch_size": 10})
-
-          model_id_pref_list.append("comparison_ablation_3-0_2_dropout")
-          model_id_pref_list.append("comparison_ablation_3-0_2_dropout")
-          params.append({"hidden_size_encoder": 250, "output_dim": 300, "char_embedding_dim": 300,
-                         "dropout_sent_encoder": 0., "dropout_word_encoder": 0.2, "dropout_word_decoder": 0.,
-                         "n_layers_word_encoder": 2,
-                         "hidden_size_sent_encoder": 250, "hidden_size_decoder": 300, "batch_size": 2})
-          params.append({"hidden_size_encoder": 250, "output_dim": 300, "char_embedding_dim": 300,
-                         "dropout_sent_encoder": 0., "dropout_word_encoder": 0.2, "dropout_word_decoder": 0.,
-                         "n_layers_word_encoder": 2,
-                         "hidden_size_sent_encoder": 250, "hidden_size_decoder": 300, "batch_size": 10})
-
-          params.append({"hidden_size_encoder": 250, "output_dim": 300, "char_embedding_dim": 300,
-                         "dropout_sent_encoder": 0., "dropout_word_encoder" : 0., "dropout_word_decoder": 0.,
-                         "n_layers_word_encoder": 1,
-                         "hidden_size_sent_encoder": 250, "hidden_size_decoder": 300, "batch_size": 2})
-          params.append({"hidden_size_encoder": 250, "output_dim": 300, "char_embedding_dim": 300,
-                         "dropout_sent_encoder": 0., "dropout_word_encoder" : 0., "dropout_word_decoder": 0.,
-                         "n_layers_word_encoder":1,
-                         "hidden_size_sent_encoder": 250, "hidden_size_decoder": 300, "batch_size": 10})
+      params.append({"hidden_size_encoder": 50, "output_dim": 100, "char_embedding_dim": 100,
+                     "dropout_sent_encoder": 0., "dropout_word_encoder": 0., "dropout_word_decoder": 0.,
+                     "n_layers_word_encoder": 1, "dir_sent_encoder": 1,
+                     "hidden_size_sent_encoder": 50, "hidden_size_decoder": 100, "batch_size": 50})
       i = 0
+      RUN_ID = str(uuid4())[0:4]
+
       for param, model_id_pref in zip(params, model_id_pref_list):
           i += 1
           param["batch_size"] = 2
-          model_id_pref = "TEST"#"ABLATION_8-"+model_id_pref
-          epochs = 5
-          #train_path, test_path = DEMO2, DEMO2
+          model_id_pref = "TEST"
+          printing("Adding RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
+          epochs = 1
+          #param["batch_size"] = 50
+          train_path, dev_path = DEMO2, DEMO2
+          model_id_pref = RUN_ID + "-" + model_id_pref + "-model_"+str(i)
           print("STARTING MODEL {} with param {} ".format(model_id_pref, param))
-          train_eval(train_path, dev_path, model_id_pref, warmup=False, args=param, use_gpu=False, n_epochs=epochs)
+          train_eval(train_path, dev_path, model_id_pref, warmup=False, args=param, use_gpu=None, n_epochs=epochs)
           print("DONE MODEL {} with param {} ".format(model_id_pref, param))
-          break
-          
-
-
-# seed 1  0.03669047619047619, 0.03669047619047619 , 0.0 :
-# seed 2
-#  seed 3 : 0.05816326530612244 , 0.05816326530612244  now modifing only SEED_TORCH that goes to generator : 0.05816326530612244, now NP seed : 0.008432539682539682 it does
 
 # CCL want to have a specific seed : when work --> reproduce with several seed
-#
