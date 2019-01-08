@@ -12,11 +12,12 @@ from env.project_variables import SUPPORED_WORD_ENCODER
 
 class CharDecoder(nn.Module):
     def __init__(self, char_embedding, input_dim, hidden_size_decoder, word_recurrent_cell=None,
-                 drop_out_word_cell=0,timing=False,
+                 drop_out_word_cell=0,timing=False, drop_out_char_embedding_decoder=0,
                  verbose=0):
         super(CharDecoder, self).__init__()
         self.timing = timing
         self.char_embedding_decoder = char_embedding
+        self.drop_out_char_embedding_decoder = nn.Dropout(drop_out_char_embedding_decoder)
         if word_recurrent_cell is not None:
             assert word_recurrent_cell in SUPPORED_WORD_ENCODER, \
                 "ERROR : word_recurrent_cell should be in {} ".format(SUPPORED_WORD_ENCODER)
@@ -48,6 +49,7 @@ class CharDecoder(nn.Module):
         # output : [ ]
         start = time.time() if self.timing else None
         char_vecs = self.char_embedding_decoder(output)
+        char_vecs = self.drop_out_char_embedding_decoder(char_vecs)
         char_embedding, start = get_timing(start)
 
         printing("TARGET EMBEDDING size {} ", var=char_vecs.size(), verbose=self.verbose, verbose_level=3) #if False else None

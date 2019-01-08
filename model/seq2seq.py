@@ -36,7 +36,7 @@ class LexNormalizer(nn.Module):
                  n_layers_word_encoder=1,
                  hidden_size_decoder=None, voc_size=None, model_id_pref="", model_name="",
                  drop_out_sent_encoder_cell=0., drop_out_word_encoder_cell=0., drop_out_word_decoder_cell=0.,
-                 drop_out_bridge=0, drop_out_sent_encoder_out=0, drop_out_word_encoder_out=0,
+                 drop_out_bridge=0, drop_out_sent_encoder_out=0, drop_out_word_encoder_out=0,drop_out_char_embedding_decoder=0,
                  dir_sent_encoder=1,word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,
                  dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
@@ -132,13 +132,14 @@ class LexNormalizer(nn.Module):
                                                    "n_layers_word_encoder": n_layers_word_encoder,
                                                    "attention": "No", "dir_word": "uni",
                                                    "dir_sent_encoder": dir_sent_encoder,
-                                                   "drop_out_sent_encoder_out":drop_out_sent_encoder_out,
+                                                   "drop_out_sent_encoder_out": drop_out_sent_encoder_out,
                                                    "drop_out_word_encoder_out": drop_out_word_encoder_out,
                                                    "dropout_word_encoder_cell": drop_out_word_decoder_cell,
                                                    "dropout_sent_encoder_cell": drop_out_sent_encoder_cell,
                                                    "dir_sent": "uni"},
                                   "decoder_arch": {"cell_word": word_recurrent_cell_decoder, "cell_sentence": "none",
                                                    "attention": "No", "dir_word": "uni",
+                                                   "drop_out_char_embedding_decoder": drop_out_char_embedding_decoder,
                                                    "drop_out_word_decoder_cell": drop_out_word_decoder_cell,
                                                    "dir_sent": "uni"},
                                   "hidden_size_encoder": hidden_size_encoder,
@@ -167,7 +168,7 @@ class LexNormalizer(nn.Module):
             char_embedding_dim, output_dim, hidden_size_encoder,hidden_size_sent_encoder, drop_out_sent_encoder_cell, \
             drop_out_word_encoder_cell, drop_out_sent_encoder_out, drop_out_word_encoder_out, \
             n_layers_word_encoder, dir_sent_encoder, word_recurrent_cell_encoder, \
-            hidden_size_decoder,  word_recurrent_cell_decoder, drop_out_word_decoder_cell = get_args(args)
+            hidden_size_decoder,  word_recurrent_cell_decoder, drop_out_word_decoder_cell, drop_out_char_embedding_decoder = get_args(args)
 
 
             if False:
@@ -202,6 +203,7 @@ class LexNormalizer(nn.Module):
         self.dropout_bridge = nn.Dropout(p=drop_out_bridge)
         self.decoder = CharDecoder(self.char_embedding, input_dim=char_embedding_dim,
                                    hidden_size_decoder=hidden_size_decoder,timing=timing,
+                                   drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
                                    drop_out_word_cell=drop_out_word_decoder_cell, word_recurrent_cell=word_recurrent_cell_decoder,
                                    verbose=verbose)
         self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size,

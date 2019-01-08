@@ -30,7 +30,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,
 
     word_recurrent_cell_encoder = args.get("word_recurrent_cell_encoder", "GRU")
     word_recurrent_cell_decoder = args.get("word_recurrent_cell_decoder", "GRU")
-
+    drop_out_char_embedding_decoder = args.get("drop_out_char_embedding_decoder", 0)
     n_epochs = 1 if warmup else n_epochs
 
     if warmup:
@@ -45,16 +45,16 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,
                             dropout_word_decoder_cell=dropout_word_decoder,
                             label_train=REPO_DATASET[train_path], label_dev=REPO_DATASET[dev_path],
                             word_recurrent_cell_encoder=word_recurrent_cell_encoder, word_recurrent_cell_decoder=word_recurrent_cell_decoder,
-                            drop_out_sent_encoder_out=drop_out_sent_encoder_out,
+                            drop_out_sent_encoder_out=drop_out_sent_encoder_out,drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
                             drop_out_word_encoder_out=drop_out_word_encoder_out, dropout_bridge=dropout_bridge,
                             freq_checkpointing=freq_checkpointing, reload=False, model_id_pref=model_id_pref,
                             score_to_compute_ls=["edit", "exact"], mode_norm_ls=["all", "NEED_NORM", "NORMED"],
                             hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,char_embedding_dim=char_embedding_dim,
                             hidden_size_sent_encoder=hidden_size_sent_encoder, hidden_size_decoder=hidden_size_decoder,
-                            n_layers_word_encoder=n_layers_word_encoder, compute_scoring_curve=True,
+                            n_layers_word_encoder=n_layers_word_encoder, compute_scoring_curve=True,verbose=verbose, 
                             print_raw=False, debug=False,
                             checkpointing=True)
-    evaluate_again = True
+    evaluate_again = False
     model_dir = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder")
 
     if evaluate_again:
@@ -69,7 +69,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,
                        normalization=True,print_raw=False,
                        model_specific_dictionary=True,
                        batch_size=batch_size,
-                       dir_report=model_dir, verbose=1)
+                       dir_report=model_dir, verbose=0)
     return model_full_name, model_dir
 
 if __name__ == "__main__":
@@ -113,28 +113,30 @@ if __name__ == "__main__":
       if ABLATION_DROPOUT:
           params = [params_baseline]
           labels = ["baseline"]
-          for add_dropout_encoder in [0,0.5,1]:
+          for add_dropout_encoder in [0,0.2,0.5,0.8]:
               param = params_baseline.copy()
               param["drop_out_sent_encoder_out"] = add_dropout_encoder
-              param["drop_out_word_encoder_out"] = 1-add_dropout_encoder
-              label = str(add_dropout_encoder)+"-to_sent_encoder"
+              param["drop_out_word_encoder_out"] = add_dropout_encoder
+              param["dropout_bridge"] = add_dropout_encoder
+              param["drop_out_char_embedding_decoder"] = add_dropout_encoder
+              label = str(add_dropout_encoder)+"-to_all"
               params.append(param)
               labels.append(label)
 
       for param, model_id_pref in zip(params, labels):
           i += 1
           #param["batch_size"] = 2
-          model_id_pref = "TEST-"+model_id_pref
+          #model_id_pref = "TEST-"+model_id_pref
           printing("Adding RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 2
+          epochs = 50
           #param["batch_size"] = 50
-          train_path, dev_path = DEMO2, DEMO
-          model_id_pref = RUN_ID + "-" + model_id_pref + "-model_"+str(i)
+          #train_path, dev_path = DEMO2, DEMO
+          model_id_pref = RUN_ID + "-DROPOUT_word-vs-sent-" + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref, warmup=False, args=param, use_gpu=None, n_epochs=epochs)
           run_dir = os.path.join(CHECKPOINT_DIR, RUN_ID+"-run-log")
-          #open(run_dir, "a").write("model : {} done in {} \n ".format(model_full_name, model_dir))
-          #print("Log RUN is : {} to see model list ".format(run_dir))
+          open(run_dir, "a").write("model : {} done in {} \n ".format(model_full_name, model_dir))
+          print("Log RUN is : {} to see model list ".format(run_dir))
           print("GRID RUN : DONE MODEL {} with param {} ".format(model_id_pref, param))
 
 # CCL want to have a specific seed : when work --> reproduce with several seed
