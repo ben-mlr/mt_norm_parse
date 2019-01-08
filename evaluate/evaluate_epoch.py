@@ -114,33 +114,30 @@ if use_old_code:
                   write_dic(report_path, report_generation_script, dir_performance_json, metric, "None", model.model_full_name, test_path, 0)
 
 
-def evaluate(dict_path, model_full_name, batch_size, data_path, write_report=True, dir_report=None,
-             model_specific_dictionary=True, label_report="",print_raw=False, model=None,
+def evaluate(batch_size, data_path, write_report=True, dir_report=None,
+             dict_path=None, model_full_name=None,
+             model_specific_dictionary=True, label_report="", print_raw=False, model=None,
              normalization=True, debug=False, force_new_dic=False, use_gpu=None, verbose=0):
-
+    # NB : now : you have to load dictionary when evaluating (cannot recompute) (could add in the LexNormalizer ability)
     use_gpu = False #use_gpu_(use_gpu)
     print("WARNING use_gpu forced to False ")
     if write_report:
         assert dir_report is not None
-
-    if not model_specific_dictionary:
-        word_dictionary, char_dictionary, pos_dictionary, \
-        xpos_dictionary, type_dictionary = \
-            conllu_data.load_dict(dict_path=dict_path,
-                                  train_path=train_path,force_new_dic=force_new_dic,
-                                  dev_path=dev_path, test_path=None, word_embed_dict={},
-                                  dry_run=False, vocab_trim=True,
-                                  add_start_char=add_start_char, verbose=1)
-        voc_size = len(char_dictionary.instance2index) + 1
+    if model is not None:
+        assert model_full_name is None and dict_path is None, \
+            "ERROR as model is provided : model_full_name and dict_path should be None"
     else:
-        voc_size = None
+        assert model_full_name is not None and dict_path is not None,\
+            "ERROR : model_full_name and dict_path required to load model "
+    voc_size = None
     if not debug:
         pdb.set_trace = lambda: 1
-    if model is None:
-        model = LexNormalizer(generator=Generator, load=True, model_full_name=model_full_name,
-                          voc_size=voc_size, use_gpu=use_gpu, dict_path=dict_path,model_specific_dictionary=True,
-                          dir_model=os.path.join(PROJECT_PATH, "checkpoints", model_full_name + "-folder"),
-                          verbose=verbose)
+
+    model = LexNormalizer(generator=Generator, load=True, model_full_name=model_full_name,
+                  voc_size=voc_size, use_gpu=use_gpu, dict_path=dict_path, model_specific_dictionary=True,
+                  dir_model=os.path.join(PROJECT_PATH, "checkpoints", model_full_name + "-folder"),
+                  verbose=verbose
+                  ) if model is None else model
     data_read = conllu_data.read_data_to_variable(data_path, model.word_dictionary, model.char_dictionary,
                                                         model.pos_dictionary,
                                                         model.xpos_dictionary, model.type_dictionary,
@@ -154,6 +151,7 @@ def evaluate(dict_path, model_full_name, batch_size, data_path, write_report=Tru
                                 add_end_char=1,
                                 normalization=normalization,
                                 print_raw=print_raw,  verbose=verbose)
+
     model.eval()
     batch_decoding = True
 

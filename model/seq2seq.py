@@ -50,7 +50,8 @@ class LexNormalizer(nn.Module):
         :param model_id_pref: will model_full_name prefix
         :param model_name: model name (will come after id in the naming)
         :param dict_path:
-        :param model_specific_dictionary: if True will compute or load a dictionary and add it as attributes of the model
+        :param model_specific_dictionary: if True will compute (if new model) or load (if load) a dictionary
+        and add it as attributes of the model
         :param train_path: training data path needed to compute the dictionary if model_specific_dictionary
         :param dev_path: dev data path
         :param add_start_char: add or not start symbol for computing the dictionary

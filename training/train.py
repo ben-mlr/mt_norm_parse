@@ -191,8 +191,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                 # TODO : output score to a list
                 #   plot it (1 plot wit overall metric, second with 2 details )
                 #   add frequence
-                evaluate(model_full_name=model.model_full_name, data_path=eval_data,
-                         dict_path=model.dict_path, use_gpu=use_gpu,
+                evaluate(data_path=eval_data,
+                         use_gpu=use_gpu,
                          label_report=eval_label,model=model,
                          normalization=True, print_raw=False,
                          model_specific_dictionary=True,
@@ -237,7 +237,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                  verbose_level=1)
 
         if timing:
-            print("Summaru : {}".format(OrderedDict([("_train_ep_time", _train_ep_time),("_create_iter_time", _create_iter_time), ("_eval_time",_eval_time) ])))
+            print("Summary : {}".format(OrderedDict([("_train_ep_time", _train_ep_time),("_create_iter_time", _create_iter_time), ("_eval_time",_eval_time) ])))
 
     #model.save(model_dir, model, info_checkpoint={"n_epochs": n_epochs, "batch_size": batch_size,
     #                                             "train_data_path": train_path, "dev_data_path": dev_path,
