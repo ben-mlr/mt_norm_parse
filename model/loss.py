@@ -15,7 +15,7 @@ class LossCompute:
         self.generator = generator
         self.loss_distance = nn.CrossEntropyLoss(reduce=True, ignore_index=pad)
         if use_gpu:
-            printing("Setting loss_distance to GPU mode", verbose=verbose, verbose_level=0)
+            printing("Setting loss_distance to GPU mode", verbose=verbose, verbose_level=3)
             self.loss_distance = self.loss_distance.cuda()
         self.opt = opt
         self.use_gpu=use_gpu

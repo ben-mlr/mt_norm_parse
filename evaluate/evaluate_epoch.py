@@ -25,14 +25,13 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
              model_specific_dictionary=True, label_report="", print_raw=False, model=None,
              normalization=True, debug=False, force_new_dic=False, use_gpu=None, verbose=0):
     # NB : now : you have to load dictionary when evaluating (cannot recompute) (could add in the LexNormalizer ability)
-    use_gpu = False #use_gpu_(use_gpu)
-    print("WARNING use_gpu forced to False ")
+    use_gpu = use_gpu_(use_gpu)
+    #print("WARNING use_gpu forced to False ")
     if score_to_compute_ls is None:
         score_to_compute_ls = ["edit", "exact"]
     if mode_norm_ls is None:
         mode_norm_ls = ["all", "NORMED", "NEED_NORM"]
-    printing("Evaluating {} metric ",var=[score_to_compute_ls], verbose=verbose, verbose_level=0)
-    printing("Evaluating with {} details ", var=[mode_norm_ls], verbose=verbose, verbose_level=0)
+    printing("EVALUATION : Evaluating {} metric with details {}  ",var=[score_to_compute_ls, mode_norm_ls], verbose=verbose, verbose_level=3)
     if write_report:
         assert dir_report is not None
     if model is not None:
@@ -68,7 +67,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
     model.eval()
 
     score_dic = greedy_decode_batch(char_dictionary=model.char_dictionary, verbose=verbose, gold_output=True,
-                                    score_to_compute_ls=score_to_compute_ls,
+                                    score_to_compute_ls=score_to_compute_ls,use_gpu=use_gpu,
                                     stat="sum", mode_norm_score_ls=mode_norm_ls,
                                     batchIter=batchIter, model=model,
                                     batch_size=batch_size)

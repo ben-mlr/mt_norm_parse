@@ -5,13 +5,13 @@ from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 from io_.info_print import printing
 import time
 import pdb
-
-
+from env.project_variables import SUPPORED_WORD_ENCODER
 class CharEncoder(nn.Module):
 
     def __init__(self, char_embedding, input_dim, hidden_size_encoder, hidden_size_sent_encoder,
-                 word_recurrent_cell=None, dropout_sent_cell=0, dropout_word_cell=0,
-                 n_layers_word_cell=1,timing=False,bidir_sent=True,
+                 word_recurrent_cell=None, dropout_sent_encoder_cell=0, dropout_word_encoder_cell=0,
+                 n_layers_word_cell=1, timing=False, bidir_sent=True,
+                 drop_out_word_encoder_out=0, drop_out_sent_encoder_out=0,
                  verbose=2):
         super(CharEncoder, self).__init__()
         self.char_embedding_ = char_embedding
@@ -19,14 +19,20 @@ class CharEncoder(nn.Module):
         self.sent_encoder = nn.LSTM(input_size=hidden_size_encoder*n_layers_word_cell,
                                     hidden_size=hidden_size_sent_encoder,
                                     num_layers=1, bias=True, batch_first=True,
-                                    dropout=dropout_sent_cell,
+                                    dropout=dropout_word_encoder_cell,
                                     bidirectional=bidir_sent)
+        self.drop_out_word_encoder_out = nn.Dropout(drop_out_word_encoder_out)
+        self.drop_out_sent_encoder_out = nn.Dropout(drop_out_sent_encoder_out)
         self.verbose = verbose
-        word_recurrent_cell = nn.GRU if word_recurrent_cell is None else nn.GRU
+        if word_recurrent_cell is not None:
+            assert word_recurrent_cell in SUPPORED_WORD_ENCODER, \
+                "ERROR : word_recurrent_cell should be in {} ".format(SUPPORED_WORD_ENCODER)
+        word_recurrent_cell = nn.GRU if word_recurrent_cell is None else eval("nn."+word_recurrent_cell)
+        self.word_recurrent_cell = word_recurrent_cell
         printing("MODEL Encoder : word_recurrent_cell has been set to {} ", var=([str(word_recurrent_cell)]),
                  verbose=verbose, verbose_level=0)
         self.seq_encoder = word_recurrent_cell(input_size=input_dim, hidden_size=hidden_size_encoder,
-                                               dropout=dropout_word_cell,
+                                               dropout=dropout_sent_encoder_cell,
                                                num_layers=n_layers_word_cell, #nonlinearity='tanh',
                                                bias=True, batch_first=True, bidirectional=False)
 
@@ -57,10 +63,12 @@ class CharEncoder(nn.Module):
         # all sequence encoding [batch, max seq_len, n_dir x encoding dim] ,
         # last complete hidden state: [dir*n_layer, batch, dim encoding dim]
         output, h_n = self.seq_encoder(packed_char_vecs)
+        # see if you really want that
+        h_n = h_n[0] if isinstance(self.seq_encoder, nn.LSTM) else h_n
         # TODO add attention out of the output (or maybe output the all output and define attention later)
         printing("SOURCE ENCODED all {}  , hidden {}  (output (includes all the "
                  "hidden states of last layers), last hidden hidden for each dir+layers)", var=(output.data.shape,
-                                                                                                 h_n.size()),
+                                                                                                h_n.size()),
                  verbose=self.verbose, verbose_level=3)
         output, _ = pad_packed_sequence(output, batch_first=True)
         # output : [batch, max word len, dim hidden_size_encoder]
@@ -118,6 +126,8 @@ class CharEncoder(nn.Module):
         printing("SOURCE sentence encoder output dim sent : {} ", var=(sent_encoded.size()),
                  verbose=verbose, verbose_level=3)
         # concatanate
+        sent_encoded = self.drop_out_sent_encoder_out(sent_encoded)
+        h_w = self.drop_out_word_encoder_out(h_w)
         source_context_word_vector = torch.cat((sent_encoded, h_w), dim=2)
         pdb.set_trace()
         source_context_word_vector = source_context_word_vector.view(1, source_context_word_vector.size(0)*source_context_word_vector.size(1), -1)

@@ -27,7 +27,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           label_train="", label_dev="",
           use_gpu=None,
           n_layers_word_encoder=1,
-          dropout_sent_encoder=0, dropout_word_encoder=0, dropout_word_decoder=0,
+          dropout_sent_encoder_cell=0, dropout_word_encoder_cell=0, dropout_word_decoder_cell=0,
+          dropout_bridge=0, drop_out_word_encoder_out=0, drop_out_sent_encoder_out=0,
+          word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,
           hidden_size_encoder=None, output_dim=None, char_embedding_dim=None,
           hidden_size_decoder=None, hidden_size_sent_encoder=None,freq_scoring=5,
           compute_scoring_curve=False, score_to_compute_ls=None, mode_norm_ls=None,
@@ -46,7 +48,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
     printing("{} mode ", var=([hardware_choosen]), verbose_level=0, verbose=verbose)
     freq_checkpointing = int(n_epochs/10) if checkpointing and freq_checkpointing is None else freq_checkpointing
     assert add_start_char == 1, "ERROR : add_start_char must be activated due decoding behavior of output_text_"
-    printing("Warning : add_start_char is {} and add_end_char {}  ".format(add_start_char, add_end_char), verbose=verbose, verbose_level=0)
+    printing("WARNING : add_start_char is {} and add_end_char {}  ".format(add_start_char, add_end_char), verbose=verbose, verbose_level=0)
 
     if reload:
         assert model_full_name is not None and len(model_id_pref) == 0 and model_dir is not None and dict_path is not None
@@ -81,9 +83,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                               add_start_char=add_start_char, verbose=1)
 
         voc_size = len(char_dictionary.instance2index)+1
-        printing("char_dictionary {} ", var=str(char_dictionary.instance2index), verbose=verbose, verbose_level=0)
-        printing("Character vocabulary is {} length", var=(len(char_dictionary.instance2index)+1), verbose=verbose,
-                 verbose_level=0)
+        printing("DICTIONARY ; character vocabulary is len {} : {} ", var=str(len(char_dictionary.instance2index)+1,char_dictionary.instance2index),
+         verbose=verbose, verbose_level=0)
         _train_path, _dev_path, _add_start_char = None, None, None
     else:
         voc_size = None
@@ -97,10 +98,12 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
     model = LexNormalizer(generator=Generator, load=reload,
                           char_embedding_dim=char_embedding_dim, voc_size=voc_size,
                           dir_model=model_dir, use_gpu=use_gpu,dict_path=dict_path,
+                          word_recurrent_cell_decoder=word_recurrent_cell_decoder, word_recurrent_cell_encoder=word_recurrent_cell_encoder,
                           train_path=_train_path, dev_path=_dev_path, add_start_char=_add_start_char,
                           model_specific_dictionary=model_specific_dictionary,
-                          dropout_sent_encoder=dropout_sent_encoder, dropout_word_encoder=dropout_word_encoder,
-                          dropout_word_decoder=dropout_word_decoder,
+                          drop_out_sent_encoder_cell=dropout_sent_encoder_cell, drop_out_word_encoder_cell=dropout_word_encoder_cell,
+                          drop_out_word_decoder_cell=dropout_word_decoder_cell, drop_out_bridge=dropout_bridge,
+                          drop_out_word_encoder_out=drop_out_word_encoder_out, drop_out_sent_encoder_out=drop_out_sent_encoder_out,
                           n_layers_word_encoder=n_layers_word_encoder,dir_sent_encoder=dir_sent_encoder,
                           hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,
                           model_id_pref=model_id_pref, model_full_name=model_full_name,
@@ -108,7 +111,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
     if use_gpu:
         model = model.cuda()
-        printing("TYPE model is cuda : {} ", var=(next(model.parameters()).is_cuda), verbose=verbose, verbose_level=0)
+        printing("TYPE model is cuda : {} ", var=(next(model.parameters()).is_cuda), verbose=verbose, verbose_level=4)
     if not model_specific_dictionary:
         model.word_dictionary, model.char_dictionary, model.pos_dictionary, \
         model.xpos_dictionary, model.type_dictionary = word_dictionary, char_dictionary, pos_dictionary, \
@@ -127,7 +130,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
     counter_no_deacrease = 0
     saved_epoch = 1
 
-    printing("Running from {} to {} epochs : training on {} evaluating on {}", var=(starting_epoch, n_epochs, train_path, dev_path), verbose=verbose, verbose_level=0)
+    printing("GENERAL : Running from {} to {} epochs : training on {} evaluating on {}", var=(starting_epoch, n_epochs, train_path, dev_path), verbose=verbose, verbose_level=0)
     starting_time = time.time()
     total_time = 0
     x_axis_epochs = []
@@ -149,7 +152,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
 
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
 
-        printing("Starting new epoch {} ", var=(epoch), verbose=verbose, verbose_level=1)
+        printing("TRAINING : Starting {} epoch out of {} ", var=(epoch+1, n_epochs), verbose= verbose, verbose_level=1)
+
         model.train()
         batchIter = data_gen_conllu(data_read_train,
                                     model.word_dictionary, model.char_dictionary, model.pos_dictionary, model.xpos_dictionary, model.type_dictionary,
@@ -175,7 +179,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                          add_end_char=add_end_char,use_gpu=use_gpu,
                                          normalization=normalization,
                                          verbose=verbose)
-        printing("Starting evaluation ", verbose=verbose, verbose_level=1)
+        printing("EVALUATION : computing loss on dev ", verbose=verbose, verbose_level=1)
         _create_iter_time, start = get_timing(start)
         loss_dev = run_epoch(batchIter_eval, model, LossCompute(model.generator, use_gpu=use_gpu,verbose=verbose),
                              i_epoch=epoch, n_epochs=n_epochs,
@@ -190,7 +194,10 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
 
         # computing exact/edit score
         if compute_scoring_curve and ((epoch % freq_scoring == 0) or (epoch+1 == n_epochs)):
+            if (epoch+1 == n_epochs):
+              printing("EVALUATION : final scoring ", verbose, verbose_level=0)
             x_axis_epochs.append(epoch)
+            printing("EVALUATION : Computing score on {} and {}  ", var=(score_to_compute_ls,mode_norm_ls), verbose=verbose, verbose_level=1)
             for eval_data in evaluation_set_reporting:
                 eval_label = REPO_DATASET[eval_data]
                 assert len(set(evaluation_set_reporting))==len(evaluation_set_reporting),\
@@ -241,7 +248,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                              verbose=verbose)
             if counter_no_deacrease >= 10:
                 assert freq_checkpointing == 1, "ERROR : to implement"
-                printing("BREAKING : loss did not decrease on dev for 10 checkpoints "
+                printing("CHECKPOINTING : Breaking training : loss did not decrease on dev for 10 checkpoints "
                          "so keeping model from {} epoch  ".format(saved_epoch),
                          verbose=verbose, verbose_level=0)
                 break

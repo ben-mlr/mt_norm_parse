@@ -16,6 +16,7 @@ from toolbox.sanity_check import get_timing
 import time
 import re
 import pdb
+from toolbox.checkpointing import get_args
 from collections import OrderedDict
 
 #DEV = True
@@ -34,8 +35,9 @@ class LexNormalizer(nn.Module):
                  hidden_size_sent_encoder=None,
                  n_layers_word_encoder=1,
                  hidden_size_decoder=None, voc_size=None, model_id_pref="", model_name="",
-                 dropout_sent_encoder=0., dropout_word_encoder=0., dropout_word_decoder=0.,
-                 dir_sent_encoder=1,
+                 drop_out_sent_encoder_cell=0., drop_out_word_encoder_cell=0., drop_out_word_decoder_cell=0.,
+                 drop_out_bridge=0, drop_out_sent_encoder_out=0, drop_out_word_encoder_out=0,
+                 dir_sent_encoder=1,word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,
                  dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
@@ -81,7 +83,7 @@ class LexNormalizer(nn.Module):
             self.args_dir = None
             dir_model = os.path.join(PROJECT_PATH, "checkpoints", "{}-folder".format(model_full_name))
             os.mkdir(dir_model)
-            printing("Dir {} created", var=(dir_model), verbose=verbose, verbose_level=0)
+            printing("Dir {} created", var=([dir_model]), verbose=verbose, verbose_level=0)
             git_commit_id = get_commit_id()
             # create dictionary
         # we create/load model specific dictionary
@@ -103,13 +105,18 @@ class LexNormalizer(nn.Module):
                 assert os.path.isdir(dict_path), "ERROR : dict_path {} does not exist".format(dict_path)
 
             self.word_dictionary, self.char_dictionary, \
-            self.pos_dictionary, self.xpos_dictionary, self.type_dictionary = \
+            self.pos_dictionary, self.xpos_dictionary, self.type_dictionary =\
                 conllu_data.load_dict(dict_path=dict_path,
-                          train_path=train_path, dev_path=dev_path, test_path=None,
-                          word_embed_dict={}, dry_run=False, vocab_trim=True,
-                          add_start_char=add_start_char, verbose=1)
+                                      train_path=train_path,
+                                      dev_path=dev_path,
+                                      test_path=None,
+                                      word_embed_dict={},
+                                      dry_run=False,
+                                      vocab_trim=True,
+                                      add_start_char=add_start_char,
+                                      verbose=1)
             voc_size = len(self.char_dictionary.instance2index) + 1
-            printing("char_dictionary {} ", var=(self.char_dictionary.instance2index), verbose=verbose, verbose_level=1)
+            printing("char_dictionary {} ", var=([self.char_dictionary.instance2index]), verbose=verbose, verbose_level=1)
             printing("Character vocabulary is {} length", var=(len(self.char_dictionary.instance2index) + 1),
                      verbose=verbose, verbose_level=0)
 
@@ -121,16 +128,18 @@ class LexNormalizer(nn.Module):
                               "hyperparameters": {
                                   "n_trainable_parameters": None,
                                   "char_embedding_dim": char_embedding_dim,
-                                  "encoder_arch": {"cell_word": "GRU", "cell_sentence": "GRU",
-                                                   "n_layers_word_encoder":n_layers_word_encoder,
+                                  "encoder_arch": {"cell_word": word_recurrent_cell_encoder, "cell_sentence": "LSTM",
+                                                   "n_layers_word_encoder": n_layers_word_encoder,
                                                    "attention": "No", "dir_word": "uni",
-                                                   "dir_sent_encoder":dir_sent_encoder,
-                                                   "dropout_word_encoder":dropout_word_decoder,
-                                                   "dropout_sent_encoder":dropout_sent_encoder,
+                                                   "dir_sent_encoder": dir_sent_encoder,
+                                                   "drop_out_sent_encoder_out":drop_out_sent_encoder_out,
+                                                   "drop_out_word_encoder_out": drop_out_word_encoder_out,
+                                                   "dropout_word_encoder_cell": drop_out_word_decoder_cell,
+                                                   "dropout_sent_encoder_cell": drop_out_sent_encoder_cell,
                                                    "dir_sent": "uni"},
-                                  "decoder_arch": {"cell_word": "GRU", "cell_sentence": "GRU",
+                                  "decoder_arch": {"cell_word": word_recurrent_cell_decoder, "cell_sentence": "none",
                                                    "attention": "No", "dir_word": "uni",
-                                                   "dropout_word_decoder": dropout_word_decoder,
+                                                   "drop_out_word_decoder_cell": drop_out_word_decoder_cell,
                                                    "dir_sent": "uni"},
                                   "hidden_size_encoder": hidden_size_encoder,
                                   "hidden_size_sent_encoder": hidden_size_sent_encoder,
@@ -154,17 +163,27 @@ class LexNormalizer(nn.Module):
             assert args["voc_size"] == voc_size, "ERROR : voc_size loaded and voc_size " \
                                                  "redefined in dictionnaries do not " \
                                                  "match {} vs {} ".format(args["voc_size"], voc_size)
-            char_embedding_dim, hidden_size_encoder, \
-            hidden_size_decoder, voc_size, output_dim, hidden_size_sent_encoder, \
-             dropout_sent_encoder, dropout_word_encoder, dropout_word_decoder, n_layers_word_encoder, \
-                    dir_sent_encoder = \
-                args["char_embedding_dim"], args["hidden_size_encoder"], \
-                    args["hidden_size_decoder"], args["voc_size"], \
-                        args.get("output_dim"), args.get("hidden_size_sent_encoder"), \
-                                args["encoder_arch"].get("dropout_sent_encoder"), \
-                args["encoder_arch"].get("dropout_word_encoder"), args["decoder_arch"].get("dropout_word_decoder"), \
-                    args["encoder_arch"].get("n_layers_word_encoder"), args["encoder_arch"].get("dir_sent_encoder")
 
+            char_embedding_dim, output_dim, hidden_size_encoder,hidden_size_sent_encoder, drop_out_sent_encoder_cell, \
+            drop_out_word_encoder_cell, drop_out_sent_encoder_out, drop_out_word_encoder_out, \
+            n_layers_word_encoder, dir_sent_encoder, word_recurrent_cell_encoder, \
+            hidden_size_decoder,  word_recurrent_cell_decoder, drop_out_word_decoder_cell = get_args(args)
+
+
+            if False:
+
+                char_embedding_dim, hidden_size_encoder, \
+                hidden_size_decoder, voc_size, output_dim, hidden_size_sent_encoder, \
+                 dropout_sent_encoder, dropout_word_encoder, dropout_word_decoder, n_layers_word_encoder, \
+                        dir_sent_encoder, word_recurrent_cell_encoder, word_recurrent_cell_decoder = \
+                    args["char_embedding_dim"], args["hidden_size_encoder"], \
+                        args["hidden_size_decoder"], args["voc_size"], \
+                            args.get("output_dim"), args.get("hidden_size_sent_encoder"), \
+                                    args["encoder_arch"].get("dropout_sent_encoder"), \
+                    args["encoder_arch"].get("dropout_word_encoder"), args["decoder_arch"].get("dropout_word_decoder"), \
+                        args["encoder_arch"].get("n_layers_word_encoder"), args["encoder_arch"].get("dir_sent_encoder"), \
+                    args["encoder_arch"].get("cell_word", None), args["decoder_arch"].get("cell_word", None)
+            printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
 
         self.dir_model = dir_model
@@ -174,14 +193,16 @@ class LexNormalizer(nn.Module):
         # 1 shared character embedding layer
         self.char_embedding = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
         self.encoder = CharEncoder(self.char_embedding, input_dim=char_embedding_dim,
-                                   hidden_size_encoder=hidden_size_encoder,
-                                   dropout_sent_cell=dropout_sent_encoder, dropout_word_cell=dropout_word_encoder,
+                                   hidden_size_encoder=hidden_size_encoder, word_recurrent_cell=word_recurrent_cell_encoder,
+                                   drop_out_sent_encoder_out=drop_out_sent_encoder_out, drop_out_word_encoder_out=drop_out_word_encoder_out,
+                                   dropout_sent_encoder_cell=drop_out_sent_encoder_cell, dropout_word_encoder_cell=drop_out_word_encoder_cell,
                                    hidden_size_sent_encoder=hidden_size_sent_encoder,bidir_sent=dir_sent_encoder-1,
                                    n_layers_word_cell=n_layers_word_encoder,timing=timing,
                                    verbose=verbose)
+        self.dropout_bridge = nn.Dropout(p=drop_out_bridge)
         self.decoder = CharDecoder(self.char_embedding, input_dim=char_embedding_dim,
                                    hidden_size_decoder=hidden_size_decoder,timing=timing,
-                                   dropout_word_cell=dropout_word_decoder,
+                                   drop_out_word_cell=drop_out_word_decoder_cell, word_recurrent_cell=word_recurrent_cell_decoder,
                                    verbose=verbose)
         self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size,
                                    output_dim=output_dim, verbose=verbose)
@@ -208,7 +229,9 @@ class LexNormalizer(nn.Module):
         source_encoder, start = get_timing(start)
         # [] [batch, , hiden_size_decoder]
         pdb.set_trace()
+
         h = self.bridge(h)
+        h = self.dropout_bridge(h)
         pdb.set_trace()
         bridge, start = get_timing(start)
         printing("TYPE  encoder {} is cuda ", var=h.is_cuda, verbose=0, verbose_level=4)
@@ -243,7 +266,7 @@ class LexNormalizer(nn.Module):
         # the arguments dir does not change !
         arguments_dir = os.path.join(dir,  model.model_full_name + "-" + "args.json")
         model.args_dir = arguments_dir
-        printing("Warning : overwriting checkpoint {} ", var=(checkpoint_dir), verbose=verbose, verbose_level=0)
+        printing("WARNING : overwriting checkpoint {} ", var=(checkpoint_dir), verbose=verbose, verbose_level=0)
 
         if os.path.isfile(arguments_dir):
             printing("Overwriting argument file (checkpoint dir updated with {}  ) ", var=(checkpoint_dir),

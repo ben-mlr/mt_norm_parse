@@ -18,11 +18,14 @@ def _init_metric_report(score_to_compute_ls, mode_norm_score_ls):
 
 def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                         gold_output=False, score_to_compute_ls=None, stat=None,
-                        mode_norm_score_ls=["all"],
+                        use_gpu=False,
+                        mode_norm_score_ls=None,
                         verbose=0):
 
         score_dic = _init_metric_report(score_to_compute_ls, mode_norm_score_ls)
-        assert len(set(mode_norm_score_ls)&set(["all", "NEED_NORM", "NORMED"]))>0
+        if mode_norm_score_ls is None:
+            mode_norm_score_ls = ["all"]
+        assert len(set(mode_norm_score_ls) & set(["all", "NEED_NORM", "NORMED"])) >0
         with torch.no_grad():
             for step, batch in enumerate(batchIter):
                 # read src sequence
@@ -40,6 +43,7 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                                                                                  char_dictionary=char_dictionary,
                                                                                  single_sequence=False,
                                                                                  target_seq_gold=target_gold,
+                                                                                 use_gpu=use_gpu,
                                                                                  max_len=max_len, src_seq=src_seq,
                                                                                  src_mask=src_mask,src_len=src_len,
                                                                                  batch_size=batch_size, pad=pad,
@@ -71,6 +75,7 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
 
 def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                     batch_size, pad=1, target_seq_gold=None,
+                    use_gpu=False,
                     single_sequence=False, verbose=2):
 
     output_seq = pad*np.ones(src_seq.size(), dtype=np.int64)
@@ -81,7 +86,8 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
 
     output_mask = np.ones(src_mask.size(), dtype=np.int64)
     output_mask[:, :, 1:] = 0
-    output_len = Variable(torch.from_numpy(np.ones((src_seq.size(0), src_seq.size(1), 1), dtype=np.int64)), requires_grad=False)
+    output_len = Variable(torch.from_numpy(np.ones((src_seq.size(0), src_seq.size(1), 1), dtype=np.int64)),
+                          requires_grad=False)
 
     output_mask = Variable(torch.from_numpy(output_mask), requires_grad=False)
     output_seq = Variable(torch.from_numpy(output_seq), requires_grad=False)
@@ -89,6 +95,11 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
 
     printing("Data Start ", var=(output_seq, output_len, output_mask), verbose=verbose, verbose_level=6)
     for step, char_decode in enumerate(range(2,  max_len)):
+        if use_gpu:
+            src_seq = src_seq.cuda()
+            output_seq = output_seq.cuda()
+            src_len = src_len.cuda()
+            output_len = output_len.cuda()
         decoding_states = model.forward(input_seq=src_seq,
                                         output_seq=output_seq,
                                         input_word_len=src_len,

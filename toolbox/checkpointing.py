@@ -31,3 +31,17 @@ def update_curve_dic(score_to_compute_ls, mode_norm_ls, eval_data, scores, forme
             former_curve_scores[score + "-" + mode + "-" + eval_data].append(
                 scores[score + "-" + mode] / scores[score + "-" + mode + "-total_tokens"])
     return former_curve_scores
+
+
+def get_args(args, dropout_loading_strict=True, verbose=0):
+    default_dropout = None if dropout_loading_strict else 0
+    if dropout_loading_strict:
+        printing("WARNING : errors might come from misloading of dropout ", verbose=verbose, verbose_level=0)
+    return args["char_embedding_dim"], args["output_dim"], args["hidden_size_encoder"], args[
+        "hidden_size_sent_encoder"], args["encoder_arch"].get("dropout_sent_encoder_cell", default_dropout), args["encoder_arch"].get(
+        "dropout_word_encoder_cell", default_dropout), args["encoder_arch"].get("drop_out_sent_encoder_out", default_dropout), args[
+               "encoder_arch"].get("drop_out_word_encoder_out", default_dropout), \
+           args["encoder_arch"].get("n_layers_word_encoder"), args["encoder_arch"].get("dir_sent_encoder"), args[
+               "encoder_arch"].get("cell_word", None), \
+           args["hidden_size_decoder"], args["decoder_arch"].get("cell_word", None), args["decoder_arch"].get(
+        "drop_out_word_decoder_cell", default_dropout)

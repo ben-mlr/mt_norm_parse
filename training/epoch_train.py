@@ -17,7 +17,6 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
     tokens = 0
     i_epoch = -1 if i_epoch is None else i_epoch
     n_epochs = -1 if n_epochs is None else n_epochs
-    printing("Starting {} epoch out of {} ", var=(i_epoch+1, n_epochs), verbose= verbose, verbose_level=1)
     batch_time_start = time.time()
     for i, batch in enumerate(data_iter):
         batch_time_, batch_time_start = get_timing(batch_time_start)

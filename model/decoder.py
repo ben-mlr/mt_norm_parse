@@ -7,18 +7,29 @@ import pdb
 import time
 from toolbox.sanity_check import get_timing
 from collections import OrderedDict
+from env.project_variables import SUPPORED_WORD_ENCODER
+
 
 class CharDecoder(nn.Module):
     def __init__(self, char_embedding, input_dim, hidden_size_decoder, word_recurrent_cell=None,
-                 dropout_word_cell=0,timing=False,
+                 drop_out_word_cell=0,timing=False,
                  verbose=0):
         super(CharDecoder, self).__init__()
         self.timing = timing
         self.char_embedding_decoder = char_embedding
-        word_recurrent_cell = nn.GRU if word_recurrent_cell is None else nn.GRU
+        if word_recurrent_cell is not None:
+            assert word_recurrent_cell in SUPPORED_WORD_ENCODER, \
+                "ERROR : word_recurrent_cell should be in {} ".format(SUPPORED_WORD_ENCODER)
+        word_recurrent_cell = nn.GRU if word_recurrent_cell is None else eval("nn."+word_recurrent_cell)
+        if isinstance(word_recurrent_cell, nn.LSTM):
+            printing("WARNING : in the case of LSTM : inital states defined as "
+                     " h_0, c_0 = (zero tensor, source_conditioning) so far (cf. row 70 decoder.py) ",
+                     verbose=self.verbose, verbose_level=0)
+            printing("WARNING : LSTM only using h_0 for prediction not the  cell", verbose=self.verbose, verbose_level=0)
+
         self.seq_decoder = word_recurrent_cell(input_size=input_dim, hidden_size=hidden_size_decoder,
                                                num_layers=1,  # nonlinearity='tanh',
-                                               dropout=dropout_word_cell,
+                                               dropout=drop_out_word_cell,
                                                bias=True, batch_first=True, bidirectional=False)
         printing("MODEL Decoder : word_recurrent_cell has been set to {} ".format(str(word_recurrent_cell)),
                  verbose=verbose, verbose_level=0)
@@ -57,7 +68,11 @@ class CharDecoder(nn.Module):
         printing("TARGET packed_char_vecs {}  dim", var=packed_char_vecs_output.data.shape, verbose=self.verbose,
                  verbose_level=3)  # .size(), packed_char_vecs)
         # conditioning is the output of the encoder (work as the first initial state of the decoder)
+        if isinstance(self.seq_decoder, nn.LSTM):
+            conditioning = (torch.zeros_like(conditioning), conditioning)
+
         output, h_n = self.seq_decoder(packed_char_vecs_output, conditioning)
+        h_n = h_n[0] if isinstance(self.seq_decoder, nn.LSTM) else h_n
         recurrent_cell, start = get_timing(start)
         printing("TARGET ENCODED {} output {} h_n (output (includes all the hidden states of last layers), "
                  "last hidden hidden for each dir+layers)", var=(output, h_n), verbose=self.verbose, verbose_level=5)
