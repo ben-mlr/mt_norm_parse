@@ -272,6 +272,6 @@ class LexNormalizer(nn.Module):
             assert match.group(1) is not None, "ERROR : no match found in {}".format(args_checkpoint)
             args_checkpoint = os.path.join(CHECKPOINT_DIR, match.group(1))
         assert os.path.isfile(args_checkpoint), "ERROR {} does not exits".format(args_checkpoint)
-        printing("Checkpoint dir is {} ", var=(args_checkpoint), verbose=verbose, verbose_level=1)
+        printing("Checkpoint dir is {} ", var=([args_checkpoint]), verbose=verbose, verbose_level=1)
         return args, args_checkpoint, args_dir
 

@@ -21,3 +21,13 @@ def checkpoint(loss_saved , loss, model, model_dir, epoch, epochs, info_checkpoi
                  var=(saved_epoch, counter_no_decrease), verbose=verbose, verbose_level=1)
 
     return model, loss_saved , counter_no_decrease, saved_epoch
+
+
+def update_curve_dic(score_to_compute_ls, mode_norm_ls, eval_data, scores, former_curve_scores):
+    for mode in mode_norm_ls:
+        for score in score_to_compute_ls:
+            # adding count
+            former_curve_scores[mode + "-" + eval_data] = scores[score + "-" + mode + "-total_tokens"]
+            former_curve_scores[score + "-" + mode + "-" + eval_data].append(
+                scores[score + "-" + mode] / scores[score + "-" + mode + "-total_tokens"])
+    return former_curve_scores

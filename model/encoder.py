@@ -23,7 +23,7 @@ class CharEncoder(nn.Module):
                                     bidirectional=bidir_sent)
         self.verbose = verbose
         word_recurrent_cell = nn.GRU if word_recurrent_cell is None else nn.GRU
-        printing("MODEL Encoder : word_recurrent_cell has been set to {} ", var=(str(word_recurrent_cell)),
+        printing("MODEL Encoder : word_recurrent_cell has been set to {} ", var=([str(word_recurrent_cell)]),
                  verbose=verbose, verbose_level=0)
         self.seq_encoder = word_recurrent_cell(input_size=input_dim, hidden_size=hidden_size_encoder,
                                                dropout=dropout_word_cell,

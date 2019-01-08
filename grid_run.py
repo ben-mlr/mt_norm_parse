@@ -14,13 +14,13 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,
 
 
     hidden_size_encoder = args.get("hidden_size_encoder", 10)
-    output_dim = args.get("output_dim",10)
+    output_dim = args.get("output_dim", 10)
     char_embedding_dim = args.get("char_embedding_dim",10)
     hidden_size_sent_encoder = args.get("hidden_size_sent_encoder", 10)
     hidden_size_decoder = args.get("hidden_size_decoder", 10)
     batch_size = args.get("batch_size", 2)
     dropout_sent_encoder, dropout_word_encoder, dropout_word_decoder = args.get("dropout_sent_encoder",0), \
-    args.get("dropout_word_encoder",0), args.get("dropout_word_decoder",0)
+    args.get("dropout_word_encoder", 0), args.get("dropout_word_decoder",0)
     n_layers_word_encoder = args.get("n_layers_word_encoder",1)
     dir_sent_encoder = args.get("dir_sent_encoder", 1)
 
@@ -36,9 +36,10 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,
                             dropout_sent_encoder=dropout_sent_encoder, dropout_word_encoder=dropout_word_encoder, dropout_word_decoder=dropout_word_decoder,
                             label_train=REPO_DATASET[train_path], label_dev=REPO_DATASET[dev_path],
                             freq_checkpointing=freq_checkpointing, reload=False, model_id_pref=model_id_pref,
+                            score_to_compute_ls=["edit", "exact"], mode_norm_ls=["all", "NEED_NORM", "NORMED"],
                             hidden_size_encoder=hidden_size_encoder, output_dim=output_dim, char_embedding_dim=char_embedding_dim,
                             hidden_size_sent_encoder=hidden_size_sent_encoder, hidden_size_decoder=hidden_size_decoder,
-                            n_layers_word_encoder=n_layers_word_encoder,
+                            n_layers_word_encoder=n_layers_word_encoder, compute_scoring_curve=True,
                             print_raw=False, debug=False,
                             checkpointing=True)
 
@@ -50,6 +51,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,
             evaluate(model_full_name=model_full_name, data_path=eval_data,
                      dict_path=dict_path,use_gpu=use_gpu,
                      label_report=eval_label,
+                     score_to_compute_ls=["edit", "exact"], mode_norm_ls=["all", "NEED_NORM", "NORMED"],
                      normalization=True,print_raw=False,
                      model_specific_dictionary=True,
                      batch_size=batch_size,
@@ -91,12 +93,12 @@ if __name__ == "__main__":
           param["batch_size"] = 2
           model_id_pref = "TEST"
           printing("Adding RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 1
+          epochs = 15
           #param["batch_size"] = 50
-          train_path, dev_path = DEMO2, DEMO2
+          train_path, dev_path = DEMO2, DEMO
           model_id_pref = RUN_ID + "-" + model_id_pref + "-model_"+str(i)
           print("STARTING MODEL {} with param {} ".format(model_id_pref, param))
           train_eval(train_path, dev_path, model_id_pref, warmup=False, args=param, use_gpu=None, n_epochs=epochs)
           print("DONE MODEL {} with param {} ".format(model_id_pref, param))
-
+          break
 # CCL want to have a specific seed : when work --> reproduce with several seed

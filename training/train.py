@@ -8,7 +8,7 @@ from tracking.plot_loss import simple_plot
 import torch
 from tqdm import tqdm
 import pdb
-from toolbox.checkpointing import checkpoint
+from toolbox.checkpointing import checkpoint, update_curve_dic
 import os
 from io_.info_print import disable_tqdm_level, printing
 from env.project_variables import PROJECT_PATH, REPO_DATASET, SEED_TORCH
@@ -16,6 +16,8 @@ import time
 from toolbox.gpu_related import use_gpu_
 from toolbox.sanity_check import get_timing
 from collections import OrderedDict
+from tracking.plot_loss import simple_plot_ls
+
 from evaluate.evaluate_epoch import evaluate
 torch.manual_seed(SEED_TORCH)
 
@@ -27,7 +29,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           n_layers_word_encoder=1,
           dropout_sent_encoder=0, dropout_word_encoder=0, dropout_word_decoder=0,
           hidden_size_encoder=None, output_dim=None, char_embedding_dim=None,
-          hidden_size_decoder=None, hidden_size_sent_encoder=None,
+          hidden_size_decoder=None, hidden_size_sent_encoder=None,freq_scoring=5,
+          compute_scoring_curve=False, score_to_compute_ls=None, mode_norm_ls=None,
           checkpointing=True, freq_checkpointing=None, model_dir=None,
           reload=False, model_full_name=None, model_id_pref="", print_raw=False,
           model_specific_dictionary=False, dir_sent_encoder=1,
@@ -35,12 +38,12 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           debug=False,timing=False,
           verbose=1):
 
+    if compute_scoring_curve:
+        assert score_to_compute_ls is not None and mode_norm_ls is not None and freq_scoring is not None, \
+            "ERROR score_to_compute_ls and mode_norm_ls should not be None"
     use_gpu = use_gpu_(use_gpu)
-
-    if use_gpu:
-        printing("GPU was found use_gpu set to True ", verbose_level=0, verbose=verbose)
-    else:
-        printing("CPU mode ", verbose_level=0, verbose=verbose)
+    hardware_choosen = "GPU" if use_gpu else "CPU"
+    printing("{} mode ", var=([hardware_choosen]), verbose_level=0, verbose=verbose)
     freq_checkpointing = int(n_epochs/10) if checkpointing and freq_checkpointing is None else freq_checkpointing
     assert add_start_char == 1, "ERROR : add_start_char must be activated due decoding behavior of output_text_"
     printing("Warning : add_start_char is {} and add_end_char {}  ".format(add_start_char, add_end_char), verbose=verbose, verbose_level=0)
@@ -53,10 +56,13 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
 
     if not debug:
         pdb.set_trace = lambda: 1
+
     loss_training = []
     loss_developing = []
-
     lr = 0.001
+    evaluation_set_reporting = list(set([train_path, dev_path]))
+    curve_scores = {score + "-" + mode_norm+"-"+REPO_DATASET[data]: [] for score in score_to_compute_ls
+                    for mode_norm in mode_norm_ls for data in evaluation_set_reporting} if compute_scoring_curve else None
 
     printing("WARNING :  lr {} ".format(lr, add_start_char, add_end_char), verbose=verbose, verbose_level=0)
     printing("INFO : dictionary is computed (re)created from scratch on train_path {} and dev_path {}".format(train_path, dev_path), verbose=verbose, verbose_level=1)
@@ -124,6 +130,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
     printing("Running from {} to {} epochs : training on {} evaluating on {}", var=(starting_epoch, n_epochs, train_path, dev_path), verbose=verbose, verbose_level=0)
     starting_time = time.time()
     total_time = 0
+    x_axis_epochs = []
 
     data_read_train = conllu_data.read_data_to_variable(train_path, model.word_dictionary, model.char_dictionary,
                                                          model.pos_dictionary,
@@ -182,27 +189,35 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
         starting_time = time.time()
 
         # computing exact/edit score
-        exact_edit_eval = 1
-        if exact_edit_eval:
-            print("STARTING EVALUATION EXACT/EDICT")
-            for eval_data in [train_path, dev_path]:
+        if compute_scoring_curve and ((epoch % freq_scoring == 0) or (epoch+1 == n_epochs)):
+            x_axis_epochs.append(epoch)
+            for eval_data in evaluation_set_reporting:
                 eval_label = REPO_DATASET[eval_data]
-                # TODO : clean what you padd as argument and add assertion : you should not be reloading anything : everything in memorty
-                # TODO : output score to a list
-                #   plot it (1 plot wit overall metric, second with 2 details )
-                #   add frequence
-                evaluate(data_path=eval_data,
-                         use_gpu=use_gpu,
-                         label_report=eval_label,model=model,
-                         normalization=True, print_raw=False,
-                         model_specific_dictionary=True,
-                         batch_size=batch_size,
-                         dir_report=model.dir_model,
-                         verbose=1)
+                assert len(set(evaluation_set_reporting))==len(evaluation_set_reporting),\
+                    "ERROR : twice the same dataset has been provided for reporting which will mess up the loss"
+                scores = evaluate(data_path=eval_data,
+                                  use_gpu=use_gpu,
+                                  score_to_compute_ls=score_to_compute_ls, mode_norm_ls=mode_norm_ls,
+                                  label_report=eval_label, model=model,
+                                  normalization=True, print_raw=False,
+                                  model_specific_dictionary=True,
+                                  batch_size=batch_size,
+                                  dir_report=model.dir_model,
+                                  verbose=1)
+                curve_scores = update_curve_dic(score_to_compute_ls=score_to_compute_ls, mode_norm_ls=mode_norm_ls,
+                                                eval_data=eval_label,
+                                                former_curve_scores=curve_scores, scores=scores)
+                curve_ls_tuple = [(loss_ls, label) for label, loss_ls in curve_scores.items() if isinstance(loss_ls, list) ]
+                curves = [tupl[0] for tupl in curve_ls_tuple]
+                val_ls = [tupl[1]+"({}tok)".format(info_token) for tupl in curve_ls_tuple for data, info_token in curve_scores.items() if not isinstance(info_token, list) if tupl[1].endswith(data)]
+
+            for score_plot in score_to_compute_ls:
+                simple_plot_ls(losses_ls=curves, labels=val_ls, final_loss="", save=True, filter_by_label=score_plot,  x_axis=x_axis_epochs,
+                               dir=model.dir_model,prefix=model.model_full_name,epochs=str(epoch)+reloading,verbose=verbose, lr=lr,
+                               label_color_0=REPO_DATASET[evaluation_set_reporting[0]], label_color_1=REPO_DATASET[evaluation_set_reporting[1]])
 
         # WARNING : only saving if we decrease not loading former model if we relaod
         if (checkpointing and epoch % freq_checkpointing == 0) or (epoch+1 == n_epochs):
-            print("epochs ,", epoch, loss_training)
             dir_plot = simple_plot(final_loss=loss_train, loss_2=loss_developing, loss_ls=loss_training,
                                    epochs=str(epoch)+reloading,
                                    label=label_train+"-train",

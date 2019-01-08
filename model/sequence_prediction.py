@@ -24,7 +24,6 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
         score_dic = _init_metric_report(score_to_compute_ls, mode_norm_score_ls)
         assert len(set(mode_norm_score_ls)&set(["all", "NEED_NORM", "NORMED"]))>0
         with torch.no_grad():
-
             for step, batch in enumerate(batchIter):
                 # read src sequence
                 src_seq = batch.input_seq
@@ -46,18 +45,18 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                                                                                  batch_size=batch_size, pad=pad,
                                                                                  verbose=verbose)
 
-                printing("Source text {} ", var=[(src_text_ls)], verbose=verbose, verbose_level=0)
-                printing("Prediction {} ", var=[(text_decoded_ls)], verbose=verbose, verbose_level=0)
+                printing("Source text {} ", var=[(src_text_ls)], verbose=verbose, verbose_level=5)
+                printing("Prediction {} ", var=[(text_decoded_ls)], verbose=verbose, verbose_level=5)
                 #scores_ls_func = "score_ls_"
                 if gold_output:
-                    printing("Gold {} ", var=[(gold_text_seq_ls)], verbose=verbose, verbose_level=0)
+                    printing("Gold {} ", var=[(gold_text_seq_ls)], verbose=verbose, verbose_level=5)
                     if "NEED_NORM" in mode_norm_score_ls or "NORMED" in mode_norm_score_ls:
                         normalized = [[src_token == gold_token for src_token, gold_token in zip(batch_src, batch_gold)] for batch_src, batch_gold in zip(src_text_ls, gold_text_seq_ls)]
                     else:
                         normalized = None
                     if score_to_compute_ls is not None:
                         for mode_norm_score in mode_norm_score_ls:
-                            print("Scoring with mode {}".format(mode_norm_score))
+                            #print("Scoring with mode {}".format(mode_norm_score))
                             for metric in score_to_compute_ls:
                                 #we score the batch
                                 _score, _n_tokens = score_ls_(text_decoded_ls, gold_text_seq_ls,
