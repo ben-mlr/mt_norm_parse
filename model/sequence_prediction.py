@@ -6,8 +6,8 @@ import numpy as np
 from evaluate.normalization_errors import score_ls, score_ls_
 from io_.dat.constants import CHAR_START_ID
 import pdb
-
-
+# EPSILON for the test of edit distance 
+EPSILON = 0.000001
 def _init_metric_report(score_to_compute_ls, mode_norm_score_ls):
     if score_to_compute_ls is not None:
         dic = {score+"-"+norm_mode: 0 for score in score_to_compute_ls for norm_mode in mode_norm_score_ls}
@@ -70,6 +70,16 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                                                               verbose=verbose)
                                 score_dic[metric+"-"+mode_norm_score] += _score
                                 score_dic[metric+"-"+mode_norm_score+"-"+"total_tokens"] += _n_tokens
+                    test_scoring = False
+                    if test_scoring:
+                        assert len(list((set(mode_norm_score_ls)&set(["NEED_NORM", "NORMED","all"]))))==3, "ERROR : to perform test need all normalization mode "
+                            #print("Scoring with mode {}".format(mode_norm_score))
+                        for metric in score_to_compute_ls:
+                            assert score_dic[metric + "-NEED_NORM-total_tokens"]+score_dic[metric + "-NORMED-total_tokens"] == score_dic[metric + "-all-total_tokens"], \
+                                'ERROR all-total_tokens is {}  not equal to NEED NORMED {} +  NORMED {} '.format(score_dic[metric + "-all-total_tokens"], score_dic[metric + "-NEED_NORM-total_tokens"], score_dic[metric + "-NORMED-total_tokens"])
+                            assert np.abs(score_dic[metric + "-NEED_NORM"]+score_dic[metric + "-NORMED"] - score_dic[metric + "-all"]) < EPSILON, \
+                            "ERROR : correct NEED_NORM {} , NORMED {} and all {} ".format(score_dic[metric + "-NEED_NORM"], score_dic[metric + "-NORMED"], score_dic[metric + "-all"])
+                            print("TEST PASSED")
             return score_dic
 
 

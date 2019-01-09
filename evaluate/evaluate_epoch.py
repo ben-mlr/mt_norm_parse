@@ -13,7 +13,7 @@ import os
 import json
 import sys
 import torch
-from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, DEMO, DEMO2
+from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, DEMO, DEMO2, LIU 
 from toolbox.gpu_related import use_gpu_
 sys.path.insert(0, os.path.join(PROJECT_PATH, "..", "experimental_pipe"))
 from reporting.write_to_performance_repo import report_template, write_dic
@@ -26,7 +26,8 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
              normalization=True, debug=False, force_new_dic=False, use_gpu=None, verbose=0):
     # NB : now : you have to load dictionary when evaluating (cannot recompute) (could add in the LexNormalizer ability)
     use_gpu = use_gpu_(use_gpu)
-    #print("WARNING use_gpu forced to False ")
+    hardware_choosen = "GPU" if use_gpu else "CPU"
+    printing("{} mode ", var=([hardware_choosen]), verbose_level=0, verbose=verbose)
     if score_to_compute_ls is None:
         score_to_compute_ls = ["edit", "exact"]
     if mode_norm_ls is None:
@@ -50,6 +51,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                                                  model_full_name + "-folder"),
                           verbose=verbose
                           ) if model is None else model
+
     data_read = conllu_data.read_data_to_variable(data_path, model.word_dictionary, model.char_dictionary,
                                                   model.pos_dictionary,
                                                   model.xpos_dictionary, model.type_dictionary,
@@ -97,7 +99,13 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
             _dir_report = os.path.join(dir_report, model.model_full_name+"-"+score+"-"+mode_norm+"-report-"+label_report+".json")
             over_all_report_dir = os.path.join(dir_report, model.model_full_name+"-report-"+label_report+".json")
             json.dump(report, open(_dir_report, "w"))
-            json.dump(report, open(over_all_report_dir, writing_mode))
+            if writing_mode=="w":
+              json.dump([report], open(over_all_report_dir, writing_mode))
+            else:
+              all_report = json.load(open(over_all_report_dir, "r"))
+              all_report.append(report)
+              json.dump(all_report,open(over_all_report_dir, "w"))
+            
             printing("Report saved {} ".format(_dir_report), verbose=verbose, verbose_level=1)
 
         printing("Overall Report saved {} ".format(over_all_report_dir), verbose=verbose, verbose_level=1)
@@ -106,11 +114,20 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
 
 
 if __name__ == "__main__":
-    evaluate(model_full_name="761f-TEST-model_1_6c01", data_path=DEMO,
-             dict_path="../checkpoints/761f-TEST-model_1_6c01-folder/dictionaries",
-             label_report="test",
-             normalization=True, model_specific_dictionary=True, batch_size=50,
-             dir_report="../checkpoints/comparison_ablation-big2_b8a1-folder", verbose=1)
+    list_ = os.listdir("../checkpoints/")
+    for ablation_id in ["aaad","bd55","0153","f178"]:
+      for data in [DEV, LIU]:
+        list_ = [dir_ for dir_ in list_ if dir_.startswith("aaad") and not dir_.endswith("log")]
+        print(list_)
+        for folder_name in list_:
+          model_full_name = folder_name[:-7]
+          print(model_full_name)
+          print("0Evaluating {} ".format(model_full_name))
+          evaluate(model_full_name=model_full_name, data_path=data,#LIU,
+                 dict_path=os.path.join("..","checkpoints",folder_name,"dictionaries"),
+                 label_report="EVAL_PROPER", use_gpu=True,  
+                 normalization=True, model_specific_dictionary=True, batch_size=50,
+                 dir_report=os.path.join("..","checkpoints",folder_name), verbose=1)
 
 
 #reporting = False

@@ -29,7 +29,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           n_layers_word_encoder=1,
           dropout_sent_encoder_cell=0, dropout_word_encoder_cell=0, dropout_word_decoder_cell=0,
           dropout_bridge=0, drop_out_word_encoder_out=0, drop_out_sent_encoder_out=0,
-          word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,drop_out_char_embedding_decoder=0,
+          word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,
           hidden_size_encoder=None, output_dim=None, char_embedding_dim=None,
           hidden_size_decoder=None, hidden_size_sent_encoder=None,freq_scoring=5,
           compute_scoring_curve=False, score_to_compute_ls=None, mode_norm_ls=None,
@@ -41,7 +41,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           verbose=1):
 
     if compute_scoring_curve:
-        assert score_to_compute_ls is not None and mode_norm_ls is not None and freq_scoring is not None, \
+        assert score_to_compute_ls is not None and mode_norm_ls is not None and fqreq_scoring is not None, \
             "ERROR score_to_compute_ls and mode_norm_ls should not be None"
     use_gpu = use_gpu_(use_gpu)
     hardware_choosen = "GPU" if use_gpu else "CPU"
@@ -102,16 +102,15 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                           train_path=_train_path, dev_path=_dev_path, add_start_char=_add_start_char,
                           model_specific_dictionary=model_specific_dictionary,
                           drop_out_sent_encoder_cell=dropout_sent_encoder_cell, drop_out_word_encoder_cell=dropout_word_encoder_cell,
-                          drop_out_word_decoder_cell=dropout_word_decoder_cell, drop_out_bridge=dropout_bridge,drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
+                          drop_out_word_decoder_cell=dropout_word_decoder_cell, drop_out_bridge=dropout_bridge,
                           drop_out_word_encoder_out=drop_out_word_encoder_out, drop_out_sent_encoder_out=drop_out_sent_encoder_out,
                           n_layers_word_encoder=n_layers_word_encoder,dir_sent_encoder=dir_sent_encoder,
                           hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,
                           model_id_pref=model_id_pref, model_full_name=model_full_name,
                           hidden_size_sent_encoder=hidden_size_sent_encoder,
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
-    if use_gpu:
-        model = model.cuda()
-        printing("TYPE model is cuda : {} ", var=(next(model.parameters()).is_cuda), verbose=verbose, verbose_level=4)
+    
+    printing("TYPE model is cuda : {} ", var=(next(model.parameters()).is_cuda), verbose=verbose, verbose_level=4)
     if not model_specific_dictionary:
         model.word_dictionary, model.char_dictionary, model.pos_dictionary, \
         model.xpos_dictionary, model.type_dictionary = word_dictionary, char_dictionary, pos_dictionary, \

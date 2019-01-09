@@ -6,17 +6,19 @@ from io_.info_print import printing
 import time
 import pdb
 from env.project_variables import SUPPORED_WORD_ENCODER
+
 class CharEncoder(nn.Module):
 
     def __init__(self, char_embedding, input_dim, hidden_size_encoder, hidden_size_sent_encoder,
                  word_recurrent_cell=None, dropout_sent_encoder_cell=0, dropout_word_encoder_cell=0,
                  n_layers_word_cell=1, timing=False, bidir_sent=True,
                  drop_out_word_encoder_out=0, drop_out_sent_encoder_out=0,
+                 dir_word_encoder=1,
                  verbose=2):
         super(CharEncoder, self).__init__()
         self.char_embedding_ = char_embedding
         self.timing = timing
-        self.sent_encoder = nn.LSTM(input_size=hidden_size_encoder*n_layers_word_cell,
+        self.sent_encoder = nn.LSTM(input_size=hidden_size_encoder*n_layers_word_cell*dir_word_encoder,
                                     hidden_size=hidden_size_sent_encoder,
                                     num_layers=1, bias=True, batch_first=True,
                                     dropout=dropout_word_encoder_cell,
@@ -34,7 +36,7 @@ class CharEncoder(nn.Module):
         self.seq_encoder = word_recurrent_cell(input_size=input_dim, hidden_size=hidden_size_encoder,
                                                dropout=dropout_sent_encoder_cell,
                                                num_layers=n_layers_word_cell, #nonlinearity='tanh',
-                                               bias=True, batch_first=True, bidirectional=False)
+                                               bias=True, batch_first=True, bidirectional=bool(dir_word_encoder-1))
 
     def word_encoder_source(self, input, input_word_len=None):
         # input : [word batch dim, max character length],  input_word_len [word batch dim]
@@ -131,6 +133,7 @@ class CharEncoder(nn.Module):
         source_context_word_vector = torch.cat((sent_encoded, h_w), dim=2)
         pdb.set_trace()
         source_context_word_vector = source_context_word_vector.view(1, source_context_word_vector.size(0)*source_context_word_vector.size(1), -1)
+        pdb.set_trace()
         # source_context_word_vector : [1, batch x sent len, hidden_size_sent_encoder + hidden_size_encoder]
         printing("SOURCE contextual last representation : {} ", var=(source_context_word_vector.size()),
                  verbose=verbose, verbose_level=3)

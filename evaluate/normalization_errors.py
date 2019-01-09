@@ -47,9 +47,10 @@ def score_ls_(ls_pred, ls_gold, score, stat="mean", normalization_ls=None, norma
     sent_score_ls = []
     if normalization_ls is not None:
         assert normalized_mode in ["NEED_NORM", "NORMED", "all"],'ERROR :normalized_mode should be in  ["NEED_NORM", "NORMED"]'
-        norm_mode = 1 if normalized_mode == "NEED_NORM" else 0
-        ls_gold = [[token for token, normed in zip(batch, batch_norm) if normed == norm_mode] for batch, batch_norm in zip(ls_gold, normalization_ls)]
-        ls_pred = [[token for token, normed in zip(batch, batch_norm) if normed == norm_mode] for batch, batch_norm in zip(ls_pred, normalization_ls)]
+        if normalized_mode in ["NEED_NORM", "NORMED"]:
+            norm_mode = 1 if normalized_mode == "NEED_NORM" else 0
+            ls_gold = [[token for token, normed in zip(batch, batch_norm) if normed == norm_mode] for batch, batch_norm in zip(ls_gold, normalization_ls)]
+            ls_pred = [[token for token, normed in zip(batch, batch_norm) if normed == norm_mode] for batch, batch_norm in zip(ls_pred, normalization_ls)]
     for gold, pred in zip(ls_gold, ls_pred):
         assert len(gold) == len(pred), "len : pred {}, gold {} - pred {} gold {} ".format(len(pred), len(gold), pred, gold)
         sent_score = []
