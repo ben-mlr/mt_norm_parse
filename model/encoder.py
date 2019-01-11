@@ -131,12 +131,9 @@ class CharEncoder(nn.Module):
         sent_encoded = self.drop_out_sent_encoder_out(sent_encoded)
         h_w = self.drop_out_word_encoder_out(h_w)
         source_context_word_vector = torch.cat((sent_encoded, h_w), dim=2)
-        pdb.set_trace()
         source_context_word_vector = source_context_word_vector.view(1, source_context_word_vector.size(0)*source_context_word_vector.size(1), -1)
-        pdb.set_trace()
         # source_context_word_vector : [1, batch x sent len, hidden_size_sent_encoder + hidden_size_encoder]
         printing("SOURCE contextual last representation : {} ", var=(source_context_word_vector.size()),
                  verbose=verbose, verbose_level=3)
-        pdb.set_trace()
 
         return source_context_word_vector, sent_len_max_source

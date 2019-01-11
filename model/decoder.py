@@ -131,8 +131,6 @@ class CharDecoder(nn.Module):
         packed_sent, start = get_timing(start)
         # unpacked for the word level representation
         # packed_char_vecs_output .data : [batch x shorted sent_lenS , word lens ] + .batch_sizes
-        #import pdb
-        pdb.set_trace()
         output_char_vecs, output_sizes = pad_packed_sequence(packed_char_vecs_output, batch_first=True, padding_value=1.0)
         padd_sent, start = get_timing(start)
         # output_char_vecs : [batch ,  shorted sent_len, word len ] + .batch_sizes
@@ -148,7 +146,6 @@ class CharDecoder(nn.Module):
         output_word_len = output_word_len.contiguous()
         output_word_len = output_word_len.view(output_word_len.size(0) * output_word_len.size(1))
         reshape_len, start = get_timing(start)
-        pdb.set_trace()
         output_w_decoder = self.word_encoder_target(output_seq, conditioning, output_word_len)
         word_encoders, start = get_timing(start)
         # output_w_decoder : [ batch x max sent len, max word len , hidden_size_decoder ]

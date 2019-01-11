@@ -222,11 +222,8 @@ class LexNormalizer(nn.Module):
         h, sent_len_max_source = self.encoder.sent_encoder_source(input_seq, input_word_len)
         source_encoder, start = get_timing(start)
         # [] [batch, , hiden_size_decoder]
-        pdb.set_trace()
-
         h = self.bridge(h)
         h = self.dropout_bridge(h)
-        pdb.set_trace()
         bridge, start = get_timing(start)
         printing("TYPE  encoder {} is cuda ", var=h.is_cuda, verbose=0, verbose_level=4)
         output = self.decoder.sent_encoder_target(output_seq, h, output_word_len,

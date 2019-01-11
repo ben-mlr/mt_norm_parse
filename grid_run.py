@@ -10,6 +10,7 @@ from uuid import uuid4
 def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,
                overall_report_dir=CHECKPOINT_DIR, overall_label="DEFAULT",
                warmup=False, args={},use_gpu=None,freq_checkpointing=1,debug=False,
+               compute_mean_score_per_sent=False,
                verbose=0):
 
 
@@ -46,7 +47,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,
                             dropout_sent_encoder_cell=dropout_sent_encoder,
                             dropout_word_encoder_cell=dropout_word_encoder,
                             dropout_word_decoder_cell=dropout_word_decoder,
-                            dir_word_encoder=dir_word_encoder,
+                            dir_word_encoder=dir_word_encoder,compute_mean_score_per_sent=compute_mean_score_per_sent,
                             overall_label=overall_label,overall_report_dir=overall_report_dir,
                             label_train=REPO_DATASET[train_path], label_dev=REPO_DATASET[dev_path],
                             word_recurrent_cell_encoder=word_recurrent_cell_encoder, word_recurrent_cell_decoder=word_recurrent_cell_decoder,
@@ -160,6 +161,7 @@ if __name__ == "__main__":
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref, 
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
+                                                  compute_mean_score_per_sent=True,
                                                   warmup=warmup, args=param, use_gpu=None, n_epochs=epochs, debug=False)
           run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")

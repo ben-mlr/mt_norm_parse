@@ -29,7 +29,7 @@ def output_text(one_code_prediction, char_dic, start_symbol=CHAR_START ,
 
 
 def output_text_(one_code_prediction, char_dic, start_symbol=CHAR_START ,
-                stop_symbol=END_CHAR, single_sequence=True):
+                 stop_symbol=END_CHAR, single_sequence=True):
 
     decoding = []
     str_decoded = []

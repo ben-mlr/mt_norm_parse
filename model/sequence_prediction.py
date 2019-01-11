@@ -8,10 +8,15 @@ from io_.dat.constants import CHAR_START_ID
 import pdb
 # EPSILON for the test of edit distance 
 EPSILON = 0.000001
+TEST_SCORING_IN_CODE = False
+
+
 def _init_metric_report(score_to_compute_ls, mode_norm_score_ls):
     if score_to_compute_ls is not None:
         dic = {score+"-"+norm_mode: 0 for score in score_to_compute_ls for norm_mode in mode_norm_score_ls}
         dic.update({score+"-"+norm_mode+"-"+"total_tokens": 0 for score in score_to_compute_ls for norm_mode in mode_norm_score_ls})
+        dic.update({score+"-"+norm_mode+"-"+"mean_per_sent": 0 for score in score_to_compute_ls for norm_mode in mode_norm_score_ls})
+        dic.update({score + "-" + norm_mode + "-" + "n_word_per_sent": 0 for score in score_to_compute_ls for norm_mode in mode_norm_score_ls})
         return dic
     return None
 
@@ -19,6 +24,7 @@ def _init_metric_report(score_to_compute_ls, mode_norm_score_ls):
 def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                         gold_output=False, score_to_compute_ls=None, stat=None,
                         use_gpu=False,
+                        compute_mean_score_per_sent=False,
                         mode_norm_score_ls=None,
                         verbose=0):
 
@@ -48,29 +54,27 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                                                                                  src_mask=src_mask,src_len=src_len,
                                                                                  batch_size=batch_size, pad=pad,
                                                                                  verbose=verbose)
-
                 printing("Source text {} ", var=[(src_text_ls)], verbose=verbose, verbose_level=5)
                 printing("Prediction {} ", var=[(text_decoded_ls)], verbose=verbose, verbose_level=5)
                 #scores_ls_func = "score_ls_"
                 if gold_output:
                     printing("Gold {} ", var=[(gold_text_seq_ls)], verbose=verbose, verbose_level=5)
-                    if "NEED_NORM" in mode_norm_score_ls or "NORMED" in mode_norm_score_ls:
-                        normalized = [[src_token == gold_token for src_token, gold_token in zip(batch_src, batch_gold)] for batch_src, batch_gold in zip(src_text_ls, gold_text_seq_ls)]
-                    else:
-                        normalized = None
                     if score_to_compute_ls is not None:
                         for mode_norm_score in mode_norm_score_ls:
                             #print("Scoring with mode {}".format(mode_norm_score))
                             for metric in score_to_compute_ls:
                                 #we score the batch
-                                _score, _n_tokens = score_ls_(text_decoded_ls, gold_text_seq_ls,
+                                _score, _n_tokens = score_ls_(text_decoded_ls, gold_text_seq_ls, ls_original=src_text_ls,
                                                               score=metric, stat=stat,
-                                                              normalization_ls=normalized,
+                                                              compute_mean_score_per_sent=compute_mean_score_per_sent,
                                                               normalized_mode=mode_norm_score,
                                                               verbose=verbose)
-                                score_dic[metric+"-"+mode_norm_score] += _score
+                                #_score = _score["sum"]
+                                score_dic[metric + "-" + mode_norm_score + "-n_word_per_sent"] += _score["n_word_per_sent"] if compute_mean_score_per_sent else 0
+                                score_dic[metric + "-" + mode_norm_score+"-mean_per_sent"] += _score["mean_per_sent"] if compute_mean_score_per_sent else 0
+                                score_dic[metric+"-"+mode_norm_score] += _score["sum"]
                                 score_dic[metric+"-"+mode_norm_score+"-"+"total_tokens"] += _n_tokens
-                    test_scoring = False
+                    test_scoring = TEST_SCORING_IN_CODE
                     if test_scoring:
                         assert len(list((set(mode_norm_score_ls)&set(["NEED_NORM", "NORMED","all"]))))==3, "ERROR : to perform test need all normalization mode "
                             #print("Scoring with mode {}".format(mode_norm_score))
@@ -125,7 +129,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         # mask
         output_mask = np.ones(src_seq.size(), dtype=np.int64)
         output_mask[:, char_decode:] = 0
-        output_mask = Variable(torch.from_numpy(output_mask), requires_grad=False)
+        #output_mask = Variable(torch.from_numpy(output_mask), requires_grad=False)
         # new seq
 
         predictions = scores.argmax(dim=-1)

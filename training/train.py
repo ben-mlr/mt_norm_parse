@@ -39,6 +39,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           model_specific_dictionary=False, dir_sent_encoder=1,
           add_start_char=None, add_end_char=1,
           overall_label="DEFAULT",overall_report_dir=CHECKPOINT_DIR,
+          compute_mean_score_per_sent=False,
           debug=False,timing=False,
           verbose=1):
 
@@ -212,6 +213,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                   label_report=eval_label, model=model,
                                   normalization=True, print_raw=False,
                                   model_specific_dictionary=True,
+                                  compute_mean_score_per_sent=compute_mean_score_per_sent,
                                   batch_size=batch_size,
                                   dir_report=model.dir_model,
                                   verbose=1)

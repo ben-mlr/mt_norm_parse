@@ -14,6 +14,8 @@ CHECKPOINT_DIR = os.path.join(PROJECT_PATH, "checkpoints")
 # architecture/model/training supported
 SUPPORED_WORD_ENCODER = ["LSTM", "GRU"]
 BREAKING_NO_DECREASE = 20
+SUPPORTED_STAT = ["sum"]
+
 
 # DATASETS
 TRAINING_LABEL, TRAINING = "en-ud-train", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-train.conllu")
