@@ -116,21 +116,25 @@ if __name__ == "__main__":
             labels.append(str(level)+"-level-"+label_0[12:])
             params.append(param)
       i = 0
-      ABLATION_DROPOUT = False
+      ABLATION_DROPOUT = True
 
       if ABLATION_DROPOUT:
-          params = [params_baseline]
-          labels = ["baseline"]
-          for add_dropout_encoder in [0,0.2,0.5,0.8]:
-              param = params_baseline.copy()
-              param["drop_out_sent_encoder_out"] = add_dropout_encoder
-              param["drop_out_word_encoder_out"] = add_dropout_encoder
-              param["dropout_bridge"] = add_dropout_encoder
-              param["drop_out_char_embedding_decoder"] = add_dropout_encoder
-              label = str(add_dropout_encoder)+"-to_all"
-              params.append(param)
-              labels.append(label)
-      ABLATION_DIR_WORD = True
+          params = []
+          labels = [""]
+          for add_dropout_encoder in [0,0.1,0.2,0.5,0.8]:
+            for batch_size in [2, 5, 10, 20, 50, 100]:
+              for dir_sent_encoder in [1,2]:
+                param = params_baseline.copy()
+                param["drop_out_sent_encoder_out"] = 0.2#add_dropout_encoder
+                param["drop_out_word_encoder_out"] = 0.2#add_dropout_encoder
+                param["dropout_bridge"] = 0.2#add_dropout_encoder
+                param["drop_out_char_embedding_decoder"] = add_dropout_encoder
+                param["dir_sent_encoder"] = dir_sent_encoder
+                param["batch_size"] = batch_size
+                label = str(add_dropout_encoder)+"-to_char_src-"+str(dir_sent_encoder)+"_dir_sent-"+str(batch_size)+"_batch_size"
+                params.append(param)
+                labels.append(label)
+      ABLATION_DIR_WORD = False
       if ABLATION_DIR_WORD:
           params = [params_strong]
           labels = ["dir_word_encoder_1-strong-sent_source_dir_2-dropout_0.2_everywhere-LSTM-batch_10"]
@@ -140,9 +144,9 @@ if __name__ == "__main__":
           params.append(param)
           labels.append("dir_word_encoder_2-sent_source_dir_2-dropout_0.2_everywhere-LSTM-batch_10")
 
-      warmup = True
+      warmup = False
       RUN_ID = str(uuid4())[0:4]
-      LABEL_GRID = "" if not warmup else "WARMUP"
+      LABEL_GRID = "batchXdropout_char" if not warmup else "WARMUP"
       GRID_FOLDER_NAME = RUN_ID+"-"+LABEL_GRID if len(LABEL_GRID)>0 else RUN_ID
       GRID_FOLDER_NAME += "-summary"
       dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
@@ -153,11 +157,11 @@ if __name__ == "__main__":
           #param["batch_size"] = 2
           #model_id_pref = "TEST-"+model_id_pref
           printing("Adding RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 80
+          epochs = 100
           #param["batch_size"] = 50
           if warmup:
             train_path, dev_path = DEMO2, DEMO
-          model_id_pref = RUN_ID + "-DROPOUT_word-vs-sent-" + model_id_pref + "-model_"+str(i)
+          model_id_pref = RUN_ID + "-"+LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref, 
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,

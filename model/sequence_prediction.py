@@ -145,9 +145,9 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         output_seq = output_seq[:, :scores.size(1), :]
         output_seq[:, :, char_decode - 1] = predictions[:, :, -1]
 
-        if verbose>=3:
+        if verbose >= 3:
             sequence = [" ".join([char_dictionary.get_instance(output_seq[sent, word_ind, char_i]) for char_i in range(max_len)])
-                    + "|sent-{}|".format(sent) for sent in range(output_seq.size(0)) for word_ind in range(output_seq.size(1))]
+                        + "|sent-{}|".format(sent) for sent in range(output_seq.size(0)) for word_ind in range(output_seq.size(1))]
         else:
             sequence = []
         printing("Decoding step {} decoded target {} ", var=(step, sequence), verbose=verbose, verbose_level=3)
@@ -202,7 +202,8 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
                                                          src_seq=char_seq, src_len=char_len,
                                                          src_mask=char_mask,single_sequence=True,
                                                          pad=pad, verbose=verbose)
-        print("DECODED text is : {} ", var=(text_decoded))
+
+        printing("DECODED text is : {} ", var=[text_decoded], verbose_level=0, verbose=verbose)
 
 
 def decode_interacively(model , char_dictionary,  max_len, pad=1, verbose=0):

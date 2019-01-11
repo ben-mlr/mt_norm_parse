@@ -116,17 +116,22 @@ class CharDecoder(nn.Module):
         printing("TARGET  : output  (before 0 last) : size {} data {} ", var=(output.size(), output), verbose=verbose,
                  verbose_level=4)
         _output_word_len[:, -1, :] = 0
-
         # when input_word_len is 0 means we reached end of sentence
         # TODO : WARNING : is +1 required : as sent with 1 ??
         sent_len = torch.argmin(_output_word_len, dim=1)
+        # WARNING : forcint sent_len to be one
+
+        if (sent_len == 0).any():
+            printing("WARNING : WE ARE FORCING SENT_LEN in the SOURCE SIDE", verbose=verbose, verbose_level=0)
+            sent_len[sent_len==0] += 1
+
         # sort batch at the sentence length
         sent_len, perm_idx_input_sent = sent_len.squeeze().sort(0, descending=True)
         argmin_squeeze, start = get_timing(start)
         inverse_perm_idx_input_sent = torch.from_numpy(np.argsort(perm_idx_input_sent.cpu().numpy()))
         sorting, start = get_timing(start)
         # [batch x sent_len , dim hidden word level] # this remove empty words
-
+        pdb.set_trace()
         packed_char_vecs_output = pack_padded_sequence(output[perm_idx_input_sent, :, :], sent_len.squeeze().cpu().numpy(), batch_first=True)
         packed_sent, start = get_timing(start)
         # unpacked for the word level representation
