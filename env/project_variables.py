@@ -11,8 +11,9 @@ PROJECT_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 # MODELS
 # checkpoint dir if not checkpoint_dir as defined in args.json not found
 CHECKPOINT_DIR = os.path.join(PROJECT_PATH, "checkpoints")
-# architecture supported
+# architecture/model/training supported
 SUPPORED_WORD_ENCODER = ["LSTM", "GRU"]
+BREAKING_NO_DECREASE = 20
 
 # DATASETS
 TRAINING_LABEL, TRAINING = "en-ud-train", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-train.conllu")

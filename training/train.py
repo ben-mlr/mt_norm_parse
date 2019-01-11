@@ -11,7 +11,7 @@ import pdb
 from toolbox.checkpointing import checkpoint, update_curve_dic
 import os
 from io_.info_print import disable_tqdm_level, printing
-from env.project_variables import PROJECT_PATH, REPO_DATASET, SEED_TORCH
+from env.project_variables import PROJECT_PATH, REPO_DATASET, SEED_TORCH, BREAKING_NO_DECREASE, CHECKPOINT_DIR
 import time
 from toolbox.gpu_related import use_gpu_
 from toolbox.sanity_check import get_timing
@@ -29,7 +29,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           n_layers_word_encoder=1,
           dropout_sent_encoder_cell=0, dropout_word_encoder_cell=0, dropout_word_decoder_cell=0,
           dropout_bridge=0, drop_out_word_encoder_out=0, drop_out_sent_encoder_out=0,
-          word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,
+          dir_word_encoder=1,
+          word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,drop_out_char_embedding_decoder=0,
           hidden_size_encoder=None, output_dim=None, char_embedding_dim=None,
           hidden_size_decoder=None, hidden_size_sent_encoder=None,freq_scoring=5,
           compute_scoring_curve=False, score_to_compute_ls=None, mode_norm_ls=None,
@@ -37,11 +38,12 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           reload=False, model_full_name=None, model_id_pref="", print_raw=False,
           model_specific_dictionary=False, dir_sent_encoder=1,
           add_start_char=None, add_end_char=1,
+          overall_label="DEFAULT",overall_report_dir=CHECKPOINT_DIR,
           debug=False,timing=False,
           verbose=1):
 
     if compute_scoring_curve:
-        assert score_to_compute_ls is not None and mode_norm_ls is not None and fqreq_scoring is not None, \
+        assert score_to_compute_ls is not None and mode_norm_ls is not None and freq_scoring is not None, \
             "ERROR score_to_compute_ls and mode_norm_ls should not be None"
     use_gpu = use_gpu_(use_gpu)
     hardware_choosen = "GPU" if use_gpu else "CPU"
@@ -101,16 +103,18 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                           word_recurrent_cell_decoder=word_recurrent_cell_decoder, word_recurrent_cell_encoder=word_recurrent_cell_encoder,
                           train_path=_train_path, dev_path=_dev_path, add_start_char=_add_start_char,
                           model_specific_dictionary=model_specific_dictionary,
+                          dir_word_encoder=dir_word_encoder,
                           drop_out_sent_encoder_cell=dropout_sent_encoder_cell, drop_out_word_encoder_cell=dropout_word_encoder_cell,
-                          drop_out_word_decoder_cell=dropout_word_decoder_cell, drop_out_bridge=dropout_bridge,
+                          drop_out_word_decoder_cell=dropout_word_decoder_cell, drop_out_bridge=dropout_bridge,drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
                           drop_out_word_encoder_out=drop_out_word_encoder_out, drop_out_sent_encoder_out=drop_out_sent_encoder_out,
                           n_layers_word_encoder=n_layers_word_encoder,dir_sent_encoder=dir_sent_encoder,
                           hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,
                           model_id_pref=model_id_pref, model_full_name=model_full_name,
                           hidden_size_sent_encoder=hidden_size_sent_encoder,
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
-    
-    printing("TYPE model is cuda : {} ", var=(next(model.parameters()).is_cuda), verbose=verbose, verbose_level=4)
+    if use_gpu:
+        model = model.cuda()
+        printing("TYPE model is cuda : {} ", var=(next(model.parameters()).is_cuda), verbose=verbose, verbose_level=4)
     if not model_specific_dictionary:
         model.word_dictionary, model.char_dictionary, model.pos_dictionary, \
         model.xpos_dictionary, model.type_dictionary = word_dictionary, char_dictionary, pos_dictionary, \
@@ -203,6 +207,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                     "ERROR : twice the same dataset has been provided for reporting which will mess up the loss"
                 scores = evaluate(data_path=eval_data,
                                   use_gpu=use_gpu,
+                                  overall_label=overall_label,overall_report_dir=overall_report_dir,
                                   score_to_compute_ls=score_to_compute_ls, mode_norm_ls=mode_norm_ls,
                                   label_report=eval_label, model=model,
                                   normalization=True, print_raw=False,
@@ -245,7 +250,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                                           "average_per_epoch(min)": "{0:.2f}".format((total_time/n_epochs)/60)}},
                              epoch=epoch, epochs=n_epochs,
                              verbose=verbose)
-            if counter_no_deacrease >= 10:
+            if counter_no_deacrease >= BREAKING_NO_DECREASE:
                 assert freq_checkpointing == 1, "ERROR : to implement"
                 printing("CHECKPOINTING : Breaking training : loss did not decrease on dev for 10 checkpoints "
                          "so keeping model from {} epoch  ".format(saved_epoch),
@@ -258,7 +263,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                  verbose_level=1)
 
         if timing:
-            print("Summary : {}".format(OrderedDict([("_train_ep_time", _train_ep_time),("_create_iter_time", _create_iter_time), ("_eval_time",_eval_time) ])))
+            print("Summary : {}".format(OrderedDict([("_train_ep_time", _train_ep_time), ("_create_iter_time", _create_iter_time), ("_eval_time",_eval_time) ])))
 
     #model.save(model_dir, model, info_checkpoint={"n_epochs": n_epochs, "batch_size": batch_size,
     #                                             "train_data_path": train_path, "dev_data_path": dev_path,

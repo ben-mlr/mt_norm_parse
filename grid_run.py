@@ -8,6 +8,7 @@ from uuid import uuid4
 
 
 def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,
+               overall_report_dir=CHECKPOINT_DIR, overall_label="DEFAULT",
                warmup=False, args={},use_gpu=None,freq_checkpointing=1,debug=False,
                verbose=0):
 
@@ -46,6 +47,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,
                             dropout_word_encoder_cell=dropout_word_encoder,
                             dropout_word_decoder_cell=dropout_word_decoder,
                             dir_word_encoder=dir_word_encoder,
+                            overall_label=overall_label,overall_report_dir=overall_report_dir,
                             label_train=REPO_DATASET[train_path], label_dev=REPO_DATASET[dev_path],
                             word_recurrent_cell_encoder=word_recurrent_cell_encoder, word_recurrent_cell_decoder=word_recurrent_cell_decoder,
                             drop_out_sent_encoder_out=drop_out_sent_encoder_out,drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
@@ -91,7 +93,12 @@ if __name__ == "__main__":
       params_baseline = {"hidden_size_encoder": 50, "output_dim": 100, "char_embedding_dim": 50,
                          "dropout_sent_encoder": 0., "drop_out_word_encoder": 0., "dropout_word_decoder": 0.,
                          "drop_out_sent_encoder_out": 1, "drop_out_word_encoder_out": 1, "dir_word_encoder": 1,
-                         "n_layers_word_encoder": 1, "dir_sent_encoder": 2,"word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder":"LSTM",
+                         "n_layers_word_encoder": 1, "dir_sent_encoder": 1,"word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder":"LSTM",
+                         "hidden_size_sent_encoder": 50, "hidden_size_decoder": 50, "batch_size": 10}
+      params_strong = {"hidden_size_encoder": 100, "output_dim": 100, "char_embedding_dim": 50,
+                         "dropout_sent_encoder": 0, "drop_out_word_encoder": 0, "dropout_word_decoder": 0.,
+                         "drop_out_word_encoder_out":0.3, "drop_out_sent_encoder_out":0.3, "drop_out_char_embedding_decoder":0.3, "dropout_bridge":0.3,
+                         "n_layers_word_encoder": 1, "dir_sent_encoder": 1,"word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder":"LSTM",
                          "hidden_size_sent_encoder": 50, "hidden_size_decoder": 50, "batch_size": 10}
 
       label_0 = "origin_small-batch10-LSTM_sent_bi_dir-word_uni_LSTM"
@@ -107,13 +114,9 @@ if __name__ == "__main__":
               param[arg] = param_0[arg]*2 if param_0[arg]*2<=100 else 100
             labels.append(str(level)+"-level-"+label_0[12:])
             params.append(param)
-
       i = 0
+      ABLATION_DROPOUT = False
 
-
-      ABLATION_DROPOUT = True
-
-      RUN_ID = str(uuid4())[0:4]
       if ABLATION_DROPOUT:
           params = [params_baseline]
           labels = ["baseline"]
@@ -126,23 +129,42 @@ if __name__ == "__main__":
               label = str(add_dropout_encoder)+"-to_all"
               params.append(param)
               labels.append(label)
+      ABLATION_DIR_WORD = True
+      if ABLATION_DIR_WORD:
+          params = [params_strong]
+          labels = ["dir_word_encoder_1-strong-sent_source_dir_2-dropout_0.2_everywhere-LSTM-batch_10"]
+          param = params_strong.copy()
+          param["dir_word_encoder"] = 2
+          param["hidden_size_encoder"] = int(param["hidden_size_encoder"]/2)
+          params.append(param)
+          labels.append("dir_word_encoder_2-sent_source_dir_2-dropout_0.2_everywhere-LSTM-batch_10")
 
+      warmup = True
+      RUN_ID = str(uuid4())[0:4]
+      LABEL_GRID = "" if not warmup else "WARMUP"
+      GRID_FOLDER_NAME = RUN_ID+"-"+LABEL_GRID if len(LABEL_GRID)>0 else RUN_ID
+      GRID_FOLDER_NAME += "-summary"
+      dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
+      os.mkdir(dir_grid)
+      printing("INFO : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
       for param, model_id_pref in zip(params, labels):
           i += 1
           #param["batch_size"] = 2
           #model_id_pref = "TEST-"+model_id_pref
           printing("Adding RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 1
+          epochs = 80
           #param["batch_size"] = 50
-          train_path, dev_path = DEMO2, DEMO
+          if warmup:
+            train_path, dev_path = DEMO2, DEMO
           model_id_pref = RUN_ID + "-DROPOUT_word-vs-sent-" + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
-          model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref, warmup=False, args=param,
-                                                  use_gpu=None, n_epochs=epochs, debug=False)
-          run_dir = os.path.join(CHECKPOINT_DIR, RUN_ID+"-run-log")
-          open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir)
+          model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref, 
+                                                  overall_report_dir=dir_grid, overall_label=LABEL_GRID,
+                                                  warmup=warmup, args=param, use_gpu=None, n_epochs=epochs, debug=False)
+          run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
+          open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("Log RUN is : {} to see model list ".format(run_dir))
           print("GRID RUN : DONE MODEL {} with param {} ".format(model_id_pref, param))
-          break
+          
 
 # CCL want to have a specific seed : when work --> reproduce with several seed

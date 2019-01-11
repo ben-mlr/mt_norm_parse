@@ -13,7 +13,7 @@ import os
 import json
 import sys
 import torch
-from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, DEMO, DEMO2, LIU 
+from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, DEMO, DEMO2, LIU, REPO_DATASET, CHECKPOINT_DIR
 from toolbox.gpu_related import use_gpu_
 sys.path.insert(0, os.path.join(PROJECT_PATH, "..", "experimental_pipe"))
 from reporting.write_to_performance_repo import report_template, write_dic
@@ -22,6 +22,7 @@ from reporting.write_to_performance_repo import report_template, write_dic
 def evaluate(batch_size, data_path, write_report=True, dir_report=None,
              dict_path=None, model_full_name=None,
              score_to_compute_ls=None, mode_norm_ls=None,
+             overall_label="ALL_MODELS",overall_report_dir=CHECKPOINT_DIR,
              model_specific_dictionary=True, label_report="", print_raw=False, model=None,
              normalization=True, debug=False, force_new_dic=False, use_gpu=None, verbose=0):
     # NB : now : you have to load dictionary when evaluating (cannot recompute) (could add in the LexNormalizer ability)
@@ -87,7 +88,6 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
     for score in score_to_compute_ls:
         for mode_norm in mode_norm_ls:
             scoring_count += 1
-            writing_mode = "w" if scoring_count == 1 else "a"
             report = report_template(metric_val=score, info_score_val=mode_norm,
                                      score_val=score_dic[score+"-"+mode_norm]/score_dic[score+"-"+mode_norm+"-total_tokens"],
                                      model_full_name_val=model.model_full_name,
@@ -95,37 +95,51 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                                      report_path_val=model.arguments["checkpoint_dir"],
                                      evaluation_script_val="normalization_"+score,
                                      model_args_dir=model.args_dir,
-                                     data_val=data_path)
+                                     data_val=REPO_DATASET[data_path])
             _dir_report = os.path.join(dir_report, model.model_full_name+"-"+score+"-"+mode_norm+"-report-"+label_report+".json")
             over_all_report_dir = os.path.join(dir_report, model.model_full_name+"-report-"+label_report+".json")
+            over_all_report_dir_all_models = os.path.join(overall_report_dir,overall_label+"-report.json")
+            writing_mode = "w" if not os.path.isfile(over_all_report_dir) else "a"
+            writing_mode_all_models = "w" if not os.path.isfile(over_all_report_dir_all_models) else "a"
             json.dump(report, open(_dir_report, "w"))
+            if writing_mode_all_models == "w":
+              json.dump([report], open(over_all_report_dir_all_models, writing_mode_all_models))
+              print("Creating new over_all_report_dir_all_models {} ".format(over_all_report_dir_all_models))
+            else:
+              all_report = json.load(open(over_all_report_dir_all_models, "r"))
+              all_report.append(report)
+              json.dump(all_report,open(over_all_report_dir_all_models, "w"))            
             if writing_mode=="w":
+              print("Creating new over_all_report_dir {} ".format(over_all_report_dir))
               json.dump([report], open(over_all_report_dir, writing_mode))
             else:
+              #print("Appending over_all_report_dir {} ".format(over_all_report_dir))
               all_report = json.load(open(over_all_report_dir, "r"))
               all_report.append(report)
-              json.dump(all_report,open(over_all_report_dir, "w"))
-            
+              json.dump(all_report,open(over_all_report_dir, "w"))            
             printing("Report saved {} ".format(_dir_report), verbose=verbose, verbose_level=1)
 
-        printing("Overall Report saved {} ".format(over_all_report_dir), verbose=verbose, verbose_level=1)
+        printing("Overall Model specific Report saved {} ".format(over_all_report_dir), verbose=verbose, verbose_level=1)
+        printing("Overall  Report saved {} ".format(over_all_report_dir_all_models), verbose=verbose, verbose_level=1)
 
     return score_dic
 
 
 if __name__ == "__main__":
-    list_ = os.listdir("../checkpoints/")
-    for ablation_id in ["aaad","bd55","0153","f178"]:
-      for data in [DEV, LIU]:
-        list_ = [dir_ for dir_ in list_ if dir_.startswith("aaad") and not dir_.endswith("log")]
-        print(list_)
+    list_all_dir = os.listdir("../checkpoints/")
+    #for ablation_id in ["aaad","bd55","0153","f178"]:
+    for ablation_id in ["89fa"]:
+      #for data in [DEMO,DEMO2]:
+      for data in [LIU, DEV]:
+        list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log")]
+        print("FOLDERS : ", list_)
         for folder_name in list_:
           model_full_name = folder_name[:-7]
-          print(model_full_name)
+          print("MODEL_FULL_NAME : ", model_full_name)
           print("0Evaluating {} ".format(model_full_name))
           evaluate(model_full_name=model_full_name, data_path=data,#LIU,
                  dict_path=os.path.join("..","checkpoints",folder_name,"dictionaries"),
-                 label_report="EVAL_PROPER", use_gpu=True,  
+                 label_report="WORD_DIR", use_gpu=True,  
                  normalization=True, model_specific_dictionary=True, batch_size=50,
                  dir_report=os.path.join("..","checkpoints",folder_name), verbose=1)
 
