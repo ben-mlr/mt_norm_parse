@@ -142,6 +142,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                  predictions[:, -1],
                  output_seq.size()),
                  verbose=verbose, verbose_level=5)
+        pdb.set_trace()
         output_seq = output_seq[:, :scores.size(1), :]
         output_seq[:, :, char_decode - 1] = predictions[:, :, -1]
 
@@ -155,7 +156,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                                                         char_dictionary, single_sequence=single_sequence)
         printing("PREDICTION : {} array text {} ", var=(text_decoded_array, text_decoded),
                  verbose=verbose,
-                 verbose_level=6)
+                 verbose_level=0)
 
     #text_ = "output_text_"
     _, src_text = output_text_(src_seq, char_dictionary, single_sequence=single_sequence)
@@ -168,54 +169,84 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
 
 
 def decode_seq_str(seq_string, model, char_dictionary, pad=1,
-                   max_len=20, verbose=2):
-
+                   max_len=20, verbose=2, sent_mode=False):
+    sent = seq_string.copy()
     with torch.no_grad():
-        _seq_string = ["_START"]
-        printing("WARNING : we added _START symbol and _END_CHAR ! ", verbose=verbose, verbose_level=0)
-        _seq_string.extend(list(seq_string))
-        seq_string = _seq_string + ["_END_CHAR"] #["_END_CHAR"]#["_PAD_CHAR"]
+        sent_character = []
+        sent_words_mask = []
+        sent_words_lens = []
+        for seq_string in sent:
+            _seq_string = ["_START"]
+            printing("WARNING : we added _START symbol and _END_CHAR ! ", verbose=verbose, verbose_level=0)
+            _seq_string.extend(list(seq_string))
+            seq_string = _seq_string + ["_END_CHAR"] #["_END_CHAR"]#["_PAD_CHAR"]
 
-        if len(seq_string) > max_len:
-            # cutting to respect dim requirements
-            seq_string = seq_string[:max_len-1]+["_PAD_CHAR"]
-        printing("INPUT SEQ is {} ", var=(seq_string), verbose=verbose, verbose_level=2)
-        sequence_characters = [char_dictionary.get_index(letter) for letter in seq_string]+[pad for _ in range(max_len-len(seq_string))]
+            if len(seq_string) > max_len:
+                # cutting to respect dim requirements
+                seq_string = seq_string[:max_len-1]+["_PAD_CHAR"]
+            printing("INPUT SEQ is {} ", var=(seq_string), verbose=verbose, verbose_level=2)
+            sequence_characters = [char_dictionary.get_index(letter) for letter in seq_string]+[pad for _ in range(max_len-len(seq_string))]
 
-        print(sequence_characters)
-        masks = [1 for _ in seq_string]+[0 for _ in range(max_len-len(seq_string))]
-        # we have to create batch_size == 2 because of bug
-        sequence_characters = Variable(torch.from_numpy(np.array([sequence_characters, sequence_characters])), requires_grad=False)
-        char_seq = sequence_characters.unsqueeze(dim=1)
-        #char_seq = Variable(torch.from_numpy(np.array([sequence_characters, sequence_characters])), requires_grad=False)
-        char_mask = Variable(torch.from_numpy(np.array([masks, masks])), requires_grad=False)
-        char_mask = char_mask.unsqueeze(dim=1)
-        char_len = Variable(torch.from_numpy(np.array([[min(max_len, len(seq_string)), 0],
-                                                       [min(max_len, len(seq_string)), 0]])))
-        char_len = char_len.unsqueeze(dim=2)
+            print(sequence_characters)
+            sent_character.append(sequence_characters)
+            masks = [1 for _ in seq_string]+[0 for _ in range(max_len-len(seq_string))]
+            sent_words_mask.append(masks)
+            words_lens = min(max_len, len(seq_string))
+            sent_words_lens.append(words_lens)
+            # we have to create batch_size == 2 because of bug
+            if False:
+                sequence_characters = Variable(torch.from_numpy(np.array([sequence_characters, sequence_characters])), requires_grad=False)
 
-
+                char_seq = sequence_characters.unsqueeze(dim=1)
+                #char_seq = Variable(torch.from_numpy(np.array([sequence_characters, sequence_characters])), requires_grad=False)
+                char_mask = Variable(torch.from_numpy(np.array([masks, masks])), requires_grad=False)
+                char_mask = char_mask.unsqueeze(dim=1)
+                char_len = Variable(torch.from_numpy(np.array([[min(max_len, len(seq_string)), 0],
+                                                               [min(max_len, len(seq_string)), 0]])))
+                char_len = char_len.unsqueeze(dim=2)
+            pdb.set_trace()
+        batch = Variable(torch.from_numpy(np.array([sent_character, sent_character])),
+                                       requires_grad=False)
+        batch_masks = Variable(torch.from_numpy(np.array([sent_words_mask, sent_words_mask])), requires_grad=False)
+        batch_lens = Variable(torch.from_numpy(np.array([sent_words_lens, sent_words_lens])), requires_grad=False)
+        batch_lens = batch_lens.unsqueeze(dim=2)
+        pdb.set_trace()
         batch_size = 2
-
+        pdb.set_trace()
         text_decoded, src_text, target = decode_sequence(model=model, char_dictionary=char_dictionary,
                                                          max_len=max_len,batch_size=batch_size,
-                                                         src_seq=char_seq, src_len=char_len,
-                                                         src_mask=char_mask,single_sequence=True,
+                                                         src_seq=batch, src_len=batch_lens,
+                                                         src_mask=batch_masks, single_sequence=True,
                                                          pad=pad, verbose=verbose)
 
-        printing("DECODED text is : {} ", var=[text_decoded], verbose_level=0, verbose=verbose)
+        printing("DECODED text is : {} vs {}".format(text_decoded, src_text), verbose_level=0, verbose=verbose)
 
 
-def decode_interacively(model , char_dictionary,  max_len, pad=1, verbose=0):
+def decode_interacively(model , char_dictionary,  max_len, pad=1, sent_mode=False,verbose=0):
     if char_dictionary is None:
         printing("INFO : dictionary is None so setting char_dictionary to model.char_dictionary",
                  verbose=verbose, verbose_level=0)
         char_dictionary = model.char_dictionary
+    sentence = []
     while True:
-        seq_string = input("Please type what you want to normalize ? to stop type : 'stop'    ")
+
+        seq_string = input("Please type what you want to normalize word by word and "
+                           "finishes by 'stop' ? to end type : 'END'    ")
         if seq_string == "":
             continue
         if seq_string == "stop":
+            if not sent_mode:
+
+                break
+            else:
+                decode_seq_str(seq_string=sentence, model=model, char_dictionary=char_dictionary, pad=pad,max_len= max_len,
+                               verbose=verbose, sent_mode=True)
+                sentence = []
+
+        elif seq_string == "END":
+            printing("ENDING INTERACTION", verbose=verbose, verbose_level=0)
             break
         else:
-            decode_seq_str(seq_string, model, char_dictionary, pad, max_len, verbose)
+            sentence.append(seq_string)
+            if not sent_mode:
+                decode_seq_str(seq_string, model, char_dictionary, pad, max_len, verbose)

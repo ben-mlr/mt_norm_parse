@@ -56,7 +56,6 @@ def output_text_(one_code_prediction, char_dic, start_symbol=CHAR_START ,
                 if not (char_decoded == start_symbol and i_char == 0):
                     word_to_print += char_decoded
                 word.append(char_decoded)
-
             sent.append(word)
             if single_sequence:
                 word_str_decoded = word_to_print
@@ -68,7 +67,9 @@ def output_text_(one_code_prediction, char_dic, start_symbol=CHAR_START ,
         if not single_sequence:
             str_decoded.append(word_str_decoded)
         else:
-            str_decoded = word_to_print
+            str_decoded = sent
+            print("--->", sent, word_i)
         decoding.append(sent)
-    return np.array(decoding), str_decoded
+        print("FINAL", sent, word_i)
+    return np.array(decoding), sent
 

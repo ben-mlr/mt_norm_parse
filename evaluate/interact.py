@@ -21,23 +21,9 @@ MAX_LEN = 20
 
 def interact(dic_path, model_full_name, dir_model, debug=False,
              model_specific_dictionary=True, verbose=2):
-
-    if not model_specific_dictionary:
-        assert train_path is not None and dev_path is not None
-        word_dictionary, char_dictionary, pos_dictionary,\
-        xpos_dictionary, type_dictionary = \
-            conllu_data.create_dict(dict_path=dict_path,
-                                    train_path=train_path,
-                                    dev_path=dev_path,
-                                    test_path=None,
-                                    add_start_char=1,
-                                    word_embed_dict={},
-                                    dry_run=False,
-                                    vocab_trim=True)
-        voc_size = len(char_dictionary.instance2index) + 1,
-    else:
-        char_dictionary = None
-        voc_size = None
+    assert model_specific_dictionary
+    char_dictionary = None
+    voc_size = None
 
     if not debug:
         pdb.set_trace = lambda: 1
@@ -49,11 +35,11 @@ def interact(dic_path, model_full_name, dir_model, debug=False,
                           dir_model=dir_model,
                           verbose=verbose)
     model.eval()
-    decode_interacively(max_len=MAX_LEN, model=model, char_dictionary=char_dictionary,
+    decode_interacively(max_len=MAX_LEN, model=model, char_dictionary=char_dictionary, sent_mode=True,
                         verbose=verbose)
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     
     debug = False
     model_specific_dictionary = True
@@ -71,3 +57,4 @@ if __name__=="__main__":
         dic_path = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder", "dictionaries")
         model_dir = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder")
         interact(dic_path=dic_path, dir_model=model_dir, model_full_name=model_full_name, debug=False)
+        break

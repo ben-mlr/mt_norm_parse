@@ -117,14 +117,12 @@ class CharDecoder(nn.Module):
                  verbose_level=4)
         _output_word_len[:, -1, :] = 0
         # when input_word_len is 0 means we reached end of sentence
-        # TODO : WARNING : is +1 required : as sent with 1 ??
+        # TODO : WARNING : is +1 required : as sent with 1 ? WHY ALWAYS IS NOT WORKING
         sent_len = torch.argmin(_output_word_len, dim=1)
         # WARNING : forcint sent_len to be one
-
         if (sent_len == 0).any():
             printing("WARNING : WE ARE FORCING SENT_LEN in the SOURCE SIDE", verbose=verbose, verbose_level=0)
-            sent_len[sent_len==0] += 1
-
+            sent_len[sent_len == 0] += 1
         # sort batch at the sentence length
         sent_len, perm_idx_input_sent = sent_len.squeeze().sort(0, descending=True)
         argmin_squeeze, start = get_timing(start)
