@@ -212,16 +212,7 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
             words_lens = min(max_len, len(seq_string))
             sent_words_lens.append(words_lens)
             # we have to create batch_size == 2 because of bug
-            if False:
-                sequence_characters = Variable(torch.from_numpy(np.array([sequence_characters, sequence_characters])), requires_grad=False)
 
-                char_seq = sequence_characters.unsqueeze(dim=1)
-                #char_seq = Variable(torch.from_numpy(np.array([sequence_characters, sequence_characters])), requires_grad=False)
-                char_mask = Variable(torch.from_numpy(np.array([masks, masks])), requires_grad=False)
-                char_mask = char_mask.unsqueeze(dim=1)
-                char_len = Variable(torch.from_numpy(np.array([[min(max_len, len(seq_string)), 0],
-                                                               [min(max_len, len(seq_string)), 0]])))
-                char_len = char_len.unsqueeze(dim=2)
         batch = Variable(torch.from_numpy(np.array([sent_character, sent_character])),
                                        requires_grad=False)
         batch_masks = Variable(torch.from_numpy(np.array([sent_words_mask, sent_words_mask])), requires_grad=False)
