@@ -14,6 +14,8 @@ TEST_SCORING_IN_CODE = False
 def _init_metric_report(score_to_compute_ls, mode_norm_score_ls):
     if score_to_compute_ls is not None:
         dic = {score+"-"+norm_mode: 0 for score in score_to_compute_ls for norm_mode in mode_norm_score_ls}
+        dic.update({score + "-" + norm_mode + "-" + "n_sents": 0 for score in score_to_compute_ls for norm_mode in
+                    mode_norm_score_ls})
         dic.update({score+"-"+norm_mode+"-"+"total_tokens": 0 for score in score_to_compute_ls for norm_mode in mode_norm_score_ls})
         dic.update({score+"-"+norm_mode+"-"+"mean_per_sent": 0 for score in score_to_compute_ls for norm_mode in mode_norm_score_ls})
         dic.update({score + "-" + norm_mode + "-" + "n_word_per_sent": 0 for score in score_to_compute_ls for norm_mode in mode_norm_score_ls})
@@ -48,14 +50,16 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                          verbose_level=3)
                 # decoding one batch
                 text_decoded_ls, src_text_ls, gold_text_seq_ls, counts = decode_sequence(model=model,
-                                                                                 char_dictionary=char_dictionary,
-                                                                                 single_sequence=False,
-                                                                                 target_seq_gold=target_gold,
-                                                                                 use_gpu=use_gpu,
-                                                                                 max_len=max_len, src_seq=src_seq,
-                                                                                 src_mask=src_mask,src_len=src_len,
-                                                                                 batch_size=batch_size, pad=pad,
-                                                                                 verbose=verbose)
+                                                                                         char_dictionary=char_dictionary,
+                                                                                         single_sequence=False,
+                                                                                         target_seq_gold=target_gold,
+                                                                                         use_gpu=use_gpu,
+                                                                                         max_len=max_len,
+                                                                                         src_seq=src_seq,
+                                                                                         src_mask=src_mask,
+                                                                                         src_len=src_len,
+                                                                                         batch_size=batch_size, pad=pad,
+                                                                                         verbose=verbose)
                 total_count["src_word_count"] += counts["src_word_count"]
                 total_count["target_word_count"] += counts["target_word_count"]
                 total_count["pred_word_count"] += counts["pred_word_count"]
@@ -74,9 +78,10 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                                                               compute_mean_score_per_sent=compute_mean_score_per_sent,
                                                               normalized_mode=mode_norm_score,
                                                               verbose=verbose)
-                                #_score = _score["sum"]
-                                score_dic[metric + "-" + mode_norm_score + "-n_word_per_sent"] += _score["n_word_per_sent"] if compute_mean_score_per_sent else 0
-                                score_dic[metric + "-" + mode_norm_score+"-mean_per_sent"] += _score["mean_per_sent"] if compute_mean_score_per_sent else 0
+                                if compute_mean_score_per_sent:
+                                    score_dic[metric + "-" + mode_norm_score + "-n_sents"] += _score["n_sents"]
+                                    score_dic[metric + "-" + mode_norm_score + "-n_word_per_sent"] += _score["n_word_per_sent"]
+                                    score_dic[metric + "-" + mode_norm_score+"-mean_per_sent"] += _score["mean_per_sent"]
                                 score_dic[metric+"-"+mode_norm_score] += _score["sum"]
                                 score_dic[metric+"-"+mode_norm_score+"-"+"total_tokens"] += _n_tokens
                     test_scoring = TEST_SCORING_IN_CODE

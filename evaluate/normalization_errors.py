@@ -82,13 +82,15 @@ def score_ls_(ls_pred, ls_gold, score, ls_original=None, stat="mean", normalized
         #get_sent_lengths = [len(sent) for sent in normalization_ls]
         normalized_sent_error_out_of_overall_sent_len = [np.sum(scores_sent)/len(scores_sent) for scores_sent in sent_score_ls]#, get_sent_lengths)]
         n_mode_words_per_sent = np.mean([len(scores_sent) for scores_sent in sent_score_ls])
-        mean_score_per_sent = np.mean(normalized_sent_error_out_of_overall_sent_len)
+        n_sents = len(sent_score_ls)
+        mean_score_per_sent = np.sum(normalized_sent_error_out_of_overall_sent_len)
     else:
         mean_score_per_sent = None
         n_mode_words_per_sent = None
+        n_sents = None
 
     return {"sum": score, "mean_per_sent": mean_score_per_sent,
-            "n_word_per_sent": n_mode_words_per_sent}, len(scores)
+            "n_word_per_sent": n_mode_words_per_sent, "n_sents": n_sents}, len(scores)
 
 
 #print(score_ls(["aad"], ["abcccc"], score="edit"))

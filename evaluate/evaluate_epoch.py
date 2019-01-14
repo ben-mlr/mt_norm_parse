@@ -79,7 +79,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
     score_dic = greedy_decode_batch(char_dictionary=model.char_dictionary, verbose=verbose, gold_output=True,
                                     score_to_compute_ls=score_to_compute_ls,use_gpu=use_gpu,
                                     stat="sum", mode_norm_score_ls=mode_norm_ls,
-                                    batchIter=batchIter, model=model,compute_mean_score_per_sent=compute_mean_score_per_sent,
+                                    batchIter=batchIter, model=model, compute_mean_score_per_sent=compute_mean_score_per_sent,
                                     batch_size=batch_size)
     # NB : each batch should have the same size !! same number of words : otherwise averaging is wrong
     try:
@@ -90,12 +90,17 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
     except ZeroDivisionError as e :
         print("ERROR catched {} ".format(e))
         raise Exception(e)
-    scoring_count = 0
     for score in score_to_compute_ls:
         for mode_norm in mode_norm_ls:
-            for stat_type in ["","-mean_per_sent"]:
-                #print(score_dic[score+"-"+mode_norm+stat_type]/score_dic[score+"-"+mode_norm+"-total_tokens"],score_dic[score+"-"+mode_norm+"-total_tokens"],)
-                score_value = score_dic[score+"-"+ mode_norm+stat_type]/score_dic[score+"-"+mode_norm+"-total_tokens"] if stat_type == "" else score_dic[score+"-"+mode_norm+stat_type]
+            stat_type_ls = [""]
+            if compute_mean_score_per_sent:
+                stat_type_ls.append("-mean_per_sent")
+                print("ADDING stat_type_ls")
+            for stat_type in stat_type_ls:
+                if stat_type == "":
+                    score_value = score_dic[score+"-"+ mode_norm+stat_type]/score_dic[score+"-"+mode_norm+"-total_tokens"]
+                elif stat_type == "-mean_per_sent":
+                    score_value = score_dic[score + "-" + mode_norm + stat_type]/score_dic[score+"-"+mode_norm+"-n_sents"]
                 report = report_template(metric_val=score+stat_type,
                                          info_score_val=mode_norm,
                                          score_val=score_value,
@@ -118,7 +123,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                   all_report = json.load(open(over_all_report_dir_all_models, "r"))
                   all_report.append(report)
                   json.dump(all_report,open(over_all_report_dir_all_models, "w"))
-                if writing_mode=="w":
+                if writing_mode == "w":
                   print("Creating new over_all_report_dir {} ".format(over_all_report_dir))
                   json.dump([report], open(over_all_report_dir, writing_mode))
                 else:
@@ -137,10 +142,10 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
 if __name__ == "__main__":
     list_all_dir = os.listdir("../checkpoints/")
     #for ablation_id in ["aaad","bd55","0153","f178"]:
-    for ablation_id in ["89fa"]:
+    for ablation_id in ["f2f2"]:
       #for data in [DEMO,DEMO2]:
-      for data in [DEV, DEV]:
-        list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log")]
+      for data in [LIU,DEV]:
+        list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
         print("FOLDERS : ", list_)
         for folder_name in list_:
           model_full_name = folder_name[:-7]
@@ -148,13 +153,12 @@ if __name__ == "__main__":
           print("0Evaluating {} ".format(model_full_name))
           evaluate(model_full_name=model_full_name, data_path=data,#LIU,
                    dict_path=os.path.join("..", "checkpoints", folder_name, "dictionaries"),
-                   label_report="WORD_DIR", use_gpu=None, overall_label="WARNING",
-                   mode_norm_ls=["all"],
-                   normalization=True, model_specific_dictionary=True, batch_size=5,
-                   debug=False,
+                   label_report="eval_again", use_gpu=None, overall_label="f2f2-FINALY",
+                   mode_norm_ls=None,
+                   normalization=True, model_specific_dictionary=True, batch_size=50,
+                   debug=False, compute_mean_score_per_sent=True,
                    dir_report=os.path.join("..", "checkpoints", folder_name), verbose=1)
-          break
-        break
+
 
 
 
