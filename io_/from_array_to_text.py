@@ -28,12 +28,13 @@ def output_text(one_code_prediction, char_dic, start_symbol=CHAR_START ,
     return np.array(decoding), str_decoded
 
 
-def output_text_(one_code_prediction, char_dic, start_symbol=CHAR_START ,
+def output_text_(one_code_prediction, char_dic, start_symbol=CHAR_START,
+                 output_str=False,
                  stop_symbol=END_CHAR, single_sequence=True):
 
     decoding = []
     str_decoded = []
-
+    words_count = 0
     for batch in range(one_code_prediction.size(0)):
         sent = []
         word_str_decoded = []
@@ -49,6 +50,7 @@ def output_text_(one_code_prediction, char_dic, start_symbol=CHAR_START ,
                     # WARNING : we assume always add_start = 1 ! we also :
                     if i_char == 1 and (char_decoded == stop_symbol or char_decoded == PAD_CHAR):
                         empty_decoded_word = True
+
                     # we break if only one padded symbol witout adding anything
                     # to word to print : only one PADDED symbol to the array
                     break
@@ -56,20 +58,25 @@ def output_text_(one_code_prediction, char_dic, start_symbol=CHAR_START ,
                 if not (char_decoded == start_symbol and i_char == 0):
                     word_to_print += char_decoded
                 word.append(char_decoded)
-            sent.append(word)
-            if single_sequence:
-                word_str_decoded = word_to_print
-            else:
-                # we want to remove gold empty words (coming from the sentence level padding)
-                if len(word_to_print) > 0 or empty_decoded_word:
-                    word_str_decoded.append(word_to_print)
-                #else:     printing("Word to print empty ")
-        if not single_sequence:
-            str_decoded.append(word_str_decoded)
-        else:
-            str_decoded = sent
-            print("--->", sent, word_i)
+            if len(word) > 0:
+                #print("WARNING : from_array_to_text.py --> adding filter !! ")
+                sent.append(word)
+                words_count += 1
+            # we want to remove gold empty words (coming from the sentence level padding)
+            #print("Word to print empty ", len(word_to_print), word_to_print, empty_decoded_word)
+            if len(word_to_print) > 0 or empty_decoded_word:
+                word_str_decoded.append(word_to_print)
+        str_decoded.append(word_str_decoded)
         decoding.append(sent)
-        print("FINAL", sent, word_i)
-    return np.array(decoding), sent
+        #print("FINAL", sent, word_i)
+    # NB : former single_sequence have no impact on output
+    if single_sequence:
+        # for interactive mode : as batch_size == 2 not supported we have to decode with batch_size 2 and then only keeping first
+        decoding = decoding[0]
+        str_decoded = str_decoded[0]
+    if output_str:
+        _out = str_decoded
+    else:
+        _out = decoding
+    return words_count, _out
 

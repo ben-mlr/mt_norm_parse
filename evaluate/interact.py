@@ -5,18 +5,7 @@ import os
 from io_.info_print import printing
 from model.seq2seq import LexNormalizer
 from model.generator import Generator
-import torch.nn as nn
-import torch
-import sys
-from io_.data_iterator import data_gen_conllu
-from io_.batch_generator import MaskBatch
-#sys.path.insert(0,"/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/ELMoLex_sosweet/")
-from io_.dat import conllu_data
-from training.epoch_train import run_epoch
-from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, DEMO, DEMO2
-
 MAX_LEN = 20
-#dict_path = "../dictionariesbackup/"
 
 
 def interact(dic_path, model_full_name, dir_model, debug=False,

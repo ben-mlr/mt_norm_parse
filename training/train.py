@@ -10,15 +10,18 @@ from tqdm import tqdm
 import pdb
 from toolbox.checkpointing import checkpoint, update_curve_dic
 import os
+import numpy as np
 from io_.info_print import disable_tqdm_level, printing
 from env.project_variables import PROJECT_PATH, REPO_DATASET, SEED_TORCH, BREAKING_NO_DECREASE, CHECKPOINT_DIR
+from env.project_variables import SEED_NP, SEED_TORCH
 import time
 from toolbox.gpu_related import use_gpu_
 from toolbox.sanity_check import get_timing
 from collections import OrderedDict
 from tracking.plot_loss import simple_plot_ls
-
 from evaluate.evaluate_epoch import evaluate
+
+np.random.seed(SEED_NP)
 torch.manual_seed(SEED_TORCH)
 
   

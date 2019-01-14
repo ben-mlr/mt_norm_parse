@@ -7,7 +7,7 @@ from env.project_variables import SUPPORTED_STAT
 
 
 def exact_match(pred, gold):
-    if pred == gold :
+    if pred == gold:
         return 1
     else:
         return 0
@@ -44,7 +44,9 @@ def score_ls_(ls_pred, ls_gold, score, ls_original=None, stat="mean", normalized
               compute_mean_score_per_sent=False, verbose=0):
 
     assert stat in SUPPORTED_STAT, "ERROR : metric should be in {} ".format(str(SUPPORTED_STAT))
-    assert len(ls_gold) == len(ls_pred), "ERROR ls_gold is len {} while ls_pred is len {} ".format(len(ls_gold), len(ls_pred))
+    pdb.set_trace()
+
+    assert len(ls_gold) == len(ls_pred), "ERROR ls_gold is len {} while ls_pred is len {} ".format(ls_gold, ls_pred)
 
     scores = []
     sent_score_ls = []

@@ -91,6 +91,7 @@ class CharEncoder(nn.Module):
 
         _input_word_len = input_word_len.clone()
         # handle sentence that take the all sequence
+        # TODO : I think this case problem for sentence that take the all sequence : we are missing a word ! ??
         _input_word_len[:, -1, :] = 0
         # when input_word_len is 0 means we reached end of sentence
         # I think +1 is required

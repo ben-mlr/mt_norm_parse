@@ -41,19 +41,14 @@ def data_gen_conllu(data, word_dictionary, char_dictionary, pos_dictionary,
                                                                                           unk_replace=0)
         if char.size(0)<=1:
             print("char----> ", char)
-        #if min(lenght.data) < 3:
-        #    print("MIN length.data ")
-        #    continue
         printing("TYPE {} word, char {} , chars_norm {} length {} ", var=(word.is_cuda, char.is_cuda,
                                                                            chars_norm.is_cuda, lenght.is_cuda), 
-            verbose=verbose, verbose_level=5)
+                 verbose=verbose, verbose_level=5)
         assert min(lenght.data) > 0, "ERROR : min(lenght.data) is {} ".format(min(lenght.data))
-
         # TODO : you want to correct that : you're missing word !!
         #for sent_ind in range(char.size(1)):
         #for word_ind in range(min(lenght.data)):
         word_ind = 0
-
         word_len = char.size(2)
         if normalization:
             printing("Normalized sequence {} ", var=(chars_norm[:, word_ind, :]), verbose=verbose, verbose_level=5)

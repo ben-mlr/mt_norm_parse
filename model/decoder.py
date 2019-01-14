@@ -129,7 +129,6 @@ class CharDecoder(nn.Module):
         inverse_perm_idx_input_sent = torch.from_numpy(np.argsort(perm_idx_input_sent.cpu().numpy()))
         sorting, start = get_timing(start)
         # [batch x sent_len , dim hidden word level] # this remove empty words
-        pdb.set_trace()
         packed_char_vecs_output = pack_padded_sequence(output[perm_idx_input_sent, :, :], sent_len.squeeze().cpu().numpy(), batch_first=True)
         packed_sent, start = get_timing(start)
         # unpacked for the word level representation

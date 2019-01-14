@@ -237,7 +237,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
 
   reader.close()
 
-  return data, {"max_char_length": max_char_length, "max_char_norm_length": max_char_norm_length, "n_sent":counter}, _buckets
+  return data, {"max_char_length": max_char_length, "max_char_norm_length": max_char_norm_length, "n_sent": counter}, _buckets
 
 
 def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
@@ -448,7 +448,7 @@ def iterate_batch_variable(data, batch_size, unk_replace=0., lattice=None, norma
       if normalization:
         chars_norm = chars_norm[excerpt] if normalization else None
 
-      yield words[excerpt], chars[excerpt], chars_norm,pos[excerpt], xpos[excerpt], heads[excerpt], types[excerpt], masks[excerpt], lengths[excerpt], order_ids[excerpt], raw_word_inputs[excerpt], raw_lines[excerpt]
+      yield words[excerpt], chars[excerpt], chars_norm, pos[excerpt], xpos[excerpt], heads[excerpt], types[excerpt], masks[excerpt], lengths[excerpt], order_ids[excerpt], raw_word_inputs[excerpt], raw_lines[excerpt]
 
 
 

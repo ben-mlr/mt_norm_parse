@@ -12,11 +12,16 @@ from io_.info_print import printing
 import os
 import json
 import sys
+import numpy as np
 import torch
-from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, DEMO, DEMO2, LIU, REPO_DATASET, CHECKPOINT_DIR
+from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, DEMO, DEMO2, LIU, REPO_DATASET, CHECKPOINT_DIR, SEED_TORCH, SEED_NP
 from toolbox.gpu_related import use_gpu_
 sys.path.insert(0, os.path.join(PROJECT_PATH, "..", "experimental_pipe"))
 from reporting.write_to_performance_repo import report_template, write_dic
+
+
+np.random.seed(SEED_NP)
+torch.manual_seed(SEED_TORCH)
 
 
 def evaluate(batch_size, data_path, write_report=True, dir_report=None,
@@ -133,8 +138,8 @@ if __name__ == "__main__":
     list_all_dir = os.listdir("../checkpoints/")
     #for ablation_id in ["aaad","bd55","0153","f178"]:
     for ablation_id in ["89fa"]:
-      for data in [DEMO,DEMO2]:
-      #for data in [LIU, DEV]:
+      #for data in [DEMO,DEMO2]:
+      for data in [DEV, DEV]:
         list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log")]
         print("FOLDERS : ", list_)
         for folder_name in list_:
@@ -143,10 +148,16 @@ if __name__ == "__main__":
           print("0Evaluating {} ".format(model_full_name))
           evaluate(model_full_name=model_full_name, data_path=data,#LIU,
                    dict_path=os.path.join("..", "checkpoints", folder_name, "dictionaries"),
-                   label_report="WORD_DIR", use_gpu=None,overall_label="WARNING",
-                   normalization=True, model_specific_dictionary=True, batch_size=50, debug=False,
-                   dir_report=os.path.join("..", "checkpoints",folder_name), verbose=1)
+                   label_report="WORD_DIR", use_gpu=None, overall_label="WARNING",
+                   mode_norm_ls=["all"],
+                   normalization=True, model_specific_dictionary=True, batch_size=5,
+                   debug=False,
+                   dir_report=os.path.join("..", "checkpoints", folder_name), verbose=1)
           break
+        break
+
+
+
 
 #reporting = False
 #              if reporting:
