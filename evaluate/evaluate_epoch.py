@@ -26,7 +26,7 @@ torch.manual_seed(SEED_TORCH)
 
 def evaluate(batch_size, data_path, write_report=True, dir_report=None,
              dict_path=None, model_full_name=None,
-             score_to_compute_ls=None, mode_norm_ls=None,
+             score_to_compute_ls=None, mode_norm_ls=None,get_batch_mode_evaluate=True,
              overall_label="ALL_MODELS",overall_report_dir=CHECKPOINT_DIR,
              model_specific_dictionary=True, label_report="", print_raw=False, model=None,
              compute_mean_score_per_sent=False,
@@ -36,6 +36,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
     use_gpu = use_gpu_(use_gpu)
     hardware_choosen = "GPU" if use_gpu else "CPU"
     printing("{} mode ", var=([hardware_choosen]), verbose_level=0, verbose=verbose)
+    printing("EVALUATION : evaluating with compute_mean_score_per_sent {}".format(compute_mean_score_per_sent), verbose=verbose, verbose_level=1)
     if score_to_compute_ls is None:
         score_to_compute_ls = ["edit", "exact"]
     if mode_norm_ls is None:
@@ -70,7 +71,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
     batchIter = data_gen_conllu(data_read, model.word_dictionary, model.char_dictionary, model.pos_dictionary,
                                 model.xpos_dictionary,
                                 model.type_dictionary, batch_size=batch_size,  add_start_char=1,
-                                add_end_char=1,
+                                add_end_char=1, get_batch_mode=get_batch_mode_evaluate,
                                 normalization=normalization,
                                 print_raw=print_raw,  verbose=verbose)
 
@@ -79,6 +80,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
     score_dic = greedy_decode_batch(char_dictionary=model.char_dictionary, verbose=verbose, gold_output=True,
                                     score_to_compute_ls=score_to_compute_ls,use_gpu=use_gpu,
                                     stat="sum", mode_norm_score_ls=mode_norm_ls,
+
                                     batchIter=batchIter, model=model, compute_mean_score_per_sent=compute_mean_score_per_sent,
                                     batch_size=batch_size)
     # NB : each batch should have the same size !! same number of words : otherwise averaging is wrong
@@ -95,7 +97,6 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
             stat_type_ls = [""]
             if compute_mean_score_per_sent:
                 stat_type_ls.append("-mean_per_sent")
-                print("ADDING stat_type_ls")
             for stat_type in stat_type_ls:
                 if stat_type == "":
                     score_value = score_dic[score+"-"+ mode_norm+stat_type]/score_dic[score+"-"+mode_norm+"-total_tokens"]
@@ -112,7 +113,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                                          data_val=REPO_DATASET[data_path])
                 _dir_report = os.path.join(dir_report, model.model_full_name+"-"+score+"-"+mode_norm+"-report-"+label_report+".json")
                 over_all_report_dir = os.path.join(dir_report, model.model_full_name+"-report-"+label_report+".json")
-                over_all_report_dir_all_models = os.path.join(overall_report_dir,overall_label+"-report.json")
+                over_all_report_dir_all_models = os.path.join(overall_report_dir, overall_label+"-report.json")
                 writing_mode = "w" if not os.path.isfile(over_all_report_dir) else "a"
                 writing_mode_all_models = "w" if not os.path.isfile(over_all_report_dir_all_models) else "a"
                 json.dump(report, open(_dir_report, "w"))

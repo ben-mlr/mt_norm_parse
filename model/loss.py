@@ -38,7 +38,6 @@ class LossCompute:
                  verbose=self.verbose,verbose_level=5)
         printing("LOSS input y observations {} reshaped {} ", var=(y, y.contiguous().view(-1)),
                  verbose=self.verbose, verbose_level=5)
-        pdb.set_trace()
         y = y[:,:x.size(1),:]
         printing("TYPE  y {} is cuda ", var=(y.is_cuda), verbose=0, verbose_level=5)
         reshaping, start = get_timing(start)

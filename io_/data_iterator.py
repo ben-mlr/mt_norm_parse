@@ -14,7 +14,7 @@ from toolbox.sanity_check import get_timing
 
 def data_gen_conllu(data, word_dictionary, char_dictionary, pos_dictionary,
                     xpos_dictionary, type_dictionary, batch_size,
-                    add_start_char=1,use_gpu=False,
+                    add_start_char=1,use_gpu=False,get_batch_mode=True,
                     add_end_char=1, padding=1, print_raw=False, normalization=False,
                     symbolic_root=False, symbolic_end=False,timing=False,
                     verbose=0):
@@ -33,59 +33,69 @@ def data_gen_conllu(data, word_dictionary, char_dictionary, pos_dictionary,
     nbatch = 1 if nbatch == 0 else nbatch
 
     print("Running {} batches of {} dim (nsent : {}) ".format(nbatch, batch_size, n_sents))
-    for ibatch in tqdm(range(1, nbatch+1), disable=disable_tqdm_level(verbose, verbose_level=2)):
-        # word, char, pos, xpos, heads, types, masks, lengths, morph
-        printing("Data : getting {} out of {} batches", var=(ibatch, nbatch+1), verbose= verbose, verbose_level=2)
-        word, char, chars_norm, _, _, _, _, _, lenght, _ = conllu_data.get_batch_variable(data, batch_size=batch_size,
-                                                                                          normalization=normalization,
-                                                                                          unk_replace=0)
-        if char.size(0)<=1:
-            print("char----> ", char)
-        printing("TYPE {} word, char {} , chars_norm {} length {} ", var=(word.is_cuda, char.is_cuda,
-                                                                           chars_norm.is_cuda, lenght.is_cuda), 
-                 verbose=verbose, verbose_level=5)
-        assert min(lenght.data) > 0, "ERROR : min(lenght.data) is {} ".format(min(lenght.data))
-        # TODO : you want to correct that : you're missing word !!
-        #for sent_ind in range(char.size(1)):
-        #for word_ind in range(min(lenght.data)):
-        word_ind = 0
-        word_len = char.size(2)
-        if normalization:
-            printing("Normalized sequence {} ", var=(chars_norm[:, word_ind, :]), verbose=verbose, verbose_level=5)
-        printing("Char {} word ind : word : {}  ", var=(word_ind, char[:, word_ind, :]), verbose=verbose,
-                 verbose_level=5)
-        _verbose = 5 if print_raw else verbose
 
-        if _verbose >= 5:
-            character_display = [" ".join([char_dictionary.get_instance(char[sent, word_ind, char_i])
-                                           for char_i in range(word_len)]) + " |SENT {} WORD {}| ".format(ind_sent, ind_w)
-                                 for ind_sent,sent in enumerate(range(char.size(0)))
-                                 for ind_w , word_ind in enumerate(range(char.size(1)))]
-            word_display = [word_dictionary.get_instance(word[batch, word_ind]) + " " for batch in range(char.size(0))]
-        else:
-            word_display = []
-            character_display = []
-        if not normalization:
-            chars_norm = char.clone()
-            printing("Normalisation is False : model is a autoencoder ", verbose=_verbose, verbose_level=5)
+    if not get_batch_mode:
+        for batch  in tqdm(conllu_data.iterate_batch_variable(data, batch_size=batch_size, normalization=normalization),
+                           disable=disable_tqdm_level(verbose, verbose_level=2)):
+            words, chars, chars_norm, pos, xpos, heads, types, masks, lengths, order_ids, raw_word_inputs, raw_lines = batch
+            #pdb.set_trace()
+            yield MaskBatch(chars, chars_norm, pad=padding, timing=timing, verbose=verbose)
 
-        if _verbose >= 5:
-            character_norm_display = [" ".join([char_dictionary.get_instance(chars_norm[sent, word_ind, char_i])
-                                           for char_i in range(chars_norm.size(2))]) + " |SENT {} WORD {}| ".format(ind_sent, ind_w)
-                                 for ind_sent, sent in enumerate(range(chars_norm.size(0)))
-                                 for ind_w, word_ind in enumerate(range(chars_norm.size(1)))]
-        else:
-            character_norm_display = []
+    elif get_batch_mode:
+        for ibatch in tqdm(range(1, nbatch+1), disable=disable_tqdm_level(verbose, verbose_level=2)):
+            # word, char, pos, xpos, heads, types, masks, lengths, morph
+            printing("Data : getting {} out of {} batches", var=(ibatch, nbatch+1), verbose= verbose, verbose_level=2)
+            word, char, chars_norm, _, _, _, _, _, lenght, _ = conllu_data.get_batch_variable(data, batch_size=batch_size,
+                                                                                              normalization=normalization,
+                                                                                              unk_replace=0)
+            #pdb.set_trace()
+            if char.size(0)<=1:
+                print("char----> ", char)
+            printing("TYPE {} word, char {} , chars_norm {} length {} ", var=(word.is_cuda, char.is_cuda,
+                                                                               chars_norm.is_cuda, lenght.is_cuda),
+                     verbose=verbose, verbose_level=5)
+            assert min(lenght.data) > 0, "ERROR : min(lenght.data) is {} ".format(min(lenght.data))
+            # TODO : you want to correct that : you're missing word !!
+            #for sent_ind in range(char.size(1)):
+            #for word_ind in range(min(lenght.data)):
+            word_ind = 0
+            word_len = char.size(2)
+            if normalization:
+                printing("Normalized sequence {} ", var=(chars_norm[:, word_ind, :]), verbose=verbose, verbose_level=5)
+            printing("Char {} word ind : word : {}  ", var=(word_ind, char[:, word_ind, :]), verbose=verbose,
+                     verbose_level=5)
+            _verbose = 5 if print_raw else verbose
 
-        printing("Feeding source characters {} target characters {}  "
-                 "(NB : the character vocabulary is the same at input and output)", var=(character_display,
-                                                                                          character_norm_display),
-                 verbose=_verbose, verbose_level=5)
+            if _verbose >= 5:
+                character_display = [" ".join([char_dictionary.get_instance(char[sent, word_ind, char_i])
+                                               for char_i in range(word_len)]) + " |SENT {} WORD {}| ".format(ind_sent, ind_w)
+                                     for ind_sent,sent in enumerate(range(char.size(0)))
+                                     for ind_w , word_ind in enumerate(range(char.size(1)))]
+                word_display = [word_dictionary.get_instance(word[batch, word_ind]) + " " for batch in range(char.size(0))]
+            else:
+                word_display = []
+                character_display = []
+            if not normalization:
+                chars_norm = char.clone()
+                printing("Normalisation is False : model is a autoencoder ", verbose=_verbose, verbose_level=5)
 
-        printing("Feeding source words {} ", var=(word_display), verbose=_verbose, verbose_level=5)
-        printing("TYPE {}char before batch chars_norm {} ", var=(char.is_cuda, chars_norm.is_cuda),
-                 verbose=verbose, verbose_level=5)
-        yield MaskBatch(char, chars_norm, pad=padding, timing=timing, verbose=verbose)
+            if _verbose >= 5:
+                character_norm_display = [" ".join([char_dictionary.get_instance(chars_norm[sent, word_ind, char_i])
+                                               for char_i in range(chars_norm.size(2))]) + " |SENT {} WORD {}| ".format(ind_sent, ind_w)
+                                     for ind_sent, sent in enumerate(range(chars_norm.size(0)))
+                                     for ind_w, word_ind in enumerate(range(chars_norm.size(1)))]
+            else:
+                character_norm_display = []
+
+            printing("Feeding source characters {} target characters {}  "
+                     "(NB : the character vocabulary is the same at input and output)", var=(character_display,
+                                                                                              character_norm_display),
+                     verbose=_verbose, verbose_level=5)
+
+            printing("Feeding source words {} ", var=[word_display], verbose=_verbose, verbose_level=5)
+            printing("TYPE {} char before batch chars_norm {} ", var=(char.is_cuda, chars_norm.is_cuda),
+                     verbose=verbose, verbose_level=5)
+            yield MaskBatch(char, chars_norm, pad=padding, timing=timing, verbose=verbose)
 
 
 def data_gen_dummy(V, batch, nbatches,sent_len=9, word_len=5,

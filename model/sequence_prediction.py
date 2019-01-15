@@ -124,7 +124,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
     output_seq = Variable(torch.from_numpy(output_seq), requires_grad=False)
     printing("Data Start source {} {} ", var=(src_seq, src_seq.size()), verbose=verbose, verbose_level=5)
     output_str = True
-    printing("WARNING : output_str = True hardcoded", verbose=verbose, verbose_level=0)
+    printing("WARNING : output_str = True hardcoded (decode_sequence)", verbose=verbose, verbose_level=2)
     printing("Data output sizes ", var=(output_seq.size(), output_len.size(), output_mask.size()), verbose=verbose, verbose_level=6)
     for step, char_decode in enumerate(range(2,  max_len)):
         if use_gpu:

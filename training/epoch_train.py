@@ -5,7 +5,7 @@ from io_.info_print import printing, VERBOSE_1_LOG_EVERY_x_BATCH
 import pdb
 from toolbox.sanity_check import get_timing
 import time
-
+from collections import OrderedDict
 
 def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
               n_epochs=None, n_batches=None, empty_run=False,timing=False,
@@ -74,9 +74,7 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
             total_loss, total_tokens = 0, 1
         batch_time_start = time.time()
         if timing:
-            from collections import OrderedDict
-            print(
-                "run epoch timing : {}".format(OrderedDict([("forward_time", forward_time), ("loss_time", loss_time),
+            print("run epoch timing : {}".format(OrderedDict([("forward_time", forward_time), ("loss_time", loss_time),
                                                             ("batch_time_start", batch_time_)])))
     if not empty_run:
         printing("INFO : epoch {} done ", var=(n_epochs), verbose=verbose, verbose_level=1)

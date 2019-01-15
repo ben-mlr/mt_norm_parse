@@ -259,7 +259,7 @@ class LexNormalizer(nn.Module):
         # the arguments dir does not change !
         arguments_dir = os.path.join(dir,  model.model_full_name + "-" + "args.json")
         model.args_dir = arguments_dir
-        printing("WARNING : overwriting checkpoint {} ", var=(checkpoint_dir), verbose=verbose, verbose_level=0)
+        printing("WARNING : overwriting checkpoint {} ", var=[checkpoint_dir], verbose=verbose, verbose_level=0)
 
         if os.path.isfile(arguments_dir):
             printing("Overwriting argument file (checkpoint dir updated with {}  ) ", var=(checkpoint_dir),

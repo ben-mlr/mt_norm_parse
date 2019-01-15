@@ -19,6 +19,8 @@ def subsequent_mask(size):
 class MaskBatch(object):
     def __init__(self, input_seq, output_seq, pad=0, verbose=0, timing=False):
         # input mask
+        if not output_seq.size(0) >1:
+            pdb.set_trace()
         assert output_seq.size(0) >1 , "ERROR  batch_size should be strictly above 1 but is {} ".format(output_seq.size())
         # originnaly batch_size, word len
         self.input_seq = input_seq
@@ -69,7 +71,6 @@ class MaskBatch(object):
                 inverse_perm_idx = torch.from_numpy(np.argsort(perm_idx.cpu().numpy()))
                 self.output_seq_y = self.output_seq_y[perm_idx, :]
                 reorder_output, start = get_timing(start)
-
             else:
                 raise Exception("self.output_seq_len.size(0) <=1 not suppoerted {}".format(self.output_seq_len.size(0)))
             printing("BATCH : TARGET before packed true size {} ", var=(self.output_seq_y.size()),verbose=verbose,

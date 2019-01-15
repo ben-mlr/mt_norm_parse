@@ -94,10 +94,20 @@ class CoNLLReader(object):
         open("/scratch/bemuller/parsing/sosweet/processing/logs/catching_errors.txt", "a").write("Line broken {} because of tokens "
                                                                                                  "{} from {} file \n ".format(lines, tokens,self.__file_path))
         continue
-
+      n_exception = 0
       if normalization:
         match = re.match("^Norm=([^|]+)|.+", tokens[9])
-        assert match.group(1) is not None, " ERROR : not normalization found for token {} ".format(tokens)
+        try:
+          assert match.group(1) is not None, " ERROR : not normalization found for token {} ".format(tokens)
+        except:
+          match_double_bar = re.match("^Norm=([|]+)|.+", tokens[9])
+          if match_double_bar.group(1) is not None:
+            match = match_double_bar
+            n_exception+=1
+            printing("Exception handled we match with {}".format(match_double_bar.group(1)), verbose=verbose, verbose_level=1)
+          else:
+            print("Failed to handle exception with | ")
+            raise(Exception)
         normalized_token = match.group(1)
         normalized_token_id = self.__word_dictionary.get_index(normalized_token)
         norm_ids.append(normalized_token_id )

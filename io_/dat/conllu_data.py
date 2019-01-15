@@ -428,7 +428,7 @@ def iterate_batch_variable(data, batch_size, unk_replace=0., lattice=None, norma
   """
   Iterate over the dataset based on read_data_to_variable() object (used a evaluation)
   """
-  data_variable, bucket_sizes, _buckets = data
+  data_variable, bucket_sizes, _buckets, _ = data
   bucket_indices = np.arange(len(_buckets))
 
   for bucket_id in bucket_indices:
@@ -437,7 +437,7 @@ def iterate_batch_variable(data, batch_size, unk_replace=0., lattice=None, norma
     if bucket_size == 0:
       continue
 
-    words, chars, chars_norm,pos, xpos, heads, types, masks, single, lengths, order_ids, raw_word_inputs, raw_lines = data_variable[bucket_id]
+    words, chars, chars_norm, pos, xpos, heads, types, masks, single, lengths, order_ids, raw_word_inputs, raw_lines = data_variable[bucket_id]
     if unk_replace:
       ones = Variable(single.data.new(bucket_size, bucket_length).fill_(1))
       noise = Variable(masks.data.new(bucket_size, bucket_length).bernoulli_(unk_replace).long())
@@ -446,9 +446,15 @@ def iterate_batch_variable(data, batch_size, unk_replace=0., lattice=None, norma
     for start_idx in range(0, bucket_size, batch_size):
       excerpt = slice(start_idx, start_idx + batch_size)
       if normalization:
-        chars_norm = chars_norm[excerpt] if normalization else None
+        chars_norm_ = chars_norm[excerpt] if normalization else None
+      if chars[excerpt].size(0) <= 1 or chars_norm_.size(0) <= 1:
+        pdb.set_trace()
+        print("We are skipping not to have to do batch_size == 1 ")
+        continue
 
-      yield words[excerpt], chars[excerpt], chars_norm, pos[excerpt], xpos[excerpt], heads[excerpt], types[excerpt], masks[excerpt], lengths[excerpt], order_ids[excerpt], raw_word_inputs[excerpt], raw_lines[excerpt]
+
+
+      yield words[excerpt], chars[excerpt], chars_norm_, pos[excerpt], xpos[excerpt], heads[excerpt], types[excerpt], masks[excerpt], lengths[excerpt], order_ids[excerpt], raw_word_inputs[excerpt], raw_lines[excerpt]
 
 
 

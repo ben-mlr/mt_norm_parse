@@ -24,6 +24,10 @@ TEST_LABEL, TEST = "lexnorm", os.path.join(PROJECT_PATH, "../parsing/normpar/dat
 DEMO_LABEL, DEMO = "lexnorm-Demo", os.path.join(PROJECT_PATH, "../parsing/normpar/data/lexnorm.integrated.demo")
 DEMO2_LABEL, DEMO2 = "lexnorm-demo2", os.path.join(PROJECT_PATH, "../parsing/normpar/data/lexnorm.integrated.demo2")
 LIU_LABEL, LIU = "liu_data", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li.conll")
+LEX_TRAIN_LABEL, LEX_TRAIN = "lex_norm2015_train", os.path.join(PROJECT_PATH, "./data/lexnorm2015/train_data.conll")
+LEX_TEST_LABEL, LEX_TEST = "lex_norm2015_test", os.path.join(PROJECT_PATH, "./data/lexnorm2015/test_truth.conll")
 
-REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV:DEV_LABEL, DEMO:DEMO_LABEL, DEMO2:DEMO2_LABEL,
-                TEST: TEST_LABEL, LIU:LIU_LABEL}
+REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO2: DEMO2_LABEL,
+                TEST: TEST_LABEL, LIU: LIU_LABEL,
+                LEX_TRAIN:LEX_TRAIN_LABEL,
+                LEX_TEST:LEX_TEST_LABEL}

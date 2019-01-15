@@ -33,18 +33,18 @@ if __name__ == "__main__":
     debug = False
     model_specific_dictionary = True
     script_dir = os.path.dirname(os.path.realpath(__file__))
-    list_all_dir = os.listdir("../checkpoints/f178-ablation")
+    list_all_dir = os.listdir("../checkpoints/")
     #f178-DROPOUT_EVEN_INCREASE-0.1-to_sent+word+bridge_out-model_3_046c-folder
     #for ablation_id in ["aaad","bd55","0153","f178"]:
-    ablation_id="f178"
+    ablation_id="f2f2"#"aaad-DROPOUT_word-vs-sent-0.2"#"aaad-DROPOUT_word-vs-sent-0.2-to_all-model_3_2b03-folder"
     #for data in [LIU, DEV]:
-    list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log")]
+    list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith("summary")]
     print("FOLDERS : ", list_)
     for folder_name in list_:
         model_full_name = folder_name[:-7]
         print("MODEL_FULL_NAME : ", model_full_name)
         print("0Evaluating {} ".format(model_full_name))
-        dic_path = os.path.join(script_dir, "..", "checkpoints/f178-ablation", model_full_name + "-folder", "dictionaries")
-        model_dir = os.path.join(script_dir, "..", "checkpoints/f178-ablation", model_full_name + "-folder")
+        dic_path = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder", "dictionaries")
+        model_dir = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder")
         interact(dic_path=dic_path, dir_model=model_dir, model_full_name=model_full_name, debug=False)
         break

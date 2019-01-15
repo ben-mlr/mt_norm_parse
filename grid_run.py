@@ -2,15 +2,19 @@ from training.train import train
 from io_.info_print import printing
 import os
 from evaluate.evaluate_epoch import evaluate
-from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, CHECKPOINT_DIR, DEMO, DEMO2, REPO_DATASET, LIU
+import numpy as np
+import torch
+from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, CHECKPOINT_DIR, DEMO, DEMO2, REPO_DATASET, LIU, LEX_TRAIN, LEX_TEST, SEED_NP, SEED_TORCH
 from uuid import uuid4
 
+np.random.seed(SEED_NP+1)
+torch.manual_seed(SEED_TORCH)
 
 
-def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,
-               overall_report_dir=CHECKPOINT_DIR, overall_label="DEFAULT",
+def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
+               overall_report_dir=CHECKPOINT_DIR, overall_label="DEFAULT",get_batch_mode_evaluate=True,
                warmup=False, args={},use_gpu=None,freq_checkpointing=1,debug=False,
-               compute_mean_score_per_sent=False,
+               compute_mean_score_per_sent=False,print_raw=False,
                verbose=0):
 
 
@@ -40,7 +44,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,
     if warmup:
         printing("Warm up : running 1 epoch ", verbose=verbose, verbose_level=0)
     printing("START TRAINING ", verbose_level=0, verbose=verbose)
-    model_full_name = train(train_path, dev_path, n_epochs=n_epochs, normalization=True,
+    model_full_name = train(train_path, dev_path, n_epochs=n_epochs, normalization=True,get_batch_mode_evaluate=get_batch_mode_evaluate,
                             batch_size=batch_size, model_specific_dictionary=True,
                             dict_path=None, model_dir=None, add_start_char=1,
                             add_end_char=1, use_gpu=use_gpu, dir_sent_encoder=dir_sent_encoder,
@@ -55,34 +59,42 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,
                             drop_out_word_encoder_out=drop_out_word_encoder_out, dropout_bridge=dropout_bridge,
                             freq_checkpointing=freq_checkpointing, reload=False, model_id_pref=model_id_pref,
                             score_to_compute_ls=["edit", "exact"], mode_norm_ls=["all", "NEED_NORM", "NORMED"],
-                            hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,char_embedding_dim=char_embedding_dim,
+                            hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,
+                            char_embedding_dim=char_embedding_dim,
                             hidden_size_sent_encoder=hidden_size_sent_encoder, hidden_size_decoder=hidden_size_decoder,
                             n_layers_word_encoder=n_layers_word_encoder, compute_scoring_curve=True,verbose=verbose, 
-                            print_raw=False, debug=debug,
+                            print_raw=print_raw, debug=debug,
                             checkpointing=True)
     evaluate_again = False
     model_dir = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder")
 
     if evaluate_again:
+
       dict_path = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder", "dictionaries")
-      printing("START EVALUATION ", verbose_level=0, verbose=verbose)
-      for eval_data in [dev_path, train_path] :
+      printing("START EVALUATION FINAL ", verbose_level=0, verbose=verbose)
+      eval_data_paths = [train_path, dev_path]
+      if test_path is not None:
+          eval_data_paths.append(test_path)
+
+      for eval_data in  eval_data_paths:
               eval_label = REPO_DATASET[eval_data]
               evaluate(model_full_name=model_full_name, data_path=eval_data,
                        dict_path=dict_path, use_gpu=None,
-                       label_report=eval_label,
+                       label_report=eval_label, overall_label=overall_label+"-last",
                        score_to_compute_ls=["edit", "exact"], mode_norm_ls=["all", "NEED_NORM", "NORMED"],
-                       normalization=True,print_raw=False,
-                       model_specific_dictionary=True,
+                       normalization=True, print_raw=print_raw,
+                       model_specific_dictionary=True,get_batch_mode_evaluate=get_batch_mode_evaluate,
+                       compute_mean_score_per_sent=compute_mean_score_per_sent,
                        batch_size=batch_size,
-                       dir_report=model_dir, verbose=0)
+                       dir_report=model_dir, verbose=1)
     return model_full_name, model_dir
 
 
 if __name__ == "__main__":
 
-      train_path = LIU
-      dev_path = DEV
+      ##train_path = LIU
+      ##dev_path = DEV
+      train_path, dev_path = LEX_TRAIN, LEX_TEST
       params = []
 
       ls_param = ["hidden_size_encoder", "hidden_size_sent_encoder","hidden_size_decoder", "output_dim", "char_embedding_dim"]
@@ -116,13 +128,14 @@ if __name__ == "__main__":
             labels.append(str(level)+"-level-"+label_0[12:])
             params.append(param)
       i = 0
+
       ABLATION_DROPOUT = True
 
       if ABLATION_DROPOUT:
           params = []
           labels = [""]
           for add_dropout_encoder in [0,0.1,0.2,0.5,0.8]:
-            for batch_size in [2, 5, 10, 20, 50, 100]:
+            for batch_size in [10, 20, 50, 100]:
               for dir_sent_encoder in [1,2]:
                 param = params_baseline.copy()
                 param["drop_out_sent_encoder_out"] = 0.2#add_dropout_encoder
@@ -134,7 +147,9 @@ if __name__ == "__main__":
                 label = str(add_dropout_encoder)+"-to_char_src-"+str(dir_sent_encoder)+"_dir_sent-"+str(batch_size)+"_batch_size"
                 params.append(param)
                 labels.append(label)
+
       ABLATION_DIR_WORD = False
+
       if ABLATION_DIR_WORD:
           params = [params_strong]
           labels = ["dir_word_encoder_1-strong-sent_source_dir_2-dropout_0.2_everywhere-LSTM-batch_10"]
@@ -146,31 +161,33 @@ if __name__ == "__main__":
 
       warmup = False
       RUN_ID = str(uuid4())[0:4]
-      LABEL_GRID = "batchXdropout_char" if not warmup else "WARMUP"
+      LABEL_GRID = "new_data-batchXdropout_char" if not warmup else "WARMUP_gpu3"
       GRID_FOLDER_NAME = RUN_ID+"-"+LABEL_GRID if len(LABEL_GRID)>0 else RUN_ID
       GRID_FOLDER_NAME += "-summary"
       dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
       os.mkdir(dir_grid)
       printing("INFO : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
+
       for param, model_id_pref in zip(params, labels):
           i += 1
-          #param["batch_size"] = 2
+          #param["batch_size"] = 10
           #model_id_pref = "TEST-"+model_id_pref
           printing("Adding RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
           epochs = 100
-          #param["batch_size"] = 50
           if warmup:
-            train_path, dev_path = DEMO2, DEMO
+            param["batch_size"] = 13
+            train_path, dev_path = DEV, LEX_TRAIN
+          
           model_id_pref = RUN_ID + "-"+LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
-          model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref, 
+          model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
+                                                  test_path=DEV,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
-                                                  compute_mean_score_per_sent=True,
+                                                  compute_mean_score_per_sent=True, print_raw=False,get_batch_mode_evaluate=True,
                                                   warmup=warmup, args=param, use_gpu=None, n_epochs=epochs, debug=False)
           run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("Log RUN is : {} to see model list ".format(run_dir))
           print("GRID RUN : DONE MODEL {} with param {} ".format(model_id_pref, param))
-          
 
 # CCL want to have a specific seed : when work --> reproduce with several seed
