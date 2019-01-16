@@ -104,7 +104,7 @@ class CoNLLReader(object):
           if match_double_bar.group(1) is not None:
             match = match_double_bar
             n_exception+=1
-            printing("Exception handled we match with {}".format(match_double_bar.group(1)), verbose=verbose, verbose_level=1)
+            printing("Exception handled we match with {}".format(match_double_bar.group(1)), verbose=verbose, verbose_level=2)
           else:
             print("Failed to handle exception with | ")
             raise(Exception)

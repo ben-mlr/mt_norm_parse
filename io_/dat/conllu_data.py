@@ -183,7 +183,7 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
 def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary,
               max_size=None,
               normalize_digits=True,
-              normalization=False,
+              normalization=False,validation=False,
               symbolic_root=False, symbolic_end=False, dry_run=False,
               verbose=0):
   """
@@ -191,17 +191,22 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
   - creates a  list of bucket
   - each bucket is a list of unicode encoded worrds, character, pos tags, relations, ... based on DependancyInstances() and Sentence() objects
   """
-
-  _buckets = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, -1]
+  if not validation:
+    _buckets = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, -1]
+  else:
+    _buckets = [-1]
+    printing("WARNING : for validation we don't bucket the data : bucket len is {} (-1 means will be based "
+             "on max sent length lenght) ", var=_buckets[0], verbose=verbose, verbose_level=1)
   last_bucket_id = len(_buckets) - 1
   data = [[] for _ in _buckets]
-
   max_char_length = [0 for _ in _buckets]
   max_char_norm_length = [0 for _ in _buckets] if normalization else None
+
   if verbose >= 1:
     print('Reading data from %s' % source_path)
   counter = 0
-  reader = CoNLLReader(source_path, word_dictionary, char_dictionary, pos_dictionary, type_dictionary, xpos_dictionary, None)
+  reader = CoNLLReader(source_path, word_dictionary, char_dictionary, pos_dictionary, type_dictionary, xpos_dictionary,
+                       None)
   inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end,
                         normalization=normalization)
 
@@ -214,19 +219,18 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
       if inst_size < bucket_size or bucket_id == last_bucket_id:
         data[bucket_id].append([sent.word_ids, sent.char_id_seqs, sent.char_norm_ids_seq, inst.pos_ids, inst.heads, inst.type_ids,
                                 counter, sent.words, sent.raw_lines, inst.xpos_ids])
-        #
         max_char_len = max([len(char_seq) for char_seq in sent.char_seqs])
         if normalization:
           max_char_norm_len = max([len(char_norm_seq) for char_norm_seq in sent.char_norm_ids_seq])
         # defining maximum characters lengh per bucket both for noralization and
         # we define a max_char_len per bucket !
-        if max_char_length[bucket_id] < max_char_len :
+        if max_char_length[bucket_id] < max_char_len:
           max_char_length[bucket_id] = max_char_len
         if normalization:
           if max_char_norm_length[bucket_id] < max_char_norm_len:
             max_char_norm_length[bucket_id] = max_char_norm_len
         if bucket_id == last_bucket_id and _buckets[last_bucket_id] < len(sent.word_ids):
-          _buckets[last_bucket_id] = len(sent.word_ids)
+          _buckets[last_bucket_id] = len(sent.word_ids)+2
         break
     inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end,
                           normalization=normalization)
@@ -243,13 +247,14 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
 def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
                           type_dictionary, max_size=None, normalize_digits=True, symbolic_root=False,
                           symbolic_end=False, use_gpu=False, volatile=False, dry_run=False, lattice=None,
-                          verbose=0, normalization=False,
+                          verbose=0, normalization=False,validation=False,
                           add_end_char=0, add_start_char=0):
   """
   Given data ovject form read_variable creates array-like  variables for character, word, pos, relation, heads ready to be fed to a network
   """
   data, max_char_length_dic, _buckets = read_data(source_path, word_dictionary, char_dictionary, pos_dictionary,
                                                   xpos_dictionary, type_dictionary,
+                                                  validation=validation,
                                                   verbose=verbose, max_size=max_size, normalization=normalization,
                                                   normalize_digits=normalize_digits, symbolic_root=symbolic_root,
                                                   symbolic_end=symbolic_end, dry_run=dry_run)
@@ -442,19 +447,16 @@ def iterate_batch_variable(data, batch_size, unk_replace=0., lattice=None, norma
       ones = Variable(single.data.new(bucket_size, bucket_length).fill_(1))
       noise = Variable(masks.data.new(bucket_size, bucket_length).bernoulli_(unk_replace).long())
       words = words * (ones - single * noise)
-    
     for start_idx in range(0, bucket_size, batch_size):
       excerpt = slice(start_idx, start_idx + batch_size)
       if normalization:
         chars_norm_ = chars_norm[excerpt] if normalization else None
       if chars[excerpt].size(0) <= 1 or chars_norm_.size(0) <= 1:
         pdb.set_trace()
-        print("We are skipping not to have to do batch_size == 1 ")
+        print("WARNING : We are skipping a batch because size is {} char and {} for char_nor".format(chars[excerpt].size(),chars_norm_.size()))
         continue
-
-
-
-      yield words[excerpt], chars[excerpt], chars_norm_, pos[excerpt], xpos[excerpt], heads[excerpt], types[excerpt], masks[excerpt], lengths[excerpt], order_ids[excerpt], raw_word_inputs[excerpt], raw_lines[excerpt]
+      yield words[excerpt], chars[excerpt], chars_norm_, pos[excerpt], xpos[excerpt], heads[excerpt], types[excerpt],\
+            masks[excerpt], lengths[excerpt], order_ids[excerpt], raw_word_inputs[excerpt], raw_lines[excerpt]
 
 
 

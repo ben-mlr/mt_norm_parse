@@ -262,7 +262,7 @@ class LexNormalizer(nn.Module):
         printing("WARNING : overwriting checkpoint {} ", var=[checkpoint_dir], verbose=verbose, verbose_level=0)
 
         if os.path.isfile(arguments_dir):
-            printing("Overwriting argument file (checkpoint dir updated with {}  ) ", var=(checkpoint_dir),
+            printing("Overwriting argument file (checkpoint dir updated with {}  ) ", var=[checkpoint_dir],
                      verbose=verbose, verbose_level=0)
         printing("Checkpoint info are now {} ", var=(model.arguments["info_checkpoint"]), verbose=verbose,
                  verbose_level=1)

@@ -29,13 +29,13 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           batch_size=10,
           label_train="", label_dev="",
           use_gpu=None,
-          n_layers_word_encoder=1,get_batch_mode_evaluate=True,
+          n_layers_word_encoder=1, get_batch_mode_evaluate=True,
           dropout_sent_encoder_cell=0, dropout_word_encoder_cell=0, dropout_word_decoder_cell=0,
           dropout_bridge=0, drop_out_word_encoder_out=0, drop_out_sent_encoder_out=0,
           dir_word_encoder=1,
           word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,drop_out_char_embedding_decoder=0,
           hidden_size_encoder=None, output_dim=None, char_embedding_dim=None,
-          hidden_size_decoder=None, hidden_size_sent_encoder=None,freq_scoring=5,
+          hidden_size_decoder=None, hidden_size_sent_encoder=None, freq_scoring=5,
           compute_scoring_curve=False, score_to_compute_ls=None, mode_norm_ls=None,
           checkpointing=True, freq_checkpointing=None, model_dir=None,
           reload=False, model_full_name=None, model_id_pref="", print_raw=False,
@@ -209,6 +209,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                 eval_label = REPO_DATASET[eval_data]
                 assert len(set(evaluation_set_reporting))==len(evaluation_set_reporting),\
                     "ERROR : twice the same dataset has been provided for reporting which will mess up the loss"
+                printing("EVALUATION on {} ", var=[eval_data], verbose=verbose, verbose_level=1)
                 scores = evaluate(data_path=eval_data,
                                   use_gpu=use_gpu,
                                   overall_label=overall_label,overall_report_dir=overall_report_dir,

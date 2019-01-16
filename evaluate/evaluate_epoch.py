@@ -1,6 +1,7 @@
 
 import sys
 sys.path.insert(0,"..")
+sys.path.insert(0,"/scratch/bemuller/mt_norm_parse")
 #TODO  why is it necessary fo rioc ? 
 from model.sequence_prediction import greedy_decode_batch, decode_seq_str, decode_interacively
 import pdb
@@ -14,7 +15,7 @@ import json
 import sys
 import numpy as np
 import torch
-from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, DEMO, DEMO2, LIU, REPO_DATASET, CHECKPOINT_DIR, SEED_TORCH, SEED_NP
+from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, DEMO, DEMO2, LIU, LEX_TEST, REPO_DATASET, CHECKPOINT_DIR, SEED_TORCH, SEED_NP
 from toolbox.gpu_related import use_gpu_
 sys.path.insert(0, os.path.join(PROJECT_PATH, "..", "experimental_pipe"))
 from reporting.write_to_performance_repo import report_template, write_dic
@@ -32,6 +33,10 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
              compute_mean_score_per_sent=False,
              normalization=True, debug=False, force_new_dic=False, use_gpu=None, verbose=0):
     assert model_specific_dictionary, "ERROR : only model_specific_dictionary = True supported now"
+    validation = True
+    if validation:
+        assert not get_batch_mode_evaluate, "ERROR : validation was set to true but get_batch_mode_evaluate is {} while it should be False".format(get_batch_mode_evaluate)
+
     # NB : now : you have to load dictionary when evaluating (cannot recompute) (could add in the LexNormalizer ability)
     use_gpu = use_gpu_(use_gpu)
     hardware_choosen = "GPU" if use_gpu else "CPU"
@@ -41,7 +46,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
         score_to_compute_ls = ["edit", "exact"]
     if mode_norm_ls is None:
         mode_norm_ls = ["all", "NORMED", "NEED_NORM"]
-    printing("EVALUATION : Evaluating {} metric with details {}  ",var=[score_to_compute_ls, mode_norm_ls], verbose=verbose, verbose_level=3)
+    printing("EVALUATION : Evaluating {} metric with details {}  ", var=[score_to_compute_ls, mode_norm_ls], verbose=verbose, verbose_level=3)
     if write_report:
         assert dir_report is not None
     if model is not None:
@@ -67,6 +72,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                                                   use_gpu=use_gpu, symbolic_root=False,
                                                   symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,
                                                   normalization=normalization,
+                                                  validation=validation,
                                                   add_start_char=1, add_end_char=1)
     batchIter = data_gen_conllu(data_read, model.word_dictionary, model.char_dictionary, model.pos_dictionary,
                                 model.xpos_dictionary,
@@ -80,7 +86,6 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
     score_dic = greedy_decode_batch(char_dictionary=model.char_dictionary, verbose=verbose, gold_output=True,
                                     score_to_compute_ls=score_to_compute_ls,use_gpu=use_gpu,
                                     stat="sum", mode_norm_score_ls=mode_norm_ls,
-
                                     batchIter=batchIter, model=model, compute_mean_score_per_sent=compute_mean_score_per_sent,
                                     batch_size=batch_size)
     # NB : each batch should have the same size !! same number of words : otherwise averaging is wrong
@@ -141,11 +146,11 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
 
 
 if __name__ == "__main__":
-    list_all_dir = os.listdir("../checkpoints/")
+    list_all_dir = os.listdir(os.path.join(PROJECT_PATH,"checkpoints"))
     #for ablation_id in ["aaad","bd55","0153","f178"]:
     for ablation_id in ["f2f2"]:
-      #for data in [DEMO,DEMO2]:
-      for data in [LIU,DEV]:
+      for data in [DEMO,DEMO2]:
+      #for data in [LEX_TEST,DEV]:
         list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
         print("FOLDERS : ", list_)
         for folder_name in list_:
@@ -153,12 +158,16 @@ if __name__ == "__main__":
           print("MODEL_FULL_NAME : ", model_full_name)
           print("0Evaluating {} ".format(model_full_name))
           evaluate(model_full_name=model_full_name, data_path=data,#LIU,
-                   dict_path=os.path.join("..", "checkpoints", folder_name, "dictionaries"),
+                   dict_path=os.path.join(PROJECT_PATH, "checkpoints", folder_name, "dictionaries"),
                    label_report="eval_again", use_gpu=None, overall_label="f2f2-FINALY",
                    mode_norm_ls=None,
-                   normalization=True, model_specific_dictionary=True, batch_size=50,
-                   debug=False, compute_mean_score_per_sent=True,
-                   dir_report=os.path.join("..", "checkpoints", folder_name), verbose=1)
+                   normalization=True,
+                   model_specific_dictionary=True,
+                   batch_size=50,
+                   debug=False,
+                   compute_mean_score_per_sent=True,
+                   get_batch_mode_evaluate=False,
+                   dir_report=os.path.join(PROJECT_PATH, "checkpoints", folder_name), verbose=1)
 
 
 

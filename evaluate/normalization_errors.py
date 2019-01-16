@@ -60,7 +60,9 @@ def score_ls_(ls_pred, ls_gold, score, ls_original=None, stat="mean", normalized
         ls_gold = [[token for token, normed in zip(batch, batch_norm) if normed == norm_mode] for batch, batch_norm in zip(ls_gold, normalization_ls)]
         ls_pred = [[token for token, normed in zip(batch, batch_norm) if normed == norm_mode] for batch, batch_norm in zip(ls_pred, normalization_ls)]
     for ind, (gold_sent, pred_sent) in enumerate(zip(ls_gold, ls_pred)):
-        assert len(gold_sent) == len(pred_sent), "len : pred {}, gold {} - pred {} gold {} ".format(len(pred_sent), len(gold_sent), pred_sent, gold_sent)
+
+        assert len(gold_sent) == len(pred_sent), "len : pred {}, gold {} - pred {} gold {} (normalized_mode is {})".format(len(pred_sent), len(gold_sent), pred_sent, gold_sent, normalized_mode)
+
         #assert len(gold_sent) == sum(normalization_ls[ind]), "len gold and original sent word are not the same len {} and {} pred {} ".format(gold_sent, ls_original, pred_sent)
         sent_score = []
         for word_gold, word_pred in zip(gold_sent, pred_sent):

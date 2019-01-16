@@ -14,7 +14,7 @@ from toolbox.sanity_check import get_timing
 
 def data_gen_conllu(data, word_dictionary, char_dictionary, pos_dictionary,
                     xpos_dictionary, type_dictionary, batch_size,
-                    add_start_char=1,use_gpu=False,get_batch_mode=True,
+                    add_start_char=1,use_gpu=False, get_batch_mode=True,
                     add_end_char=1, padding=1, print_raw=False, normalization=False,
                     symbolic_root=False, symbolic_end=False,timing=False,
                     verbose=0):
@@ -27,16 +27,15 @@ def data_gen_conllu(data, word_dictionary, char_dictionary, pos_dictionary,
     #                                         add_start_char=add_start_char, add_end_char=add_end_char)
 
     n_sents = data[-1]
-    nbatch = n_sents//batch_size
+
+    nbatch = n_sents//batch_size # approximated lower approximation 1.9//2 == 0
     if nbatch == 0:
         printing("INFO : n_sents < batch_size so nbatch set to 1 ", verbose=verbose, verbose_level=0)
+    print("Running {} batches of {} dim (nsent : {}) (if 0 will be set to 1) ".format(nbatch, batch_size, n_sents))
     nbatch = 1 if nbatch == 0 else nbatch
-
-    print("Running {} batches of {} dim (nsent : {}) ".format(nbatch, batch_size, n_sents))
-
     if not get_batch_mode:
-        for batch  in tqdm(conllu_data.iterate_batch_variable(data, batch_size=batch_size, normalization=normalization),
-                           disable=disable_tqdm_level(verbose, verbose_level=2)):
+        for batch in tqdm(conllu_data.iterate_batch_variable(data, batch_size=batch_size, normalization=normalization),
+                          disable=disable_tqdm_level(verbose, verbose_level=2)):
             words, chars, chars_norm, pos, xpos, heads, types, masks, lengths, order_ids, raw_word_inputs, raw_lines = batch
             #pdb.set_trace()
             yield MaskBatch(chars, chars_norm, pad=padding, timing=timing, verbose=verbose)
@@ -51,8 +50,9 @@ def data_gen_conllu(data, word_dictionary, char_dictionary, pos_dictionary,
             #pdb.set_trace()
             if char.size(0)<=1:
                 print("char----> ", char)
+                continue 
             printing("TYPE {} word, char {} , chars_norm {} length {} ", var=(word.is_cuda, char.is_cuda,
-                                                                               chars_norm.is_cuda, lenght.is_cuda),
+                                                                              chars_norm.is_cuda, lenght.is_cuda),
                      verbose=verbose, verbose_level=5)
             assert min(lenght.data) > 0, "ERROR : min(lenght.data) is {} ".format(min(lenght.data))
             # TODO : you want to correct that : you're missing word !!
@@ -86,19 +86,17 @@ def data_gen_conllu(data, word_dictionary, char_dictionary, pos_dictionary,
                                      for ind_w, word_ind in enumerate(range(chars_norm.size(1)))]
             else:
                 character_norm_display = []
-
             printing("Feeding source characters {} target characters {}  "
                      "(NB : the character vocabulary is the same at input and output)", var=(character_display,
-                                                                                              character_norm_display),
+                                                                                             character_norm_display),
                      verbose=_verbose, verbose_level=5)
-
             printing("Feeding source words {} ", var=[word_display], verbose=_verbose, verbose_level=5)
             printing("TYPE {} char before batch chars_norm {} ", var=(char.is_cuda, chars_norm.is_cuda),
                      verbose=verbose, verbose_level=5)
             yield MaskBatch(char, chars_norm, pad=padding, timing=timing, verbose=verbose)
 
 
-def data_gen_dummy(V, batch, nbatches,sent_len=9, word_len=5,
+def data_gen_dummy(V, batch, nbatches, sent_len=9, word_len=5,
                    verbose=0, seed=None):
     "Generate random data for a src-tgt copy task."
     if seed is not None:

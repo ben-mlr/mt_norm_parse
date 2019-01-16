@@ -13,7 +13,7 @@ torch.manual_seed(SEED_TORCH)
 
 def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                overall_report_dir=CHECKPOINT_DIR, overall_label="DEFAULT",get_batch_mode_evaluate=True,
-               warmup=False, args={},use_gpu=None,freq_checkpointing=1,debug=False,
+               warmup=False, args={},use_gpu=None,freq_checkpointing=1,debug=False,compute_scoring_curve=False,
                compute_mean_score_per_sent=False,print_raw=False,
                verbose=0):
 
@@ -62,20 +62,16 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                             hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,
                             char_embedding_dim=char_embedding_dim,
                             hidden_size_sent_encoder=hidden_size_sent_encoder, hidden_size_decoder=hidden_size_decoder,
-                            n_layers_word_encoder=n_layers_word_encoder, compute_scoring_curve=True,verbose=verbose, 
+                            n_layers_word_encoder=n_layers_word_encoder, compute_scoring_curve=compute_scoring_curve,verbose=verbose,
                             print_raw=print_raw, debug=debug,
                             checkpointing=True)
-    evaluate_again = False
+
     model_dir = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder")
-
-    if evaluate_again:
-
+    if test_path is not None:
       dict_path = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder", "dictionaries")
       printing("START EVALUATION FINAL ", verbose_level=0, verbose=verbose)
       eval_data_paths = [train_path, dev_path]
-      if test_path is not None:
-          eval_data_paths.append(test_path)
-
+      eval_data_paths.append(test_path)
       for eval_data in  eval_data_paths:
               eval_label = REPO_DATASET[eval_data]
               evaluate(model_full_name=model_full_name, data_path=eval_data,
@@ -83,7 +79,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                        label_report=eval_label, overall_label=overall_label+"-last",
                        score_to_compute_ls=["edit", "exact"], mode_norm_ls=["all", "NEED_NORM", "NORMED"],
                        normalization=True, print_raw=print_raw,
-                       model_specific_dictionary=True,get_batch_mode_evaluate=get_batch_mode_evaluate,
+                       model_specific_dictionary=True, get_batch_mode_evaluate=get_batch_mode_evaluate,
                        compute_mean_score_per_sent=compute_mean_score_per_sent,
                        batch_size=batch_size,
                        dir_report=model_dir, verbose=1)
@@ -159,8 +155,8 @@ if __name__ == "__main__":
           params.append(param)
           labels.append("dir_word_encoder_2-sent_source_dir_2-dropout_0.2_everywhere-LSTM-batch_10")
 
-      warmup = False
-      RUN_ID = str(uuid4())[0:4]
+      warmup = True
+      RUN_ID = str(uuid4())[0:5]
       LABEL_GRID = "new_data-batchXdropout_char" if not warmup else "WARMUP_gpu3"
       GRID_FOLDER_NAME = RUN_ID+"-"+LABEL_GRID if len(LABEL_GRID)>0 else RUN_ID
       GRID_FOLDER_NAME += "-summary"
@@ -173,21 +169,24 @@ if __name__ == "__main__":
           #param["batch_size"] = 10
           #model_id_pref = "TEST-"+model_id_pref
           printing("Adding RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 100
+          epochs = 5
           if warmup:
-            param["batch_size"] = 13
-            train_path, dev_path = DEV, LEX_TRAIN
-          
+            param["batch_size"] = 50
+            train_path, dev_path = DEMO, DEMO2
           model_id_pref = RUN_ID + "-"+LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
                                                   test_path=DEV,
+                                                  verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
-                                                  compute_mean_score_per_sent=True, print_raw=False,get_batch_mode_evaluate=True,
+                                                  compute_mean_score_per_sent=True, print_raw=False, 
+                                                  get_batch_mode_evaluate=False, compute_scoring_curve=True,
                                                   warmup=warmup, args=param, use_gpu=None, n_epochs=epochs, debug=False)
           run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("Log RUN is : {} to see model list ".format(run_dir))
           print("GRID RUN : DONE MODEL {} with param {} ".format(model_id_pref, param))
+          if warmup:
+              break
 
 # CCL want to have a specific seed : when work --> reproduce with several seed
