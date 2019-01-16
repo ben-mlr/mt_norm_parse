@@ -133,7 +133,7 @@ class CharEncoder(nn.Module):
         h_w = self.drop_out_word_encoder_out(h_w)
         source_context_word_vector = torch.cat((sent_encoded, h_w), dim=2)
         printing("SOURCE contextual before reshape for decoding: {} ", var=[source_context_word_vector.size()],
-                 verbose=verbose, verbose_level=0)
+                 verbose=verbose, verbose_level=4)
         #source_context_word_vector = source_context_word_vector.view(1, source_context_word_vector.size(0)*source_context_word_vector.size(1), -1)
         # source_context_word_vector : [1, batch x sent len, hidden_size_sent_encoder + hidden_size_encoder]
         printing("SOURCE contextual last representation : {} ", var=(source_context_word_vector.size()),

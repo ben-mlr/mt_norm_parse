@@ -448,7 +448,6 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
   if normalization:
     chars_norm = chars_norm[index]
     if word_norm_not_norm is not None:
-      print("batch word_norm_not_norm", word_norm_not_norm, index)
       word_norm_not_norm = word_norm_not_norm[index]
 
 

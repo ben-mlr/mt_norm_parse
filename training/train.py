@@ -43,7 +43,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           add_start_char=None, add_end_char=1,
           overall_label="DEFAULT",overall_report_dir=CHECKPOINT_DIR,
           compute_mean_score_per_sent=False,
-          auxilliary_task_norm_not_norm=False,
+          auxilliary_task_norm_not_norm=False, weight_binary_loss=1,
           debug=False,timing=False,
           verbose=1):
 
@@ -178,6 +178,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                     verbose=verbose)
         start = time.time()
         loss_train = run_epoch(batchIter, model, LossCompute(model.generator, opt=adam,
+                                                             weight_binary_loss=weight_binary_loss,
                                                              auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
                                                              use_gpu=use_gpu,verbose=verbose, timing=timing),
                                verbose=verbose, i_epoch=epoch, n_epochs=n_epochs,timing=timing,
@@ -195,6 +196,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
         printing("EVALUATION : computing loss on dev ", verbose=verbose, verbose_level=1)
         _create_iter_time, start = get_timing(start)
         loss_dev = run_epoch(batchIter_eval, model, LossCompute(model.generator, use_gpu=use_gpu,verbose=verbose,
+                                                                weight_binary_loss=weight_binary_loss,
                                                                 auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm),
                              i_epoch=epoch, n_epochs=n_epochs,
                              verbose=verbose,timing=timing,
@@ -255,14 +257,15 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
 
             model, _loss_dev, counter_no_deacrease, saved_epoch = \
                     checkpoint(loss_saved =_loss_dev, loss=loss_dev, model=model,
-                             counter_no_decrease=counter_no_deacrease, saved_epoch=saved_epoch,
-                             model_dir= model.dir_model,
-                             info_checkpoint={"n_epochs": epoch, "batch_size": batch_size,
-                                              "train_data_path": train_path, "dev_data_path": dev_path,
-                                               "other": {"error_curves": dir_plot, "loss":_loss_dev,
-                                                          "data":"dev","seed(np/torch)":(SEED_TORCH, SEED_TORCH),
-                                                          "time_training(min)": "{0:.2f}".format(total_time/60),
-                                                          "average_per_epoch(min)": "{0:.2f}".format((total_time/n_epochs)/60)}},
+                               counter_no_decrease=counter_no_deacrease, saved_epoch=saved_epoch,
+                               model_dir= model.dir_model,
+                               info_checkpoint={"n_epochs": epoch, "batch_size": batch_size,
+                                                "train_data_path": train_path, "dev_data_path": dev_path,
+                                                 "other": {"error_curves": dir_plot, "loss":_loss_dev,
+                                                           "weight_binary_loss": weight_binary_loss,
+                                                            "data":"dev","seed(np/torch)":(SEED_TORCH, SEED_TORCH),
+                                                            "time_training(min)": "{0:.2f}".format(total_time/60),
+                                                            "average_per_epoch(min)": "{0:.2f}".format((total_time/n_epochs)/60)}},
                              epoch=epoch, epochs=n_epochs,
                              verbose=verbose)
             if counter_no_deacrease >= BREAKING_NO_DECREASE:

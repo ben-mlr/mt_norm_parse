@@ -14,7 +14,7 @@ torch.manual_seed(SEED_TORCH)
 def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                overall_report_dir=CHECKPOINT_DIR, overall_label="DEFAULT",get_batch_mode_evaluate=True,
                warmup=False, args={},use_gpu=None,freq_checkpointing=1,debug=False,compute_scoring_curve=False,
-               compute_mean_score_per_sent=False,print_raw=False,
+               compute_mean_score_per_sent=False,print_raw=False,freq_scoring=5,
                auxilliary_task_norm_not_norm=False,
                verbose=0):
 
@@ -49,7 +49,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                             auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
                             n_epochs=n_epochs, normalization=True,get_batch_mode_evaluate=get_batch_mode_evaluate,
                             batch_size=batch_size, model_specific_dictionary=True,
-                            dict_path=None, model_dir=None, add_start_char=1,
+                            dict_path=None, model_dir=None, add_start_char=1,freq_scoring=freq_scoring,
                             add_end_char=1, use_gpu=use_gpu, dir_sent_encoder=dir_sent_encoder,
                             dropout_sent_encoder_cell=dropout_sent_encoder,
                             dropout_word_encoder_cell=dropout_word_encoder,
@@ -175,18 +175,18 @@ if __name__ == "__main__":
           printing("Adding RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
           epochs = 5
           if warmup:
-            param["batch_size"] = 2
-            train_path, dev_path = DEMO, DEMO2
+            param["batch_size"] = 50
+            train_path, dev_path = DEV, TEST
           model_id_pref = RUN_ID + "-"+LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
                                                   test_path=DEMO2,
                                                   verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
-                                                  compute_mean_score_per_sent=True, print_raw=True,
+                                                  compute_mean_score_per_sent=True, print_raw=False,
                                                   get_batch_mode_evaluate=False, compute_scoring_curve=True,
-                                                  auxilliary_task_norm_not_norm=True,
-                                                  warmup=warmup, args=param, use_gpu=None, n_epochs=epochs, debug=False)
+                                                  auxilliary_task_norm_not_norm=True,freq_scoring=10,
+                                                  warmup=False, args=param, use_gpu=None, n_epochs=epochs, debug=False)
           run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("Log RUN is : {} to see model list ".format(run_dir))

@@ -20,7 +20,7 @@ class LossCompute:
                  opt=None, pad=1, use_gpu=False, timing=False, verbose=0):
         self.generator = generator
         self.loss_distance = nn.CrossEntropyLoss(reduce=True, ignore_index=pad)
-        print("WARNING padding is {}for loss_binary ".format(pad))
+        printing("LOSS : weight_binary_loss is set to {}", var=(weight_binary_loss), verbose=verbose, verbose_level=2)
         self.loss_binary = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_NORM_NOT_NORM) if auxilliary_task_norm_not_norm else None
         self.weight_binary_loss = weight_binary_loss if self.loss_binary is not None else None
         if use_gpu:
@@ -39,25 +39,22 @@ class LossCompute:
             assert x_norm_not_norm is not None and 1 is not None, \
                 "ERROR : auxilliary_task_norm_not_norm was set to True but x_norm_not_norm or" \
                 " x_norm_not_norm was not y_norm_not_norm "
-        print("original ", x.size(), y.size(), y)
-        print("binary ", x_norm_not_norm.size(), y_norm_not_norm.size(), y_norm_not_norm)
         printing("LOSS decoding states {} ", var=(x.size()), verbose=self.verbose, verbose_level=3)
         start = time.time() if self.timing else None
         x = self.generator(x)
         generate_time, start = get_timing(start)
         if self.use_gpu:
             printing("LOSS : use gpu is True", self.verbose, verbose_level=3)
-        printing("LOSS input x candidate scores size {} ", var=[x.size()],verbose= self.verbose, verbose_level=0)
-        printing("LOSS input y observations size {} ", var=[y.size()], verbose=self.verbose, verbose_level=0)
+        printing("LOSS input x candidate scores size {} ", var=[x.size()],verbose= self.verbose, verbose_level=4)
+        printing("LOSS input y observations size {} ", var=[y.size()], verbose=self.verbose, verbose_level=4)
         printing("LOSS input x candidate scores   {} ", var=(x), verbose=self.verbose,verbose_level=5)
         printing("LOSS input x candidate scores  reshaped {} ", var=(x.view(-1, x.size(-1))),
-                 verbose=self.verbose,verbose_level=3)
+                 verbose=self.verbose,verbose_level=5)
         printing("LOSS input y observations {} reshaped {} ", var=(y, y.contiguous().view(-1)),
-                 verbose=self.verbose, verbose_level=0)
+                 verbose=self.verbose, verbose_level=5)
         # we remove empty words in the gold
         y = y[:, :x.size(1), :]
-        if y_norm_not_norm is not None:
-            y_norm_not_norm = y_norm_not_norm[:,:x_norm_not_norm.size(1)]
+        y_norm_not_norm = y_norm_not_norm[:, :x_norm_not_norm.size(1)] if y_norm_not_norm is not None else None
         printing("TYPE  y {} is cuda ", var=(y.is_cuda), verbose=0, verbose_level=5)
         reshaping, start = get_timing(start)
         loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1))
@@ -87,7 +84,7 @@ class LossCompute:
                                                              ("reshaping",reshaping), ("generate_time", generate_time),
                                                               ("loss_backwrd_time", loss_backwrd_time),
                                                                ("step_opt_time",step_opt_time), ("zerp_gradtime", zerp_gradtime)])))
-        return loss
+        return multi_task_loss
 
 
 # TODO add test for the loss
