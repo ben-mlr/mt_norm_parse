@@ -3,7 +3,7 @@ import codecs
 import os
 import pdb
 from .constants import MAX_CHAR_LENGTH, NUM_CHAR_PAD, PAD_CHAR, PAD_POS, PAD_TYPE, ROOT_CHAR, ROOT_POS,\
-  ROOT_TYPE, END_CHAR, END_POS, END_TYPE, _START_VOCAB, ROOT, PAD_ID_WORD, PAD_ID_CHAR, PAD_ID_TAG, DIGIT_RE, CHAR_START_ID, CHAR_START, CHAR_END_ID
+  ROOT_TYPE, END_CHAR, END_POS, END_TYPE, _START_VOCAB, ROOT, PAD_ID_WORD, PAD_ID_CHAR, PAD_ID_TAG, DIGIT_RE, CHAR_START_ID, CHAR_START, CHAR_END_ID, PAD_ID_CHAR, PAD_ID_NORM_NOT_NORM
 from env.project_variables import SEED_NP, SEED_TORCH
 from .conllu_reader import CoNLLReader
 from .dictionary import Dictionary
@@ -247,11 +247,13 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
 def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
                           type_dictionary, max_size=None, normalize_digits=True, symbolic_root=False,
                           symbolic_end=False, use_gpu=False, volatile=False, dry_run=False, lattice=None,
-                          verbose=0, normalization=False,validation=False,
+                          verbose=0, normalization=False,validation=False,norm_not_norm=False,
                           add_end_char=0, add_start_char=0):
   """
   Given data ovject form read_variable creates array-like  variables for character, word, pos, relation, heads ready to be fed to a network
   """
+  if norm_not_norm:
+    assert normalization, "norm_not_norm can't be set without normalisation info"
   data, max_char_length_dic, _buckets = read_data(source_path, word_dictionary, char_dictionary, pos_dictionary,
                                                   xpos_dictionary, type_dictionary,
                                                   validation=validation,
@@ -285,6 +287,8 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
     if normalization:
       char_norm_length = min(MAX_CHAR_LENGTH+NUM_CHAR_PAD, max_char_norm_length[bucket_id] + NUM_CHAR_PAD)
       cids_norm = np.empty([bucket_size, bucket_length, char_norm_length], dtype=np.int64)
+      if norm_not_norm:
+        word_norm_not_norm = np.empty([bucket_size, bucket_length], dtype=np.int64)
 
     masks_inputs = np.zeros([bucket_size, bucket_length], dtype=np.float32)
     single_inputs = np.zeros([bucket_size, bucket_length], dtype=np.int64)
@@ -306,6 +310,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       wid_inputs[i, :inst_size] = wids
       wid_inputs[i, inst_size:] = PAD_ID_WORD
 
+
       shift, shift_end = 0, 0
 
       if add_start_char:
@@ -326,17 +331,32 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       cid_inputs[i, inst_size:, :] = PAD_ID_CHAR
 
       # TODO should factorize character sequence numpysation
-
       if normalization:
         for c, cids in enumerate(cid_norm_seqs):
           if add_start_char:
             cids_norm[i, c, 0] = CHAR_START_ID
           cids_norm[i, c, shift:len(cids)+shift] = cids
+
           if add_end_char:
             cids_norm[i, c, len(cids)+shift] = CHAR_END_ID
+
           #we want room to padd it
           cids_norm[i, c, len(cids)+shift+shift_end:] = PAD_ID_CHAR
+          if norm_not_norm:
+            # if we want NORM NEED_NORM info
+            # we match by character id and not word id because word mighbot be unknown
+            # we only match the sequence non equal to _PAD_CHAR TO AVOID VARIABLE LENGHT
+            #print("NORM",cids_norm[i, c, :][cids_norm[i, c, :]!=PAD_ID_CHAR])
+            #print("OR", cid_inputs[i, c, :][cid_inputs[i, c, :]!=PAD_ID_CHAR])
+            # 1 means : NORMED , 0 means NEED_NORM
+            word_norm_not_norm[i, c] = np.array_equal(cids_norm[i, c, :][cids_norm[i, c, :]!=PAD_ID_CHAR],
+                                                      cid_inputs[i, c, :][cid_inputs[i, c, :]!=PAD_ID_CHAR])
+            #print("norm not norm", word_norm_not_norm[i, c])
+            #print("TRUE", i, c , word_norm_not_norm[i, c], "norm", cids_norm[i, c, :] , " orig", cid_inputs[i, w, :])
         cids_norm[i, inst_size:, :] = PAD_ID_CHAR
+        if norm_not_norm:
+          word_norm_not_norm[i, inst_size:] = PAD_ID_NORM_NOT_NORM
+
       # pos ids
       pid_inputs[i, :inst_size] = pids
       pid_inputs[i, inst_size:] = PAD_ID_TAG
@@ -365,6 +385,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
     words = Variable(torch.from_numpy(wid_inputs), requires_grad=False)
     chars = Variable(torch.from_numpy(cid_inputs), requires_grad=False)
     chars_norm = Variable(torch.from_numpy(cids_norm), requires_grad=False) if normalization else None
+    word_norm_not_norm = Variable(torch.from_numpy(word_norm_not_norm), requires_grad=False) if norm_not_norm else None
 
     pos = Variable(torch.from_numpy(pid_inputs), requires_grad=False)
     xpos = Variable(torch.from_numpy(xpid_inputs), requires_grad=False)
@@ -376,6 +397,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
     if use_gpu:
       words = words.cuda()
       chars_norm = chars_norm.cuda() if normalization else None
+      word_norm_not_norm = word_norm_not_norm.cuda() if norm_not_norm else None
       chars = chars.cuda()
       pos = pos.cuda()
       xpos = xpos.cuda()
@@ -384,7 +406,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       masks = masks.cuda()
       single = single.cuda()
       lengths = lengths.cuda()
-    data_variable.append((words, chars, chars_norm, pos, xpos, heads, types,
+    data_variable.append((words, chars, chars_norm, word_norm_not_norm,pos, xpos, heads, types,
                           masks, single, lengths, order_inputs, raw_word_inputs, raw_lines))
   return data_variable, bucket_sizes, _buckets, max_char_length_dic["n_sent"]
 
@@ -406,7 +428,7 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
   bucket_id = min([i for i in range(len(buckets_scale)) if buckets_scale[i] > random_number])
   bucket_length = _buckets[bucket_id]
 
-  words, chars, chars_norm, pos, xpos, heads, types, masks, single, lengths, order_inputs, raw, _ = data_variable[bucket_id]
+  words, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, single, lengths, order_inputs, raw, _ = data_variable[bucket_id]
   #printin(raw)
   bucket_size = bucket_sizes[bucket_id]
   #print("INFO : BUCKET SIZE {}  BATCH SIZE {} (in conllu_data)".format(bucket_size, batch_size))
@@ -425,11 +447,16 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
     words = words * (ones - single[index] * noise)
   if normalization:
     chars_norm = chars_norm[index]
+    if word_norm_not_norm is not None:
+      print("batch word_norm_not_norm", word_norm_not_norm, index)
+      word_norm_not_norm = word_norm_not_norm[index]
 
-  return words, chars[index], chars_norm, pos[index], xpos[index], heads[index], types[index], masks[index], lengths[index], order_inputs[index]
+
+  return words, chars[index], chars_norm, word_norm_not_norm, pos[index], xpos[index], heads[index], types[index], masks[index], lengths[index], order_inputs[index]
 
 
-def iterate_batch_variable(data, batch_size, unk_replace=0., lattice=None, normalization=False):
+def iterate_batch_variable(data, batch_size, unk_replace=0.,
+                           lattice=None, normalization=False):
   """
   Iterate over the dataset based on read_data_to_variable() object (used a evaluation)
   """
@@ -442,7 +469,7 @@ def iterate_batch_variable(data, batch_size, unk_replace=0., lattice=None, norma
     if bucket_size == 0:
       continue
 
-    words, chars, chars_norm, pos, xpos, heads, types, masks, single, lengths, order_ids, raw_word_inputs, raw_lines = data_variable[bucket_id]
+    words, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, single, lengths, order_ids, raw_word_inputs, raw_lines = data_variable[bucket_id]
     if unk_replace:
       ones = Variable(single.data.new(bucket_size, bucket_length).fill_(1))
       noise = Variable(masks.data.new(bucket_size, bucket_length).bernoulli_(unk_replace).long())
@@ -451,11 +478,14 @@ def iterate_batch_variable(data, batch_size, unk_replace=0., lattice=None, norma
       excerpt = slice(start_idx, start_idx + batch_size)
       if normalization:
         chars_norm_ = chars_norm[excerpt] if normalization else None
+        if word_norm_not_norm is not None:
+          word_norm_not_norm = word_norm_not_norm[excerpt]
       if chars[excerpt].size(0) <= 1 or chars_norm_.size(0) <= 1:
         pdb.set_trace()
         print("WARNING : We are skipping a batch because size is {} char and {} for char_nor".format(chars[excerpt].size(),chars_norm_.size()))
         continue
-      yield words[excerpt], chars[excerpt], chars_norm_, pos[excerpt], xpos[excerpt], heads[excerpt], types[excerpt],\
+      yield words[excerpt], chars[excerpt], chars_norm_, word_norm_not_norm, pos[excerpt], xpos[excerpt], heads[excerpt], \
+            types[excerpt],\
             masks[excerpt], lengths[excerpt], order_ids[excerpt], raw_word_inputs[excerpt], raw_lines[excerpt]
 
 

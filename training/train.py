@@ -43,6 +43,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           add_start_char=None, add_end_char=1,
           overall_label="DEFAULT",overall_report_dir=CHECKPOINT_DIR,
           compute_mean_score_per_sent=False,
+          auxilliary_task_norm_not_norm=False,
           debug=False,timing=False,
           verbose=1):
 
@@ -87,9 +88,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                               vocab_trim=True,
                               force_new_dic=True,
                               add_start_char=add_start_char, verbose=1)
-
         voc_size = len(char_dictionary.instance2index)+1
-        printing("DICTIONARY ; character vocabulary is len {} : {} ", var=str(len(char_dictionary.instance2index)+1,char_dictionary.instance2index),
+        printing("DICTIONARY ; character vocabulary is len {} : {} ", var=str(len(char_dictionary.instance2index)+1,
+                                                                              char_dictionary.instance2index),
          verbose=verbose, verbose_level=0)
         _train_path, _dev_path, _add_start_char = None, None, None
     else:
@@ -101,7 +102,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
             # as it reload : we don't need data
             _train_path, _dev_path, _add_start_char = None, None, None
 
-    model = LexNormalizer(generator=Generator, load=reload,
+    model = LexNormalizer(generator=Generator,
+                          auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
+                          load=reload,
                           char_embedding_dim=char_embedding_dim, voc_size=voc_size,
                           dir_model=model_dir, use_gpu=use_gpu,dict_path=dict_path,
                           word_recurrent_cell_decoder=word_recurrent_cell_decoder, word_recurrent_cell_encoder=word_recurrent_cell_encoder,
@@ -146,6 +149,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                                          model.pos_dictionary,
                                                         model.xpos_dictionary, model.type_dictionary,
                                                         use_gpu=use_gpu, symbolic_root=False,
+                                                        norm_not_norm=auxilliary_task_norm_not_norm,
                                                         symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,
                                                         normalization=normalization,
                                                         add_start_char=add_start_char, add_end_char=add_end_char)
@@ -153,6 +157,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                                       model.pos_dictionary,
                                                       model.xpos_dictionary, model.type_dictionary,
                                                       use_gpu=use_gpu, symbolic_root=False,
+                                                      norm_not_norm=auxilliary_task_norm_not_norm,
                                                       symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,
                                                       normalization=normalization,
                                                       add_start_char=add_start_char, add_end_char=add_end_char)
@@ -173,6 +178,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                     verbose=verbose)
         start = time.time()
         loss_train = run_epoch(batchIter, model, LossCompute(model.generator, opt=adam,
+                                                             auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
                                                              use_gpu=use_gpu,verbose=verbose, timing=timing),
                                verbose=verbose, i_epoch=epoch, n_epochs=n_epochs,timing=timing,
                                log_every_x_batch=100)
@@ -188,7 +194,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                          verbose=verbose)
         printing("EVALUATION : computing loss on dev ", verbose=verbose, verbose_level=1)
         _create_iter_time, start = get_timing(start)
-        loss_dev = run_epoch(batchIter_eval, model, LossCompute(model.generator, use_gpu=use_gpu,verbose=verbose),
+        loss_dev = run_epoch(batchIter_eval, model, LossCompute(model.generator, use_gpu=use_gpu,verbose=verbose,
+                                                                auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm),
                              i_epoch=epoch, n_epochs=n_epochs,
                              verbose=verbose,timing=timing,
                              log_every_x_batch=100)

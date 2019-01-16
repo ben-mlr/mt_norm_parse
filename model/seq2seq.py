@@ -4,6 +4,7 @@ import json
 from uuid import uuid4
 from model.encoder import CharEncoder
 from model.decoder import CharDecoder
+from model.normalize_not import BinaryPredictor
 from env.project_variables import CHECKPOINT_DIR
 import torch
 from io_.info_print import printing
@@ -31,13 +32,15 @@ TEMPLATE_INFO_CHECKPOINT = {"n_epochs": 0, "batch_size": None,
 
 class LexNormalizer(nn.Module):
 
-    def __init__(self, generator, char_embedding_dim=None, hidden_size_encoder=None,output_dim=None,
+    def __init__(self, generator, auxilliary_task_norm_not_norm=False,
+                 char_embedding_dim=None, hidden_size_encoder=None,output_dim=None,
                  hidden_size_sent_encoder=None,
                  n_layers_word_encoder=1,
                  hidden_size_decoder=None, voc_size=None, model_id_pref="", model_name="",
                  drop_out_sent_encoder_cell=0., drop_out_word_encoder_cell=0., drop_out_word_decoder_cell=0.,
                  dir_word_encoder=1,
-                 drop_out_bridge=0, drop_out_sent_encoder_out=0, drop_out_word_encoder_out=0, drop_out_char_embedding_decoder=0,
+                 drop_out_bridge=0, drop_out_sent_encoder_out=0, drop_out_word_encoder_out=0,
+                 drop_out_char_embedding_decoder=0,
                  dir_sent_encoder=1,word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,
                  dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
@@ -68,6 +71,7 @@ class LexNormalizer(nn.Module):
         # initialize dictionaries
         self.timing = timing
         self.dict_path, self.word_dictionary, self.char_dictionary, self.pos_dictionary, self.xpos_dictionary, self.type_dictionary = None, None, None, None, None, None
+        self.auxilliary_task_norm_not_norm = auxilliary_task_norm_not_norm
         # new model : we create an id , and a saving directory for the model (checkpoints, reporting, arguments)
         if not load:
             printing("Defining new model ", verbose=verbose, verbose_level=0)
@@ -121,12 +125,14 @@ class LexNormalizer(nn.Module):
             printing("Character vocabulary is {} length", var=(len(self.char_dictionary.instance2index) + 1),
                      verbose=verbose, verbose_level=0)
 
+        # argument saving
         if not load:
             self.arguments = {"checkpoint_dir": checkpoint_dir,
                               "info_checkpoint": {"n_epochs": 0, "batch_size": None, "train_data_path": None,
                                                   "dev_data_path": None, "other": None,
                                                   "git_id": git_commit_id},
                               "hyperparameters": {
+                                  "auxilliary_task_norm_not_norm": self.auxilliary_task_norm_not_norm,
                                   "n_trainable_parameters": None,
                                   "char_embedding_dim": char_embedding_dim,
                                   "encoder_arch": {"cell_word": word_recurrent_cell_encoder, "cell_sentence": "LSTM",
@@ -153,10 +159,13 @@ class LexNormalizer(nn.Module):
         else:
             assert model_full_name is not None and dir_model is not None, \
                 "ERROR  model_full_name is {} and dir_model {}  ".format(model_full_name, dir_model)
-            printing("Loading existing model {} from {} ", var=(model_full_name, dir_model), verbose=verbose, verbose_level=5)
-            assert char_embedding_dim is None and hidden_size_encoder is None and hidden_size_decoder is None and output_dim is None
+            printing("Loading existing model {} from {} ", var=(model_full_name, dir_model), verbose=verbose,
+                     verbose_level=5)
+            assert char_embedding_dim is None and hidden_size_encoder is None and\
+                   hidden_size_decoder is None and output_dim is None
             if not model_specific_dictionary:
-                assert voc_size is not None, "ERROR : voc_size is required for sanity checking as wr recompute the dictionary "
+                assert voc_size is not None, "ERROR : voc_size is required for sanity checking " \
+                                             "as we recompute the dictionary "
 
             args, checkpoint_dir, args_dir = self.load(dir_model, model_full_name, verbose=verbose)
             self.arguments = args
@@ -170,7 +179,8 @@ class LexNormalizer(nn.Module):
             char_embedding_dim, output_dim, hidden_size_encoder,hidden_size_sent_encoder, drop_out_sent_encoder_cell,\
             drop_out_word_encoder_cell, drop_out_sent_encoder_out, drop_out_word_encoder_out,\
             n_layers_word_encoder, dir_sent_encoder, word_recurrent_cell_encoder, dir_word_encoder,\
-            hidden_size_decoder,  word_recurrent_cell_decoder, drop_out_word_decoder_cell, drop_out_char_embedding_decoder = get_args(args, False)
+            hidden_size_decoder,  word_recurrent_cell_decoder, drop_out_word_decoder_cell, drop_out_char_embedding_decoder, \
+                    self.auxilliary_task_norm_not_norm = get_args(args, False)
 
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
@@ -191,17 +201,23 @@ class LexNormalizer(nn.Module):
                                    n_layers_word_cell=n_layers_word_encoder, timing=timing,
                                    dir_word_encoder=dir_word_encoder,
                                    verbose=verbose)
+        self.bridge = nn.Linear(
+            hidden_size_encoder * n_layers_word_encoder * dir_word_encoder + hidden_size_sent_encoder * dir_sent_encoder,
+            hidden_size_decoder)
         self.dropout_bridge = nn.Dropout(p=drop_out_bridge)
+        self.normalize_not_normalize = BinaryPredictor(input_dim=hidden_size_decoder) \
+            if self.auxilliary_task_norm_not_norm else None
         self.decoder = CharDecoder(self.char_embedding, input_dim=char_embedding_dim,
                                    hidden_size_decoder=hidden_size_decoder,timing=timing,
                                    drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
-                                   drop_out_word_cell=drop_out_word_decoder_cell, word_recurrent_cell=word_recurrent_cell_decoder,
+                                   drop_out_word_cell=drop_out_word_decoder_cell,
+                                   word_recurrent_cell=word_recurrent_cell_decoder,
                                    verbose=verbose)
         self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size,
                                    output_dim=output_dim, verbose=verbose)
         self.verbose = verbose
         # bridge between encoder hidden representation and decoder
-        self.bridge = nn.Linear(hidden_size_encoder*n_layers_word_encoder*dir_word_encoder+hidden_size_sent_encoder*dir_sent_encoder, hidden_size_decoder)
+
         if load:
             # TODO : see if can be factorized
             if use_gpu:
@@ -222,10 +238,16 @@ class LexNormalizer(nn.Module):
         h, sent_len_max_source = self.encoder.sent_encoder_source(input_seq, input_word_len)
         source_encoder, start = get_timing(start)
         # [] [batch, , hiden_size_decoder]
+        printing("DECODER hidden state before bridge size {}", var=[h.size()], verbose=0, verbose_level=0)
         h = self.bridge(h)
         h = self.dropout_bridge(h)
         bridge, start = get_timing(start)
         printing("TYPE  encoder {} is cuda ", var=h.is_cuda, verbose=0, verbose_level=4)
+        printing("DECODER hidden state after bridge size {}", var=[h.size()], verbose=0, verbose_level=0)
+        norm_not_norm_hidden = self.normalize_not_normalize(h) if self.auxilliary_task_norm_not_norm else None
+        if self.auxilliary_task_norm_not_norm:
+            printing("DECODER hidden state after norm_not_norm_hidden size {}", var=[norm_not_norm_hidden.size()],
+                     verbose=0, verbose_level=0)
         output = self.decoder.sent_encoder_target(output_seq, h, output_word_len,
                                                   sent_len_max_source=sent_len_max_source)
         target_encoder, start = get_timing(start)
@@ -235,11 +257,12 @@ class LexNormalizer(nn.Module):
         printing("DECODER full  output sequence encoded of size {} ", var=(output.size()), verbose=self.verbose,
                  verbose_level=3)
         printing("DECODER full  output sequence encoded of {}", var=(output), verbose=self.verbose, verbose_level=5)
-        time_report = OrderedDict([("source_encoder", source_encoder), ("target_encoder",target_encoder), ("bridge",bridge)])
         if timing:
+            time_report = OrderedDict(
+                [("source_encoder", source_encoder), ("target_encoder", target_encoder), ("bridge", bridge)])
             print("time report {}".format(time_report))
 
-        return output
+        return output, norm_not_norm_hidden
 
     @staticmethod
     def save(dir, model, info_checkpoint, suffix_name="", verbose=0):

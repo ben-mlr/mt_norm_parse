@@ -33,18 +33,19 @@ def data_gen_conllu(data, word_dictionary, char_dictionary, pos_dictionary,
         printing("INFO : n_sents < batch_size so nbatch set to 1 ", verbose=verbose, verbose_level=0)
     print("Running {} batches of {} dim (nsent : {}) (if 0 will be set to 1) ".format(nbatch, batch_size, n_sents))
     nbatch = 1 if nbatch == 0 else nbatch
+    # deterministic run over all the dataset (for evaluation)
     if not get_batch_mode:
         for batch in tqdm(conllu_data.iterate_batch_variable(data, batch_size=batch_size, normalization=normalization),
                           disable=disable_tqdm_level(verbose, verbose_level=2)):
-            words, chars, chars_norm, pos, xpos, heads, types, masks, lengths, order_ids, raw_word_inputs, raw_lines = batch
+            words, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, lengths, order_ids, raw_word_inputs, raw_lines = batch
             #pdb.set_trace()
             yield MaskBatch(chars, chars_norm, pad=padding, timing=timing, verbose=verbose)
-
+    # get_batch randomly (for training purpose)
     elif get_batch_mode:
         for ibatch in tqdm(range(1, nbatch+1), disable=disable_tqdm_level(verbose, verbose_level=2)):
             # word, char, pos, xpos, heads, types, masks, lengths, morph
             printing("Data : getting {} out of {} batches", var=(ibatch, nbatch+1), verbose= verbose, verbose_level=2)
-            word, char, chars_norm, _, _, _, _, _, lenght, _ = conllu_data.get_batch_variable(data, batch_size=batch_size,
+            word, char, chars_norm, word_norm_not_norm,_, _, _, _, _, lenght, _ = conllu_data.get_batch_variable(data, batch_size=batch_size,
                                                                                               normalization=normalization,
                                                                                               unk_replace=0)
             #pdb.set_trace()
@@ -58,20 +59,23 @@ def data_gen_conllu(data, word_dictionary, char_dictionary, pos_dictionary,
             # TODO : you want to correct that : you're missing word !!
             #for sent_ind in range(char.size(1)):
             #for word_ind in range(min(lenght.data)):
-            word_ind = 0
+            __word_ind = 0
             word_len = char.size(2)
             if normalization:
-                printing("Normalized sequence {} ", var=(chars_norm[:, word_ind, :]), verbose=verbose, verbose_level=5)
-            printing("Char {} word ind : word : {}  ", var=(word_ind, char[:, word_ind, :]), verbose=verbose,
+                if word_norm_not_norm is not None:
+                    printing("norm not norm {} ", var=(word_norm_not_norm[:, __word_ind]), verbose=verbose,
+                             verbose_level=5)
+                printing("Normalized sequence {} ", var=(chars_norm[:, __word_ind, :]), verbose=verbose, verbose_level=5)
+            printing("Char {} word ind : word : {}  ", var=(__word_ind, char[:, __word_ind, :]), verbose=verbose,
                      verbose_level=5)
             _verbose = 5 if print_raw else verbose
 
             if _verbose >= 5:
                 character_display = [" ".join([char_dictionary.get_instance(char[sent, word_ind, char_i])
-                                               for char_i in range(word_len)]) + " |SENT {} WORD {}| ".format(ind_sent, ind_w)
+                                               for char_i in range(word_len)]) + " | NORM : {} |SENT {} WORD {}| ".format(word_norm_not_norm[sent,word_ind],sent, word_ind)
                                      for ind_sent,sent in enumerate(range(char.size(0)))
                                      for ind_w , word_ind in enumerate(range(char.size(1)))]
-                word_display = [word_dictionary.get_instance(word[batch, word_ind]) + " " for batch in range(char.size(0))]
+                word_display = [word_dictionary.get_instance(word[batch, __word_ind]) + " " for batch in range(char.size(0))]
             else:
                 word_display = []
                 character_display = []
@@ -81,19 +85,20 @@ def data_gen_conllu(data, word_dictionary, char_dictionary, pos_dictionary,
 
             if _verbose >= 5:
                 character_norm_display = [" ".join([char_dictionary.get_instance(chars_norm[sent, word_ind, char_i])
-                                               for char_i in range(chars_norm.size(2))]) + " |SENT {} WORD {}| ".format(ind_sent, ind_w)
+                                               for char_i in range(chars_norm.size(2))]) +
+                                          "|  NORM : {} |SENT {} WORD {}| \n ".format(word_norm_not_norm[sent,word_ind],sent, word_ind)
                                      for ind_sent, sent in enumerate(range(chars_norm.size(0)))
                                      for ind_w, word_ind in enumerate(range(chars_norm.size(1)))]
             else:
                 character_norm_display = []
-            printing("Feeding source characters {} target characters {}  "
+            printing("Feeding source characters {} \n ------ Target characters {}  "
                      "(NB : the character vocabulary is the same at input and output)", var=(character_display,
                                                                                              character_norm_display),
                      verbose=_verbose, verbose_level=5)
             printing("Feeding source words {} ", var=[word_display], verbose=_verbose, verbose_level=5)
             printing("TYPE {} char before batch chars_norm {} ", var=(char.is_cuda, chars_norm.is_cuda),
                      verbose=verbose, verbose_level=5)
-            yield MaskBatch(char, chars_norm, pad=padding, timing=timing, verbose=verbose)
+            yield MaskBatch(char, chars_norm, output_norm_not_norm=word_norm_not_norm,pad=padding, timing=timing, verbose=verbose)
 
 
 def data_gen_dummy(V, batch, nbatches, sent_len=9, word_len=5,

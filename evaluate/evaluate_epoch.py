@@ -30,7 +30,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
              score_to_compute_ls=None, mode_norm_ls=None,get_batch_mode_evaluate=True,
              overall_label="ALL_MODELS",overall_report_dir=CHECKPOINT_DIR,
              model_specific_dictionary=True, label_report="", print_raw=False, model=None,
-             compute_mean_score_per_sent=False,
+             compute_mean_score_per_sent=False,auxilliary_task_norm_not_norm=False,
              normalization=True, debug=False, force_new_dic=False, use_gpu=None, verbose=0):
     assert model_specific_dictionary, "ERROR : only model_specific_dictionary = True supported now"
     validation = True
@@ -70,6 +70,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                                                   model.pos_dictionary,
                                                   model.xpos_dictionary, model.type_dictionary,
                                                   use_gpu=use_gpu, symbolic_root=False,
+                                                  norm_not_norm=auxilliary_task_norm_not_norm,
                                                   symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,
                                                   normalization=normalization,
                                                   validation=validation,
@@ -149,8 +150,8 @@ if __name__ == "__main__":
     list_all_dir = os.listdir(os.path.join(PROJECT_PATH,"checkpoints"))
     #for ablation_id in ["aaad","bd55","0153","f178"]:
     for ablation_id in ["f2f2"]:
-      for data in [DEMO,DEMO2]:
-      #for data in [LEX_TEST,DEV]:
+      #for data in [DEMO,DEMO2]:
+      for data in [LEX_TEST,DEV]:
         list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
         print("FOLDERS : ", list_)
         for folder_name in list_:
@@ -159,7 +160,7 @@ if __name__ == "__main__":
           print("0Evaluating {} ".format(model_full_name))
           evaluate(model_full_name=model_full_name, data_path=data,#LIU,
                    dict_path=os.path.join(PROJECT_PATH, "checkpoints", folder_name, "dictionaries"),
-                   label_report="eval_again", use_gpu=None, overall_label="f2f2-FINALY",
+                   label_report="eval_again", use_gpu=None, overall_label="f2f2-iterate+new_data",
                    mode_norm_ls=None,
                    normalization=True,
                    model_specific_dictionary=True,

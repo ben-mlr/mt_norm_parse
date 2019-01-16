@@ -106,7 +106,8 @@ class CharDecoder(nn.Module):
         #printing("TARGET output_mask size {}  mask  {} size length size {} ", var=(output_mask.size(), output_mask.size(),
         #                                                                           output_mask.size()), verbose=verbose,
         #         verbose_level=3)
-
+        conditioning = conditioning.view(1, conditioning.size(
+            0) * conditioning.size(1), -1)
         start = time.time() if self.timing else None
         _output_word_len = output_word_len.clone()
         clone_len, start = get_timing(start)

@@ -17,13 +17,14 @@ def subsequent_mask(size):
 
 
 class MaskBatch(object):
-    def __init__(self, input_seq, output_seq, pad=0, verbose=0, timing=False):
+    def __init__(self, input_seq, output_seq, output_norm_not_norm=None, pad=0, verbose=0, timing=False):
         # input mask
         if not output_seq.size(0) >1:
             pdb.set_trace()
         assert output_seq.size(0) >1 , "ERROR  batch_size should be strictly above 1 but is {} ".format(output_seq.size())
         # originnaly batch_size, word len
         self.input_seq = input_seq
+        self.output_norm_not_norm = output_norm_not_norm
         # unsqueeze add 1 dim between batch and word len ##- ?   ##- for commenting on context implementaiton
         start = time.time()
         self.input_seq_mask = (input_seq != pad).unsqueeze(-2)
