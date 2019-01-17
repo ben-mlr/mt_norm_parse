@@ -18,7 +18,7 @@ class CharEncoder(nn.Module):
         super(CharEncoder, self).__init__()
         self.char_embedding_ = char_embedding
         self.timing = timing
-        self.sent_encoder = nn.LSTM(input_size=hidden_size_encoder*n_layers_word_cell*dir_word_encoder,
+        self.sent_encoder = nn.LSTM(input_size=hidden_size_encoder*n_layers_word_cell,#*dir_word_encoder,
                                     hidden_size=hidden_size_sent_encoder,
                                     num_layers=1, bias=True, batch_first=True,
                                     dropout=dropout_word_encoder_cell,
@@ -33,7 +33,7 @@ class CharEncoder(nn.Module):
         self.word_recurrent_cell = word_recurrent_cell
         printing("MODEL Encoder : word_recurrent_cell has been set to {} ", var=([str(word_recurrent_cell)]),
                  verbose=verbose, verbose_level=0)
-        self.seq_encoder = word_recurrent_cell(input_size=input_dim, hidden_size=hidden_size_encoder,
+        self.seq_encoder = word_recurrent_cell(input_size=input_dim, hidden_size=int(hidden_size_encoder/dir_word_encoder),
                                                dropout=dropout_sent_encoder_cell,
                                                num_layers=n_layers_word_cell, #nonlinearity='tanh',
                                                bias=True, batch_first=True, bidirectional=bool(dir_word_encoder-1))
@@ -124,10 +124,12 @@ class CharEncoder(nn.Module):
         # [batch x max sent_len , packed max_char_length, hidden_size_encoder]
         h_w = h_w.view(shape_sent_seq[0], shape_sent_seq[1], -1)
         # [batch,  max sent_len , packed max_char_length, hidden_size_encoder]
+        printing("SOURCE word encoder reshaped dim sent : {} ", var=[h_w.size()],
+                 verbose=verbose, verbose_level=0)
         sent_encoded, hidden = self.sent_encoder(h_w)
         # sent_encoded : [batch, max sent len ,hidden_size_sent_encoder]
-        printing("SOURCE sentence encoder output dim sent : {} ", var=(sent_encoded.size()),
-                 verbose=verbose, verbose_level=3)
+        printing("SOURCE sentence encoder output dim sent : {} ", var=[sent_encoded.size()],
+                 verbose=verbose, verbose_level=0)
         # concatanate
         sent_encoded = self.drop_out_sent_encoder_out(sent_encoded)
         h_w = self.drop_out_word_encoder_out(h_w)
@@ -136,7 +138,7 @@ class CharEncoder(nn.Module):
                  verbose=verbose, verbose_level=4)
         #source_context_word_vector = source_context_word_vector.view(1, source_context_word_vector.size(0)*source_context_word_vector.size(1), -1)
         # source_context_word_vector : [1, batch x sent len, hidden_size_sent_encoder + hidden_size_encoder]
-        printing("SOURCE contextual last representation : {} ", var=(source_context_word_vector.size()),
-                 verbose=verbose, verbose_level=3)
+        printing("SOURCE contextual last representation : {} ", var=[source_context_word_vector.size()],
+                 verbose=verbose, verbose_level=0)
 
         return source_context_word_vector, sent_len_max_source

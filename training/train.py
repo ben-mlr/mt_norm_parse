@@ -197,12 +197,16 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                          verbose=verbose)
         printing("EVALUATION : computing loss on dev ", verbose=verbose, verbose_level=1)
         _create_iter_time, start = get_timing(start)
-        loss_dev = run_epoch(batchIter_eval, model, LossCompute(model.generator, use_gpu=use_gpu,verbose=verbose,
-                                                                weight_binary_loss=weight_binary_loss,
-                                                                auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm),
+        dev_report_loss = False
+        if dev_report_loss:
+            loss_dev = run_epoch(batchIter_eval, model, LossCompute(model.generator, use_gpu=use_gpu,verbose=verbose,
+                                                                    weight_binary_loss=weight_binary_loss,
+                                                                    auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm),
                              i_epoch=epoch, n_epochs=n_epochs,
                              verbose=verbose,timing=timing,
                              log_every_x_batch=100)
+        else:
+            loss_dev = 0
         _eval_time, start = get_timing(start)
         loss_training.append(loss_train)
         loss_developing.append(loss_dev)

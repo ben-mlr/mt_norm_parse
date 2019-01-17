@@ -159,10 +159,10 @@ if __name__ == "__main__":
           params.append(param)
           labels.append("dir_word_encoder_2-sent_source_dir_2-dropout_0.2_everywhere-LSTM-batch_10")
 
-      warmup = False
+      warmup = True
       RUN_ID = str(uuid4())[0:5]
-      LABEL_GRID = "new_data-batchXdropout_char" if not warmup else "WARMUP_gpu3"
-      GRID_FOLDER_NAME = RUN_ID+"-"+LABEL_GRID if len(LABEL_GRID)>0 else RUN_ID
+      LABEL_GRID = "new_data-batchXdropout_char" if not warmup else "WARMUP-bi_dir_1"
+      GRID_FOLDER_NAME = RUN_ID+"-"+LABEL_GRID if len(LABEL_GRID) > 0 else RUN_ID
       GRID_FOLDER_NAME += "-summary"
       dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
       os.mkdir(dir_grid)
@@ -173,20 +173,21 @@ if __name__ == "__main__":
           #param["batch_size"] = 10
           #model_id_pref = "TEST-"+model_id_pref
           printing("Adding RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 100
+          epochs = 10
           if warmup:
-            param["batch_size"] = 50
-            train_path, dev_path = DEMO, DEMO2
+            param["batch_size"] = 2
+            param["dir_word_encoder"] = 2
+            train_path, dev_path = DEV, DEMO2
           model_id_pref = RUN_ID + "-"+LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
-                                                  test_path=DEV,
+                                                  test_path=None,
                                                   verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,
                                                   get_batch_mode_evaluate=False, compute_scoring_curve=True,
                                                   auxilliary_task_norm_not_norm=True, freq_scoring=10,
-                                                  warmup=warmup, args=param, use_gpu=None, n_epochs=epochs, debug=False)
+                                                  warmup=False, args=param, use_gpu=None, n_epochs=epochs, debug=False)
           run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("Log RUN is : {} to see model list ".format(run_dir))

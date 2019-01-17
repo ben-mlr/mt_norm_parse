@@ -202,7 +202,7 @@ class LexNormalizer(nn.Module):
                                    dir_word_encoder=dir_word_encoder,
                                    verbose=verbose)
         self.bridge = nn.Linear(
-            hidden_size_encoder * n_layers_word_encoder * dir_word_encoder + hidden_size_sent_encoder * dir_sent_encoder,
+            hidden_size_encoder * n_layers_word_encoder + hidden_size_sent_encoder * dir_sent_encoder,
             hidden_size_decoder)
         self.dropout_bridge = nn.Dropout(p=drop_out_bridge)
         self.normalize_not_normalize = BinaryPredictor(input_dim=hidden_size_decoder) \
@@ -238,12 +238,12 @@ class LexNormalizer(nn.Module):
         h, sent_len_max_source = self.encoder.sent_encoder_source(input_seq, input_word_len)
         source_encoder, start = get_timing(start)
         # [] [batch, , hiden_size_decoder]
-        printing("DECODER hidden state before bridge size {}", var=[h.size()], verbose=0, verbose_level=4)
+        printing("DECODER hidden state before bridge size {}", var=[h.size()], verbose=0, verbose_level=0)
         h = self.bridge(h)
         h = self.dropout_bridge(h)
         bridge, start = get_timing(start)
         printing("TYPE  encoder {} is cuda ", var=h.is_cuda, verbose=0, verbose_level=4)
-        printing("DECODER hidden state after bridge size {}", var=[h.size()], verbose=0, verbose_level=4)
+        printing("DECODER hidden state after bridge size {}", var=[h.size()], verbose=0, verbose_level=0)
         norm_not_norm_hidden = self.normalize_not_normalize(h) if self.auxilliary_task_norm_not_norm else None
         if self.auxilliary_task_norm_not_norm:
             printing("DECODER hidden state after norm_not_norm_hidden size {}", var=[norm_not_norm_hidden.size()],

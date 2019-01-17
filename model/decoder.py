@@ -106,8 +106,7 @@ class CharDecoder(nn.Module):
         #printing("TARGET output_mask size {}  mask  {} size length size {} ", var=(output_mask.size(), output_mask.size(),
         #                                                                           output_mask.size()), verbose=verbose,
         #         verbose_level=3)
-        conditioning = conditioning.view(1, conditioning.size(
-            0) * conditioning.size(1), -1)
+        conditioning = conditioning.view(1, conditioning.size(0) * conditioning.size(1), -1)
         start = time.time() if self.timing else None
         _output_word_len = output_word_len.clone()
         clone_len, start = get_timing(start)
@@ -130,7 +129,8 @@ class CharDecoder(nn.Module):
         inverse_perm_idx_input_sent = torch.from_numpy(np.argsort(perm_idx_input_sent.cpu().numpy()))
         sorting, start = get_timing(start)
         # [batch x sent_len , dim hidden word level] # this remove empty words
-        packed_char_vecs_output = pack_padded_sequence(output[perm_idx_input_sent, :, :], sent_len.squeeze().cpu().numpy(), batch_first=True)
+        packed_char_vecs_output = pack_padded_sequence(output[perm_idx_input_sent, :, :],
+                                                       sent_len.squeeze().cpu().numpy(), batch_first=True)
         packed_sent, start = get_timing(start)
         # unpacked for the word level representation
         # packed_char_vecs_output .data : [batch x shorted sent_lenS , word lens ] + .batch_sizes
