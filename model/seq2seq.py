@@ -235,7 +235,7 @@ class LexNormalizer(nn.Module):
                  verbose=0, verbose_level=4)
         # input_seq : [batch, max sentence length, max word length] : batch of sentences
         start = time.time() if timing else None
-        h, sent_len_max_source = self.encoder.sent_encoder_source(input_seq, input_word_len)
+        h, sent_len_max_source, char_seq_hidden_encoder = self.encoder.sent_encoder_source(input_seq, input_word_len)
         source_encoder, start = get_timing(start)
         # [] [batch, , hiden_size_decoder]
         printing("DECODER hidden state before bridge size {}", var=[h.size()], verbose=0, verbose_level=0)

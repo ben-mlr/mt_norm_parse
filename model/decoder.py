@@ -13,6 +13,7 @@ from env.project_variables import SUPPORED_WORD_ENCODER
 class CharDecoder(nn.Module):
     def __init__(self, char_embedding, input_dim, hidden_size_decoder, word_recurrent_cell=None,
                  drop_out_word_cell=0,timing=False, drop_out_char_embedding_decoder=0,
+                 char_src_attention=False,
                  verbose=0):
         super(CharDecoder, self).__init__()
         self.timing = timing
@@ -34,9 +35,11 @@ class CharDecoder(nn.Module):
                                                bias=True, batch_first=True, bidirectional=False)
         printing("MODEL Decoder : word_recurrent_cell has been set to {} ".format(str(word_recurrent_cell)),
                  verbose=verbose, verbose_level=0)
+        self.attn_param = nn.Linear(hidden_size_decoder*1) if char_src_attention else None
+
         self.verbose = verbose
 
-    def word_encoder_target(self, output, conditioning, output_word_len):
+    def word_encoder_target(self, output, conditioning, output_word_len, char_seq_hidden_encoder=None):
         # TODO DEAL WITH MASKING (padding and prediction oriented ?)
         printing("TARGET size {} ", var=output.size(), verbose=self.verbose, verbose_level=3)
         printing("TARGET data {} ", var=output, verbose=self.verbose, verbose_level=5)
@@ -57,7 +60,6 @@ class CharDecoder(nn.Module):
         not_printing, start = get_timing(start)
         conditioning = conditioning[:, perm_idx_output, :]
         reorder_conditioning, start = get_timing(start)
-
         #  USING PACKED SEQUENCE
         # THe shapes are fine !! -->
         printing("TARGET  word lengths after  {} dim", var = output_word_len.size(), verbose=self.verbose, verbose_level=4)
@@ -72,6 +74,17 @@ class CharDecoder(nn.Module):
         # conditioning is the output of the encoder (work as the first initial state of the decoder)
         if isinstance(self.seq_decoder, nn.LSTM):
             conditioning = (torch.zeros_like(conditioning), conditioning)
+
+        # attention
+        import torch.nn.functional as F
+        if self.attn_param is not None:
+            assert char_seq_hidden_encoder is not None, 'ERROR sent_len_max_source is None'
+        state_char_decoder = None
+        # state_char_decoder should be cat to char_vecs
+        # attention_weights = F.softmax(self.attn_param(torch.cat((char_vecs,state_char_decoder))))
+        # then product with char_seq_hidden_encoder
+        # then cat in a way with conditioning (and should remove word level part of it also )
+        # then feed as conditioning
 
         output, h_n = self.seq_decoder(packed_char_vecs_output, conditioning)
         h_n = h_n[0] if isinstance(self.seq_decoder, nn.LSTM) else h_n
@@ -100,12 +113,14 @@ class CharDecoder(nn.Module):
 
         return output
 
-    def sent_encoder_target(self, output, conditioning, output_word_len, perm_encoder=None, sent_len_max_source=None ,verbose=0):
+    def sent_encoder_target(self, output, conditioning, output_word_len, perm_encoder=None,
+                            sent_len_max_source=None ,verbose=0):
 
         # WARNING conditioning is for now the same for every decoded token
         #printing("TARGET output_mask size {}  mask  {} size length size {} ", var=(output_mask.size(), output_mask.size(),
         #                                                                           output_mask.size()), verbose=verbose,
         #         verbose_level=3)
+
         conditioning = conditioning.view(1, conditioning.size(0) * conditioning.size(1), -1)
         start = time.time() if self.timing else None
         _output_word_len = output_word_len.clone()
