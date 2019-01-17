@@ -46,7 +46,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           auxilliary_task_norm_not_norm=False, weight_binary_loss=1,
           debug=False,timing=False,
           verbose=1):
-
+    
+    if auxilliary_task_norm_not_norm:
+        printing("MODEL : training model with auxillisary task (loss weighted with {})", var=[weight_binary_loss], verbose=verbose, verbose_level=1)
     if compute_scoring_curve:
         assert score_to_compute_ls is not None and mode_norm_ls is not None and freq_scoring is not None, \
             "ERROR score_to_compute_ls and mode_norm_ls should not be None"

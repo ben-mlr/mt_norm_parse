@@ -34,8 +34,8 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
              normalization=True, debug=False, force_new_dic=False, use_gpu=None, verbose=0):
     assert model_specific_dictionary, "ERROR : only model_specific_dictionary = True supported now"
     validation = True
-    if validation:
-        assert not get_batch_mode_evaluate, "ERROR : validation was set to true but get_batch_mode_evaluate is {} while it should be False".format(get_batch_mode_evaluate)
+    #if validation:
+        #assert not get_batch_mode_evaluate, "ERROR : validation was set to true but get_batch_mode_evaluate is {} while it should be False".format(get_batch_mode_evaluate)
 
     # NB : now : you have to load dictionary when evaluating (cannot recompute) (could add in the LexNormalizer ability)
     use_gpu = use_gpu_(use_gpu)
@@ -151,24 +151,26 @@ if __name__ == "__main__":
     #for ablation_id in ["aaad","bd55","0153","f178"]:
     for ablation_id in ["f2f2"]:
       #for data in [DEMO,DEMO2]:
-      for data in [LEX_TEST,DEV]:
-        list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
-        print("FOLDERS : ", list_)
-        for folder_name in list_:
-          model_full_name = folder_name[:-7]
-          print("MODEL_FULL_NAME : ", model_full_name)
-          print("0Evaluating {} ".format(model_full_name))
-          evaluate(model_full_name=model_full_name, data_path=data,#LIU,
-                   dict_path=os.path.join(PROJECT_PATH, "checkpoints", folder_name, "dictionaries"),
-                   label_report="eval_again", use_gpu=None, overall_label="f2f2-iterate+new_data",
-                   mode_norm_ls=None,
-                   normalization=True,
-                   model_specific_dictionary=True,
-                   batch_size=50,
-                   debug=False,
-                   compute_mean_score_per_sent=True,
-                   get_batch_mode_evaluate=False,
-                   dir_report=os.path.join(PROJECT_PATH, "checkpoints", folder_name), verbose=1)
+      for get_batch_mode_evaluate in [True, False]:
+        for batch_size in [10, 50]:
+          for data in [LEX_TEST,DEV]:
+            list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
+            print("FOLDERS : ", list_)
+            for folder_name in list_:
+              model_full_name = folder_name[:-7]
+              print("MODEL_FULL_NAME : ", model_full_name)
+              print("0Evaluating {} ".format(model_full_name))
+              evaluate(model_full_name=model_full_name, data_path=data,#LIU,
+                       dict_path=os.path.join(PROJECT_PATH, "checkpoints", folder_name, "dictionaries"),
+                       label_report="eval_again", use_gpu=None, overall_label="f2f2-iterate+new_data-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch-validation_True",
+                       mode_norm_ls=None,
+                       normalization=True,
+                       model_specific_dictionary=True,
+                       batch_size=batch_size,
+                       debug=False,
+                       compute_mean_score_per_sent=True,
+                       get_batch_mode_evaluate=get_batch_mode_evaluate,
+                       dir_report=os.path.join(PROJECT_PATH, "checkpoints", folder_name), verbose=1)
 
 
 
