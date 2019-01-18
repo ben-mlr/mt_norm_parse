@@ -211,7 +211,7 @@ class LexNormalizer(nn.Module):
                                    hidden_size_decoder=hidden_size_decoder,timing=timing,
                                    drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
                                    drop_out_word_cell=drop_out_word_decoder_cell,
-                                   word_recurrent_cell=word_recurrent_cell_decoder,
+                                   word_recurrent_cell=word_recurrent_cell_decoder,unrolling_word=True,
                                    verbose=verbose)
         self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size,
                                    output_dim=output_dim, verbose=verbose)

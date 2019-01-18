@@ -5,19 +5,53 @@ from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 from io_.info_print import printing
 import pdb
 import time
+from torch.autograd import Variable
 from toolbox.sanity_check import get_timing
 from collections import OrderedDict
 from env.project_variables import SUPPORED_WORD_ENCODER
+import torch.nn.functional as F
+
+
+class Attention(nn.Module):
+
+    def __init__(self,  hidden_size, use_gpu=False):
+
+        super(Attention, self).__init__()
+        self.hidden_size = hidden_size
+        self.attn = nn.Linear(self.hidden_size * 2, hidden_size)
+        self.v = nn.Parameter(torch.FloatTensor(1, hidden_size))
+        self.use_gpu = use_gpu
+
+    def score(self, char_state_decoder, encoder_output):
+        energy = self.attn(torch.cat((char_state_decoder, encoder_output), 1))
+        energy = self.v.dot(energy)
+        return energy
+
+    def forward(self, char_state_decoder, encoder_outputs):
+        max_word_len = encoder_outputs.size(1)
+        this_batch_size = encoder_outputs.size(0)
+        attn_energies = Variable(torch.zeros(this_batch_size, max_word_len)) # B x S
+
+        #if self.use_gpu:
+        #    attn_energies = attn_energies.cuda()
+
+        for batch in range(this_batch_size):
+            for char in range(max_word_len):
+                attn_energies[batch, char] = self.score(char_state_decoder[batch, :], encoder_outputs[batch, char])
+
+        return F.softmax(attn_energies).unsqueeze(1)
 
 
 class CharDecoder(nn.Module):
+
     def __init__(self, char_embedding, input_dim, hidden_size_decoder, word_recurrent_cell=None,
                  drop_out_word_cell=0,timing=False, drop_out_char_embedding_decoder=0,
-                 char_src_attention=False,
+                 char_src_attention=False, unrolling_word=False,
                  verbose=0):
         super(CharDecoder, self).__init__()
         self.timing = timing
         self.char_embedding_decoder = char_embedding
+        self.unrolling_word = unrolling_word
         self.drop_out_char_embedding_decoder = nn.Dropout(drop_out_char_embedding_decoder)
         if word_recurrent_cell is not None:
             assert word_recurrent_cell in SUPPORED_WORD_ENCODER, \
@@ -36,8 +70,16 @@ class CharDecoder(nn.Module):
         printing("MODEL Decoder : word_recurrent_cell has been set to {} ".format(str(word_recurrent_cell)),
                  verbose=verbose, verbose_level=0)
         self.attn_param = nn.Linear(hidden_size_decoder*1) if char_src_attention else None
-
+        self.attn_layer = Attention(hidden_size_decoder)
         self.verbose = verbose
+
+    def word_encoder_target_step(self, char_vec_current_batch, conditioning_other, state_decoder_current,
+                                 char_seq_hidden_encoder=None):
+        # char_vec_current_batch is the new input character read, state_decoder_current
+        # is the state of the cell (h and possibly cell)
+        # should torch.cat() char_vec_current_batch with attention based context computed on char_seq_hidden_encoder
+        output, state = self.seq_decoder(char_vec_current_batch, state_decoder_current)
+        return state
 
     def word_encoder_target(self, output, conditioning, output_word_len, char_seq_hidden_encoder=None):
         # TODO DEAL WITH MASKING (padding and prediction oriented ?)
@@ -55,22 +97,22 @@ class CharDecoder(nn.Module):
         char_vecs = self.drop_out_char_embedding_decoder(char_vecs)
         char_embedding, start = get_timing(start)
 
-        printing("TARGET EMBEDDING size {} ", var=char_vecs.size(), verbose=self.verbose, verbose_level=3) #if False else None
+        printing("TARGET EMBEDDING size {} ", var=[char_vecs.size()], verbose=self.verbose, verbose_level=0) #if False else None
         printing("TARGET EMBEDDING data {} ", var=char_vecs, verbose=self.verbose, verbose_level=5)
         not_printing, start = get_timing(start)
         conditioning = conditioning[:, perm_idx_output, :]
         reorder_conditioning, start = get_timing(start)
         #  USING PACKED SEQUENCE
         # THe shapes are fine !! -->
-        printing("TARGET  word lengths after  {} dim", var = output_word_len.size(), verbose=self.verbose, verbose_level=4)
+        printing("TARGET  word lengths after  {} dim", var =[output_word_len.size()], verbose=self.verbose, verbose_level=3)
         # same as target sequence and source ..
         output_word_len[output_word_len == 0] = 1
         # pdb.set_trace()
         zero_last, start = get_timing(start)
         packed_char_vecs_output = pack_padded_sequence(char_vecs, output_word_len.squeeze().cpu().numpy(), batch_first=True)
         pack, start = get_timing(start)
-        printing("TARGET packed_char_vecs {}  dim", var=packed_char_vecs_output.data.shape, verbose=self.verbose,
-                 verbose_level=3)  # .size(), packed_char_vecs)
+        printing("TARGET packed_char_vecs {}  dim", var=[packed_char_vecs_output.data.shape], verbose=self.verbose,
+                 verbose_level=3) # .size(), packed_char_vecs)
         # conditioning is the output of the encoder (work as the first initial state of the decoder)
         if isinstance(self.seq_decoder, nn.LSTM):
             conditioning = (torch.zeros_like(conditioning), conditioning)
@@ -79,37 +121,63 @@ class CharDecoder(nn.Module):
         import torch.nn.functional as F
         if self.attn_param is not None:
             assert char_seq_hidden_encoder is not None, 'ERROR sent_len_max_source is None'
-        state_char_decoder = None
-        # state_char_decoder should be cat to char_vecs
-        # attention_weights = F.softmax(self.attn_param(torch.cat((char_vecs,state_char_decoder))))
-        # then product with char_seq_hidden_encoder
-        # then cat in a way with conditioning (and should remove word level part of it also )
-        # then feed as conditioning
 
-        output, h_n = self.seq_decoder(packed_char_vecs_output, conditioning)
-        h_n = h_n[0] if isinstance(self.seq_decoder, nn.LSTM) else h_n
-        recurrent_cell, start = get_timing(start)
-        printing("TARGET ENCODED {} output {} h_n (output (includes all the hidden states of last layers), "
-                 "last hidden hidden for each dir+layers)", var=(output, h_n), verbose=self.verbose, verbose_level=5)
-        printing("TARGET ENCODED  SIZE {} output {} h_n (output (includes all the hidden states of last layers), "
-                 "last hidden hidden for each dir+layers)", var=(output.data.shape, h_n.size()), verbose=self.verbose, verbose_level=3)
-        output, output_sizes = pad_packed_sequence(output, batch_first=True)
-        padd, start = get_timing(start)
-        output = output[inverse_perm_idx_output, :, :]
+        # start new unrolling by habd
+        max_word_len = char_vecs.size(1)
 
-        printing("TARGET ENCODED UNPACKED  {} output {} h_n (output (includes all the hidden states of last layers), "
-                 "last hidden hidden for each dir+layers)", var=(output, h_n), verbose=self.verbose,
-                 verbose_level=5)
+        # we initiate with our same original context conditioning
+        if self.unrolling_word:
+            state_i = conditioning
+            for char_i in range(max_word_len):
+                teacher_force = True
+                if teacher_force:
+                    emb_char = char_vecs[:, char_i, :]
+                else:
+                    print("not supported yet")
+                    raise(Exception)
+                    pass
+                # no more pack sequence
+                _, state_i = self.word_encoder_target_step(char_vec_current_batch=emb_char,
+                                                           state_decoder_current=state_i,
+                                                           char_seq_hidden_encoder=None, #char_seq_hidden_encoder,
+                                                           conditioning_other=None) #conditioning)
+                #c_i = state_i[1] if isinstance(self.seq_decoder, nn.LSTM) else None
+                h_i = state_i[0] if isinstance(self.seq_decoder, nn.LSTM) else h_i
+                output.append(h_i) # for LSTM the hidden is the output not the cell
+                # TODO : shape it in the right way and output : it should include all for each sentence batch ,for each word, for each character a hidden representation
 
-        printing("TARGET ENCODED UNPACKED SIZE {} output {} h_n (output (includes all "
-                 "the hidden states of last layers),"
-                 "last hidden hidden for each dir+layers)", var=(output.size(), h_n.size()),
-                 verbose=self.verbose, verbose_level=3)
-        # TODO : output is not shorted in regard to max sent len --> how to handle gold sequence ?
-        if self.timing:
-             print("WORD TARGET {} ".format(OrderedDict([('char_embedding', char_embedding),
-                  ("reorder_conditioning", reorder_conditioning), ("zero_last", zero_last),("not_printing",not_printing),
-                  ("pack",pack), ("recurrent_cell", recurrent_cell), ("padd", padd)])))
+        else:
+            # state_char_decoder should be cat to char_vecs
+            # attention_weights = F.softmax(self.attn_param(torch.cat((char_vecs,state_char_decoder))))
+            # then product with char_seq_hidden_encoder
+            # then cat in a way with conditioning (and should remove word level part of it also )
+            # then feed as conditioning
+
+
+            # back to old implementation
+            output, h_n = self.seq_decoder(packed_char_vecs_output, conditioning)
+            h_n = h_n[0] if isinstance(self.seq_decoder, nn.LSTM) else h_n
+            recurrent_cell, start = get_timing(start)
+            printing("TARGET ENCODED {} output {} h_n (output (includes all the hidden states of last layers), "
+                     "last hidden hidden for each dir+layers)", var=(output, h_n), verbose=self.verbose, verbose_level=5)
+            printing("TARGET ENCODED SIZE {} output {} h_n (output (includes all the hidden states of last layers), "
+                     "last hidden hidden for each dir+layers)", var=(output.data.shape, h_n.size()), verbose=self.verbose,
+                     verbose_level=3)
+            output, output_sizes = pad_packed_sequence(output, batch_first=True)
+            padd, start = get_timing(start)
+            output = output[inverse_perm_idx_output, :, :]
+            printing("TARGET ENCODED UNPACKED  {} output {} h_n (output (includes all the hidden states of last layers), "
+                     "last hidden hidden for each dir+layers)", var=(output, h_n), verbose=self.verbose, verbose_level=5)
+
+            printing("TARGET ENCODED UNPACKED SIZE {} output {} h_n (output (includes all "
+                     "the hidden states of last layers),"
+                     "last hidden hidden for each dir+layers)", var=(output.size(), h_n.size()),
+                     verbose=self.verbose, verbose_level=3)
+            # TODO : output is not shorted in regard to max sent len --> how to handle gold sequence ?
+            if self.timing:
+                 print("WORD TARGET {} ".format(OrderedDict([('char_embedding', char_embedding),
+                      ("reorder_conditioning", reorder_conditioning), ("zero_last", zero_last),("not_printing",not_printing),
+                      ("pack",pack), ("recurrent_cell", recurrent_cell), ("padd", padd)])))
 
         return output
 
@@ -128,8 +196,9 @@ class CharDecoder(nn.Module):
         # handle sentence that take the all sequence (
         printing("TARGET SIZE : output_word_len length (before 0 last) : size {} data {} ", var=(_output_word_len.size(),_output_word_len), verbose=verbose,
                  verbose_level=4)
-        printing("TARGET  : output  (before 0 last) : size {} data {} ", var=(output.size(), output), verbose=verbose,
-                 verbose_level=4)
+        printing("TARGET : output  (before 0 last) : size {}", var=[output.size()], verbose=verbose, verbose_level=0)
+        printing("TARGET : output  (before 0 last) :  data {} ", var=[output], verbose=verbose, verbose_level=5)
+
         _output_word_len[:, -1, :] = 0
         # when input_word_len is 0 means we reached end of sentence
         # TODO : WARNING : is +1 required : as sent with 1 ? WHY ALWAYS IS NOT WORKING
@@ -164,6 +233,7 @@ class CharDecoder(nn.Module):
         output_word_len = output_word_len.contiguous()
         output_word_len = output_word_len.view(output_word_len.size(0) * output_word_len.size(1))
         reshape_len, start = get_timing(start)
+        printing("TARGET output before word encoder {}", var=[output_seq.size()], verbose=verbose, verbose_level=0)
         output_w_decoder = self.word_encoder_target(output_seq, conditioning, output_word_len)
         word_encoders, start = get_timing(start)
         # output_w_decoder : [ batch x max sent len, max word len , hidden_size_decoder ]
