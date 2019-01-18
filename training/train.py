@@ -44,6 +44,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           overall_label="DEFAULT",overall_report_dir=CHECKPOINT_DIR,
           compute_mean_score_per_sent=False,
           auxilliary_task_norm_not_norm=False, weight_binary_loss=1,
+          unrolling_word=False,
           debug=False,timing=False,
           verbose=1):
     
@@ -120,6 +121,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                           hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,
                           model_id_pref=model_id_pref, model_full_name=model_full_name,
                           hidden_size_sent_encoder=hidden_size_sent_encoder,
+                          unrolling_word=unrolling_word,
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
     if use_gpu:
         model = model.cuda()

@@ -127,22 +127,22 @@ class CharEncoder(nn.Module):
         h_w = h_w.view(shape_sent_seq[0], shape_sent_seq[1], -1)
         # [batch,  max sent_len , packed max_char_length, hidden_size_encoder]
         printing("SOURCE word encoder reshaped dim sent : {} ", var=[h_w.size()],
-                 verbose=verbose, verbose_level=0)
+                 verbose=verbose, verbose_level=3)
         printing("SOURCE char_seq_hidden encoder reshaped dim sent : {} ", var=[char_seq_hidden.size()],
-                 verbose=verbose, verbose_level=0)
+                 verbose=verbose, verbose_level=3)
         sent_encoded, hidden = self.sent_encoder(h_w)
         # sent_encoded : [batch, max sent len ,hidden_size_sent_encoder]
         printing("SOURCE sentence encoder output dim sent : {} ", var=[sent_encoded.size()],
-                 verbose=verbose, verbose_level=0)
+                 verbose=verbose, verbose_level=3)
         # concatanate
         sent_encoded = self.drop_out_sent_encoder_out(sent_encoded)
         h_w = self.drop_out_word_encoder_out(h_w)
         source_context_word_vector = torch.cat((sent_encoded, h_w), dim=2)
         printing("SOURCE contextual before reshape for decoding: {} ", var=[source_context_word_vector.size()],
-                 verbose=verbose, verbose_level=4)
+                 verbose=verbose, verbose_level=3)
         #source_context_word_vector = source_context_word_vector.view(1, source_context_word_vector.size(0)*source_context_word_vector.size(1), -1)
         # source_context_word_vector : [1, batch x sent len, hidden_size_sent_encoder + hidden_size_encoder]
         printing("SOURCE contextual last representation : {} ", var=[source_context_word_vector.size()],
-                 verbose=verbose, verbose_level=0)
+                 verbose=verbose, verbose_level=3)
 
         return source_context_word_vector, sent_len_max_source, char_seq_hidden

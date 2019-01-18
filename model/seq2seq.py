@@ -42,6 +42,7 @@ class LexNormalizer(nn.Module):
                  drop_out_bridge=0, drop_out_sent_encoder_out=0, drop_out_word_encoder_out=0,
                  drop_out_char_embedding_decoder=0,
                  dir_sent_encoder=1,word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,
+                 unrolling_word=False,
                  dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
@@ -149,6 +150,7 @@ class LexNormalizer(nn.Module):
                                                    "attention": "No", "dir_word": "uni",
                                                    "drop_out_char_embedding_decoder": drop_out_char_embedding_decoder,
                                                    "drop_out_word_decoder_cell": drop_out_word_decoder_cell,
+                                                   "unrolling_word": unrolling_word,
                                                  },
                                   "hidden_size_encoder": hidden_size_encoder,
                                   "hidden_size_sent_encoder": hidden_size_sent_encoder,
@@ -180,7 +182,7 @@ class LexNormalizer(nn.Module):
             drop_out_word_encoder_cell, drop_out_sent_encoder_out, drop_out_word_encoder_out,\
             n_layers_word_encoder, dir_sent_encoder, word_recurrent_cell_encoder, dir_word_encoder,\
             hidden_size_decoder,  word_recurrent_cell_decoder, drop_out_word_decoder_cell, drop_out_char_embedding_decoder, \
-                    self.auxilliary_task_norm_not_norm = get_args(args, False)
+                    self.auxilliary_task_norm_not_norm, unrolling_word = get_args(args, False)
 
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
@@ -211,7 +213,7 @@ class LexNormalizer(nn.Module):
                                    hidden_size_decoder=hidden_size_decoder,timing=timing,
                                    drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
                                    drop_out_word_cell=drop_out_word_decoder_cell,
-                                   word_recurrent_cell=word_recurrent_cell_decoder,unrolling_word=True,
+                                   word_recurrent_cell=word_recurrent_cell_decoder, unrolling_word=unrolling_word,
                                    verbose=verbose)
         self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size,
                                    output_dim=output_dim, verbose=verbose)
@@ -238,12 +240,12 @@ class LexNormalizer(nn.Module):
         h, sent_len_max_source, char_seq_hidden_encoder = self.encoder.sent_encoder_source(input_seq, input_word_len)
         source_encoder, start = get_timing(start)
         # [] [batch, , hiden_size_decoder]
-        printing("DECODER hidden state before bridge size {}", var=[h.size()], verbose=0, verbose_level=0)
+        printing("DECODER hidden state before bridge size {}", var=[h.size()], verbose=0, verbose_level=3)
         h = self.bridge(h)
         h = self.dropout_bridge(h)
         bridge, start = get_timing(start)
         printing("TYPE  encoder {} is cuda ", var=h.is_cuda, verbose=0, verbose_level=4)
-        printing("DECODER hidden state after bridge size {}", var=[h.size()], verbose=0, verbose_level=0)
+        printing("DECODER hidden state after bridge size {}", var=[h.size()], verbose=0, verbose_level=3)
         norm_not_norm_hidden = self.normalize_not_normalize(h) if self.auxilliary_task_norm_not_norm else None
         if self.auxilliary_task_norm_not_norm:
             printing("DECODER hidden state after norm_not_norm_hidden size {}", var=[norm_not_norm_hidden.size()],

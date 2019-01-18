@@ -15,7 +15,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                overall_report_dir=CHECKPOINT_DIR, overall_label="DEFAULT",get_batch_mode_evaluate=True,
                warmup=False, args={},use_gpu=None,freq_checkpointing=1,debug=False,compute_scoring_curve=False,
                compute_mean_score_per_sent=False,print_raw=False,freq_scoring=5,
-               auxilliary_task_norm_not_norm=False,
+               auxilliary_task_norm_not_norm=False, unrolling_word=False,
                verbose=0):
 
 
@@ -67,6 +67,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                             hidden_size_sent_encoder=hidden_size_sent_encoder, hidden_size_decoder=hidden_size_decoder,
                             n_layers_word_encoder=n_layers_word_encoder, compute_scoring_curve=compute_scoring_curve,
                             verbose=verbose,
+                            unrolling_word=unrolling_word,
                             print_raw=print_raw, debug=debug,
                             checkpointing=True)
 
@@ -177,17 +178,17 @@ if __name__ == "__main__":
           if warmup:
             param["batch_size"] = 2
             param["dir_word_encoder"] = 2
-            train_path, dev_path = DEV, DEMO2
+            train_path, dev_path = DEMO, DEMO2
           model_id_pref = RUN_ID + "-"+LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
-                                                  test_path=None,
+                                                  test_path=TEST,
                                                   verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,
                                                   get_batch_mode_evaluate=False, compute_scoring_curve=True,
-                                                  auxilliary_task_norm_not_norm=True, freq_scoring=10,
-                                                  warmup=False, args=param, use_gpu=None, n_epochs=epochs, debug=False)
+                                                  auxilliary_task_norm_not_norm=True, freq_scoring=10, unrolling_word=True,
+                                                  warmup=warmup, args=param, use_gpu=None, n_epochs=epochs, debug=False)
           run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("Log RUN is : {} to see model list ".format(run_dir))
