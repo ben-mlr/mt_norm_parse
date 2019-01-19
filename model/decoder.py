@@ -145,12 +145,21 @@ class CharDecoder(nn.Module):
                      verbose_level=3)
             max_word_len = char_vecs.size(1)
             for char_i in range(max_word_len):
-                if self.teacher_force:
+                if self.teacher_force or char_i==0:
                     emb_char = char_vecs[:, char_i, :]
                 else:
+                    # TODO based on state_i compute as generator : get id : lookup character embedding and that's it
+                    # TODO : not fir the first one that should be the STARTING_SYMBOL
                     print("not supported yet")
-                    raise(Exception)
-                    pass
+                    pdb.set_trace()
+                    scores = self.generator.forward(x=state_i)
+                    pdb.set_trace()
+                    predictions = scores.argmax(dim=-1)
+                    pdb.set_trace()
+                    pred = predictions[:, :, -1]
+                    pdb.set_trace()
+                    emb_char = self.char_embedding_decoder(pred)
+                    pdb.set_trace()
                 # no more pack sequence
                 printing("DECODER state_decoder_current {} ", var=[state_i[0].size()], verbose=self.verbose, verbose_level=3)
                 printing("DECODER emb_char {} ", var=[emb_char.size()], verbose=self.verbose, verbose_level=2)

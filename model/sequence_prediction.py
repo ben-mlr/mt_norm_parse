@@ -132,7 +132,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
             output_seq = output_seq.cuda()
             src_len = src_len.cuda()
             output_len = output_len.cuda()
-        decoding_states, _ = model.forward(input_seq=src_seq,
+        decoding_states, _, attention = model.forward(input_seq=src_seq,
                                            output_seq=output_seq,
                                            input_word_len=src_len,
                                            output_word_len=output_len)

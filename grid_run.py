@@ -195,11 +195,10 @@ if __name__ == "__main__":
           #param["batch_size"] = 10
           #model_id_pref = "TEST-"+model_id_pref
           printing("Adding RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 100
-          param["batch_size"] = 20
+          epochs = 1
 
           if warmup:
-            param["batch_size"] = 2
+            param["batch_size"] = 50
             param["dir_word_encoder"] = 2
             param["char_src_attention"] = True
             train_path, dev_path = DEV, TEST
