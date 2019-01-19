@@ -44,8 +44,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           overall_label="DEFAULT",overall_report_dir=CHECKPOINT_DIR,
           compute_mean_score_per_sent=False,
           auxilliary_task_norm_not_norm=False, weight_binary_loss=1,
-          unrolling_word=False,
+          unrolling_word=False,char_src_attention=False,
           debug=False,timing=False,
+          dev_report_loss=True,
           verbose=1):
     
     if auxilliary_task_norm_not_norm:
@@ -121,7 +122,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                           hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,
                           model_id_pref=model_id_pref, model_full_name=model_full_name,
                           hidden_size_sent_encoder=hidden_size_sent_encoder,
-                          unrolling_word=unrolling_word,
+                          unrolling_word=unrolling_word,char_src_attention=char_src_attention,
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
     if use_gpu:
         model = model.cuda()
@@ -199,7 +200,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                          verbose=verbose)
         printing("EVALUATION : computing loss on dev ", verbose=verbose, verbose_level=1)
         _create_iter_time, start = get_timing(start)
-        dev_report_loss = False
         if dev_report_loss:
             loss_dev = run_epoch(batchIter_eval, model, LossCompute(model.generator, use_gpu=use_gpu,verbose=verbose,
                                                                     weight_binary_loss=weight_binary_loss,

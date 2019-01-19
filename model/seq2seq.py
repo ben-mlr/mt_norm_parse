@@ -44,6 +44,7 @@ class LexNormalizer(nn.Module):
                  dir_sent_encoder=1,word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,
                  unrolling_word=False,
                  dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None,
+                 char_src_attention=False,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
         character level Sequence to Sequence model for normalization
@@ -150,6 +151,7 @@ class LexNormalizer(nn.Module):
                                                    "attention": "No", "dir_word": "uni",
                                                    "drop_out_char_embedding_decoder": drop_out_char_embedding_decoder,
                                                    "drop_out_word_decoder_cell": drop_out_word_decoder_cell,
+                                                   "char_src_attention":char_src_attention,
                                                    "unrolling_word": unrolling_word,
                                                  },
                                   "hidden_size_encoder": hidden_size_encoder,
@@ -213,6 +215,7 @@ class LexNormalizer(nn.Module):
                                    hidden_size_decoder=hidden_size_decoder,timing=timing,
                                    drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
                                    drop_out_word_cell=drop_out_word_decoder_cell,
+                                   char_src_attention=char_src_attention,
                                    word_recurrent_cell=word_recurrent_cell_decoder, unrolling_word=unrolling_word,
                                    verbose=verbose)
         self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size,
@@ -251,6 +254,7 @@ class LexNormalizer(nn.Module):
             printing("DECODER hidden state after norm_not_norm_hidden size {}", var=[norm_not_norm_hidden.size()],
                      verbose=0, verbose_level=4)
         output = self.decoder.sent_encoder_target(output_seq, h, output_word_len,
+                                                  char_seq_hidden_encoder=char_seq_hidden_encoder,
                                                   sent_len_max_source=sent_len_max_source)
         target_encoder, start = get_timing(start)
         printing("TYPE  decoder {} is cuda ", var=(output.is_cuda), verbose=0, verbose_level=4)

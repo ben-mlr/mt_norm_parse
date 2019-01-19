@@ -4,7 +4,7 @@ import os
 from evaluate.evaluate_epoch import evaluate
 import numpy as np
 import torch
-from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, CHECKPOINT_DIR, DEMO, DEMO2, REPO_DATASET, LIU, LEX_TRAIN, LEX_TEST, SEED_NP, SEED_TORCH
+from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, CHECKPOINT_DIR, DEMO, DEMO2, REPO_DATASET, LIU, LEX_TRAIN, LEX_TEST, SEED_NP, SEED_TORCH, LEX_LIU_TRAIN
 from uuid import uuid4
 
 np.random.seed(SEED_NP+1)
@@ -15,7 +15,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                overall_report_dir=CHECKPOINT_DIR, overall_label="DEFAULT",get_batch_mode_evaluate=True,
                warmup=False, args={},use_gpu=None,freq_checkpointing=1,debug=False,compute_scoring_curve=False,
                compute_mean_score_per_sent=False,print_raw=False,freq_scoring=5,
-               auxilliary_task_norm_not_norm=False, unrolling_word=False,
+               unrolling_word=False, 
                verbose=0):
 
 
@@ -38,6 +38,9 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
     word_recurrent_cell_encoder = args.get("word_recurrent_cell_encoder", "GRU")
     word_recurrent_cell_decoder = args.get("word_recurrent_cell_decoder", "GRU")
     drop_out_char_embedding_decoder = args.get("drop_out_char_embedding_decoder", 0)
+
+    auxilliary_task_norm_not_norm = args.get("auxilliary_task_norm_not_norm",False)
+    char_src_attention = args.get("char_src_attention",False)
 
     dir_word_encoder = args.get("dir_word_encoder", 1)
     n_epochs = 1 if warmup else n_epochs
@@ -67,7 +70,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                             hidden_size_sent_encoder=hidden_size_sent_encoder, hidden_size_decoder=hidden_size_decoder,
                             n_layers_word_encoder=n_layers_word_encoder, compute_scoring_curve=compute_scoring_curve,
                             verbose=verbose,
-                            unrolling_word=unrolling_word,
+                            unrolling_word=unrolling_word, char_src_attention=char_src_attention,
                             print_raw=print_raw, debug=debug,
                             checkpointing=True)
 
@@ -95,7 +98,6 @@ if __name__ == "__main__":
 
       ##train_path = LIU
       ##dev_path = DEV
-      train_path, dev_path = LEX_TRAIN, LEX_TEST
       params = []
 
       ls_param = ["hidden_size_encoder", "hidden_size_sent_encoder","hidden_size_decoder", "output_dim", "char_embedding_dim"]
@@ -130,7 +132,7 @@ if __name__ == "__main__":
             params.append(param)
       i = 0
 
-      ABLATION_DROPOUT = True
+      ABLATION_DROPOUT = False
 
       if ABLATION_DROPOUT:
           params = []
@@ -160,35 +162,58 @@ if __name__ == "__main__":
           params.append(param)
           labels.append("dir_word_encoder_2-sent_source_dir_2-dropout_0.2_everywhere-LSTM-batch_10")
 
+      WITH_AUX = True 
+      if WITH_AUX:
+          params = []
+          labels = []
+          for auxilliary_task_norm_not_norm in [True,False]:
+            param = params_baseline.copy()
+            param["drop_out_sent_encoder_out"] = 0.2#add_dropout_encoder
+            param["drop_out_word_encoder_out"] = 0.2#add_dropout_encoder
+            param["dropout_bridge"] = 0.2#add_dropout_encoder
+            param["drop_out_char_embedding_decoder"] = 0.1
+            param["dir_word_encoder"] = 1
+            param["dir_sent_encoder"] = 1
+            param["batch_size"] = 20
+            param["auxilliary_task_norm_not_norm"] = auxilliary_task_norm_not_norm
+            label = str(param["drop_out_word_encoder_out"])+"-to_char_src-"+str(param["dir_sent_encoder"])+"_dir_sent-"+str(param["batch_size"])+"_batch_size"+"-dir_word_encoder_"+str(param["dir_word_encoder"])
+            params.append(param)
+            labels.append(label)
+
       warmup = True
       RUN_ID = str(uuid4())[0:5]
-      LABEL_GRID = "new_data-batchXdropout_char" if not warmup else "WARMUP-bi_dir_1"
+      LABEL_GRID = "new_data-batchXdropout_char" if not warmup else "WARMUP-unrolling-False"
       GRID_FOLDER_NAME = RUN_ID+"-"+LABEL_GRID if len(LABEL_GRID) > 0 else RUN_ID
       GRID_FOLDER_NAME += "-summary"
       dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
       os.mkdir(dir_grid)
       printing("INFO : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
+      train_path, dev_path = LEX_LIU_TRAIN, LEX_TEST
 
       for param, model_id_pref in zip(params, labels):
           i += 1
           #param["batch_size"] = 10
           #model_id_pref = "TEST-"+model_id_pref
           printing("Adding RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 10
+          epochs = 100
+          param["batch_size"] = 20
+
           if warmup:
             param["batch_size"] = 2
             param["dir_word_encoder"] = 2
-            train_path, dev_path = DEMO, DEMO2
+            param["char_src_attention"] = True
+            train_path, dev_path = DEV, TEST
           model_id_pref = RUN_ID + "-"+LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
-                                                  test_path=TEST,
+                                                  test_path=DEV,
                                                   verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,
                                                   get_batch_mode_evaluate=False, compute_scoring_curve=True,
-                                                  auxilliary_task_norm_not_norm=True, freq_scoring=10, unrolling_word=True,
-                                                  warmup=warmup, args=param, use_gpu=None, n_epochs=epochs, debug=False)
+                                                  freq_scoring=20,
+                                                  unrolling_word=True,
+                                                  warmup=warmup, args=param, use_gpu=None, n_epochs=epochs, debug=True)
           run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("Log RUN is : {} to see model list ".format(run_dir))
