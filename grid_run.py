@@ -106,7 +106,7 @@ if __name__ == "__main__":
                  "n_layers_word_encoder": 1, "dir_sent_encoder": 2,
                  "hidden_size_sent_encoder": 10, "hidden_size_decoder": 5, "batch_size": 10}
 
-      params_baseline = {"hidden_size_encoder": 50, "output_dim": 100, "char_embedding_dim": 50,
+      params_baseline = {"hidden_size_encoder": 52, "output_dim": 100, "char_embedding_dim": 48,
                          "dropout_sent_encoder": 0., "drop_out_word_encoder": 0., "dropout_word_decoder": 0.,
                          "drop_out_sent_encoder_out": 1, "drop_out_word_encoder_out": 1, "dir_word_encoder": 1,
                          "n_layers_word_encoder": 1, "dir_sent_encoder": 1,"word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder":"LSTM",
@@ -205,6 +205,7 @@ if __name__ == "__main__":
             train_path, dev_path = DEV, TEST
           model_id_pref = RUN_ID + "-"+LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
+
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
                                                   test_path=DEV,
                                                   verbose=1,
@@ -213,7 +214,7 @@ if __name__ == "__main__":
                                                   get_batch_mode_evaluate=False, compute_scoring_curve=True,
                                                   freq_scoring=20,
                                                   unrolling_word=True,
-                                                  warmup=warmup, args=param, use_gpu=None, n_epochs=epochs, debug=True)
+                                                  warmup=warmup, args=param, use_gpu=None, n_epochs=epochs, debug=False)
           run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("Log RUN is : {} to see model list ".format(run_dir))

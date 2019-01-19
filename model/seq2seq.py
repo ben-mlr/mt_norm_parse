@@ -217,6 +217,7 @@ class LexNormalizer(nn.Module):
                                    drop_out_word_cell=drop_out_word_decoder_cell,
                                    char_src_attention=char_src_attention,
                                    word_recurrent_cell=word_recurrent_cell_decoder, unrolling_word=unrolling_word,
+                                   hidden_size_src_word_encoder=hidden_size_encoder,
                                    verbose=verbose)
         self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size,
                                    output_dim=output_dim, verbose=verbose)
@@ -253,7 +254,7 @@ class LexNormalizer(nn.Module):
         if self.auxilliary_task_norm_not_norm:
             printing("DECODER hidden state after norm_not_norm_hidden size {}", var=[norm_not_norm_hidden.size()],
                      verbose=0, verbose_level=4)
-        output = self.decoder.sent_encoder_target(output_seq, h, output_word_len,
+        output, attention_weight_all = self.decoder.sent_encoder_target(output_seq, h, output_word_len,
                                                   char_seq_hidden_encoder=char_seq_hidden_encoder,
                                                   sent_len_max_source=sent_len_max_source)
         target_encoder, start = get_timing(start)
@@ -268,7 +269,7 @@ class LexNormalizer(nn.Module):
                 [("source_encoder", source_encoder), ("target_encoder", target_encoder), ("bridge", bridge)])
             print("time report {}".format(time_report))
 
-        return output, norm_not_norm_hidden
+        return output, norm_not_norm_hidden, attention_weight_all
 
     @staticmethod
     def save(dir, model, info_checkpoint, suffix_name="", verbose=0):
@@ -277,7 +278,7 @@ class LexNormalizer(nn.Module):
         """
         sanity_check_info_checkpoint(info_checkpoint, template=TEMPLATE_INFO_CHECKPOINT)
         assert os.path.isdir(dir), " ERROR : dir {} does not exist".format(dir)
-        checkpoint_dir = os.path.join(dir, model.model_full_name + "-"+ suffix_name + "-" + "checkpoint.pt")
+        checkpoint_dir = os.path.join(dir, model.model_full_name + "-" + suffix_name + "-" + "checkpoint.pt")
         # we update the checkpoint_dir
         model.arguments["hyperparameters"]["n_trainable_parameters"] = count_trainable_parameters(model)
         printing("MODEL : trainable parameters : {} ", var=model.arguments["hyperparameters"]["n_trainable_parameters"],
