@@ -184,7 +184,7 @@ class LexNormalizer(nn.Module):
             drop_out_word_encoder_cell, drop_out_sent_encoder_out, drop_out_word_encoder_out,\
             n_layers_word_encoder, dir_sent_encoder, word_recurrent_cell_encoder, dir_word_encoder,\
             hidden_size_decoder,  word_recurrent_cell_decoder, drop_out_word_decoder_cell, drop_out_char_embedding_decoder, \
-                    self.auxilliary_task_norm_not_norm, unrolling_word = get_args(args, False)
+                    self.auxilliary_task_norm_not_norm, unrolling_word, char_src_attention = get_args(args, False)
 
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir

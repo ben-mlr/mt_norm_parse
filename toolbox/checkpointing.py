@@ -45,4 +45,4 @@ def get_args(args, dropout_loading_strict=True, verbose=0):
            args["encoder_arch"].get("cell_word", None), args["encoder_arch"].get("dir_word_encoder",1), \
            args["hidden_size_decoder"], args["decoder_arch"].get("cell_word", None), args["decoder_arch"].get(
         "drop_out_word_decoder_cell", default_dropout), args["decoder_arch"].get("drop_out_char_embedding_decoder", default_dropout),\
-            args.get("auxilliary_task_norm_not_norm", False), args["decoder_arch"].get("unrolling_word", False)
+            args.get("auxilliary_task_norm_not_norm", False), args["decoder_arch"].get("unrolling_word", False), args["decoder_arch"].get("char_src_attention", False)

@@ -11,48 +11,9 @@ from collections import OrderedDict
 from env.project_variables import SUPPORED_WORD_ENCODER
 import torch.nn.functional as F
 from io_.dat.constants import PAD_ID_WORD
+from model.attention import Attention
 
 EPSILON = 1e-6
-
-class Attention(nn.Module):
-
-    def __init__(self,  hidden_size_word_decoder,
-                 char_embedding_dim, hidden_size_src_word_encoder, method="general",use_gpu=False):
-
-        super(Attention, self).__init__()
-        pdb.set_trace()
-        self.hidden_size_word_decoder = hidden_size_word_decoder
-        self.attn = nn.Linear(hidden_size_word_decoder + char_embedding_dim, hidden_size_src_word_encoder)#+hidden_size, hidden_size) # CHANGE--> (compared to example) we (hidden_size * 2+hidden_size because we have the embedding size +  ..
-        self.v = nn.Parameter(torch.FloatTensor(self.hidden_size_word_decoder))
-        self.use_gpu = use_gpu
-        self.method = method
-
-    def score(self, char_state_decoder, encoder_output):
-        if self.method == "concat":
-            print("WARNING : Do not understand the self.v.dot + will cause shape error  ")
-            energy = self.attn(torch.cat((char_state_decoder, encoder_output), 0))#CHANGE 0 instead of 1
-            energy = self.v.dot(energy)
-        elif self.method == "general":
-            energy = self.attn(char_state_decoder)
-            energy = encoder_output.dot(energy)
-        return energy
-
-    def forward(self, char_state_decoder, encoder_outputs):
-        max_word_len_src = encoder_outputs.size(1)
-        this_batch_size = encoder_outputs.size(0)
-        attn_energies = Variable(torch.zeros(this_batch_size, max_word_len_src)) # B x S
-
-        # we loop over all the source encoded sequence (of character) to compute the attention weight
-        # is the loop on the batch necessary
-        for batch in range(this_batch_size):
-            for char_src in range(max_word_len_src):
-                # encoder_outputs[batch, char_src] : contextual character embedding of character ind char_src at batch (word level context) of the source word
-                # char_state_decoder[batch, :] : state of the decoder for batch ind (embedding)
-                attn_energies[batch, char_src] = self.score(char_state_decoder[batch, :], encoder_outputs[batch, char_src]) # CHANGE : no need of unsquueze ?
-        softmax = F.softmax(attn_energies)
-        assert ((softmax.sum(dim=1) - torch.ones(F.softmax(attn_energies).size(0))) < EPSILON).all(), "ERROR : softmax not softmax"
-
-        return softmax.unsqueeze(1)
 
 
 class CharDecoder(nn.Module):
@@ -108,7 +69,7 @@ class CharDecoder(nn.Module):
                  verbose_level=3, verbose=self.verbose)
 
         printing("DECODER STEP : context  char_vec_current_batch {}, state_decoder_current {} ",
-                 var=[char_vec_current_batch.size(), state_hiden.size()], verbose_level=0,
+                 var=[char_vec_current_batch.size(), state_hiden.size()], verbose_level=3,
                  verbose=self.verbose)
         # attention weights computed based on character embedding + state of the decoder recurrent state
         current_state = torch.cat((char_vec_current_batch, state_hiden.squeeze(0)), dim=1)
@@ -119,7 +80,7 @@ class CharDecoder(nn.Module):
         if self.attn_layer is not None:
             attention_weights = self.attn_layer(char_state_decoder=current_state, encoder_outputs=char_seq_hidden_encoder)
             printing("DECODER STEP : attention context {} char_seq_hidden_encoder {} ", var=[attention_weights.size(), char_seq_hidden_encoder.size()],
-                     verbose_level=0, verbose=self.verbose)
+                     verbose_level=3, verbose=self.verbose)
             # we multiply for each batch attention matrix by our source sequence
             context = attention_weights.bmm(char_seq_hidden_encoder)
 
@@ -201,8 +162,8 @@ class CharDecoder(nn.Module):
                 h_i = state_i[0] if isinstance(self.seq_decoder, nn.LSTM) else h_i
                 attention_weight_all.append(attention_weights)
                 _output.append(h_i.transpose(0, 1)) # for LSTM the hidden is the output not the cell
-                printing("DECODER hidden out {} ", var=[h_i.transpose(0, 1).size()], verbose=self.verbose, verbose_level=0)
-                printing("DECODER all_states {} ", var=[all_states.size()], verbose=self.verbose, verbose_level=0)
+                printing("DECODER hidden out {} ", var=[h_i.transpose(0, 1).size()], verbose=self.verbose, verbose_level=3)
+                printing("DECODER all_states {} ", var=[all_states.size()], verbose=self.verbose, verbose_level=3)
                 #assert (all_states == h_i.transpose(0, 1)).all() == 1
             output = torch.cat(_output, dim=1)
             # we reoder char_vecs so need to do it
@@ -269,7 +230,7 @@ class CharDecoder(nn.Module):
         sent_len = torch.argmin(_output_word_len, dim=1)
         # WARNING : forcint sent_len to be one
         if (sent_len == 0).any():
-            printing("WARNING : WE ARE FORCING SENT_LEN in the SOURCE SIDE", verbose=verbose, verbose_level=0)
+            printing("WARNING : WE ARE FORCING SENT_LEN in the SOURCE SIDE", verbose=verbose, verbose_level=3)
             sent_len[sent_len == 0] += 1
         # sort batch at the sentence length
         sent_len, perm_idx_input_sent = sent_len.squeeze().sort(0, descending=True)
