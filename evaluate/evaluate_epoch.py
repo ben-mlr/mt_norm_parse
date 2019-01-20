@@ -149,11 +149,12 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
 if __name__ == "__main__":
     list_all_dir = os.listdir(os.path.join(PROJECT_PATH,"checkpoints"))
     #for ablation_id in ["aaad","bd55","0153","f178"]:
-    for ablation_id in ["08661","d6960"]:
+    #for ablation_id in ["08661","d6960"]:
+    for ablation_id in ["8d9a0"]:
       #for data in [DEMO,DEMO2]:
-      for get_batch_mode_evaluate in [False]:
+      for get_batch_mode_evaluate in [True, False]:
         for batch_size in [10]:
-          for data in [LEX_TRAIN, LEX_TEST, DEV, LIU]:
+          for data in [LEX_TEST, DEV]:
             list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
             print("FOLDERS : ", list_)
             for folder_name in list_:
@@ -163,7 +164,7 @@ if __name__ == "__main__":
               evaluate(model_full_name=model_full_name, data_path=data,#LIU,
                        dict_path=os.path.join(PROJECT_PATH, "checkpoints", folder_name, "dictionaries"),
                        label_report="eval_again", use_gpu=None, 
-                       overall_label="08661+d6960-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch",#"f2f2-iterate+new_data-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch-validation_True",
+                       overall_label="8d9a0_aux-not-aux-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch",#"f2f2-iterate+new_data-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch-validation_True",
                        mode_norm_ls=None,
                        normalization=True,
                        model_specific_dictionary=True,

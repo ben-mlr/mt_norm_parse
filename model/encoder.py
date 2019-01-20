@@ -18,6 +18,8 @@ class CharEncoder(nn.Module):
         super(CharEncoder, self).__init__()
         self.char_embedding_ = char_embedding
         self.timing = timing
+        if dir_word_encoder == 2:
+            assert hidden_size_encoder%2==0, "ERROR = it will be divided by two and remultipy so need even number for simplicity"
         self.sent_encoder = nn.LSTM(input_size=hidden_size_encoder*n_layers_word_cell,#*dir_word_encoder,
                                     hidden_size=hidden_size_sent_encoder,
                                     num_layers=1, bias=True, batch_first=True,
@@ -74,7 +76,7 @@ class CharEncoder(nn.Module):
                  "hidden states of last layers), last hidden hidden for each dir+layers)", var=(output.data.shape,
                                                                                                 h_n.size()),
                  verbose=self.verbose, verbose_level=3)
-        output, _ = pad_packed_sequence(output, batch_first=True)
+        output, word_src_sizes = pad_packed_sequence(output, batch_first=True)
         # output : [batch, max word len, dim hidden_size_encoder]
         output = output[inverse_perm_idx, :]
         h_n = h_n[:, inverse_perm_idx, :]
@@ -83,7 +85,7 @@ class CharEncoder(nn.Module):
                  "hidden states of last layers), last hidden hidden for each dir+layers)", var=(output.data.shape, h_n.size()),
                  verbose=self.verbose, verbose_level=3)
         # TODO: check that using packed sequence provides the last state of the sequence(not the end of the padded one!)
-        return h_n, output
+        return h_n, output, word_src_sizes
 
     def sent_encoder_source(self, input, input_word_len=None, verbose=0):
         # input should be a batach of sentences
@@ -122,7 +124,7 @@ class CharEncoder(nn.Module):
 
         # input_char_vecs : [batch x max sent_len , MAX_CHAR_LENGTH or bucket max_char_length]
         # input_word_len  [batch x max sent_len]
-        h_w, char_seq_hidden = self.word_encoder_source(input=input_char_vecs, input_word_len=input_word_len)
+        h_w, char_seq_hidden, word_src_sizes = self.word_encoder_source(input=input_char_vecs, input_word_len=input_word_len)
         # [batch x max sent_len , packed max_char_length, hidden_size_encoder]
         h_w = h_w.view(shape_sent_seq[0], shape_sent_seq[1], -1)
         # [batch,  max sent_len , packed max_char_length, hidden_size_encoder]
@@ -145,4 +147,4 @@ class CharEncoder(nn.Module):
         printing("SOURCE contextual last representation : {} ", var=[source_context_word_vector.size()],
                  verbose=verbose, verbose_level=3)
 
-        return source_context_word_vector, sent_len_max_source, char_seq_hidden
+        return source_context_word_vector, sent_len_max_source, char_seq_hidden, word_src_sizes

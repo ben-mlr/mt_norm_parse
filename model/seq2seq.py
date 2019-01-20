@@ -241,7 +241,8 @@ class LexNormalizer(nn.Module):
                  verbose=0, verbose_level=4)
         # input_seq : [batch, max sentence length, max word length] : batch of sentences
         start = time.time() if timing else None
-        h, sent_len_max_source, char_seq_hidden_encoder = self.encoder.sent_encoder_source(input_seq, input_word_len)
+        h, sent_len_max_source, char_seq_hidden_encoder, word_src_sizes = \
+            self.encoder.sent_encoder_source(input_seq, input_word_len)
         source_encoder, start = get_timing(start)
         # [] [batch, , hiden_size_decoder]
         printing("DECODER hidden state before bridge size {}", var=[h.size()], verbose=0, verbose_level=3)
@@ -255,8 +256,9 @@ class LexNormalizer(nn.Module):
             printing("DECODER hidden state after norm_not_norm_hidden size {}", var=[norm_not_norm_hidden.size()],
                      verbose=0, verbose_level=4)
         output, attention_weight_all = self.decoder.sent_encoder_target(output_seq, h, output_word_len,
-                                                  char_seq_hidden_encoder=char_seq_hidden_encoder,
-                                                  sent_len_max_source=sent_len_max_source)
+                                                                        word_src_sizes=word_src_sizes,
+                                                                        char_seq_hidden_encoder=char_seq_hidden_encoder,
+                                                                        sent_len_max_source=sent_len_max_source)
         target_encoder, start = get_timing(start)
         printing("TYPE  decoder {} is cuda ", var=(output.is_cuda), verbose=0, verbose_level=4)
         # output_score = nn.ReLU()(self.output_predictor(h_out))

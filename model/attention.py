@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import time
 EPSILON = 1e-6
 
+
 class Attention(nn.Module):
 
     def __init__(self,  hidden_size_word_decoder,
@@ -26,23 +27,39 @@ class Attention(nn.Module):
             energy = self.v.dot(energy)
         elif self.method == "general":
             energy = self.attn(char_state_decoder)
-            energy = encoder_output.dot(energy)
+            energy = energy.unsqueeze(-1)
+            encoder_output = encoder_output.unsqueeze(1)
+            energy = torch.bmm(encoder_output, energy)
+            energy = energy.squeeze(1).squeeze(1)
+            #energy = encoder_output.dot(energy)
         return energy
 
-    def forward(self, char_state_decoder, encoder_outputs):
+    def forward(self, char_state_decoder, encoder_outputs, word_src_sizes=None):
         max_word_len_src = encoder_outputs.size(1)
         this_batch_size = encoder_outputs.size(0)
         attn_energies = Variable(torch.zeros(this_batch_size, max_word_len_src)) # B x S
-
         # we loop over all the source encoded sequence (of character) to compute the attention weight
         # is the loop on the batch necessary
-        for batch in range(this_batch_size):
-            for char_src in range(max_word_len_src):
-                # encoder_outputs[batch, char_src] : contextual character embedding of character ind char_src at batch (word level context) of the source word
-                # char_state_decoder[batch, :] : state of the decoder for batch ind (embedding)
-                attn_energies[batch, char_src] = self.score(char_state_decoder[batch, :], encoder_outputs[batch, char_src]) # CHANGE : no need of unsquueze ?
-        softmax = F.softmax(attn_energies)
-        assert ((softmax.sum(dim=1) - torch.ones(F.softmax(attn_energies).size(0))) < EPSILON).all(), "ERROR : softmax not softmax"
+        #for batch in range(this_batch_size):
+        for char_src in range(max_word_len_src):
+            # TODO : ADD MASKING HERE : SET TO 0 when char_src above SIZE of source encoder_outputs
+            # encoder_outputs[batch, char_src] : contextual character
+            #   - embedding of character ind char_src at batch (word level context) of the source word
+            # char_state_decoder[batch, :] : state of the decoder for batch ind (embedding)
 
+            attn_energies[:, char_src] = self.score(char_state_decoder[:, :],
+                                                    encoder_outputs[:, char_src]) # CHANGE : no need of unsquueze ?
+
+            attn_energies[char_src+1 >= word_src_sizes, char_src] = -1e6
+            # we zero the softmax by assigning an ennergy of -inf
+        softmax = F.softmax(attn_energies)
+
+
+        pdb.set_trace()
+        assert ((softmax.sum(dim=1) - torch.ones(F.softmax(attn_energies).size(0))) < EPSILON).all(), "ERROR : softmax not softmax"
+        #  we do masking here : word that are only 1 len (START character) :
+        #  we set their softmax to 0 so that their context vector is
+        #  Q? is it useful
+        softmax[word_src_sizes == 1, :] = 0
         return softmax.unsqueeze(1)
 

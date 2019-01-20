@@ -127,6 +127,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
     if use_gpu:
         model = model.cuda()
         printing("TYPE model is cuda : {} ", var=(next(model.parameters()).is_cuda), verbose=verbose, verbose_level=4)
+        #model.decoder.attn_layer = model.decoder.attn_layer.cuda()
+
     if not model_specific_dictionary:
         model.word_dictionary, model.char_dictionary, model.pos_dictionary, \
         model.xpos_dictionary, model.type_dictionary = word_dictionary, char_dictionary, pos_dictionary, \
