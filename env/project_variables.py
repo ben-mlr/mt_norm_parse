@@ -15,6 +15,8 @@ CHECKPOINT_DIR = os.path.join(PROJECT_PATH, "checkpoints")
 SUPPORED_WORD_ENCODER = ["LSTM", "GRU"]
 BREAKING_NO_DECREASE = 20
 SUPPORTED_STAT = ["sum"]
+LOSS_DETAIL_TEMPLATE = {"loss_overall": 0, "loss_seq_prediction": 0, "other": {}}
+LOSS_DETAIL_TEMPLATE_LS = {"loss_overall": [], "loss_seq_prediction": [], "other": {}}
 
 
 # DATASETS

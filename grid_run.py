@@ -205,6 +205,7 @@ if __name__ == "__main__":
           epochs = 130
           if warmup:
             param["batch_size"] = 50
+            epochs = 10
             #param["char_src_attention"] = True
             train_path, dev_path = DEMO, DEMO2
           model_id_pref = RUN_ID + "-"+LABEL_GRID + model_id_pref + "-model_"+str(i)
@@ -217,7 +218,7 @@ if __name__ == "__main__":
                                                   compute_mean_score_per_sent=True, print_raw=False,
                                                   get_batch_mode_evaluate=False, compute_scoring_curve=True,
                                                   freq_scoring=20,
-                                                  warmup=warmup, args=param, use_gpu=None, n_epochs=epochs, debug=False)
+                                                  warmup=False, args=param, use_gpu=None, n_epochs=epochs, debug=False)
           run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("Log RUN is : {} to see model list ".format(run_dir))

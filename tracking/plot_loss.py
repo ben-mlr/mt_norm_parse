@@ -63,8 +63,7 @@ def simple_plot_ls(final_loss, losses_ls, x_axis,
         if filter_by_label in label:
             color_counters[0] = color_counters[0] + 1 if label_color_0 in label else color_counters[0]
             color_counters[1] = color_counters[1] + 1 if label_color_1 in label else color_counters[1]
-            colors_palette = colors_palette_0 if label_color_0 in label else colors_palette_1
-            _color  = colors_palette_0[color_counters[0]] if label_color_0 in label else colors_palette_1[color_counters[1]]
+            _color = colors_palette_0[color_counters[0]] if label_color_0 in label else colors_palette_1[color_counters[1]]
             assert color_counters[0]<3, "ERROR "
             plt.plot(x_axis, loss_ls, label="plot1", color=_color)#colors_palette[color_counters[0]])
             patches.append(mpatches.Patch(color=_color,#colors_palette[color_counters[0]],

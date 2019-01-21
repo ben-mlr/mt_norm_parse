@@ -8,13 +8,30 @@ import time
 from collections import OrderedDict
 
 
+def update_loss_details_dic(total_loss_details_dic, loss_details_current_dic):
+    "update loss details with current batch loss to compute epochs loss average"
+    for loss_key in total_loss_details_dic.keys():
+        if loss_key != "other":
+            total_loss_details_dic[loss_key] += loss_details_current_dic[loss_key]
+    return total_loss_details_dic
+
+
+def divide_loss_details_n_tokens(total_loss_details_dic, n_tokens):
+    "divide loss by n_tokens"
+    for loss_key, val in total_loss_details_dic.items():
+        if loss_key != "other":
+            total_loss_details_dic[loss_key] = float(val)/int(n_tokens)
+    return total_loss_details_dic
+
+
 def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
-              n_epochs=None, n_batches=None, empty_run=False,timing=False,
+              n_epochs=None, n_batches=None, empty_run=False, timing=False,
               log_every_x_batch=VERBOSE_1_LOG_EVERY_x_BATCH):
     "Standard Training and Logging Function"
     _start = time.time()
     total_tokens = 0
     total_loss = 0
+    total_loss_details = loss_compute.loss_details_template.copy()
     tokens = 0
     i_epoch = -1 if i_epoch is None else i_epoch
     n_epochs = -1 if n_epochs is None else n_epochs
@@ -51,11 +68,12 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
             printing("DATA : \n input Sequence {} \n Target sequence {} ", var=(batch.input_seq, batch.output_seq),
                      verbose=verbose, verbose_level=1)
         if not empty_run:
-            loss = loss_compute(out, batch.output_seq_y,
-                                x_norm_not_norm=norm_not_norm_hidden,
-                                y_norm_not_norm=batch.output_norm_not_norm)#, batch.ntokens)
+            loss, loss_details_current = loss_compute(out, batch.output_seq_y,
+                                              x_norm_not_norm=norm_not_norm_hidden,
+                                              y_norm_not_norm=batch.output_norm_not_norm)#, batch.ntokens)
             loss_time, start = get_timing(start)
             total_loss += loss
+            total_loss_details = update_loss_details_dic(total_loss_details, loss_details_current)
             total_tokens += batch.ntokens.type(torch.FloatTensor)
             tokens += batch.ntokens.type(torch.FloatTensor)
             elapsed = torch.from_numpy(np.array(time.time() - _start)).float()
@@ -68,6 +86,7 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
                 print("Epoch {} Step: {}  Loss: {}  Tokens per Sec: {}  ".format(i_epoch, i, loss / float(batch.ntokens), tokens / elapsed))
                 _start = time.time()
                 tokens = 0
+            print("---------", loss_details_current)
         else:
             total_loss, total_tokens = 0, 1
         batch_time_start = time.time()
@@ -78,6 +97,7 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
         printing("INFO : epoch {} done ", var=(n_epochs), verbose=verbose, verbose_level=1)
         printing("Loss epoch {} is  {} total out of {} tokens ", var=(i_epoch, float(total_loss)/int(total_tokens), total_tokens), verbose=verbose, verbose_level=1)
 
+    total_loss_details = divide_loss_details_n_tokens(total_loss_details, total_tokens)
     #training_report = {"n_epochs":n_epochs, "batch_size": batch.input_seq.size(0), "time_training": None, "total_tokens" : total_tokens, "loss": total_loss / total_tokens}
 
-    return float(total_loss) / int(total_tokens)
+    return float(total_loss) / int(total_tokens), total_loss_details

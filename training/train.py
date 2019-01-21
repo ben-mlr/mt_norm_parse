@@ -12,7 +12,7 @@ from toolbox.checkpointing import checkpoint, update_curve_dic
 import os
 import numpy as np
 from io_.info_print import disable_tqdm_level, printing
-from env.project_variables import PROJECT_PATH, REPO_DATASET, SEED_TORCH, BREAKING_NO_DECREASE, CHECKPOINT_DIR
+from env.project_variables import PROJECT_PATH, REPO_DATASET, SEED_TORCH, BREAKING_NO_DECREASE, CHECKPOINT_DIR, LOSS_DETAIL_TEMPLATE_LS
 from env.project_variables import SEED_NP, SEED_TORCH
 import time
 from toolbox.gpu_related import use_gpu_
@@ -72,6 +72,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
 
     loss_training = []
     loss_developing = []
+    if auxilliary_task_norm_not_norm:
+        loss_details_template = LOSS_DETAIL_TEMPLATE_LS.copy()
+        loss_details_template["loss_binary"] = []
     lr = 0.001
     evaluation_set_reporting = list(set([train_path, dev_path]))
     curve_scores = {score + "-" + mode_norm+"-"+REPO_DATASET[data]: [] for score in score_to_compute_ls
@@ -151,6 +154,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
     starting_time = time.time()
     total_time = 0
     x_axis_epochs = []
+    x_axis_epochs_loss = []
 
     data_read_train = conllu_data.read_data_to_variable(train_path, model.word_dictionary, model.char_dictionary,
                                                          model.pos_dictionary,
@@ -172,7 +176,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
 
         printing("TRAINING : Starting {} epoch out of {} ", var=(epoch+1, n_epochs), verbose= verbose, verbose_level=1)
-
         model.train()
         batchIter = data_gen_conllu(data_read_train,
                                     model.word_dictionary, model.char_dictionary, model.pos_dictionary, model.xpos_dictionary, model.type_dictionary,
@@ -184,12 +187,13 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                     print_raw=print_raw,timing=timing, 
                                     verbose=verbose)
         start = time.time()
-        loss_train = run_epoch(batchIter, model, LossCompute(model.generator, opt=adam,
-                                                             weight_binary_loss=weight_binary_loss,
-                                                             auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
-                                                             use_gpu=use_gpu,verbose=verbose, timing=timing),
-                               verbose=verbose, i_epoch=epoch, n_epochs=n_epochs,timing=timing,
-                               log_every_x_batch=100)
+        loss_train, loss_details_train = run_epoch(batchIter, model, LossCompute(model.generator, opt=adam,
+                                                                                 weight_binary_loss=weight_binary_loss,
+                                                                                 auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
+                                                                                 use_gpu=use_gpu,verbose=verbose, timing=timing),
+                                                                                 verbose=verbose, i_epoch=epoch,
+                                                                                 n_epochs=n_epochs, timing=timing,
+                                                                                 log_every_x_batch=100)
         _train_ep_time, start = get_timing(start)
         model.eval()
         # TODO : should be added in the freq_checkpointing orhterwise useless
@@ -203,14 +207,20 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
         printing("EVALUATION : computing loss on dev ", verbose=verbose, verbose_level=1)
         _create_iter_time, start = get_timing(start)
         if dev_report_loss:
-            loss_dev = run_epoch(batchIter_eval, model, LossCompute(model.generator, use_gpu=use_gpu,verbose=verbose,
+            loss_dev, loss_details_dev = run_epoch(batchIter_eval, model, LossCompute(model.generator, use_gpu=use_gpu,verbose=verbose,
                                                                     weight_binary_loss=weight_binary_loss,
                                                                     auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm),
-                             i_epoch=epoch, n_epochs=n_epochs,
-                             verbose=verbose,timing=timing,
-                             log_every_x_batch=100)
+                                                                     i_epoch=epoch, n_epochs=n_epochs,
+                                                                     verbose=verbose,timing=timing,
+                                                                     log_every_x_batch=100)
         else:
             loss_dev = 0
+        if auxilliary_task_norm_not_norm:
+            # in this case we report loss detail
+            for loss_key in loss_details_dev.keys():
+                if loss_key != "other":
+                    loss_details_template[loss_key].append(loss_details_dev[loss_key])
+
         _eval_time, start = get_timing(start)
         loss_training.append(loss_train)
         loss_developing.append(loss_dev)
@@ -251,11 +261,30 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
 
             for score_plot in score_to_compute_ls:
                 simple_plot_ls(losses_ls=curves, labels=val_ls, final_loss="", save=True, filter_by_label=score_plot,  x_axis=x_axis_epochs,
-                               dir=model.dir_model,prefix=model.model_full_name,epochs=str(epoch)+reloading,verbose=verbose, lr=lr,
+                               dir=model.dir_model, prefix=model.model_full_name,epochs=str(epoch)+reloading, verbose=verbose, lr=lr,
                                label_color_0=REPO_DATASET[evaluation_set_reporting[0]], label_color_1=REPO_DATASET[evaluation_set_reporting[1]])
 
         # WARNING : only saving if we decrease not loading former model if we relaod
         if (checkpointing and epoch % freq_checkpointing == 0) or (epoch+1 == n_epochs):
+            if False:
+                x_axis_epochs_loss.append(epoch)
+                simple_plot_ls(losses_ls=curves, labels=val_ls, final_loss="", save=True, filter_by_label="",
+                               x_axis=x_axis_epochs_loss,
+                               dir=model.dir_model, prefix=model.model_full_name, epochs=str(epoch) + reloading,
+                               verbose=verbose, lr=lr,
+                               label_color_0=REPO_DATASET[evaluation_set_reporting[0]],
+                               label_color_1=REPO_DATASET[evaluation_set_reporting[1]])
+
+            dir_plot_detailed = simple_plot(final_loss=0, loss_2=loss_details_template.get("loss_binary", None),
+                                            loss_ls=loss_details_template["loss_seq_prediction"],
+                                            epochs=str(epoch) + reloading,
+                                            label= "dev-seq_prediction",
+                                            label_2="dev-binary",
+                                            save=True, dir=model.dir_model,
+                                            verbose=verbose, verbose_level=1,
+                                            lr=lr, prefix=model.model_full_name+"-details",
+                                           show=False)
+
             dir_plot = simple_plot(final_loss=loss_train, loss_2=loss_developing, loss_ls=loss_training,
                                    epochs=str(epoch)+reloading,
                                    label=label_train+"-train",
