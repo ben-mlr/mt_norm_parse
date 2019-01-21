@@ -4,7 +4,7 @@ import pdb
 from torch.autograd import Variable
 import torch.nn.functional as F
 import time
-EPSILON = 1e-6
+EPSILON = 1e-5
 
 
 class Attention(nn.Module):
@@ -46,20 +46,32 @@ class Attention(nn.Module):
             # encoder_outputs[batch, char_src] : contextual character
             #   - embedding of character ind char_src at batch (word level context) of the source word
             # char_state_decoder[batch, :] : state of the decoder for batch ind (embedding)
-
-            attn_energies[:, char_src] = self.score(char_state_decoder[:, :],
+            score_index = char_src+1 < word_src_sizes
+            scores_energy = self.score(char_state_decoder[:, :],
                                                     encoder_outputs[:, char_src]) # CHANGE : no need of unsquueze ?
-
-            attn_energies[char_src+1 >= word_src_sizes, char_src] = -1e6
+            diag = torch.diag(score_index).float()
+            #diag.dtype(dtype=torch.float)
+            if scores_energy.is_cuda:
+                diag = diag.cuda()
+            attn_energies[:, char_src] = diag.matmul(scores_energy)
+            #attn_energies[:, char_src] = torch.diag(score_index).matmul(attn_energies[:, char_src])
+            #attn_energies[char_src+1 >= word_src_sizes, char_src] = -1e6
             # we zero the softmax by assigning an ennergy of -inf
         softmax = F.softmax(attn_energies)
-
-
-        pdb.set_trace()
-        assert ((softmax.sum(dim=1) - torch.ones(F.softmax(attn_energies).size(0))) < EPSILON).all(), "ERROR : softmax not softmax"
+        try:
+            assert ((softmax.sum(dim=1) - torch.ones(softmax.size(0))) < EPSILON).all(), "ERROR : softmax not softmax"
+        except:
+            print("SOFTMAX is not softmax : softmax.size(0)")
         #  we do masking here : word that are only 1 len (START character) :
         #  we set their softmax to 0 so that their context vector is
         #  Q? is it useful
-        softmax[word_src_sizes == 1, :] = 0
-        return softmax.unsqueeze(1)
+        #softmax_clone = softmax.clone()
+        diag_sotm = torch.diag(word_src_sizes != 1).float()
+        pdb.set_trace()
+        if softmax.is_cuda:
+            diag_sotm = diag_sotm.cuda()
+        softmax_ = diag_sotm.matmul(softmax) # equivalent to softmax[word_src_sizes == 1, :] = 0. #assert (softmax_2==softmax).all()
+        pdb.set_trace()
+        softmax_ = softmax_.unsqueeze(1)
+        return softmax_
 

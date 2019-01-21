@@ -32,7 +32,8 @@ TEMPLATE_INFO_CHECKPOINT = {"n_epochs": 0, "batch_size": None,
 
 class LexNormalizer(nn.Module):
 
-    def __init__(self, generator, auxilliary_task_norm_not_norm=False,
+    def __init__(self, generator,
+                 auxilliary_task_norm_not_norm=False, dense_dim_auxilliary=None,
                  char_embedding_dim=None, hidden_size_encoder=None,output_dim=None,
                  hidden_size_sent_encoder=None,
                  n_layers_word_encoder=1,
@@ -135,6 +136,7 @@ class LexNormalizer(nn.Module):
                                                   "git_id": git_commit_id},
                               "hyperparameters": {
                                   "auxilliary_task_norm_not_norm": self.auxilliary_task_norm_not_norm,
+                                  "auxilliary_task_norm_not_norm-dense_dim": dense_dim_auxilliary,
                                   "n_trainable_parameters": None,
                                   "char_embedding_dim": char_embedding_dim,
                                   "encoder_arch": {"cell_word": word_recurrent_cell_encoder, "cell_sentence": "LSTM",
@@ -184,7 +186,7 @@ class LexNormalizer(nn.Module):
             drop_out_word_encoder_cell, drop_out_sent_encoder_out, drop_out_word_encoder_out,\
             n_layers_word_encoder, dir_sent_encoder, word_recurrent_cell_encoder, dir_word_encoder,\
             hidden_size_decoder,  word_recurrent_cell_decoder, drop_out_word_decoder_cell, drop_out_char_embedding_decoder, \
-                    self.auxilliary_task_norm_not_norm, unrolling_word, char_src_attention = get_args(args, False)
+                    self.auxilliary_task_norm_not_norm, unrolling_word, char_src_attention, dense_dim_auxilliary = get_args(args, False)
 
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
@@ -209,7 +211,7 @@ class LexNormalizer(nn.Module):
             hidden_size_encoder * n_layers_word_encoder + hidden_size_sent_encoder * dir_sent_encoder,
             hidden_size_decoder)
         self.dropout_bridge = nn.Dropout(p=drop_out_bridge)
-        self.normalize_not_normalize = BinaryPredictor(input_dim=hidden_size_decoder) \
+        self.normalize_not_normalize = BinaryPredictor(input_dim=hidden_size_decoder, dense_dim=dense_dim_auxilliary) \
             if self.auxilliary_task_norm_not_norm else None
         self.decoder = CharDecoder(self.char_embedding, input_dim=char_embedding_dim,
                                    hidden_size_decoder=hidden_size_decoder,timing=timing,

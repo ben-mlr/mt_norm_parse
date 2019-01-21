@@ -36,6 +36,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
 
     word_recurrent_cell_encoder = args.get("word_recurrent_cell_encoder", "GRU")
     word_recurrent_cell_decoder = args.get("word_recurrent_cell_decoder", "GRU")
+    dense_dim_auxilliary = args.get("dense_dim_auxilliary", None)
     drop_out_char_embedding_decoder = args.get("drop_out_char_embedding_decoder", 0)
     unrolling_word= args.get("unrolling_word", False)
 
@@ -49,7 +50,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
         printing("Warm up : running 1 epoch ", verbose=verbose, verbose_level=0)
     printing("START TRAINING ", verbose_level=0, verbose=verbose)
     model_full_name = train(train_path, dev_path,
-                            auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
+                            auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,dense_dim_auxilliary=dense_dim_auxilliary,
                             n_epochs=n_epochs, normalization=True,get_batch_mode_evaluate=get_batch_mode_evaluate,
                             batch_size=batch_size, model_specific_dictionary=True,
                             dict_path=None, model_dir=None, add_start_char=1,freq_scoring=freq_scoring,
@@ -106,11 +107,11 @@ if __name__ == "__main__":
                  "n_layers_word_encoder": 1, "dir_sent_encoder": 2,
                  "hidden_size_sent_encoder": 10, "hidden_size_decoder": 5, "batch_size": 10}
 
-      params_baseline = {"hidden_size_encoder": 27, "output_dim": 100, "char_embedding_dim": 24,
+      params_baseline = {"hidden_size_encoder": 50, "output_dim": 100, "char_embedding_dim": 50,
                          "dropout_sent_encoder": 0., "drop_out_word_encoder": 0., "dropout_word_decoder": 0.,
                          "drop_out_sent_encoder_out": 1, "drop_out_word_encoder_out": 1, "dir_word_encoder": 1,
                          "n_layers_word_encoder": 1, "dir_sent_encoder": 1, "word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder":"LSTM",
-                         "hidden_size_sent_encoder": 28, "hidden_size_decoder": 25, "batch_size": 10}
+                         "hidden_size_sent_encoder": 50, "hidden_size_decoder": 50, "batch_size": 10}
       params_strong = {"hidden_size_encoder": 100, "output_dim": 100, "char_embedding_dim": 50,
                          "dropout_sent_encoder": 0, "drop_out_word_encoder": 0, "dropout_word_decoder": 0.,
                          "drop_out_word_encoder_out":0.3, "drop_out_sent_encoder_out":0.3, "drop_out_char_embedding_decoder":0.3, "dropout_bridge":0.3,
@@ -166,7 +167,7 @@ if __name__ == "__main__":
       if WITH_AUX:
           params = []
           labels = []
-          for char_src_attention in [True, False]:
+          for char_src_attention in [True,False]:
             for unrolling_word in [False, True]:
               if char_src_attention==True and unrolling_word==False:
                 continue
@@ -179,15 +180,16 @@ if __name__ == "__main__":
               param["dir_sent_encoder"] = 1
               param["batch_size"] = 10
               param["char_src_attention"] = char_src_attention
+              param["dense_dim_auxilliary"] = None
               param["unrolling_word"] = unrolling_word
-              param["auxilliary_task_norm_not_norm"] = False
+              param["auxilliary_task_norm_not_norm"] = True
               label = str(param["drop_out_word_encoder_out"])+"-to_char_src-"+str(param["dir_sent_encoder"])+"_dir_sent-"+str(param["batch_size"])+"_batch"+"-dir_word_src_"+str(param["dir_word_encoder"])+"-unrolling_word_"+str(unrolling_word)+"-char_src_attention_"+str(char_src_attention)
               params.append(param)
               labels.append(label)
 
-      warmup = False
+      warmup = True
       RUN_ID = str(uuid4())[0:5]
-      LABEL_GRID = "liu-attention+unrolling" if not warmup else "WARMUP-unrolling-False"
+      LABEL_GRID = "liu-attention+unrolling-best_model" if not warmup else "WARMUP-unrolling-False"
       GRID_FOLDER_NAME = RUN_ID+"-"+LABEL_GRID if len(LABEL_GRID) > 0 else RUN_ID
       GRID_FOLDER_NAME += "-summary"
       dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
@@ -200,22 +202,22 @@ if __name__ == "__main__":
           #param["batch_size"] = 10
           #model_id_pref = "TEST-"+model_id_pref
           printing("Adding RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 100
+          epochs = 130
           if warmup:
             param["batch_size"] = 50
             #param["char_src_attention"] = True
-            train_path, dev_path = DEV, TEST
+            train_path, dev_path = DEMO, DEMO2
           model_id_pref = RUN_ID + "-"+LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
 
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
-                                                  test_path=LEX_TEST,
-                                                  verbose=2,
+                                                  test_path=None,
+                                                  verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,
                                                   get_batch_mode_evaluate=False, compute_scoring_curve=True,
                                                   freq_scoring=20,
-                                                  warmup=warmup, args=param, use_gpu=None, n_epochs=epochs, debug=True)
+                                                  warmup=warmup, args=param, use_gpu=None, n_epochs=epochs, debug=False)
           run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("Log RUN is : {} to see model list ".format(run_dir))

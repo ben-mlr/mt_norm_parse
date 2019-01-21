@@ -33,10 +33,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
              compute_mean_score_per_sent=False,auxilliary_task_norm_not_norm=False,
              normalization=True, debug=False, force_new_dic=False, use_gpu=None, verbose=0):
     assert model_specific_dictionary, "ERROR : only model_specific_dictionary = True supported now"
-    validation = True
-    #if validation:
-        #assert not get_batch_mode_evaluate, "ERROR : validation was set to true but get_batch_mode_evaluate is {} while it should be False".format(get_batch_mode_evaluate)
-
+    validation = False
     # NB : now : you have to load dictionary when evaluating (cannot recompute) (could add in the LexNormalizer ability)
     use_gpu = use_gpu_(use_gpu)
     hardware_choosen = "GPU" if use_gpu else "CPU"
@@ -150,10 +147,14 @@ if __name__ == "__main__":
     list_all_dir = os.listdir(os.path.join(PROJECT_PATH,"checkpoints"))
     #for ablation_id in ["aaad","bd55","0153","f178"]:
     #for ablation_id in ["08661","d6960"]:
-    for ablation_id in ["8d9a0"]:
+    #for ablation_id in ["f2f2-batchXdropout_char0.1-to_char_src-1_dir_sent-10_batch_size-model_18_aa04","8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_1_33ca"]:
+    #for ablation_id in ["e390","24f9d"]:
+    #for ablation_id in ["01880"]:
+    #for ablation_id in ["d6960-new_data-batchXdropout_char0-to_char_src-1_dir_sent-10_batch_size-model_2_be5d","08661-new_data-batchXdropout_char0-to_char_src-2_dir_sent-20_batch_size-model_5_c8b2"]:
+    for ablation_id in ["8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_1_33ca","8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_2_e437"]:
       #for data in [DEMO,DEMO2]:
-      for get_batch_mode_evaluate in [True, False]:
-        for batch_size in [10]:
+      for get_batch_mode_evaluate in [True]:
+        for batch_size in [50]:
           for data in [LEX_TEST, DEV]:
             list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
             print("FOLDERS : ", list_)
@@ -164,7 +165,7 @@ if __name__ == "__main__":
               evaluate(model_full_name=model_full_name, data_path=data,#LIU,
                        dict_path=os.path.join(PROJECT_PATH, "checkpoints", folder_name, "dictionaries"),
                        label_report="eval_again", use_gpu=None, 
-                       overall_label="8d9a0_aux-not-aux-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch",#"f2f2-iterate+new_data-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch-validation_True",
+                       overall_label="8d9a0-aux_not_aux-lex+liu-val_False"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch",#"f2f2-iterate+new_data-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch-validation_True",
                        mode_norm_ls=None,
                        normalization=True,
                        model_specific_dictionary=True,
