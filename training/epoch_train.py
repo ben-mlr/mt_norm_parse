@@ -36,7 +36,7 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
     i_epoch = -1 if i_epoch is None else i_epoch
     n_epochs = -1 if n_epochs is None else n_epochs
     batch_time_start = time.time()
-    for i, batch in enumerate(data_iter):
+    for i, (batch,_) in enumerate(data_iter):
         batch_time_, batch_time_start = get_timing(batch_time_start)
         printing("Starting {} batch out of {} batches", var=(i+1, n_batches), verbose= verbose, verbose_level=2)
 
@@ -45,9 +45,9 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
             if teacher_force:
                 start = time.time() if timing else None
                 out, norm_not_norm_hidden, attention = model.forward(input_seq=batch.input_seq,
-                                                                      output_seq=batch.output_seq_x,
-                                                                      input_word_len=batch.input_seq_len,
-                                                                      output_word_len=batch.output_seq_len)
+                                                                     output_seq=batch.output_seq_x,
+                                                                     input_word_len=batch.input_seq_len,
+                                                                     output_word_len=batch.output_seq_len)
                 forward_time, start = get_timing(start)
             else:
                 # DEV : implement teacher force

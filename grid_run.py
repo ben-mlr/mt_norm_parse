@@ -13,7 +13,7 @@ torch.manual_seed(SEED_TORCH)
 
 def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                overall_report_dir=CHECKPOINT_DIR, overall_label="DEFAULT",get_batch_mode_all=True,
-               warmup=False, args={},use_gpu=None,freq_checkpointing=1,debug=False,compute_scoring_curve=False,
+               warmup=False, args={},use_gpu=None, freq_checkpointing=1,debug=False,compute_scoring_curve=False,
                compute_mean_score_per_sent=False,print_raw=False,freq_scoring=5,bucketing_train=True,
                verbose=0):
 
@@ -140,7 +140,7 @@ if __name__ == "__main__":
           labels = [""]
           for add_dropout_encoder in [0,0.1,0.2,0.5,0.8]:
             for batch_size in [10, 20, 50, 100]:
-              for dir_sent_encoder in [1,2]:
+              for dir_sent_encoder in [1, 2]:
                 param = params_baseline.copy()
                 param["drop_out_sent_encoder_out"] = 0.2#add_dropout_encoder
                 param["drop_out_word_encoder_out"] = 0.2#add_dropout_encoder
@@ -175,7 +175,7 @@ if __name__ == "__main__":
                     for unrolling_word in [True]:
                       if char_src_attention==True and unrolling_word==False:
                         continue
-                      i+=1
+                      i += 1
                       param = params_baseline.copy()
                       param["drop_out_sent_encoder_out"] = 0.2#add_dropout_encoder
                       param["drop_out_word_encoder_out"] = 0.2#add_dropout_encoder
@@ -188,16 +188,17 @@ if __name__ == "__main__":
                       param["dense_dim_auxilliary"] = dense_dim_auxilliary
                       param["unrolling_word"] = unrolling_word
                       param["auxilliary_task_norm_not_norm"] = True
+
                       param["weight_binary_loss"] = weight_binary_loss
                       label = str(dense_dim_auxilliary)+"-dense_dim_auxilliary"+str(weight_binary_loss) +\
                               "weight_binary_loss"+str(param["drop_out_word_encoder_out"])+"-to_char_src-" +\
-                              str(param["dir_sent_encoder"])+"_dir_sent-"+str(param["batch_size"])+"_batch" +"-dir_word_src_" +\
-                              str(param["dir_word_encoder"])+"-unrolling_word_"+str(unrolling_word)+"-char_src_attention_"+str(char_src_attention)
+                              str(param["dir_sent_encoder"])+"_dir_sent-"+str(param["batch_size"])+"_batch" + "-dir_word_src_" +\
+                              str(param["dir_word_encoder"])+"-unrolling_word_"+str(unrolling_word)+ "-char_src_attention_"+str(char_src_attention)
                       params.append(param)
                       #labels.append("model_"+str(n_model))
                       labels.append(label)
 
-      warmup = True
+      warmup = False
       RUN_ID = str(uuid4())[0:5]
       LABEL_GRID = "no_bucketing-get_batch_False-train-attention" if not warmup else "WARMUP-unrolling-False"
       GRID_FOLDER_NAME = RUN_ID+"-"+LABEL_GRID if len(LABEL_GRID) > 0 else RUN_ID
@@ -206,14 +207,14 @@ if __name__ == "__main__":
       dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
       os.mkdir(dir_grid)
       printing("INFO : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
-      train_path, dev_path = LIU, DEV
+      train_path, dev_path = DEV, TEST
 
       for param, model_id_pref in zip(params, labels):
           i += 1
           #param["batch_size"] = 10
           #model_id_pref = "TEST-"+model_id_pref
           printing("Adding RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 5
+          epochs = 1
           if warmup:
             param["batch_size"] = 50
             #param["char_src_attention"] = True
@@ -227,14 +228,13 @@ if __name__ == "__main__":
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,
                                                   get_batch_mode_all=True, compute_scoring_curve=True,
-                                                  freq_scoring=20, bucketing_train=True,
-                                                  warmup=False, args=param, use_gpu=None, n_epochs=epochs, debug=False)
+                                                  freq_scoring=100, bucketing_train=False,
+                                                  warmup=warmup, args=param, use_gpu=None, n_epochs=epochs, debug=False)
           run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("Log RUN is : {} to see model list ".format(run_dir))
           print("GRID RUN : DONE MODEL {} with param {} ".format(model_id_pref, param))
           if warmup:
-              if i > 3:
-                  break
+            break
 
 # CCL want to have a specific seed : when work --> reproduce with several seed

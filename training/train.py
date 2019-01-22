@@ -29,6 +29,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           batch_size=10,
           label_train="", label_dev="",
           use_gpu=None,
+          lr=0.001,
           n_layers_word_encoder=1, get_batch_mode_all=True,
           dropout_sent_encoder_cell=0, dropout_word_encoder_cell=0, dropout_word_decoder_cell=0,
           dropout_bridge=0, drop_out_word_encoder_out=0, drop_out_sent_encoder_out=0,
@@ -48,6 +49,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           debug=False,timing=False,
           dev_report_loss=True,
           bucketing=True,
+          extend_n_batch=1,
           verbose=1):
     printing("WARNING bucketing is {} ", var=bucketing, verbose=verbose, verbose_level=1)
     if auxilliary_task_norm_not_norm:
@@ -61,10 +63,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
     freq_checkpointing = int(n_epochs/10) if checkpointing and freq_checkpointing is None else freq_checkpointing
     assert add_start_char == 1, "ERROR : add_start_char must be activated due decoding behavior of output_text_"
     printing("WARNING : add_start_char is {} and add_end_char {}  ".format(add_start_char, add_end_char), verbose=verbose, verbose_level=0)
-
+    printing("TRAINING : checkpointing every {} epoch", var=freq_checkpointing, verbose=verbose, verbose_level=1)
     if reload:
         assert model_full_name is not None and len(model_id_pref) == 0 and model_dir is not None and dict_path is not None
-
     else:
         assert model_full_name is None and model_dir is None
 
@@ -73,11 +74,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
 
     loss_training = []
     loss_developing = []
-
-    if auxilliary_task_norm_not_norm:
-        # was not able to use the template cause no more reinitialization of the variable
-        loss_details_template = {'loss_seq_prediction': [], 'other': {}, 'loss_binary': [], 'loss_overall': []}
-    lr = 0.001
+    # was not able to use the template cause no more reinitialization of the variable
+    loss_details_template = {'loss_seq_prediction': [], 'other': {}, 'loss_binary': [], 'loss_overall': []} if auxilliary_task_norm_not_norm else None
     evaluation_set_reporting = list(set([train_path, dev_path]))
     curve_scores = {score + "-" + mode_norm+"-"+REPO_DATASET[data]: [] for score in score_to_compute_ls
                     for mode_norm in mode_norm_ls for data in evaluation_set_reporting} if compute_scoring_curve else None
@@ -180,14 +178,11 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
         printing("TRAINING : Starting {} epoch out of {} ", var=(epoch+1, n_epochs), verbose= verbose, verbose_level=1)
         model.train()
         batchIter = data_gen_conllu(data_read_train,
-                                    model.word_dictionary, model.char_dictionary, model.pos_dictionary, model.xpos_dictionary, model.type_dictionary,
-                                    add_start_char=add_start_char,
-                                    add_end_char=add_end_char,
+                                    model.word_dictionary, model.char_dictionary,
                                     normalization=normalization,
-                                    use_gpu=use_gpu,
                                     get_batch_mode=get_batch_mode_all,
-                                    batch_size=batch_size,
-                                    print_raw=print_raw,timing=timing, 
+                                    batch_size=batch_size, extend_n_batch=extend_n_batch,
+                                    print_raw=print_raw,timing=timing,
                                     verbose=verbose)
         start = time.time()
         loss_train, loss_details_train = run_epoch(batchIter, model, LossCompute(model.generator, opt=adam,
@@ -200,17 +195,17 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
         _train_ep_time, start = get_timing(start)
         model.eval()
         # TODO : should be added in the freq_checkpointing orhterwise useless
+
         batchIter_eval = data_gen_conllu(data_read_dev,
-                                         model.word_dictionary, model.char_dictionary, model.pos_dictionary,
-                                         model.xpos_dictionary, model.type_dictionary,
-                                         batch_size=batch_size, add_start_char=add_start_char,
-                                         get_batch_mode=get_batch_mode_all,
-                                         add_end_char=add_end_char,use_gpu=use_gpu,
+                                         model.word_dictionary, model.char_dictionary,
+                                         batch_size=batch_size, get_batch_mode=get_batch_mode_all,
                                          normalization=normalization,
                                          verbose=verbose)
         printing("EVALUATION : computing loss on dev ", verbose=verbose, verbose_level=1)
         _create_iter_time, start = get_timing(start)
-        if dev_report_loss:
+        # TODO : should be able o factorize this to have a single run_epoch() for train and dev (I think the computaiton would be same )
+        # TODO : should not evaluate for each epoch : should evalaute every x epoch : check if it decrease and checkpoint
+        if (dev_report_loss and (epoch % freq_checkpointing == 0)) or (epoch + 1 == n_epochs):
             loss_dev, loss_details_dev = run_epoch(batchIter_eval, model, LossCompute(model.generator, use_gpu=use_gpu,verbose=verbose,
                                                                                       weight_binary_loss=weight_binary_loss,
                                                                                       auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm),
@@ -221,17 +216,10 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
             loss_dev = 0
         if auxilliary_task_norm_not_norm:
             # in this case we report loss detail
-            e = 0
             for ind, loss_key in enumerate(loss_details_dev.keys()):
                 if loss_key != "other":
                     loss_details_template[loss_key].append(loss_details_dev[loss_key])
-                    if e > 0:
-                        assert len_loss == len(loss_details_template[loss_key]), \
-                            "ERROR : mismatch {} len of key {} former with {} key {}".\
-                                format(len_loss, former_key, loss_key, len(loss_details_template[loss_key]))
-                    len_loss = len(loss_details_template[loss_key])
-                    former_key = loss_key
-                    e += 1
+
 
         else:
             loss_details_template = None
@@ -281,14 +269,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
 
         # WARNING : only saving if we decrease not loading former model if we relaod
         if (checkpointing and epoch % freq_checkpointing == 0) or (epoch+1 == n_epochs):
-            if False:
-                x_axis_epochs_loss.append(epoch)
-                simple_plot_ls(losses_ls=curves, labels=val_ls, final_loss="", save=True, filter_by_label="",
-                               x_axis=x_axis_epochs_loss,
-                               dir=model.dir_model, prefix=model.model_full_name, epochs=str(epoch) + reloading,
-                               verbose=verbose, lr=lr,
-                               label_color_0=REPO_DATASET[evaluation_set_reporting[0]],
-                               label_color_1=REPO_DATASET[evaluation_set_reporting[1]])
             if loss_details_template is not None:
                 dir_plot_detailed = simple_plot(final_loss=0, loss_2=loss_details_template.get("loss_binary", None),
                                                 loss_ls=loss_details_template["loss_seq_prediction"],
@@ -320,6 +300,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                                  "other": {"error_curves": dir_plot, "loss":_loss_dev, "error_curves_details":dir_plot_detailed,
                                                            "weight_binary_loss": weight_binary_loss,
                                                            "data":"dev","seed(np/torch)":(SEED_TORCH, SEED_TORCH),
+                                                           "extend_n_batch":extend_n_batch,
                                                            "time_training(min)": "{0:.2f}".format(total_time/60),
                                                            "average_per_epoch(min)": "{0:.2f}".format((total_time/n_epochs)/60)}},
                              epoch=epoch, epochs=n_epochs,

@@ -38,7 +38,7 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
             mode_norm_score_ls = ["all"]
         assert len(set(mode_norm_score_ls) & set(["all", "NEED_NORM", "NORMED"])) >0
         with torch.no_grad():
-            for step, batch in enumerate(batchIter):
+            for step, (batch, _) in enumerate(batchIter):
                 # read src sequence
                 src_seq = batch.input_seq
                 src_len = batch.input_seq_len
@@ -132,9 +132,9 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
             src_len = src_len.cuda()
             output_len = output_len.cuda()
         decoding_states, _, attention = model.forward(input_seq=src_seq,
-                                           output_seq=output_seq,
-                                           input_word_len=src_len,
-                                           output_word_len=output_len)
+                                                      output_seq=output_seq,
+                                                      input_word_len=src_len,
+                                                      output_word_len=output_len)
         # we remove in src_seq the empty words
         #src_seq = src_seq[:,:decoding_states.size(1),:]
         # [batch, seq_len, V]

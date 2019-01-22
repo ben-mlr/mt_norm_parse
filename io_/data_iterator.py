@@ -12,11 +12,13 @@ import time
 from toolbox.sanity_check import get_timing
 
 
-def data_gen_conllu(data, word_dictionary, char_dictionary, pos_dictionary,
-                    xpos_dictionary, type_dictionary, batch_size,
-                    add_start_char=1,use_gpu=False, get_batch_mode=True,
-                    add_end_char=1, padding=1, print_raw=False, normalization=False,
-                    symbolic_root=False, symbolic_end=False,timing=False,
+def data_gen_conllu(data, word_dictionary, char_dictionary,
+                    batch_size,
+                    get_batch_mode=True,
+                    padding=1, print_raw=False, normalization=False,
+                    extend_n_batch=1,
+                    timing=False,
+
                     verbose=0):
     
     #    data = conllu_data.read_data_to_variable(data_path, word_dictionary, char_dictionary,
@@ -27,8 +29,11 @@ def data_gen_conllu(data, word_dictionary, char_dictionary, pos_dictionary,
     #                                         add_start_char=add_start_char, add_end_char=add_end_char)
 
     n_sents = data[-1]
+    if extend_n_batch != 1:
+        assert get_batch_mode, "ERROR extending nbatch only makes sense in get_batch True (random iteration) "
 
-    nbatch = n_sents//batch_size # approximated lower approximation 1.9//2 == 0
+    nbatch = n_sents//batch_size*extend_n_batch  # approximated lower approximation 1.9//2 == 0
+
     if nbatch == 0:
         printing("INFO : n_sents < batch_size so nbatch set to 1 ", verbose=verbose, verbose_level=0)
     print("Running {} batches of {} dim (nsent : {}) (if 0 will be set to 1) ".format(nbatch, batch_size, n_sents))
@@ -40,13 +45,13 @@ def data_gen_conllu(data, word_dictionary, char_dictionary, pos_dictionary,
             #words, chars, chars_norm_, word_norm_not_norm, pos, xpos, heads,types, masks, lengths, order_ids, raw_word_inputs, raw_lines
             words, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, lengths, order_ids, raw_word_inputs, raw_lines = batch
             #pdb.set_trace()
-            yield MaskBatch(chars, chars_norm,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing, verbose=verbose)
+            yield MaskBatch(chars, chars_norm,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing, verbose=verbose), order_ids
     # get_batch randomly (for training purpose)
     elif get_batch_mode:
         for ibatch in tqdm(range(1, nbatch+1), disable=disable_tqdm_level(verbose, verbose_level=2)):
             # word, char, pos, xpos, heads, types, masks, lengths, morph
             printing("Data : getting {} out of {} batches", var=(ibatch, nbatch+1), verbose= verbose, verbose_level=2)
-            word, char, chars_norm, word_norm_not_norm,_, _, _, _, _, lenght, _ = conllu_data.get_batch_variable(data,
+            word, char, chars_norm, word_norm_not_norm,_, _, _, _, _, lenght, order_ids = conllu_data.get_batch_variable(data,
                                                                                                                  batch_size=batch_size,
                                                                                                                   normalization=normalization,
                                                                                                                   unk_replace=0)
@@ -100,7 +105,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary, pos_dictionary,
             printing("Feeding source words {} ", var=[word_display], verbose=_verbose, verbose_level=5)
             printing("TYPE {} char before batch chars_norm {} ", var=(char.is_cuda, chars_norm.is_cuda),
                      verbose=verbose, verbose_level=5)
-            yield MaskBatch(char, chars_norm, output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing, verbose=verbose)
+            yield MaskBatch(char, chars_norm, output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing, verbose=verbose), order_ids
 
 
 def data_gen_dummy(V, batch, nbatches, sent_len=9, word_len=5,

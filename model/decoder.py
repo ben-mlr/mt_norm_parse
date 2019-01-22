@@ -126,8 +126,7 @@ class CharDecoder(nn.Module):
         not_printing, start = get_timing(start)
         conditioning = conditioning[:, perm_idx_output, :]
         reorder_conditioning, start = get_timing(start)
-        #  USING PACKED SEQUENCE
-        # THe shapes are fine !! -->
+
         printing("TARGET  word lengths after  {} dim",
                  var=[output_word_len.size()], verbose=self.verbose, verbose_level=3)
         # same as target sequence and source ..
@@ -142,7 +141,6 @@ class CharDecoder(nn.Module):
         if isinstance(self.seq_decoder, nn.LSTM):
             conditioning = (torch.zeros_like(conditioning), conditioning)
         # attention
-        import torch.nn.functional as F
         if self.attn_layer is not None:
             assert char_seq_hidden_encoder is not None, 'ERROR sent_len_max_source is None'
             assert word_src_sizes is not None
@@ -178,11 +176,11 @@ class CharDecoder(nn.Module):
                 printing("DECODER state_decoder_current {} ", var=[state_i[0].size()], verbose=self.verbose,verbose_level=3)
                 printing("DECODER emb_char {} ", var=[emb_char.size()], verbose=self.verbose, verbose_level=3)
                 all_states, state_i, attention_weights = self.word_encoder_target_step(
-                    char_vec_current_batch=emb_char,
-                    state_decoder_current=state_i,
-                    char_vecs_sizes=word_src_sizes,
-                    step_char=char_i,
-                    char_seq_hidden_encoder=char_seq_hidden_encoder)
+                                                    char_vec_current_batch=emb_char,
+                                                    state_decoder_current=state_i,
+                                                    char_vecs_sizes=word_src_sizes,
+                                                    step_char=char_i,
+                                                    char_seq_hidden_encoder=char_seq_hidden_encoder)
                 # TODO : should shorted sequence output and state by setting them to 0 using step_char and char_vecs_sizes_target (but it should be fine with the loss outpu)
                 #c_i = state_i[1] if isinstance(self.seq_decoder, nn.LSTM) else None
                 h_i = state_i[0] if isinstance(self.seq_decoder, nn.LSTM) else h_i
@@ -222,9 +220,9 @@ class CharDecoder(nn.Module):
                      verbose=self.verbose, verbose_level=3)
             attention_weight_all = None
             if self.timing:
-                 print("WORD TARGET {} ".format(OrderedDict([('char_embedding', char_embedding),
-                      ("reorder_conditioning", reorder_conditioning), ("zero_last", zero_last),("not_printing",not_printing),
-                      ("pack",pack), ("recurrent_cell", recurrent_cell), ("padd", padd)])))
+                print("WORD TARGET {} ".format(OrderedDict([('char_embedding', char_embedding),
+                     ("reorder_conditioning", reorder_conditioning), ("zero_last", zero_last), ("not_printing",not_printing),
+                     ("pack",pack), ("recurrent_cell", recurrent_cell), ("padd", padd)])))
         #pdb.set_trace()
         return output, attention_weight_all
 
@@ -242,7 +240,7 @@ class CharDecoder(nn.Module):
         start = time.time() if self.timing else None
         _output_word_len = output_word_len.clone()
         clone_len, start = get_timing(start)
-        # handle sentence that take the all sequence (
+        # handle sentence that take the all sequence ()
         printing("TARGET SIZE : output_word_len length (before 0 last) : size {} data {} ", var=(_output_word_len.size(),_output_word_len), verbose=verbose,
                  verbose_level=4)
         printing("TARGET : output  (before 0 last) : size {}", var=[output.size()], verbose=verbose, verbose_level=3)

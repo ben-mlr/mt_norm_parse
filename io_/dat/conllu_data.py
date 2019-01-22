@@ -427,7 +427,8 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
   bucket_id = min([i for i in range(len(buckets_scale)) if buckets_scale[i] > random_number])
   bucket_length = _buckets[bucket_id]
 
-  words, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, single, lengths, order_inputs, raw, _ = data_variable[bucket_id]
+  words, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, single, lengths, order_inputs, raw, raw_lines = data_variable[bucket_id]
+  pdb.set_trace()
   #printin(raw)
   bucket_size = bucket_sizes[bucket_id]
   #print("INFO : BUCKET SIZE {}  BATCH SIZE {} (in conllu_data)".format(bucket_size, batch_size))
@@ -467,8 +468,9 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
     if bucket_size == 0:
       continue
 
-    words, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, single, lengths, order_ids, raw_word_inputs, raw_lines = data_variable[bucket_id]
+    words, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, single, lengths, order_ids,  raw_word_inputs, raw_lines = data_variable[bucket_id]
     pdb.set_trace()
+
     if unk_replace:
       ones = Variable(single.data.new(bucket_size, bucket_length).fill_(1))
       noise = Variable(masks.data.new(bucket_size, bucket_length).bernoulli_(unk_replace).long())
@@ -479,13 +481,14 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
         chars_norm_ = chars_norm[excerpt] if normalization else None
         if word_norm_not_norm is not None:
           pdb.set_trace()
-          word_norm_not_norm = word_norm_not_norm[excerpt]
+          _word_norm_not_norm = word_norm_not_norm[excerpt]
+        else:
+            _word_norm_not_norm = None
       if chars[excerpt].size(0) <= 1 or chars_norm_.size(0) <= 1:
-        pdb.set_trace()
         print("WARNING : We are skipping a batch because size is {} char and {} for char_nor".format(chars[excerpt].size(),chars_norm_.size()))
         continue
 
-      yield words[excerpt], chars[excerpt], chars_norm_, word_norm_not_norm, pos[excerpt], xpos[excerpt], heads[excerpt], \
+      yield words[excerpt], chars[excerpt], chars_norm_, _word_norm_not_norm , pos[excerpt], xpos[excerpt], heads[excerpt], \
             types[excerpt],\
             masks[excerpt], lengths[excerpt], order_ids[excerpt], raw_word_inputs[excerpt], raw_lines[excerpt]
 
