@@ -65,7 +65,6 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                 total_count["pred_word_count"] += counts["pred_word_count"]
                 printing("Source text {} ", var=[(src_text_ls)], verbose=verbose, verbose_level=5)
                 printing("Prediction {} ", var=[(text_decoded_ls)], verbose=verbose, verbose_level=5)
-                #scores_ls_func = "score_ls_"
                 if gold_output:
                     printing("Gold {} ", var=[(gold_text_seq_ls)], verbose=verbose, verbose_level=5)
                     if score_to_compute_ls is not None:

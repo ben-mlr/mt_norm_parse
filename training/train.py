@@ -73,9 +73,10 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
 
     loss_training = []
     loss_developing = []
+
     if auxilliary_task_norm_not_norm:
-        loss_details_template = LOSS_DETAIL_TEMPLATE_LS.copy()
-        loss_details_template["loss_binary"] = []
+        # was not able to use the template cause no more reinitialization of the variable
+        loss_details_template = {'loss_seq_prediction': [], 'other': {}, 'loss_binary': [], 'loss_overall': []}
     lr = 0.001
     evaluation_set_reporting = list(set([train_path, dev_path]))
     curve_scores = {score + "-" + mode_norm+"-"+REPO_DATASET[data]: [] for score in score_to_compute_ls
@@ -211,18 +212,27 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
         _create_iter_time, start = get_timing(start)
         if dev_report_loss:
             loss_dev, loss_details_dev = run_epoch(batchIter_eval, model, LossCompute(model.generator, use_gpu=use_gpu,verbose=verbose,
-                                                                    weight_binary_loss=weight_binary_loss,
-                                                                    auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm),
-                                                                     i_epoch=epoch, n_epochs=n_epochs,
-                                                                     verbose=verbose,timing=timing,
-                                                                     log_every_x_batch=100)
+                                                                                      weight_binary_loss=weight_binary_loss,
+                                                                                      auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm),
+                                                                                      i_epoch=epoch, n_epochs=n_epochs,
+                                                                                      verbose=verbose,timing=timing,
+                                                                                      log_every_x_batch=100)
         else:
             loss_dev = 0
         if auxilliary_task_norm_not_norm:
             # in this case we report loss detail
-            for loss_key in loss_details_dev.keys():
+            e = 0
+            for ind, loss_key in enumerate(loss_details_dev.keys()):
                 if loss_key != "other":
                     loss_details_template[loss_key].append(loss_details_dev[loss_key])
+                    if e > 0:
+                        assert len_loss == len(loss_details_template[loss_key]), \
+                            "ERROR : mismatch {} len of key {} former with {} key {}".\
+                                format(len_loss, former_key, loss_key, len(loss_details_template[loss_key]))
+                    len_loss = len(loss_details_template[loss_key])
+                    former_key = loss_key
+                    e += 1
+
         else:
             loss_details_template = None
 
@@ -281,14 +291,14 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                label_color_1=REPO_DATASET[evaluation_set_reporting[1]])
             if loss_details_template is not None:
                 dir_plot_detailed = simple_plot(final_loss=0, loss_2=loss_details_template.get("loss_binary", None),
-                                            loss_ls=loss_details_template["loss_seq_prediction"],
-                                            epochs=str(epoch) + reloading,
-                                            label= "dev-seq_prediction",
-                                            label_2="dev-binary",
-                                            save=True, dir=model.dir_model,
-                                            verbose=verbose, verbose_level=1,
-                                            lr=lr, prefix=model.model_full_name+"-details",
-                                           show=False)
+                                                loss_ls=loss_details_template["loss_seq_prediction"],
+                                                epochs=str(epoch) + reloading,
+                                                label="dev-seq_prediction",
+                                                label_2="dev-binary",
+                                                save=True, dir=model.dir_model,
+                                                verbose=verbose, verbose_level=1,
+                                                lr=lr, prefix=model.model_full_name+"-details",
+                                                show=False)
             else:
                 dir_plot_detailed = None
 

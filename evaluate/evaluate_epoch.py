@@ -101,12 +101,15 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                 stat_type_ls.append("-mean_per_sent")
             for stat_type in stat_type_ls:
                 if stat_type == "":
-                    score_value = score_dic[score+"-"+ mode_norm+stat_type]/score_dic[score+"-"+mode_norm+"-total_tokens"]
+                    score_value = score_dic[score+"-"+ mode_norm+stat_type]/score_dic[score+"-"+mode_norm+"-total_tokens"] #if score_dic[score+"-"+mode_norm+"-total_tokens"] > 0 else -0.001
                 elif stat_type == "-mean_per_sent":
                     score_value = score_dic[score + "-" + mode_norm + stat_type]/score_dic[score+"-"+mode_norm+"-n_sents"]
                 report = report_template(metric_val=score+stat_type,
                                          info_score_val=mode_norm,
                                          score_val=score_value,
+                                         n_sents=score_dic[score+"-"+mode_norm+"-n_sents"],
+                                         avg_per_sent=score_dic[score+"-"+mode_norm+"-total_tokens"]/score_dic[score+"-"+mode_norm+"-n_sents"],
+                                         n_tokens_score=score_dic[score+"-"+mode_norm+"-total_tokens"],
                                          model_full_name_val=model.model_full_name,
                                          task="normalization",
                                          report_path_val=model.arguments["checkpoint_dir"],
@@ -136,8 +139,8 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                   json.dump(all_report,open(over_all_report_dir, "w"))
                 printing("Report saved {} ".format(_dir_report), verbose=verbose, verbose_level=1)
 
-        printing("Overall Model specific Report saved {} ".format(over_all_report_dir), verbose=verbose, verbose_level=1)
-        printing("Overall  Report saved {} ".format(over_all_report_dir_all_models), verbose=verbose, verbose_level=1)
+        printing("REPORT : model specific report saved {} ".format(over_all_report_dir), verbose=verbose, verbose_level=1)
+        printing("REPORT : overall report saved {} ".format(over_all_report_dir_all_models), verbose=verbose, verbose_level=1)
 
     return score_dic
 
