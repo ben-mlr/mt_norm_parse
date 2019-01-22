@@ -46,7 +46,7 @@ class LexNormalizer(nn.Module):
                  dir_sent_encoder=1,word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,
                  unrolling_word=False,
                  dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None,
-                 char_src_attention=False,
+                 char_src_attention=False, shared_context="all",
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
         character level Sequence to Sequence model for normalization
@@ -136,7 +136,8 @@ class LexNormalizer(nn.Module):
                                                   "dev_data_path": None, "other": None,
                                                   "git_id": git_commit_id},
                               "hyperparameters": {
-                                  "auxilliary_arch":{
+                                  "shared_context": shared_context,
+                                  "auxilliary_arch": {
                                   "weight_binary_loss": weight_binary_loss,
                                   "auxilliary_task_norm_not_norm": self.auxilliary_task_norm_not_norm,
                                   "auxilliary_task_norm_not_norm-dense_dim": dense_dim_auxilliary
@@ -186,11 +187,11 @@ class LexNormalizer(nn.Module):
                                                  "redefined in dictionnaries do not " \
                                                  "match {} vs {} ".format(args["voc_size"], voc_size)
 
-            char_embedding_dim, output_dim, hidden_size_encoder,hidden_size_sent_encoder, drop_out_sent_encoder_cell,\
+            char_embedding_dim, output_dim, hidden_size_encoder, hidden_size_sent_encoder, drop_out_sent_encoder_cell,\
             drop_out_word_encoder_cell, drop_out_sent_encoder_out, drop_out_word_encoder_out,\
             n_layers_word_encoder, dir_sent_encoder, word_recurrent_cell_encoder, dir_word_encoder,\
             hidden_size_decoder,  word_recurrent_cell_decoder, drop_out_word_decoder_cell, drop_out_char_embedding_decoder, \
-                    self.auxilliary_task_norm_not_norm, unrolling_word, char_src_attention, dense_dim_auxilliary = get_args(args, False)
+                    self.auxilliary_task_norm_not_norm, unrolling_word, char_src_attention, dense_dim_auxilliary, shared_context = get_args(args, False)
 
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
@@ -209,11 +210,16 @@ class LexNormalizer(nn.Module):
                                    dropout_word_encoder_cell=drop_out_word_encoder_cell,
                                    hidden_size_sent_encoder=hidden_size_sent_encoder, bidir_sent=dir_sent_encoder-1,
                                    n_layers_word_cell=n_layers_word_encoder, timing=timing,
-                                   dir_word_encoder=dir_word_encoder,
+                                   dir_word_encoder=dir_word_encoder,context_level=shared_context,
                                    verbose=verbose)
+
+        p_word = 1 if shared_context in ["word", "all"] else 0
+        p_sent = 1 if shared_context in ["sent", "all"] else 0
+
         self.bridge = nn.Linear(
-            hidden_size_encoder * n_layers_word_encoder + hidden_size_sent_encoder * dir_sent_encoder,
+            hidden_size_encoder * n_layers_word_encoder*p_word + hidden_size_sent_encoder * dir_sent_encoder*p_sent,
             hidden_size_decoder)
+        pdb.set_trace()
         self.dropout_bridge = nn.Dropout(p=drop_out_bridge)
         self.normalize_not_normalize = BinaryPredictor(input_dim=hidden_size_decoder, dense_dim=dense_dim_auxilliary) \
             if self.auxilliary_task_norm_not_norm else None
@@ -261,12 +267,14 @@ class LexNormalizer(nn.Module):
         if self.auxilliary_task_norm_not_norm:
             printing("DECODER hidden state after norm_not_norm_hidden size {}", var=[norm_not_norm_hidden.size()],
                      verbose=0, verbose_level=4)
+        pdb.set_trace()
         output, attention_weight_all = self.decoder.sent_encoder_target(output_seq, h, output_word_len,
                                                                         word_src_sizes=word_src_sizes,
                                                                         char_seq_hidden_encoder=char_seq_hidden_encoder,
                                                                         sent_len_max_source=sent_len_max_source)
         target_encoder, start = get_timing(start)
-        printing("TYPE  decoder {} is cuda ", var=(output.is_cuda), verbose=0, verbose_level=4)
+        printing("TYPE  decoder {} is cuda ", var=(output.is_cuda),
+                 verbose=0, verbose_level=4)
         # output_score = nn.ReLU()(self.output_predictor(h_out))
         # [batch, output_voc_size], one score per output character token
         printing("DECODER full  output sequence encoded of size {} ", var=(output.size()), verbose=self.verbose,

@@ -71,10 +71,9 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                                                   normalization=normalization,
                                                   bucket=bucket,
                                                   add_start_char=1, add_end_char=1)
-    batchIter = data_gen_conllu(data_read, model.word_dictionary, model.char_dictionary, model.pos_dictionary,
-                                model.xpos_dictionary,
-                                model.type_dictionary, batch_size=batch_size,  add_start_char=1,
-                                add_end_char=1, get_batch_mode=get_batch_mode_evaluate,
+    batchIter = data_gen_conllu(data_read, model.word_dictionary, model.char_dictionary,
+                                batch_size=batch_size,
+                                get_batch_mode=get_batch_mode_evaluate,
                                 normalization=normalization,
                                 print_raw=print_raw,  verbose=verbose)
 
@@ -146,21 +145,21 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
 
 
 if __name__ == "__main__":
-    list_all_dir = os.listdir(os.path.join(PROJECT_PATH,"checkpoints"))
-    #for ablation_id in ["aaad","bd55","0153","f178"]:
+    list_all_dir = os.listdir(os.path.join(PROJECT_PATH, "checkpoints"))
+    for ablation_id in ["aaad"]:#,"bd55","0153","f178"]:
     #for ablation_id in ["08661","d6960"]:
     #for ablation_id in ["f2f2-batchXdropout_char0.1-to_char_src-1_dir_sent-10_batch_size-model_18_aa04","8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_1_33ca"]:
     #for ablation_id in ["e390","24f9d"]:
     #for ablation_id in ["01880"]:
     #for ablation_id in ["d6960-new_data-batchXdropout_char0-to_char_src-1_dir_sent-10_batch_size-model_2_be5d","08661-new_data-batchXdropout_char0-to_char_src-2_dir_sent-20_batch_size-model_5_c8b2"]:
-    for ablation_id in ["8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_1_33ca","8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_2_e437"]:
+    #for ablation_id in ["8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_1_33ca","8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_2_e437"]:
       #for data in [DEMO,DEMO2]:
       for get_batch_mode_evaluate in [True]:
         for batch_size in [50]:
-          for data in [LEX_TEST, DEV]:
+          for data in [DEMO, DEV]:
             list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
             print("FOLDERS : ", list_)
-            for folder_name in list_:
+            for folder_name in list_[1:]:
               model_full_name = folder_name[:-7]
               print("MODEL_FULL_NAME : ", model_full_name)
               print("0Evaluating {} ".format(model_full_name))
@@ -176,7 +175,7 @@ if __name__ == "__main__":
                        compute_mean_score_per_sent=True,
                        get_batch_mode_evaluate=get_batch_mode_evaluate,
                        dir_report=os.path.join(PROJECT_PATH, "checkpoints", folder_name), verbose=1)
-
+              raise(Exception)
 
 
 

@@ -11,13 +11,15 @@ class CharEncoder(nn.Module):
 
     def __init__(self, char_embedding, input_dim, hidden_size_encoder, hidden_size_sent_encoder,
                  word_recurrent_cell=None, dropout_sent_encoder_cell=0, dropout_word_encoder_cell=0,
-                 n_layers_word_cell=1, timing=False, bidir_sent=True,
+                 n_layers_word_cell=1, timing=False, bidir_sent=True,context_level="all",
                  drop_out_word_encoder_out=0, drop_out_sent_encoder_out=0,
                  dir_word_encoder=1,
                  verbose=2):
         super(CharEncoder, self).__init__()
         self.char_embedding_ = char_embedding
         self.timing = timing
+        # context level shared to the decoder (should prune a lot if context level word/or sent )
+        self.context_level = context_level
         if dir_word_encoder == 2:
             assert hidden_size_encoder%2==0, "ERROR = it will be divided by two and remultipy so need even number for simplicity"
         self.sent_encoder = nn.LSTM(input_size=hidden_size_encoder*n_layers_word_cell,#*dir_word_encoder,
@@ -90,7 +92,10 @@ class CharEncoder(nn.Module):
     def sent_encoder_source(self, input, input_word_len=None, verbose=0):
         # input should be a batach of sentences
         # input : [batch, max sent len, max word len], input_word_len [batch, max_sent_len]
-        printing("SOURCE : input size {}  length size {}" , var=(input.size(), input_word_len.size()),
+        context_level = self.context_level
+        assert context_level in ["all","word", "sent"], 'context_level : should be in ["all","word", "sent"]'
+        printing("SOURCE : input size {}  length size {}",
+                 var=(input.size(), input_word_len.size()),
                  verbose=verbose, verbose_level=4)
 
         _input_word_len = input_word_len.clone()
@@ -139,7 +144,13 @@ class CharEncoder(nn.Module):
         # concatanate
         sent_encoded = self.drop_out_sent_encoder_out(sent_encoded)
         h_w = self.drop_out_word_encoder_out(h_w)
-        source_context_word_vector = torch.cat((sent_encoded, h_w), dim=2)
+        if context_level == "all":
+            " 'all' means word and sentence level "
+            source_context_word_vector = torch.cat((sent_encoded, h_w), dim=2)
+        elif context_level == "sent":
+            source_context_word_vector = sent_encoded
+        elif context_level == "word":
+            source_context_word_vector = h_w
         printing("SOURCE contextual before reshape for decoding: {} ", var=[source_context_word_vector.size()],
                  verbose=verbose, verbose_level=3)
         #source_context_word_vector = source_context_word_vector.view(1, source_context_word_vector.size(0)*source_context_word_vector.size(1), -1)

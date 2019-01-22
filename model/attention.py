@@ -15,7 +15,8 @@ class Attention(nn.Module):
         super(Attention, self).__init__()
         pdb.set_trace()
         self.hidden_size_word_decoder = hidden_size_word_decoder
-        self.attn = nn.Linear(hidden_size_word_decoder + char_embedding_dim, hidden_size_src_word_encoder)#+hidden_size, hidden_size) # CHANGE--> (compared to example) we (hidden_size * 2+hidden_size because we have the embedding size +  ..
+        self.attn = nn.Linear(hidden_size_word_decoder ,#+ char_embedding_dim,
+                              hidden_size_src_word_encoder)#+hidden_size, hidden_size) # CHANGE--> (compared to example) we (hidden_size * 2+hidden_size because we have the embedding size +  ..
         self.v = nn.Parameter(torch.FloatTensor(self.hidden_size_word_decoder))
         self.use_gpu = use_gpu
         self.method = method

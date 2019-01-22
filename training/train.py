@@ -49,6 +49,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           debug=False,timing=False,
           dev_report_loss=True,
           bucketing=True,
+          shared_context="all",
           extend_n_batch=1,
           verbose=1):
     printing("WARNING bucketing is {} ", var=bucketing, verbose=verbose, verbose_level=1)
@@ -125,7 +126,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                           n_layers_word_encoder=n_layers_word_encoder,dir_sent_encoder=dir_sent_encoder,
                           hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,
                           model_id_pref=model_id_pref, model_full_name=model_full_name,
-                          hidden_size_sent_encoder=hidden_size_sent_encoder,
+                          hidden_size_sent_encoder=hidden_size_sent_encoder,shared_context=shared_context,
                           unrolling_word=unrolling_word,char_src_attention=char_src_attention,
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
     if use_gpu:
@@ -170,7 +171,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                                       use_gpu=use_gpu, symbolic_root=False,
                                                       norm_not_norm=auxilliary_task_norm_not_norm,
                                                       symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,
-                                                      normalization=normalization,bucket=bucketing,
+                                                      normalization=normalization, bucket=bucketing,
                                                       add_start_char=add_start_char, add_end_char=add_end_char)
 
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
@@ -198,8 +199,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
 
         batchIter_eval = data_gen_conllu(data_read_dev,
                                          model.word_dictionary, model.char_dictionary,
-                                         batch_size=batch_size, get_batch_mode=get_batch_mode_all,
-                                         normalization=normalization,
+                                         batch_size=batch_size, get_batch_mode=False,
+                                         normalization=normalization,extend_n_batch=1,
                                          verbose=verbose)
         printing("EVALUATION : computing loss on dev ", verbose=verbose, verbose_level=1)
         _create_iter_time, start = get_timing(start)

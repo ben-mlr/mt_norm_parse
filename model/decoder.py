@@ -56,9 +56,6 @@ class CharDecoder(nn.Module):
         self.attn_layer = Attention(hidden_size_word_decoder=hidden_size_decoder,
                                     char_embedding_dim=self.char_embedding_decoder.embedding_dim,
                                     hidden_size_src_word_encoder=hidden_size_src_word_encoder) if char_src_attention else None
-        
-
-        
         self.verbose = verbose
 
     def word_encoder_target_step(self, char_vec_current_batch,  state_decoder_current,
@@ -76,13 +73,13 @@ class CharDecoder(nn.Module):
                  var=[char_vec_current_batch.size(), state_hiden.size()], verbose_level=3,
                  verbose=self.verbose)
         # attention weights computed based on character embedding + state of the decoder recurrent state
-        current_state = torch.cat((char_vec_current_batch, state_hiden.squeeze(0)), dim=1)
+        #current_state = torch.cat((char_vec_current_batch, state_hiden.squeeze(0)), dim=1)
         char_vec_current_batch = char_vec_current_batch.unsqueeze(1)
         # current_state : for each word (in sentence batches)  1 character local target context
         # (char embedding + previous recurrent state of the decoder))
         # current_state  : dim batch x sentence max len , char embedding + hidden_dim decoder
         if self.attn_layer is not None:
-            attention_weights = self.attn_layer(char_state_decoder=current_state,
+            attention_weights = self.attn_layer(char_state_decoder=state_hiden.squeeze(0),#current_state,
                                                 word_src_sizes=char_vecs_sizes,
                                                 encoder_outputs=char_seq_hidden_encoder)
             printing("DECODER STEP : attention context {} char_seq_hidden_encoder {} ", var=[attention_weights.size(), char_seq_hidden_encoder.size()],
@@ -200,6 +197,7 @@ class CharDecoder(nn.Module):
             # then cat in a way with conditioning (and should remove word level part of it also )
             # then feed as conditioning
             # back to old implementation
+            pdb.set_trace()
             output, h_n = self.seq_decoder(packed_char_vecs_output, conditioning)
             h_n = h_n[0] if isinstance(self.seq_decoder, nn.LSTM) else h_n
             recurrent_cell, start = get_timing(start)
