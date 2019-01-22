@@ -29,7 +29,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           batch_size=10,
           label_train="", label_dev="",
           use_gpu=None,
-          n_layers_word_encoder=1, get_batch_mode_evaluate=True,
+          n_layers_word_encoder=1, get_batch_mode_all=True,
           dropout_sent_encoder_cell=0, dropout_word_encoder_cell=0, dropout_word_decoder_cell=0,
           dropout_bridge=0, drop_out_word_encoder_out=0, drop_out_sent_encoder_out=0,
           dir_word_encoder=1,
@@ -47,8 +47,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           unrolling_word=False,char_src_attention=False,
           debug=False,timing=False,
           dev_report_loss=True,
+          bucketing=True,
           verbose=1):
-    
+    printing("WARNING bucketing is {} ", var=bucketing, verbose=verbose, verbose_level=1)
     if auxilliary_task_norm_not_norm:
         printing("MODEL : training model with auxillisary task (loss weighted with {})", var=[weight_binary_loss], verbose=verbose, verbose_level=1)
     if compute_scoring_curve:
@@ -110,7 +111,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
             _train_path, _dev_path, _add_start_char = None, None, None
 
     model = LexNormalizer(generator=Generator,
-                          auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,dense_dim_auxilliary= dense_dim_auxilliary,
+                          auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,dense_dim_auxilliary=dense_dim_auxilliary,
+                          weight_binary_loss=weight_binary_loss,
                           load=reload,
                           char_embedding_dim=char_embedding_dim, voc_size=voc_size,
                           dir_model=model_dir, use_gpu=use_gpu,dict_path=dict_path,
@@ -155,14 +157,13 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
     total_time = 0
     x_axis_epochs = []
     x_axis_epochs_loss = []
-
     data_read_train = conllu_data.read_data_to_variable(train_path, model.word_dictionary, model.char_dictionary,
                                                          model.pos_dictionary,
                                                         model.xpos_dictionary, model.type_dictionary,
                                                         use_gpu=use_gpu, symbolic_root=False,
                                                         norm_not_norm=auxilliary_task_norm_not_norm,
                                                         symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,
-                                                        normalization=normalization,
+                                                        normalization=normalization, bucket=bucketing,
                                                         add_start_char=add_start_char, add_end_char=add_end_char)
     data_read_dev = conllu_data.read_data_to_variable(dev_path, model.word_dictionary, model.char_dictionary,
                                                       model.pos_dictionary,
@@ -170,7 +171,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                                       use_gpu=use_gpu, symbolic_root=False,
                                                       norm_not_norm=auxilliary_task_norm_not_norm,
                                                       symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,
-                                                      normalization=normalization,
+                                                      normalization=normalization,bucket=bucketing,
                                                       add_start_char=add_start_char, add_end_char=add_end_char)
 
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
@@ -183,6 +184,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                     add_end_char=add_end_char,
                                     normalization=normalization,
                                     use_gpu=use_gpu,
+                                    get_batch_mode=get_batch_mode_all,
                                     batch_size=batch_size,
                                     print_raw=print_raw,timing=timing, 
                                     verbose=verbose)
@@ -201,6 +203,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                          model.word_dictionary, model.char_dictionary, model.pos_dictionary,
                                          model.xpos_dictionary, model.type_dictionary,
                                          batch_size=batch_size, add_start_char=add_start_char,
+                                         get_batch_mode=get_batch_mode_all,
                                          add_end_char=add_end_char,use_gpu=use_gpu,
                                          normalization=normalization,
                                          verbose=verbose)
@@ -220,6 +223,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
             for loss_key in loss_details_dev.keys():
                 if loss_key != "other":
                     loss_details_template[loss_key].append(loss_details_dev[loss_key])
+        else:
+            loss_details_template = None
 
         _eval_time, start = get_timing(start)
         loss_training.append(loss_train)
@@ -236,7 +241,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
             printing("EVALUATION : Computing score on {} and {}  ", var=(score_to_compute_ls,mode_norm_ls), verbose=verbose, verbose_level=1)
             for eval_data in evaluation_set_reporting:
                 eval_label = REPO_DATASET[eval_data]
-                assert len(set(evaluation_set_reporting))==len(evaluation_set_reporting),\
+                assert len(set(evaluation_set_reporting)) == len(evaluation_set_reporting),\
                     "ERROR : twice the same dataset has been provided for reporting which will mess up the loss"
                 printing("EVALUATION on {} ", var=[eval_data], verbose=verbose, verbose_level=1)
                 scores = evaluate(data_path=eval_data,
@@ -246,7 +251,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                   label_report=eval_label, model=model,
                                   normalization=True, print_raw=False,
                                   model_specific_dictionary=True,
-                                  get_batch_mode_evaluate=get_batch_mode_evaluate,
+                                  get_batch_mode_evaluate=get_batch_mode_all,
                                   compute_mean_score_per_sent=compute_mean_score_per_sent,
                                   batch_size=batch_size,
                                   dir_report=model.dir_model,
@@ -274,8 +279,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                verbose=verbose, lr=lr,
                                label_color_0=REPO_DATASET[evaluation_set_reporting[0]],
                                label_color_1=REPO_DATASET[evaluation_set_reporting[1]])
-
-            dir_plot_detailed = simple_plot(final_loss=0, loss_2=loss_details_template.get("loss_binary", None),
+            if loss_details_template is not None:
+                dir_plot_detailed = simple_plot(final_loss=0, loss_2=loss_details_template.get("loss_binary", None),
                                             loss_ls=loss_details_template["loss_seq_prediction"],
                                             epochs=str(epoch) + reloading,
                                             label= "dev-seq_prediction",
@@ -284,6 +289,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                             verbose=verbose, verbose_level=1,
                                             lr=lr, prefix=model.model_full_name+"-details",
                                            show=False)
+            else:
+                dir_plot_detailed = None
 
             dir_plot = simple_plot(final_loss=loss_train, loss_2=loss_developing, loss_ls=loss_training,
                                    epochs=str(epoch)+reloading,
@@ -300,11 +307,11 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                model_dir= model.dir_model,
                                info_checkpoint={"n_epochs": epoch, "batch_size": batch_size,
                                                 "train_data_path": train_path, "dev_data_path": dev_path,
-                                                 "other": {"error_curves": dir_plot, "loss":_loss_dev,
+                                                 "other": {"error_curves": dir_plot, "loss":_loss_dev, "error_curves_details":dir_plot_detailed,
                                                            "weight_binary_loss": weight_binary_loss,
-                                                            "data":"dev","seed(np/torch)":(SEED_TORCH, SEED_TORCH),
-                                                            "time_training(min)": "{0:.2f}".format(total_time/60),
-                                                            "average_per_epoch(min)": "{0:.2f}".format((total_time/n_epochs)/60)}},
+                                                           "data":"dev","seed(np/torch)":(SEED_TORCH, SEED_TORCH),
+                                                           "time_training(min)": "{0:.2f}".format(total_time/60),
+                                                           "average_per_epoch(min)": "{0:.2f}".format((total_time/n_epochs)/60)}},
                              epoch=epoch, epochs=n_epochs,
                              verbose=verbose)
             if counter_no_deacrease >= BREAKING_NO_DECREASE:

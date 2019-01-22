@@ -36,6 +36,7 @@ class LexNormalizer(nn.Module):
                  auxilliary_task_norm_not_norm=False, dense_dim_auxilliary=None,
                  char_embedding_dim=None, hidden_size_encoder=None,output_dim=None,
                  hidden_size_sent_encoder=None,
+                 weight_binary_loss=None,
                  n_layers_word_encoder=1,
                  hidden_size_decoder=None, voc_size=None, model_id_pref="", model_name="",
                  drop_out_sent_encoder_cell=0., drop_out_word_encoder_cell=0., drop_out_word_decoder_cell=0.,
@@ -135,8 +136,11 @@ class LexNormalizer(nn.Module):
                                                   "dev_data_path": None, "other": None,
                                                   "git_id": git_commit_id},
                               "hyperparameters": {
+                                  "auxilliary_arch":{
+                                  "weight_binary_loss": weight_binary_loss,
                                   "auxilliary_task_norm_not_norm": self.auxilliary_task_norm_not_norm,
-                                  "auxilliary_task_norm_not_norm-dense_dim": dense_dim_auxilliary,
+                                  "auxilliary_task_norm_not_norm-dense_dim": dense_dim_auxilliary
+                                  },
                                   "n_trainable_parameters": None,
                                   "char_embedding_dim": char_embedding_dim,
                                   "encoder_arch": {"cell_word": word_recurrent_cell_encoder, "cell_sentence": "LSTM",

@@ -27,13 +27,12 @@ torch.manual_seed(SEED_TORCH)
 
 def evaluate(batch_size, data_path, write_report=True, dir_report=None,
              dict_path=None, model_full_name=None,
-             score_to_compute_ls=None, mode_norm_ls=None,get_batch_mode_evaluate=True,
-             overall_label="ALL_MODELS",overall_report_dir=CHECKPOINT_DIR,
+             score_to_compute_ls=None, mode_norm_ls=None, get_batch_mode_evaluate=True,
+             overall_label="ALL_MODELS",overall_report_dir=CHECKPOINT_DIR, bucket = False,
              model_specific_dictionary=True, label_report="", print_raw=False, model=None,
              compute_mean_score_per_sent=False,auxilliary_task_norm_not_norm=False,
              normalization=True, debug=False, force_new_dic=False, use_gpu=None, verbose=0):
     assert model_specific_dictionary, "ERROR : only model_specific_dictionary = True supported now"
-    validation = False
     # NB : now : you have to load dictionary when evaluating (cannot recompute) (could add in the LexNormalizer ability)
     use_gpu = use_gpu_(use_gpu)
     hardware_choosen = "GPU" if use_gpu else "CPU"
@@ -70,7 +69,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                                                   norm_not_norm=auxilliary_task_norm_not_norm,
                                                   symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,
                                                   normalization=normalization,
-                                                  validation=validation,
+                                                  bucket=bucket,
                                                   add_start_char=1, add_end_char=1)
     batchIter = data_gen_conllu(data_read, model.word_dictionary, model.char_dictionary, model.pos_dictionary,
                                 model.xpos_dictionary,

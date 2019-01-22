@@ -37,17 +37,19 @@ def data_gen_conllu(data, word_dictionary, char_dictionary, pos_dictionary,
     if not get_batch_mode:
         for batch in tqdm(conllu_data.iterate_batch_variable(data, batch_size=batch_size, normalization=normalization),
                           disable=disable_tqdm_level(verbose, verbose_level=2)):
+            #words, chars, chars_norm_, word_norm_not_norm, pos, xpos, heads,types, masks, lengths, order_ids, raw_word_inputs, raw_lines
             words, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, lengths, order_ids, raw_word_inputs, raw_lines = batch
             #pdb.set_trace()
-            yield MaskBatch(chars, chars_norm, pad=padding, timing=timing, verbose=verbose)
+            yield MaskBatch(chars, chars_norm,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing, verbose=verbose)
     # get_batch randomly (for training purpose)
     elif get_batch_mode:
         for ibatch in tqdm(range(1, nbatch+1), disable=disable_tqdm_level(verbose, verbose_level=2)):
             # word, char, pos, xpos, heads, types, masks, lengths, morph
             printing("Data : getting {} out of {} batches", var=(ibatch, nbatch+1), verbose= verbose, verbose_level=2)
-            word, char, chars_norm, word_norm_not_norm,_, _, _, _, _, lenght, _ = conllu_data.get_batch_variable(data, batch_size=batch_size,
-                                                                                              normalization=normalization,
-                                                                                              unk_replace=0)
+            word, char, chars_norm, word_norm_not_norm,_, _, _, _, _, lenght, _ = conllu_data.get_batch_variable(data,
+                                                                                                                 batch_size=batch_size,
+                                                                                                                  normalization=normalization,
+                                                                                                                  unk_replace=0)
             #pdb.set_trace()
             if char.size(0)<=1:
                 print("char----> ", char)
@@ -98,7 +100,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary, pos_dictionary,
             printing("Feeding source words {} ", var=[word_display], verbose=_verbose, verbose_level=5)
             printing("TYPE {} char before batch chars_norm {} ", var=(char.is_cuda, chars_norm.is_cuda),
                      verbose=verbose, verbose_level=5)
-            yield MaskBatch(char, chars_norm, output_norm_not_norm=word_norm_not_norm,pad=padding, timing=timing, verbose=verbose)
+            yield MaskBatch(char, chars_norm, output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing, verbose=verbose)
 
 
 def data_gen_dummy(V, batch, nbatches, sent_len=9, word_len=5,

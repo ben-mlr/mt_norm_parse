@@ -42,7 +42,7 @@ class LossCompute:
 
         loss_details = self.loss_details_template.copy()
         if self.loss_binary is not None:
-            assert x_norm_not_norm is not None and 1 is not None, \
+            assert x_norm_not_norm is not None and y_norm_not_norm is not None, \
                 "ERROR : auxilliary_task_norm_not_norm was set to True but x_norm_not_norm or" \
                 " x_norm_not_norm was not y_norm_not_norm "
         printing("LOSS decoding states {} ", var=(x.size()), verbose=self.verbose, verbose_level=3)
@@ -65,14 +65,14 @@ class LossCompute:
         reshaping, start = get_timing(start)
         loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1))
         loss_distance_time, start = get_timing(start)
-        loss_binary = self.loss_binary(x_norm_not_norm.contiguous().view(-1,x_norm_not_norm.size(-1)),
+        loss_binary = self.loss_binary(x_norm_not_norm.contiguous().view(-1, x_norm_not_norm.size(-1)),
                                        y_norm_not_norm.contiguous().view(-1)) if self.loss_binary is not None else None
 
         multi_task_loss = loss+self.weight_binary_loss*loss_binary if self.loss_binary is not None else loss
         loss_details["overall_loss"] = multi_task_loss
         loss_details["loss_seq_prediction"] = loss
         if self.loss_binary:
-            loss_details["loss_binary"] = loss_binary
+            loss_details["loss_binary"] = loss_binary*self.weight_binary_loss
             loss_details["other"]["ponderation_binary"] = self.weight_binary_loss
 
         if loss_binary is not None:

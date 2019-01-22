@@ -87,7 +87,7 @@ class CharDecoder(nn.Module):
                                                 encoder_outputs=char_seq_hidden_encoder)
             printing("DECODER STEP : attention context {} char_seq_hidden_encoder {} ", var=[attention_weights.size(), char_seq_hidden_encoder.size()],
                      verbose_level=3, verbose=self.verbose)
-            pdb.set_trace()
+
             # we multiply for each batch attention matrix by our source sequence
             if char_seq_hidden_encoder.is_cuda:
                 # don't know why we need to do that 
@@ -101,7 +101,6 @@ class CharDecoder(nn.Module):
             # the context is goes as input as the character embedding : we add the tranditional conditioning_other
         else:
             attention_weights = None
-        pdb.set_trace()
         output, state = self.seq_decoder(char_vec_current_batch, state_decoder_current)
 
         # output and state are equal because we call the GRU step by step (no the entire sequence)
@@ -176,7 +175,6 @@ class CharDecoder(nn.Module):
                     emb_char = self.char_embedding_decoder(pred)
                     pdb.set_trace()
                 # no more pack sequence
-                pdb.set_trace()
                 printing("DECODER state_decoder_current {} ", var=[state_i[0].size()], verbose=self.verbose,verbose_level=3)
                 printing("DECODER emb_char {} ", var=[emb_char.size()], verbose=self.verbose, verbose_level=3)
                 all_states, state_i, attention_weights = self.word_encoder_target_step(
@@ -227,7 +225,7 @@ class CharDecoder(nn.Module):
                  print("WORD TARGET {} ".format(OrderedDict([('char_embedding', char_embedding),
                       ("reorder_conditioning", reorder_conditioning), ("zero_last", zero_last),("not_printing",not_printing),
                       ("pack",pack), ("recurrent_cell", recurrent_cell), ("padd", padd)])))
-        pdb.set_trace()
+        #pdb.set_trace()
         return output, attention_weight_all
 
     def sent_encoder_target(self, output, conditioning, output_word_len,

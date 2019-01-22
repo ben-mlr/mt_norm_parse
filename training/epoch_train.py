@@ -45,9 +45,9 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
             if teacher_force:
                 start = time.time() if timing else None
                 out, norm_not_norm_hidden, attention = model.forward(input_seq=batch.input_seq,
-                                                          output_seq=batch.output_seq_x,
-                                                          input_word_len=batch.input_seq_len,
-                                                          output_word_len=batch.output_seq_len)
+                                                                      output_seq=batch.output_seq_x,
+                                                                      input_word_len=batch.input_seq_len,
+                                                                      output_word_len=batch.output_seq_len)
                 forward_time, start = get_timing(start)
             else:
                 # DEV : implement teacher force
@@ -56,11 +56,11 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
                                 src_seq=batch.input_seq, src_mask=batch.input_seq_mask, src_len=batch.input_seq_len,
                                 batch_size=batch.input_seq.size(0))
                 out, _, attention = model.forward(input_seq=batch.input_seq,
-                                       output_seq=batch.output_seq_x,
-                                       input_mask=batch.input_seq_mask,
-                                       input_word_len=batch.input_seq_len,
-                                       output_mask=batch.output_mask,
-                                       output_word_len=batch.output_seq_len)
+                                           output_seq=batch.output_seq_x,
+                                           input_mask=batch.input_seq_mask,
+                                           input_word_len=batch.input_seq_len,
+                                           output_mask=batch.output_mask,
+                                           output_word_len=batch.output_seq_len)
 
             # compute loss , (compute score over decoding states then softmax and Cross entropy )
         else:
@@ -69,8 +69,8 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
                      verbose=verbose, verbose_level=1)
         if not empty_run:
             loss, loss_details_current = loss_compute(out, batch.output_seq_y,
-                                              x_norm_not_norm=norm_not_norm_hidden,
-                                              y_norm_not_norm=batch.output_norm_not_norm)#, batch.ntokens)
+                                                      x_norm_not_norm=norm_not_norm_hidden,
+                                                      y_norm_not_norm=batch.output_norm_not_norm)#, batch.ntokens)
             loss_time, start = get_timing(start)
             total_loss += loss
             total_loss_details = update_loss_details_dic(total_loss_details, loss_details_current)
@@ -86,7 +86,6 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
                 print("Epoch {} Step: {}  Loss: {}  Tokens per Sec: {}  ".format(i_epoch, i, loss / float(batch.ntokens), tokens / elapsed))
                 _start = time.time()
                 tokens = 0
-            print("---------", loss_details_current)
         else:
             total_loss, total_tokens = 0, 1
         batch_time_start = time.time()

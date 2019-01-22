@@ -183,7 +183,7 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
 def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary,
               max_size=None,
               normalize_digits=True,
-              normalization=False,validation=False,
+              normalization=False, bucket=False,
               symbolic_root=False, symbolic_end=False, dry_run=False,
               verbose=0):
   """
@@ -191,7 +191,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
   - creates a  list of bucket
   - each bucket is a list of unicode encoded worrds, character, pos tags, relations, ... based on DependancyInstances() and Sentence() objects
   """
-  if not validation:
+  if bucket:
     _buckets = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, -1]
   else:
     _buckets = [-1]
@@ -247,7 +247,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
 def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
                           type_dictionary, max_size=None, normalize_digits=True, symbolic_root=False,
                           symbolic_end=False, use_gpu=False, volatile=False, dry_run=False, lattice=None,
-                          verbose=0, normalization=False,validation=False,norm_not_norm=False,
+                          verbose=0, normalization=False,bucket=True,norm_not_norm=False,
                           add_end_char=0, add_start_char=0):
   """
   Given data ovject form read_variable creates array-like  variables for character, word, pos, relation, heads ready to be fed to a network
@@ -255,8 +255,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
   if norm_not_norm:
     assert normalization, "norm_not_norm can't be set without normalisation info"
   data, max_char_length_dic, _buckets = read_data(source_path, word_dictionary, char_dictionary, pos_dictionary,
-                                                  xpos_dictionary, type_dictionary,
-                                                  validation=validation,
+                                                  xpos_dictionary, type_dictionary, bucket=bucket,
                                                   verbose=verbose, max_size=max_size, normalization=normalization,
                                                   normalize_digits=normalize_digits, symbolic_root=symbolic_root,
                                                   symbolic_end=symbolic_end, dry_run=dry_run)
@@ -446,10 +445,11 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
     noise = Variable(masks.data.new(batch_size, bucket_length).bernoulli_(unk_replace).long())
     words = words * (ones - single[index] * noise)
   if normalization:
+    pdb.set_trace()
     chars_norm = chars_norm[index]
     if word_norm_not_norm is not None:
-      word_norm_not_norm = word_norm_not_norm[index]
 
+      word_norm_not_norm = word_norm_not_norm[index]
 
   return words, chars[index], chars_norm, word_norm_not_norm, pos[index], xpos[index], heads[index], types[index], masks[index], lengths[index], order_inputs[index]
 
@@ -461,7 +461,6 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
   """
   data_variable, bucket_sizes, _buckets, _ = data
   bucket_indices = np.arange(len(_buckets))
-
   for bucket_id in bucket_indices:
     bucket_size = bucket_sizes[bucket_id]
     bucket_length = _buckets[bucket_id]
@@ -469,6 +468,7 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
       continue
 
     words, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, single, lengths, order_ids, raw_word_inputs, raw_lines = data_variable[bucket_id]
+    pdb.set_trace()
     if unk_replace:
       ones = Variable(single.data.new(bucket_size, bucket_length).fill_(1))
       noise = Variable(masks.data.new(bucket_size, bucket_length).bernoulli_(unk_replace).long())
@@ -478,11 +478,13 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
       if normalization:
         chars_norm_ = chars_norm[excerpt] if normalization else None
         if word_norm_not_norm is not None:
+          pdb.set_trace()
           word_norm_not_norm = word_norm_not_norm[excerpt]
       if chars[excerpt].size(0) <= 1 or chars_norm_.size(0) <= 1:
         pdb.set_trace()
         print("WARNING : We are skipping a batch because size is {} char and {} for char_nor".format(chars[excerpt].size(),chars_norm_.size()))
         continue
+
       yield words[excerpt], chars[excerpt], chars_norm_, word_norm_not_norm, pos[excerpt], xpos[excerpt], heads[excerpt], \
             types[excerpt],\
             masks[excerpt], lengths[excerpt], order_ids[excerpt], raw_word_inputs[excerpt], raw_lines[excerpt]
