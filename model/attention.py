@@ -13,7 +13,6 @@ class Attention(nn.Module):
                  char_embedding_dim, hidden_size_src_word_encoder, method="general",use_gpu=False):
 
         super(Attention, self).__init__()
-        pdb.set_trace()
         self.hidden_size_word_decoder = hidden_size_word_decoder
         self.attn = nn.Linear(hidden_size_word_decoder ,#+ char_embedding_dim,
                               hidden_size_src_word_encoder)#+hidden_size, hidden_size) # CHANGE--> (compared to example) we (hidden_size * 2+hidden_size because we have the embedding size +  ..
@@ -49,7 +48,8 @@ class Attention(nn.Module):
             # char_state_decoder[batch, :] : state of the decoder for batch ind (embedding)
             score_index = char_src+1 < word_src_sizes
             scores_energy = self.score(char_state_decoder[:, :],
-                                                    encoder_outputs[:, char_src]) # CHANGE : no need of unsquueze ?
+                                       encoder_outputs[:, char_src]) # CHANGE : no need of unsquueze ?
+            # masking end of src words
             diag = torch.diag(score_index).float()
             #diag.dtype(dtype=torch.float)
             if scores_energy.is_cuda:
@@ -68,11 +68,11 @@ class Attention(nn.Module):
         #  Q? is it useful
         #softmax_clone = softmax.clone()
         diag_sotm = torch.diag(word_src_sizes != 1).float()
-        pdb.set_trace()
+
         if softmax.is_cuda:
             diag_sotm = diag_sotm.cuda()
+        # masking empty words
         softmax_ = diag_sotm.matmul(softmax) # equivalent to softmax[word_src_sizes == 1, :] = 0. #assert (softmax_2==softmax).all()
-        pdb.set_trace()
         softmax_ = softmax_.unsqueeze(1)
         return softmax_
 

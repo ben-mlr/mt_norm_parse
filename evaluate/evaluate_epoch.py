@@ -146,7 +146,8 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
 
 if __name__ == "__main__":
     list_all_dir = os.listdir(os.path.join(PROJECT_PATH, "checkpoints"))
-    for ablation_id in ["aaad"]:#,"bd55","0153","f178"]:
+    #for ablation_id in ["aaad"]:#,"bd55","0153","f178"]:
+    for ablation_id in ["42a20-WARMUP-unrolling-False0.1_scale_aux-True_aux-0.1do_char_dec-False_char_src_atten-model_13_db74-folder"]:
     #for ablation_id in ["08661","d6960"]:
     #for ablation_id in ["f2f2-batchXdropout_char0.1-to_char_src-1_dir_sent-10_batch_size-model_18_aa04","8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_1_33ca"]:
     #for ablation_id in ["e390","24f9d"]:
@@ -159,7 +160,7 @@ if __name__ == "__main__":
           for data in [DEMO, DEV]:
             list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
             print("FOLDERS : ", list_)
-            for folder_name in list_[1:]:
+            for folder_name in list_:
               model_full_name = folder_name[:-7]
               print("MODEL_FULL_NAME : ", model_full_name)
               print("0Evaluating {} ".format(model_full_name))
@@ -171,11 +172,10 @@ if __name__ == "__main__":
                        normalization=True,
                        model_specific_dictionary=True,
                        batch_size=batch_size,
-                       debug=False,
+                       debug=True,
                        compute_mean_score_per_sent=True,
                        get_batch_mode_evaluate=get_batch_mode_evaluate,
                        dir_report=os.path.join(PROJECT_PATH, "checkpoints", folder_name), verbose=1)
-              raise(Exception)
 
 
 

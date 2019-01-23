@@ -428,7 +428,6 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
   bucket_length = _buckets[bucket_id]
 
   words, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, single, lengths, order_inputs, raw, raw_lines = data_variable[bucket_id]
-  pdb.set_trace()
   #printin(raw)
   bucket_size = bucket_sizes[bucket_id]
   #print("INFO : BUCKET SIZE {}  BATCH SIZE {} (in conllu_data)".format(bucket_size, batch_size))
@@ -446,7 +445,6 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
     noise = Variable(masks.data.new(batch_size, bucket_length).bernoulli_(unk_replace).long())
     words = words * (ones - single[index] * noise)
   if normalization:
-    pdb.set_trace()
     chars_norm = chars_norm[index]
     if word_norm_not_norm is not None:
 
@@ -469,7 +467,6 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
       continue
 
     words, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, single, lengths, order_ids,  raw_word_inputs, raw_lines = data_variable[bucket_id]
-    pdb.set_trace()
 
     if unk_replace:
       ones = Variable(single.data.new(bucket_size, bucket_length).fill_(1))
@@ -480,7 +477,6 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
       if normalization:
         chars_norm_ = chars_norm[excerpt] if normalization else None
         if word_norm_not_norm is not None:
-          pdb.set_trace()
           _word_norm_not_norm = word_norm_not_norm[excerpt]
         else:
             _word_norm_not_norm = None

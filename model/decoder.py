@@ -51,7 +51,7 @@ class CharDecoder(nn.Module):
                                                dropout=drop_out_word_cell,
                                                bias=True, batch_first=True, bidirectional=False)
         printing("MODEL Decoder : word_recurrent_cell has been set to {} ".format(str(word_recurrent_cell)),
-                 verbose=verbose, verbose_level=0)
+                 verbose=verbose, verbose_level=1)
         #self.attn_param = nn.Linear(hidden_size_decoder*1) if char_src_attention else None
         self.attn_layer = Attention(hidden_size_word_decoder=hidden_size_decoder,
                                     char_embedding_dim=self.char_embedding_decoder.embedding_dim,
@@ -178,6 +178,7 @@ class CharDecoder(nn.Module):
                                                     char_vecs_sizes=word_src_sizes,
                                                     step_char=char_i,
                                                     char_seq_hidden_encoder=char_seq_hidden_encoder)
+                #pdb.set_trace()
                 # TODO : should shorted sequence output and state by setting them to 0 using step_char and char_vecs_sizes_target (but it should be fine with the loss outpu)
                 #c_i = state_i[1] if isinstance(self.seq_decoder, nn.LSTM) else None
                 h_i = state_i[0] if isinstance(self.seq_decoder, nn.LSTM) else h_i
@@ -285,10 +286,16 @@ class CharDecoder(nn.Module):
                                                                           char_seq_hidden_encoder=char_seq_hidden_encoder)
         word_encoders, start = get_timing(start)
         # output_w_decoder : [ batch x max sent len, max word len , hidden_size_decoder ]
+        max_word = output_w_decoder.size(0)/output_char_vecs.size(0)
         output_w_decoder = output_w_decoder.view(output_char_vecs.size(0),
-                                                 output_w_decoder.size(0)/output_char_vecs.size(0), -1,
+                                                 max_word, -1,
                                                  output_w_decoder.size(2))
-        reshape, start = get_timing(start)
+        if self.attn_layer is not None:
+            attention_weight_all = torch.cat(attention_weight_all, dim=1)
+            attention_weight_all = attention_weight_all.view(output_char_vecs.size(0), max_word, attention_weight_all.size(1),attention_weight_all.size(2))
+            reshape, start = get_timing(start)
+        else:
+            attention_weight_all = None
         # output_w_decoder : [ batch , max sent len, max word len , hidden_size_decoder ]
         if self.timing:
             print("SENT TARGET : {}".format(OrderedDict([("clone_len", clone_len), ("argmin_squeeze", argmin_squeeze),("sorting", sorting),

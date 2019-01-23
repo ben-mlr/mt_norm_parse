@@ -5,3 +5,4 @@ test/test_models/
 .idea
 .data
 .DS_Store*
+.ipynb_checkpoints

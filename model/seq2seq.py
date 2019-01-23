@@ -199,7 +199,7 @@ class LexNormalizer(nn.Module):
         self.dir_model = dir_model
         self.model_full_name = model_full_name
         printing("Model arguments are {} ".format(self.arguments), verbose, verbose_level=0)
-        printing("Model : NB : defined drop outs are the reloaded one ", verbose, verbose_level=0)
+        printing("Model : NB : defined drop outs are the reloaded one ", verbose, verbose_level=1)
         # 1 shared character embedding layer
         self.char_embedding = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
         self.encoder = CharEncoder(self.char_embedding, input_dim=char_embedding_dim,
@@ -219,7 +219,6 @@ class LexNormalizer(nn.Module):
         self.bridge = nn.Linear(
             hidden_size_encoder * n_layers_word_encoder*p_word + hidden_size_sent_encoder * dir_sent_encoder*p_sent,
             hidden_size_decoder)
-        pdb.set_trace()
         self.dropout_bridge = nn.Dropout(p=drop_out_bridge)
         self.normalize_not_normalize = BinaryPredictor(input_dim=hidden_size_decoder, dense_dim=dense_dim_auxilliary) \
             if self.auxilliary_task_norm_not_norm else None
@@ -267,11 +266,11 @@ class LexNormalizer(nn.Module):
         if self.auxilliary_task_norm_not_norm:
             printing("DECODER hidden state after norm_not_norm_hidden size {}", var=[norm_not_norm_hidden.size()],
                      verbose=0, verbose_level=4)
-        pdb.set_trace()
         output, attention_weight_all = self.decoder.sent_encoder_target(output_seq, h, output_word_len,
                                                                         word_src_sizes=word_src_sizes,
                                                                         char_seq_hidden_encoder=char_seq_hidden_encoder,
                                                                         sent_len_max_source=sent_len_max_source)
+
         target_encoder, start = get_timing(start)
         printing("TYPE  decoder {} is cuda ", var=(output.is_cuda),
                  verbose=0, verbose_level=4)
@@ -284,7 +283,6 @@ class LexNormalizer(nn.Module):
             time_report = OrderedDict(
                 [("source_encoder", source_encoder), ("target_encoder", target_encoder), ("bridge", bridge)])
             print("time report {}".format(time_report))
-
         return output, norm_not_norm_hidden, attention_weight_all
 
     @staticmethod

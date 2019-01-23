@@ -6,6 +6,7 @@ import numpy as np
 from evaluate.normalization_errors import score_ls, score_ls_
 from io_.dat.constants import CHAR_START_ID
 import pdb
+from evaluate.visualize_attention import show_attention
 # EPSILON for the test of edit distance 
 EPSILON = 0.000001
 TEST_SCORING_IN_CODE = False
@@ -49,7 +50,7 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                 printing("WARNING : word max_len set to src_seq.size(-1) {} ", var=(max_len), verbose=verbose,
                          verbose_level=3)
                 # decoding one batch
-                text_decoded_ls, src_text_ls, gold_text_seq_ls, counts = decode_sequence(model=model,
+                text_decoded_ls, src_text_ls, gold_text_seq_ls, counts, _ = decode_sequence(model=model,
                                                                                          char_dictionary=char_dictionary,
                                                                                          single_sequence=False,
                                                                                          target_seq_gold=target_gold,
@@ -170,28 +171,33 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         else:
             sequence = []
         printing("Decoding step {} decoded target {} ", var=(step, sequence), verbose=verbose, verbose_level=5)
-        pred_word_count, text_decoded = output_text_(output_seq,#predictions,
-                                                    char_dictionary, single_sequence=single_sequence, output_str=output_str)
+        pred_word_count, text_decoded, decoded_ls = output_text_(output_seq,#predictions,
+                                                                 char_dictionary, single_sequence=single_sequence,
+                                                                 output_str=output_str, last=char_decode==(max_len-1), debug=True)
         printing("PREDICTION : array text {} ", var=[text_decoded],
                  verbose=verbose,
                  verbose_level=5)
-
     #text_ = "output_text_"
-    src_word_count, src_text = output_text_(src_seq, char_dictionary, single_sequence=single_sequence,output_str=output_str)
+    src_word_count, src_text, src_all_ls = output_text_(src_seq, char_dictionary, single_sequence=single_sequence,output_str=output_str)
     src_text_ls.extend(src_text)
     if target_seq_gold is not None:
-        target_word_count, target_text = output_text_(target_seq_gold, char_dictionary, single_sequence=single_sequence,output_str=output_str)
+        target_word_count, target_text, _ = output_text_(target_seq_gold, char_dictionary, single_sequence=single_sequence,output_str=output_str)
         target_seq_gold_ls.extend(target_text)
     else:
         target_word_count = None
-
+    if single_sequence:
+        if model.decoder.attn_layer is not None:
+            attention = attention[0]
     return text_decoded, src_text_ls, target_seq_gold_ls, {"src_word_count": src_word_count,
                                                            "target_word_count": target_word_count,
-                                                           "pred_word_count": pred_word_count}
+                                                           "pred_word_count": pred_word_count}, (attention, src_all_ls)
 
 
 def decode_seq_str(seq_string, model, char_dictionary, pad=1,
+                   dir_attention=None, save_attention=False,
+                   show_att=False,
                    max_len=20, verbose=2, sent_mode=False):
+    assert sent_mode
     sent = seq_string.copy()
     # we add empty words at the end otherwie poblem !! # TODO : understand why ? is it because we need word padded at the end of the sentence ?
     sent.append("")
@@ -199,8 +205,9 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
         sent_character = []
         sent_words_mask = []
         sent_words_lens = []
+        print("sent",sent)
         for seq_string in sent:
-            if len(seq_string)>0:
+            if len(seq_string) > 0:
                 _seq_string = ["_START"]
                 printing("WARNING : we added _START symbol and _END_CHAR ! ", verbose=verbose, verbose_level=0)
                 _seq_string.extend(list(seq_string))
@@ -223,23 +230,37 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
         batch_lens = Variable(torch.from_numpy(np.array([sent_words_lens, sent_words_lens])), requires_grad=False)
         batch_lens = batch_lens.unsqueeze(dim=2)
         batch_size = 2
-        text_decoded, src_text, target, _ = decode_sequence(model=model, char_dictionary=char_dictionary,
-                                                            max_len=max_len,batch_size=batch_size,
-                                                            src_seq=batch, src_len=batch_lens,
-                                                            src_mask=batch_masks, single_sequence=True,
-                                                            pad=pad, verbose=verbose)
+        text_decoded, src_text, target, _, (attention, src_seq) = decode_sequence(model=model, char_dictionary=char_dictionary,
+                                                                                  max_len=max_len,
+                                                                                  batch_size=batch_size,
+                                                                                  src_seq=batch,
+                                                                                  src_len=batch_lens,
+                                                                                  src_mask=batch_masks,
+                                                                                  single_sequence=True,
+                                                                                  pad=pad, verbose=verbose)
+        pdb.set_trace()
+        if attention is not None:
+            print("Attention", attention, src_seq, text_decoded)
+            for pred_word, src_word, attention_word in zip(text_decoded, src_seq, attention):
+                pdb.set_trace()
+                show_attention(list(pred_word), src_word[:attention_word.size(1)],
+                               attention_word.transpose(1, 0), save=save_attention, dir_save=dir_attention,show=show_att,
+                               model_full_name=model.model_full_name)
+            #show_attention("[lekfezlfkh efj ", ["se", "mjfsemkfj"], torch.tensor([[0, .4], [1, 0.6]]))
+            pdb.set_trace()
 
         printing("DECODED text is : {} original is {}".format(text_decoded, src_text), verbose_level=0, verbose=verbose)
 
 
-def decode_interacively(model , char_dictionary,  max_len, pad=1, sent_mode=False,verbose=0):
+def decode_interacively(model , char_dictionary,  max_len, pad=1, sent_mode=False, save_attention=False,
+                        show_attention=False,
+                        dir_attention=None,verbose=0):
     if char_dictionary is None:
         printing("INFO : dictionary is None so setting char_dictionary to model.char_dictionary",
                  verbose=verbose, verbose_level=0)
         char_dictionary = model.char_dictionary
     sentence = []
     while True:
-
         seq_string = input("Please type what you want to normalize word by word and "
                            "finishes by 'stop' ? to end type : 'END'    ")
         if seq_string == "":
@@ -250,7 +271,8 @@ def decode_interacively(model , char_dictionary,  max_len, pad=1, sent_mode=Fals
                 break
             else:
                 decode_seq_str(seq_string=sentence, model=model, char_dictionary=char_dictionary, pad=pad,max_len= max_len,
-                               verbose=verbose, sent_mode=True)
+                               show_att=True,
+                               verbose=verbose, sent_mode=True, dir_attention=dir_attention, save_attention=save_attention)
                 sentence = []
 
         elif seq_string == "END":
