@@ -177,7 +177,8 @@ if __name__ == "__main__":
           for dense_dim_auxilliary in [50]:
               #for weight_binary_loss in [0.001,1,10,100]:
               for auxilliary_task_norm_not_norm in [True, False]:
-                  for weight_binary_loss in [0.1, 2]:
+                  weight_binary_loss_ls = [0] if not auxilliary_task_norm_not_norm else [0.1,2]
+                  for weight_binary_loss in weight_binary_loss_ls:
                       for drop_out_char_embedding_decoder in [0.1,0.5]:
                           for char_src_attention in [False, True]:
                             for unrolling_word in [True]:
@@ -198,17 +199,18 @@ if __name__ == "__main__":
                               param["auxilliary_task_norm_not_norm"] = auxilliary_task_norm_not_norm
 
                               param["weight_binary_loss"] = weight_binary_loss
-                              label = str(dense_dim_auxilliary)+"-dense_dim_auxilliary"+str(weight_binary_loss) +\
-                                      "weight_binary_loss"+str(param["drop_out_word_encoder_out"])+"-to_char_src-" +\
-                                      str(param["dir_sent_encoder"])+"_dir_sent-"+str(param["batch_size"])+"_batch" + "-dir_word_src_" +\
-                                      str(param["dir_word_encoder"])+"-unrolling_word_"+str(unrolling_word)+ "-char_src_attention_"+str(char_src_attention)
+                              #label = str(dense_dim_auxilliary)+"-dense_dim_auxilliary"
+                              label = str(weight_binary_loss)+"_scale_aux-" +str(auxilliary_task_norm_not_norm)+"_aux-"+str(drop_out_char_embedding_decoder)+"do_char_dec-"+str(char_src_attention)+"_char_src_atten"
+                                      #"dense_bin"+str(param["drop_out_word_encoder_out"])+"-do_char-" +\
+                                      #str(param["dir_sent_encoder"])+"_dir_sent-"+str(param["batch_size"])+"_batch" + "-dir_word_src_" +\
+                                      #str(param["dir_word_encoder"])+"-unrolling_word_"+str(unrolling_word)+       
                               params.append(param)
                               #labels.append("model_"+str(n_model))
                               labels.append(label)
 
       warmup = False
       RUN_ID = str(uuid4())[0:5]
-      LABEL_GRID = "no_bucketing-get_batch_False-train-attention" if not warmup else "WARMUP-unrolling-False"
+      LABEL_GRID = "extend_ep-get_True-attention_simplifiedXauxXdropout" if not warmup else "WARMUP-unrolling-False"
       GRID_FOLDER_NAME = RUN_ID+"-"+LABEL_GRID if len(LABEL_GRID) > 0 else RUN_ID
       #GRID_FOLDER_NAME = LABEL_GRID if len(LABEL_GRID) > 0 else RUN_ID
       GRID_FOLDER_NAME += "-summary"
@@ -222,7 +224,7 @@ if __name__ == "__main__":
           #param["batch_size"] = 10
           #model_id_pref = "TEST-"+model_id_pref
           printing("Adding RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 1
+          epochs = 40
           if warmup:
             param = {"hidden_size_encoder": 10, "output_dim": 15, "char_embedding_dim": 10,
                      "dropout_sent_encoder": 0., "drop_out_word_encoder": 0., "dropout_word_decoder": 0.,
