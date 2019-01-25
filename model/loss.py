@@ -10,6 +10,7 @@ import pdb
 from env.project_variables import LOSS_DETAIL_TEMPLATE
 import time
 from toolbox.sanity_check import get_timing
+from toolbox.norm_not_norm import schedule_training
 from collections import OrderedDict
 
 class LossCompute:
@@ -17,8 +18,13 @@ class LossCompute:
     def __init__(self, generator,
                  auxilliary_task_norm_not_norm=False,
                  weight_binary_loss=1,
-                 opt=None, pad=1, use_gpu=False, timing=False, verbose=0):
+                 opt=None, pad=1, use_gpu=False, timing=False,
+                 multi_task_mode="all",
+                 ponderation_normalize_loss=1,
+                 verbose=0):
         self.generator = generator
+        self.multi_task_mode = multi_task_mode
+        self.ponderation_normalize_loss = ponderation_normalize_loss
         self.loss_distance = nn.CrossEntropyLoss(reduce=True, ignore_index=pad)
         printing("LOSS : weight_binary_loss is set to {}", var=(weight_binary_loss), verbose=verbose, verbose_level=2)
         self.loss_binary = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_NORM_NOT_NORM) if \
@@ -70,7 +76,9 @@ class LossCompute:
         loss_binary = self.loss_binary(x_norm_not_norm.contiguous().view(-1, x_norm_not_norm.size(-1)),
                                        y_norm_not_norm.contiguous().view(-1)) if self.loss_binary is not None else None
 
-        multi_task_loss = loss+self.weight_binary_loss*loss_binary if self.loss_binary is not None else loss
+        scheduling_norm_not_norm, scheduling_normalize = schedule_training(multi_task_mode=self.multi_task_mode)
+        multi_task_loss = scheduling_normalize*loss+self.weight_binary_loss*loss_binary*scheduling_norm_not_norm*self.ponderation_normalize_loss  if self.loss_binary is not None else loss
+
         loss_details["overall_loss"] = multi_task_loss
         loss_details["loss_seq_prediction"] = loss
         if self.loss_binary:

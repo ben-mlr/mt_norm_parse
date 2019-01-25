@@ -20,7 +20,10 @@ from toolbox.sanity_check import get_timing
 from collections import OrderedDict
 from tracking.plot_loss import simple_plot_ls
 from evaluate.evaluate_epoch import evaluate
-
+from model.schedule_training_policy import AVAILABLE_SCHEDULING_POLICIES
+from toolbox.norm_not_norm import scheduling_policy
+from env.project_variables import AVAILABLE_TASKS
+from model.schedule_training_policy import policy_1
 np.random.seed(SEED_NP)
 torch.manual_seed(SEED_TORCH)
 
@@ -49,6 +52,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           debug=False,timing=False,
           dev_report_loss=True,
           bucketing=True,
+          policy=None,
           shared_context="all",
           extend_n_batch=1,
           verbose=1):
@@ -133,20 +137,15 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
         model = model.cuda()
         printing("TYPE model is cuda : {} ", var=(next(model.parameters()).is_cuda), verbose=verbose, verbose_level=4)
         #model.decoder.attn_layer = model.decoder.attn_layer.cuda()
-
     if not model_specific_dictionary:
         model.word_dictionary, model.char_dictionary, model.pos_dictionary, \
-        model.xpos_dictionary, model.type_dictionary = word_dictionary, char_dictionary, pos_dictionary, \
-                                                       xpos_dictionary, type_dictionary
+        model.xpos_dictionary, model.type_dictionary = word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary
 
     starting_epoch = model.arguments["info_checkpoint"]["n_epochs"] if reload else 0
     reloading = "" if not reload else " reloaded from "+str(starting_epoch)
     n_epochs += starting_epoch
 
     adam = torch.optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.98), eps=1e-9)
-    #if use_gpu:
-    #  printing("Setting adam to GPU", verbose=verbose, verbose_level=0)
-    #  adam = adam.cuda()
     _loss_dev = 1000
     _loss_train = 1000
     counter_no_deacrease = 0
@@ -177,6 +176,12 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                                       add_start_char=add_start_char, add_end_char=add_end_char)
 
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
+        assert policy in AVAILABLE_SCHEDULING_POLICIES
+        policy_dic = eval(policy)(epoch) if policy is not None else None
+        multi_task_mode , ponderation_normalize_loss, weight_binary_loss = \
+            scheduling_policy(epoch=epoch, phases_ls=policy_dic)
+        printing("SCHEDULING : ponderation_normalize_loss is {} weight_binary_loss is {} ",
+                 var=[weight_binary_loss, ponderation_normalize_loss], verbose=verbose,verbose_level=1)
 
         printing("TRAINING : Starting {} epoch out of {} ", var=(epoch+1, n_epochs), verbose= verbose, verbose_level=1)
         model.train()
@@ -190,9 +195,11 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
         start = time.time()
         loss_train, loss_details_train = run_epoch(batchIter, model, LossCompute(model.generator, opt=adam,
                                                                                  weight_binary_loss=weight_binary_loss,
+                                                                                 ponderation_normalize_loss =ponderation_normalize_loss,
                                                                                  auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
                                                                                  use_gpu=use_gpu,verbose=verbose, timing=timing),
                                                                                  verbose=verbose, i_epoch=epoch,
+                                                                                 multi_task_mode=multi_task_mode,
                                                                                  n_epochs=n_epochs, timing=timing,
                                                                                  log_every_x_batch=100)
         _train_ep_time, start = get_timing(start)
@@ -211,6 +218,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
             printing("EVALUATION : computing loss on dev epoch {}  ",var=epoch, verbose=verbose, verbose_level=1)
             loss_dev, loss_details_dev = run_epoch(batchIter_eval, model, LossCompute(model.generator, use_gpu=use_gpu,verbose=verbose,
                                                                                       weight_binary_loss=weight_binary_loss,
+                                                                                      ponderation_normalize_loss=ponderation_normalize_loss,
                                                                                       auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm),
                                                                                       i_epoch=epoch, n_epochs=n_epochs,
                                                                                       verbose=verbose,timing=timing,

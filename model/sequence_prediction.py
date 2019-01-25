@@ -101,12 +101,13 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                                 # means : aux task is on
                                 pdb.set_trace()
                                 for token in ["all", "need_norm"]:
-                                    for type_ in ["pred", "gold"]:
+                                    for type_ in ["pred", "gold","pred_correct"]:
                                         if token == "all" and type_ == "pred":
                                             continue
                                         score_dic[token+"-norm_not_norm-"+type_+"-count"] \
                                                 += _score[token+"-norm_not_norm-"+type_+"-count"]
-                                    score_dic["all-norm_not_norm-pred_correct-count"] += _score["all-norm_not_norm-pred_correct-count"]
+                                    #score_dic["all-norm_not_norm-pred_correct-count"] += _score["all-norm_not_norm-pred_correct-count"]
+
                     test_scoring = TEST_SCORING_IN_CODE
                     if test_scoring:
                         assert len(list((set(mode_norm_score_ls)&set(["NEED_NORM", "NORMED","all"])))) == 3, "ERROR : to perform test need all normalization mode "

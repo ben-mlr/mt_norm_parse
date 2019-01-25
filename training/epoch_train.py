@@ -26,8 +26,10 @@ def divide_loss_details_n_tokens(total_loss_details_dic, n_tokens):
 
 def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
               n_epochs=None, n_batches=None, empty_run=False, timing=False,
+              multi_task_mode="all",
               log_every_x_batch=VERBOSE_1_LOG_EVERY_x_BATCH):
     "Standard Training and Logging Function"
+    assert multi_task_mode in ["all", "norm_not_norm","normalize"]
     _start = time.time()
     total_tokens = 0
     total_loss = 0

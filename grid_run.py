@@ -15,7 +15,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                overall_report_dir=CHECKPOINT_DIR, overall_label="DEFAULT",get_batch_mode_all=True,
                warmup=False, args={}, use_gpu=None, freq_checkpointing=1,debug=False,compute_scoring_curve=False,
                compute_mean_score_per_sent=False,print_raw=False,freq_scoring=5,bucketing_train=True,
-               extend_n_batch=1, score_to_compute_ls=None,
+               extend_n_batch=1, score_to_compute_ls=None,schedule_training_policy=None,
                verbose=0):
 
     hidden_size_encoder = args.get("hidden_size_encoder", 10)
@@ -62,6 +62,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                             dropout_sent_encoder_cell=dropout_sent_encoder,
                             dropout_word_encoder_cell=dropout_word_encoder,
                             dropout_word_decoder_cell=dropout_word_decoder,
+                            policy=schedule_training_policy,
                             dir_word_encoder=dir_word_encoder,compute_mean_score_per_sent=compute_mean_score_per_sent,
                             overall_label=overall_label,overall_report_dir=overall_report_dir,
                             label_train=REPO_DATASET[train_path], label_dev=REPO_DATASET[dev_path],
@@ -94,7 +95,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                          label_report=eval_label, overall_label=overall_label+"-last+bucket_False_eval-get_batch_"+str(get_batch_mode_evaluate),
                          score_to_compute_ls=score_to_compute_ls, mode_norm_ls=["all", "NEED_NORM", "NORMED"],
                          normalization=True, print_raw=print_raw,
-                         model_specific_dictionary=True, get_batch_mode_evaluate=get_batch_mode_evaluate,bucket=False,
+                         model_specific_dictionary=True, get_batch_mode_evaluate=get_batch_mode_evaluate, bucket=False,
                          compute_mean_score_per_sent=compute_mean_score_per_sent,
                          batch_size=batch_size,
                          dir_report=model_dir, verbose=1)
@@ -233,7 +234,7 @@ if __name__ == "__main__":
           #param["batch_size"] = 10
           #model_id_pref = "TEST-"+model_id_pref
           printing("Adding RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 1
+          epochs = 80
           if warmup:
             param = {"hidden_size_encoder": 10, "output_dim": 15, "char_embedding_dim": 10,
                      "dropout_sent_encoder": 0., "drop_out_word_encoder": 0., "dropout_word_decoder": 0.,
@@ -254,6 +255,7 @@ if __name__ == "__main__":
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
                                                   test_path=DEMO,
                                                   verbose=1,
+                                                  schedule_training_policy="policy_1",
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,
                                                   get_batch_mode_all=True, compute_scoring_curve=False,

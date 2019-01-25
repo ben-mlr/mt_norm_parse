@@ -68,8 +68,8 @@ def score_ls_2(ls_pred, ls_gold, ls_original=None,
                 score_word = eval_func(word_pred, word_gold)
                 sent_score.append(score_word)
                 scores.append(score_word)
-                printing("{} score ,  predicted word {} sentence predicted {} ".format(eval_func(word_pred, word_gold),
-                                                                                       word_pred, word_gold), verbose=verbose, verbose_level=6)
+                printing("{} score ,  predicted word {} sentence predicted {} ".format(eval_func(word_pred, word_gold), word_pred, word_gold),
+                         verbose=verbose, verbose_level=6)
             sent_score_ls.append(sent_score)
         score = np.sum(scores)
         n_mode_words_per_sent = np.mean([len(scores_sent) for scores_sent in sent_score_ls])
@@ -91,11 +91,13 @@ def score_norm_not_norm(norm_not_norm_pred, norm_not_norm_gold):
     gold_not_pad = norm_not_norm_gold[norm_not_norm_gold != 2]
     total_word = len(gold_not_pad)
     assert len(gold_not_pad) == len(predicted_not_pad)
+
     pred_correct_need_norm_prediction_count = np.sum(np.array(gold_not_pad == predicted_not_pad)[np.array(gold_not_pad)==0])
     pred_correct_prediction_count = np.sum(np.array(gold_not_pad == predicted_not_pad))
     #print(gold_not_pad[gold_not_pad == 0])#,dtype=int))
     gold_need_norm_count = len(np.array(gold_not_pad[gold_not_pad == 0]))
     pred_need_norm_count = len(np.array(predicted_not_pad[predicted_not_pad == 0]))
+    pdb.set_trace()
     return {
             "all-norm_not_norm-pred_correct-count": pred_correct_prediction_count,
             "need_norm-norm_not_norm-pred_correct-count": pred_correct_need_norm_prediction_count,
