@@ -31,6 +31,9 @@ class Attention(nn.Module):
             encoder_output = encoder_output.unsqueeze(1)
             energy = torch.bmm(encoder_output, energy)
             energy = energy.squeeze(1).squeeze(1)
+        elif self.method == "bahadanu":
+            #TODO
+            pass
             #energy = encoder_output.dot(energy)
         return energy
 

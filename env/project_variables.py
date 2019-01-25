@@ -13,7 +13,7 @@ PROJECT_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 CHECKPOINT_DIR = os.path.join(PROJECT_PATH, "checkpoints")
 # architecture/model/training supported
 SUPPORED_WORD_ENCODER = ["LSTM", "GRU"]
-BREAKING_NO_DECREASE = 20
+BREAKING_NO_DECREASE = 21
 SUPPORTED_STAT = ["sum"]
 LOSS_DETAIL_TEMPLATE = {"loss_overall": 0, "loss_seq_prediction": 0, "other": {}}
 LOSS_DETAIL_TEMPLATE_LS = {"loss_overall": [], "loss_seq_prediction": [], "other": {}}

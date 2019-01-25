@@ -156,6 +156,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
     starting_time = time.time()
     total_time = 0
     x_axis_epochs = []
+    epoch_ls_dev = []
+    epoch_ls_train = []
     x_axis_epochs_loss = []
     data_read_train = conllu_data.read_data_to_variable(train_path, model.word_dictionary, model.char_dictionary,
                                                          model.pos_dictionary,
@@ -202,32 +204,31 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                          batch_size=batch_size, get_batch_mode=False,
                                          normalization=normalization,extend_n_batch=1,
                                          verbose=verbose)
-        printing("EVALUATION : computing loss on dev ", verbose=verbose, verbose_level=1)
         _create_iter_time, start = get_timing(start)
         # TODO : should be able o factorize this to have a single run_epoch() for train and dev (I think the computaiton would be same )
         # TODO : should not evaluate for each epoch : should evalaute every x epoch : check if it decrease and checkpoint
         if (dev_report_loss and (epoch % freq_checkpointing == 0)) or (epoch + 1 == n_epochs):
+            printing("EVALUATION : computing loss on dev epoch {}  ",var=epoch, verbose=verbose, verbose_level=1)
             loss_dev, loss_details_dev = run_epoch(batchIter_eval, model, LossCompute(model.generator, use_gpu=use_gpu,verbose=verbose,
                                                                                       weight_binary_loss=weight_binary_loss,
                                                                                       auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm),
                                                                                       i_epoch=epoch, n_epochs=n_epochs,
                                                                                       verbose=verbose,timing=timing,
                                                                                       log_every_x_batch=100)
-        else:
-            loss_dev = 0
-        if auxilliary_task_norm_not_norm:
-            # in this case we report loss detail
-            for ind, loss_key in enumerate(loss_details_dev.keys()):
-                if loss_key != "other":
-                    loss_details_template[loss_key].append(loss_details_dev[loss_key])
+            loss_developing.append(loss_dev)
+            epoch_ls_dev.append(epoch)
 
-
-        else:
-            loss_details_template = None
+            if auxilliary_task_norm_not_norm :
+                # in this case we report loss detail
+                for ind, loss_key in enumerate(loss_details_dev.keys()):
+                    if loss_key != "other":
+                        loss_details_template[loss_key].append(loss_details_dev[loss_key])
+            else:
+                loss_details_template = None
 
         _eval_time, start = get_timing(start)
         loss_training.append(loss_train)
-        loss_developing.append(loss_dev)
+        epoch_ls_train.append(epoch)
         time_per_epoch = time.time() - starting_time
         total_time += time_per_epoch
         starting_time = time.time()
@@ -270,21 +271,22 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
 
         # WARNING : only saving if we decrease not loading former model if we relaod
         if (checkpointing and epoch % freq_checkpointing == 0) or (epoch+1 == n_epochs):
-            if loss_details_template is not None:
-                dir_plot_detailed = simple_plot(final_loss=0, loss_2=loss_details_template.get("loss_binary", None),
-                                                loss_ls=loss_details_template["loss_seq_prediction"],
-                                                epochs=str(epoch) + reloading,
-                                                label="dev-seq_prediction",
-                                                label_2="dev-binary",
-                                                save=True, dir=model.dir_model,
-                                                verbose=verbose, verbose_level=1,
-                                                lr=lr, prefix=model.model_full_name+"-details",
-                                                show=False)
-            else:
-                dir_plot_detailed = None
+
+            dir_plot_detailed = simple_plot(final_loss=0,
+                                            epoch_ls_1=epoch_ls_dev,epoch_ls_2=epoch_ls_dev,
+                                            loss_2=loss_details_template.get("loss_binary", None),
+                                            loss_ls=loss_details_template["loss_seq_prediction"],
+                                            epochs=str(epoch) + reloading,
+                                            label="dev-seq_prediction",
+                                            label_2="dev-binary",
+                                            save=True, dir=model.dir_model,
+                                            verbose=verbose, verbose_level=1,
+                                            lr=lr, prefix=model.model_full_name+"-details",
+                                            show=False) if loss_details_template is not None else None
 
             dir_plot = simple_plot(final_loss=loss_train, loss_2=loss_developing, loss_ls=loss_training,
                                    epochs=str(epoch)+reloading,
+                                   epoch_ls_1=epoch_ls_train, epoch_ls_2=epoch_ls_dev,
                                    label=label_train+"-train",
                                    label_2=label_dev+"-dev",
                                    save=True, dir=model.dir_model,
@@ -298,25 +300,24 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                model_dir= model.dir_model,
                                info_checkpoint={"n_epochs": epoch, "batch_size": batch_size,
                                                 "train_data_path": train_path, "dev_data_path": dev_path,
-                                                 "other": {"error_curves": dir_plot, "loss":_loss_dev, "error_curves_details":dir_plot_detailed,
+                                                 "other": {"error_curves": dir_plot, "loss": _loss_dev, "error_curves_details":dir_plot_detailed,
                                                            "weight_binary_loss": weight_binary_loss,
-                                                           "data":"dev","seed(np/torch)":(SEED_TORCH, SEED_TORCH),
-                                                           "extend_n_batch":extend_n_batch,
+                                                           "data":"dev", "seed(np/torch)": (SEED_TORCH, SEED_TORCH),
+                                                           "extend_n_batch": extend_n_batch,
                                                            "time_training(min)": "{0:.2f}".format(total_time/60),
                                                            "average_per_epoch(min)": "{0:.2f}".format((total_time/n_epochs)/60)}},
                              epoch=epoch, epochs=n_epochs,
                              verbose=verbose)
-            if counter_no_deacrease >= BREAKING_NO_DECREASE:
+            if counter_no_deacrease*freq_checkpointing >= BREAKING_NO_DECREASE:
                 assert freq_checkpointing == 1, "ERROR : to implement"
                 printing("CHECKPOINTING : Breaking training : loss did not decrease on dev for 10 checkpoints "
                          "so keeping model from {} epoch  ".format(saved_epoch),
                          verbose=verbose, verbose_level=0)
                 break
-
-        printing("LOSS train {:.3f}, dev {:.3f} for epoch {} out of {} epochs ", var=(loss_train, loss_dev,
-                                                                                       epoch, n_epochs),
-                 verbose=verbose,
-                 verbose_level=1)
+        printing("LOSS train {:.3f}, dev {:.3f} for epoch {} out of {} epochs ",
+                 var=(loss_train, loss_dev,
+                      epoch, n_epochs),
+                 verbose=verbose, verbose_level=1)
 
         if timing:
             print("Summary : {}".format(OrderedDict([("_train_ep_time", _train_ep_time), ("_create_iter_time", _create_iter_time), ("_eval_time",_eval_time) ])))
@@ -327,7 +328,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
 
     #report_model(parameters=True, ,arguments_dic=model.arguments, dir_models_repositories=REPOSITORIES)
 
-    simple_plot(final_loss=loss_dev, loss_ls=loss_training, loss_2=loss_developing, epochs=n_epochs, save=True,
+    simple_plot(final_loss=loss_dev, loss_ls=loss_training, loss_2=loss_developing,
+                epoch_ls_1=[i for i in range(n_epochs)],epoch_ls_2=epoch_ls_dev,
+                epochs=n_epochs, save=True,
                 dir=model.dir_model, label=label_train, label_2=label_dev,
                 lr=lr, prefix=model.model_full_name+"-LAST")
    
