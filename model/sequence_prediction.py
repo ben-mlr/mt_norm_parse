@@ -3,10 +3,12 @@ from torch.autograd import Variable
 from io_.info_print import printing
 from io_.from_array_to_text import output_text, output_text_
 import numpy as np
-from evaluate.normalization_errors import score_ls, score_ls_
+from evaluate.normalization_errors import score_norm_not_norm
+from evaluate.normalization_errors import score_ls_, score_ls_2
 from io_.dat.constants import CHAR_START_ID
 import pdb
 from evaluate.visualize_attention import show_attention
+from toolbox.norm_not_norm import get_label_norm
 # EPSILON for the test of edit distance 
 EPSILON = 0.000001
 TEST_SCORING_IN_CODE = False
@@ -20,6 +22,9 @@ def _init_metric_report(score_to_compute_ls, mode_norm_score_ls):
         dic.update({score+"-"+norm_mode+"-"+"total_tokens": 0 for score in score_to_compute_ls for norm_mode in mode_norm_score_ls})
         dic.update({score+"-"+norm_mode+"-"+"mean_per_sent": 0 for score in score_to_compute_ls for norm_mode in mode_norm_score_ls})
         dic.update({score + "-" + norm_mode + "-" + "n_word_per_sent": 0 for score in score_to_compute_ls for norm_mode in mode_norm_score_ls})
+        dic.update({token + "-norm_not_norm-" + type_ + "-count":0 for token in ["all","need_norm"] for type_ in ["pred", "gold"]})
+        dic["all-norm_not_norm-pred_correct-count"] = 0
+        dic["need_norm-norm_not_norm-pred_correct-count"] = 0
         return dic
     return None
 
@@ -50,40 +55,58 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                 printing("WARNING : word max_len set to src_seq.size(-1) {} ", var=(max_len), verbose=verbose,
                          verbose_level=3)
                 # decoding one batch
-                text_decoded_ls, src_text_ls, gold_text_seq_ls, counts, _ = decode_sequence(model=model,
-                                                                                         char_dictionary=char_dictionary,
-                                                                                         single_sequence=False,
-                                                                                         target_seq_gold=target_gold,
-                                                                                         use_gpu=use_gpu,
-                                                                                         max_len=max_len,
-                                                                                         src_seq=src_seq,
-                                                                                         src_mask=src_mask,
-                                                                                         src_len=src_len,
-                                                                                         batch_size=batch_size, pad=pad,
-                                                                                         verbose=verbose)
+                (text_decoded_ls, src_text_ls, gold_text_seq_ls), counts, _, (pred_norm,) \
+                    = decode_sequence(model=model,
+                                      char_dictionary=char_dictionary,
+                                      single_sequence=False,
+                                      target_seq_gold=target_gold,
+                                      use_gpu=use_gpu,
+                                      max_len=max_len,
+                                      src_seq=src_seq,
+                                      src_mask=src_mask,
+                                      src_len=src_len,
+                                      batch_size=batch_size, pad=pad,
+                                      verbose=verbose)
                 total_count["src_word_count"] += counts["src_word_count"]
                 total_count["target_word_count"] += counts["target_word_count"]
                 total_count["pred_word_count"] += counts["pred_word_count"]
                 printing("Source text {} ", var=[(src_text_ls)], verbose=verbose, verbose_level=5)
                 printing("Prediction {} ", var=[(text_decoded_ls)], verbose=verbose, verbose_level=5)
                 if gold_output:
+                    # we can score
                     printing("Gold {} ", var=[(gold_text_seq_ls)], verbose=verbose, verbose_level=5)
                     if score_to_compute_ls is not None:
-                        for mode_norm_score in mode_norm_score_ls:
-                            #print("Scoring with mode {}".format(mode_norm_score))
-                            for metric in score_to_compute_ls:
-                                #we score the batch
-                                _score, _n_tokens = score_ls_(text_decoded_ls, gold_text_seq_ls, ls_original=src_text_ls,
-                                                              score=metric, stat=stat,
-                                                              compute_mean_score_per_sent=compute_mean_score_per_sent,
-                                                              normalized_mode=mode_norm_score,
-                                                              verbose=verbose)
-                                if compute_mean_score_per_sent:
-                                    score_dic[metric + "-" + mode_norm_score + "-n_sents"] += _score["n_sents"]
-                                    score_dic[metric + "-" + mode_norm_score + "-n_word_per_sent"] += _score["n_word_per_sent"]
-                                    score_dic[metric + "-" + mode_norm_score+"-mean_per_sent"] += _score["mean_per_sent"]
-                                score_dic[metric+"-"+mode_norm_score] += _score["sum"]
-                                score_dic[metric+"-"+mode_norm_score+"-"+"total_tokens"] += _n_tokens
+                        _score_2 = score_ls_2(ls_pred=text_decoded_ls, ls_gold=gold_text_seq_ls,
+                                              ls_original=src_text_ls)
+                        for metric in score_to_compute_ls:
+                            # TODO : DEPRECIATED : should be remove til # ---- no more need t set the norm/need_norm : all is done by default
+                            for mode_norm_score in mode_norm_score_ls:
+                                if metric not in ["norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recall", "norm_not_norm-accuracy"]:
+                                    _score, _n_tokens = score_ls_(text_decoded_ls, gold_text_seq_ls, ls_original=src_text_ls,
+                                                                  score=metric, stat=stat,
+                                                                  compute_mean_score_per_sent=compute_mean_score_per_sent,
+                                                                  normalized_mode=mode_norm_score,
+                                                                  verbose=verbose)
+                                    print("SCORE1", mode_norm_score, " -- ", _score)
+                                    if compute_mean_score_per_sent:
+                                        score_dic[metric + "-" + mode_norm_score + "-n_sents"] += _score["n_sents"]
+                                        score_dic[metric + "-" + mode_norm_score + "-n_word_per_sent"] += _score["n_word_per_sent"]
+                                        score_dic[metric + "-" + mode_norm_score+"-mean_per_sent"] += _score["mean_per_sent"]
+                                    score_dic[metric + "-" + mode_norm_score] += _score["sum"]
+                                    score_dic[metric + "-" + mode_norm_score + "-" + "total_tokens"] += _n_tokens
+                                # ----
+                            if batch.output_norm_not_norm is not None:
+                                batch.output_norm_not_norm = batch.output_norm_not_norm[:, :pred_norm.size(1)]  # not that clean : we cut gold norm_not_norm sequence
+                                _score = score_norm_not_norm(pred_norm, batch.output_norm_not_norm)
+                                # means : aux task is on
+                                pdb.set_trace()
+                                for token in ["all", "need_norm"]:
+                                    for type_ in ["pred", "gold"]:
+                                        if token == "all" and type_ == "pred":
+                                            continue
+                                        score_dic[token+"-norm_not_norm-"+type_+"-count"] \
+                                                += _score[token+"-norm_not_norm-"+type_+"-count"]
+                                    score_dic["all-norm_not_norm-pred_correct-count"] += _score["all-norm_not_norm-pred_correct-count"]
                     test_scoring = TEST_SCORING_IN_CODE
                     if test_scoring:
                         assert len(list((set(mode_norm_score_ls)&set(["NEED_NORM", "NORMED","all"])))) == 3, "ERROR : to perform test need all normalization mode "
@@ -114,12 +137,9 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
     output_seq[:, :, 0] = src_seq[:, :, 0] #CHAR_START_ID
     src_text_ls = []
     target_seq_gold_ls = [] if target_seq_gold is not None else None
-
     output_mask = np.ones(src_mask.size(), dtype=np.int64)
     output_mask[:, :, 1:] = 0
-    output_len = Variable(torch.from_numpy(np.ones((src_seq.size(0), src_seq.size(1), 1), dtype=np.int64)),
-                          requires_grad=False)
-
+    output_len = Variable(torch.from_numpy(np.ones((src_seq.size(0), src_seq.size(1), 1), dtype=np.int64)), requires_grad=False)
     output_mask = Variable(torch.from_numpy(output_mask), requires_grad=False)
     output_seq = Variable(torch.from_numpy(output_seq), requires_grad=False)
     printing("Data Start source {} {} ", var=(src_seq, src_seq.size()), verbose=verbose, verbose_level=5)
@@ -132,13 +152,14 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
             output_seq = output_seq.cuda()
             src_len = src_len.cuda()
             output_len = output_len.cuda()
-        decoding_states, _, attention = model.forward(input_seq=src_seq,
-                                                      output_seq=output_seq,
-                                                      input_word_len=src_len,
-                                                      output_word_len=output_len)
+        decoding_states, norm_not_norm, attention = model.forward(input_seq=src_seq,
+                                                                  output_seq=output_seq,
+                                                                  input_word_len=src_len,
+                                                                  output_word_len=output_len)
         # we remove in src_seq the empty words
         #src_seq = src_seq[:,:decoding_states.size(1),:]
         # [batch, seq_len, V]
+        pred_norm_not_norm = norm_not_norm.argmax(dim=-1) if norm_not_norm is not None else None
         scores = model.generator.forward(x=decoding_states)
         # each time step predict the most likely
         # len
@@ -162,8 +183,8 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                  predictions[:, -1],
                  output_seq.size()),
                  verbose=verbose, verbose_level=5)
-
         output_seq = output_seq[:, :scores.size(1), :]
+        pred_norm_not_norm = pred_norm_not_norm[:, :scores.size(1)]  # followign what's done above
         output_seq[:, :, char_decode - 1] = predictions[:, :, -1]
         if verbose >= 5:
             sequence = [" ".join([char_dictionary.get_instance(output_seq[sent, word_ind, char_i]) for char_i in range(max_len)])
@@ -173,12 +194,14 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         printing("Decoding step {} decoded target {} ", var=(step, sequence), verbose=verbose, verbose_level=5)
         pred_word_count, text_decoded, decoded_ls = output_text_(output_seq,#predictions,
                                                                  char_dictionary, single_sequence=single_sequence,
-                                                                 output_str=output_str, last=char_decode==(max_len-1), debug=True)
+                                                                 output_str=output_str, last=char_decode==(max_len-1),
+                                                                 debug=False)
         printing("PREDICTION : array text {} ", var=[text_decoded],
                  verbose=verbose,
                  verbose_level=5)
     #text_ = "output_text_"
-    src_word_count, src_text, src_all_ls = output_text_(src_seq, char_dictionary, single_sequence=single_sequence,output_str=output_str)
+    src_word_count, src_text, src_all_ls = output_text_(src_seq, char_dictionary, single_sequence=single_sequence,
+                                                        output_str=output_str)
     src_text_ls.extend(src_text)
     if target_seq_gold is not None:
         target_word_count, target_text, _ = output_text_(target_seq_gold, char_dictionary, single_sequence=single_sequence,output_str=output_str)
@@ -188,9 +211,17 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
     if single_sequence:
         if model.decoder.attn_layer is not None:
             attention = attention[0]
-    return text_decoded, src_text_ls, target_seq_gold_ls, {"src_word_count": src_word_count,
-                                                           "target_word_count": target_word_count,
-                                                           "pred_word_count": pred_word_count}, (attention, src_all_ls)
+        if pred_norm_not_norm is not None:
+            pred_norm_not_norm = pred_norm_not_norm[0]
+
+    return (text_decoded, src_text_ls, target_seq_gold_ls), \
+           {
+           "src_word_count": src_word_count,
+           "target_word_count": target_word_count,
+           "pred_word_count": pred_word_count
+           },\
+           (attention, src_all_ls,), \
+           (pred_norm_not_norm,)
 
 
 def decode_seq_str(seq_string, model, char_dictionary, pad=1,
@@ -209,13 +240,14 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
         for seq_string in sent:
             if len(seq_string) > 0:
                 _seq_string = ["_START"]
-                printing("WARNING : we added _START symbol and _END_CHAR ! ", verbose=verbose, verbose_level=0)
+                printing("WARNING : we added _START symbol and _END_CHAR ! ", verbose=verbose, verbose_level=2)
                 _seq_string.extend(list(seq_string))
                 seq_string = _seq_string + ["_END_CHAR"] #["_END_CHAR"]#["_PAD_CHAR"]
             if len(seq_string) > max_len:
                 # cutting to respect dim requirements
                 seq_string = seq_string[:max_len-1]+["_PAD_CHAR"]
-            printing("INPUT SEQ is {} ", var=[seq_string], verbose=verbose, verbose_level=2)
+            if len(seq_string)>0:
+                printing("INPUT SEQ is {} ", var=[seq_string], verbose=verbose, verbose_level=2)
             sequence_characters = [char_dictionary.get_index(letter) for letter in seq_string]+[pad for _ in range(max_len-len(seq_string))]
             sent_character.append(sequence_characters)
             masks = [1 for _ in seq_string]+[0 for _ in range(max_len-len(seq_string))]
@@ -230,26 +262,23 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
         batch_lens = Variable(torch.from_numpy(np.array([sent_words_lens, sent_words_lens])), requires_grad=False)
         batch_lens = batch_lens.unsqueeze(dim=2)
         batch_size = 2
-        text_decoded, src_text, target, _, (attention, src_seq) = decode_sequence(model=model, char_dictionary=char_dictionary,
-                                                                                  max_len=max_len,
-                                                                                  batch_size=batch_size,
-                                                                                  src_seq=batch,
-                                                                                  src_len=batch_lens,
-                                                                                  src_mask=batch_masks,
-                                                                                  single_sequence=True,
-                                                                                  pad=pad, verbose=verbose)
-        pdb.set_trace()
+        (text_decoded, src_text, target), _, (attention, src_seq), (pred_norm,)\
+            = decode_sequence(model=model, char_dictionary=char_dictionary,
+                              max_len=max_len, batch_size=batch_size, src_seq=batch, src_len=batch_lens,
+                              src_mask=batch_masks, single_sequence=True, pad=pad, verbose=verbose)
         if attention is not None:
             print("Attention", attention, src_seq, text_decoded)
             for pred_word, src_word, attention_word in zip(text_decoded, src_seq, attention):
-                pdb.set_trace()
+
                 show_attention(list(pred_word), src_word[:attention_word.size(1)],
                                attention_word.transpose(1, 0), save=save_attention, dir_save=dir_attention,show=show_att,
                                model_full_name=model.model_full_name)
             #show_attention("[lekfezlfkh efj ", ["se", "mjfsemkfj"], torch.tensor([[0, .4], [1, 0.6]]))
-            pdb.set_trace()
 
-        printing("DECODED text is : {} original is {}".format(text_decoded, src_text), verbose_level=0, verbose=verbose)
+        if pred_norm is not None:
+            norm_not_norm_seq = [(get_label_norm(norm), word) for norm, word in zip(pred_norm, src_text)]
+            printing("NORMALIZING : {} ", var=[norm_not_norm_seq], verbose_level=0, verbose=0)
+        printing("DECODED text is : {} original is {}",var=(text_decoded, src_text), verbose_level=0, verbose=0)
 
 
 def decode_interacively(model , char_dictionary,  max_len, pad=1, sent_mode=False, save_attention=False,

@@ -21,7 +21,8 @@ class LossCompute:
         self.generator = generator
         self.loss_distance = nn.CrossEntropyLoss(reduce=True, ignore_index=pad)
         printing("LOSS : weight_binary_loss is set to {}", var=(weight_binary_loss), verbose=verbose, verbose_level=2)
-        self.loss_binary = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_NORM_NOT_NORM) if auxilliary_task_norm_not_norm else None
+        self.loss_binary = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_NORM_NOT_NORM) if \
+            auxilliary_task_norm_not_norm else None
         self.weight_binary_loss = weight_binary_loss if self.loss_binary is not None else None
         if use_gpu:
             printing("Setting loss_distance to GPU mode", verbose=verbose, verbose_level=3)
@@ -65,6 +66,7 @@ class LossCompute:
         reshaping, start = get_timing(start)
         loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1))
         loss_distance_time, start = get_timing(start)
+        pdb.set_trace()
         loss_binary = self.loss_binary(x_norm_not_norm.contiguous().view(-1, x_norm_not_norm.size(-1)),
                                        y_norm_not_norm.contiguous().view(-1)) if self.loss_binary is not None else None
 

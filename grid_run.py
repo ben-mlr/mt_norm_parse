@@ -13,9 +13,9 @@ torch.manual_seed(SEED_TORCH)
 
 def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                overall_report_dir=CHECKPOINT_DIR, overall_label="DEFAULT",get_batch_mode_all=True,
-               warmup=False, args={},use_gpu=None, freq_checkpointing=1,debug=False,compute_scoring_curve=False,
+               warmup=False, args={}, use_gpu=None, freq_checkpointing=1,debug=False,compute_scoring_curve=False,
                compute_mean_score_per_sent=False,print_raw=False,freq_scoring=5,bucketing_train=True,
-               extend_n_batch=1,
+               extend_n_batch=1, score_to_compute_ls=None,
                verbose=0):
 
     hidden_size_encoder = args.get("hidden_size_encoder", 10)
@@ -69,7 +69,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                             drop_out_sent_encoder_out=drop_out_sent_encoder_out,drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
                             drop_out_word_encoder_out=drop_out_word_encoder_out, dropout_bridge=dropout_bridge,
                             freq_checkpointing=freq_checkpointing, reload=False, model_id_pref=model_id_pref,
-                            score_to_compute_ls=["edit", "exact"], mode_norm_ls=["all", "NEED_NORM", "NORMED"],
+                            score_to_compute_ls=score_to_compute_ls, mode_norm_ls=["all", "NEED_NORM", "NORMED"],
                             hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,
                             char_embedding_dim=char_embedding_dim,
                             hidden_size_sent_encoder=hidden_size_sent_encoder, hidden_size_decoder=hidden_size_decoder,
@@ -84,7 +84,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
     if test_path is not None:
       dict_path = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder", "dictionaries")
       printing("START EVALUATION FINAL ", verbose_level=0, verbose=verbose)
-      eval_data_paths = [train_path, dev_path]
+      eval_data_paths = []#[train_path, dev_path]
       eval_data_paths.append(test_path)
       for get_batch_mode_evaluate in [False,True]:
         for eval_data in eval_data_paths:
@@ -92,7 +92,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                 evaluate(model_full_name=model_full_name, data_path=eval_data,
                          dict_path=dict_path, use_gpu=None,
                          label_report=eval_label, overall_label=overall_label+"-last+bucket_False_eval-get_batch_"+str(get_batch_mode_evaluate),
-                         score_to_compute_ls=["edit", "exact"], mode_norm_ls=["all", "NEED_NORM", "NORMED"],
+                         score_to_compute_ls=score_to_compute_ls, mode_norm_ls=["all", "NEED_NORM", "NORMED"],
                          normalization=True, print_raw=print_raw,
                          model_specific_dictionary=True, get_batch_mode_evaluate=get_batch_mode_evaluate,bucket=False,
                          compute_mean_score_per_sent=compute_mean_score_per_sent,
@@ -233,7 +233,7 @@ if __name__ == "__main__":
           #param["batch_size"] = 10
           #model_id_pref = "TEST-"+model_id_pref
           printing("Adding RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 30
+          epochs = 1
           if warmup:
             param = {"hidden_size_encoder": 10, "output_dim": 15, "char_embedding_dim": 10,
                      "dropout_sent_encoder": 0., "drop_out_word_encoder": 0., "dropout_word_decoder": 0.,
@@ -241,7 +241,7 @@ if __name__ == "__main__":
                      "n_layers_word_encoder": 1, "dir_sent_encoder": 2, "word_recurrent_cell_decoder": "LSTM",
                      "word_recurrent_cell_encoder": "LSTM",
                      "hidden_size_sent_encoder": 20, "hidden_size_decoder": 20, "batch_size": 10}
-            param["batch_size"] = 2
+            param["batch_size"] = 50
             param["auxilliary_task_norm_not_norm"] = True
             param["unrolling_word"] = True
             param["char_src_attention"] = True
@@ -252,14 +252,15 @@ if __name__ == "__main__":
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
 
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
-                                                  test_path=None,
+                                                  test_path=DEMO,
                                                   verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
-                                                  compute_mean_score_per_sent=False, print_raw=False,
+                                                  compute_mean_score_per_sent=True, print_raw=False,
                                                   get_batch_mode_all=True, compute_scoring_curve=False,
                                                   freq_scoring=10, bucketing_train=True, freq_checkpointing=9,
-                                                  extend_n_batch=2,
-                                                  warmup=False, args=param, use_gpu=None, n_epochs=epochs, debug=False)
+                                                  extend_n_batch=2, score_to_compute_ls=["exact","norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recall", "norm_not_norm-accuracy"],
+                                                  warmup=False, args=param, use_gpu=None, n_epochs=epochs,
+                                                  debug=False)
           run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("Log RUN is : {} to see model list ".format(run_dir))

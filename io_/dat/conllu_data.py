@@ -345,9 +345,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
             # if we want NORM NEED_NORM info
             # we match by character id and not word id because word mighbot be unknown
             # we only match the sequence non equal to _PAD_CHAR TO AVOID VARIABLE LENGHT
-            #print("NORM",cids_norm[i, c, :][cids_norm[i, c, :]!=PAD_ID_CHAR])
-            #print("OR", cid_inputs[i, c, :][cid_inputs[i, c, :]!=PAD_ID_CHAR])
-            # 1 means : NORMED , 0 means NEED_NORM
+            # !!INFO : in the data : 1 means : NORMED , 0 means NEED_NORM
             word_norm_not_norm[i, c] = np.array_equal(cids_norm[i, c, :][cids_norm[i, c, :]!=PAD_ID_CHAR],
                                                       cid_inputs[i, c, :][cid_inputs[i, c, :]!=PAD_ID_CHAR])
             #print("norm not norm", word_norm_not_norm[i, c])
@@ -447,7 +445,6 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
   if normalization:
     chars_norm = chars_norm[index]
     if word_norm_not_norm is not None:
-
       word_norm_not_norm = word_norm_not_norm[index]
 
   return words, chars[index], chars_norm, word_norm_not_norm, pos[index], xpos[index], heads[index], types[index], masks[index], lengths[index], order_inputs[index]

@@ -138,10 +138,10 @@ class LexNormalizer(nn.Module):
                               "hyperparameters": {
                                   "shared_context": shared_context,
                                   "auxilliary_arch": {
-                                  "weight_binary_loss": weight_binary_loss,
-                                  "auxilliary_task_norm_not_norm": self.auxilliary_task_norm_not_norm,
-                                  "auxilliary_task_norm_not_norm-dense_dim": dense_dim_auxilliary
-                                  },
+                                                      "weight_binary_loss": weight_binary_loss,
+                                                      "auxilliary_task_norm_not_norm": self.auxilliary_task_norm_not_norm,
+                                                      "auxilliary_task_norm_not_norm-dense_dim": dense_dim_auxilliary
+                                                      },
                                   "n_trainable_parameters": None,
                                   "char_embedding_dim": char_embedding_dim,
                                   "encoder_arch": {"cell_word": word_recurrent_cell_encoder, "cell_sentence": "LSTM",

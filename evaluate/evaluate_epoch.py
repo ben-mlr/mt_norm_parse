@@ -15,11 +15,13 @@ import json
 import sys
 import numpy as np
 import torch
+from scipy.stats import hmean
 from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, DEMO, DEMO2, LIU, LEX_TEST, REPO_DATASET, CHECKPOINT_DIR, SEED_TORCH, SEED_NP, LEX_TRAIN
 from toolbox.gpu_related import use_gpu_
 sys.path.insert(0, os.path.join(PROJECT_PATH, "..", "experimental_pipe"))
 from reporting.write_to_performance_repo import report_template, write_dic
-
+from evaluate.normalization_errors import score_auxiliary
+from env.project_variables import SCORE_AUX
 
 np.random.seed(SEED_NP)
 torch.manual_seed(SEED_TORCH)
@@ -30,7 +32,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
              score_to_compute_ls=None, mode_norm_ls=None, get_batch_mode_evaluate=True,
              overall_label="ALL_MODELS",overall_report_dir=CHECKPOINT_DIR, bucket = False,
              model_specific_dictionary=True, label_report="", print_raw=False, model=None,
-             compute_mean_score_per_sent=False,auxilliary_task_norm_not_norm=False,
+             compute_mean_score_per_sent=False,
              normalization=True, debug=False, force_new_dic=False, use_gpu=None, verbose=0):
     assert model_specific_dictionary, "ERROR : only model_specific_dictionary = True supported now"
     # NB : now : you have to load dictionary when evaluating (cannot recompute) (could add in the LexNormalizer ability)
@@ -38,11 +40,9 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
     hardware_choosen = "GPU" if use_gpu else "CPU"
     printing("{} mode ", var=([hardware_choosen]), verbose_level=0, verbose=verbose)
     printing("EVALUATION : evaluating with compute_mean_score_per_sent {}".format(compute_mean_score_per_sent), verbose=verbose, verbose_level=1)
-    if score_to_compute_ls is None:
-        score_to_compute_ls = ["edit", "exact"]
+
     if mode_norm_ls is None:
         mode_norm_ls = ["all", "NORMED", "NEED_NORM"]
-    printing("EVALUATION : Evaluating {} metric with details {}  ", var=[score_to_compute_ls, mode_norm_ls], verbose=verbose, verbose_level=3)
     if write_report:
         assert dir_report is not None
     if model is not None:
@@ -62,11 +62,17 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                           verbose=verbose
                           ) if model is None else model
 
+    if score_to_compute_ls is None:
+        score_to_compute_ls = ["edit", "exact"]
+        if model.auxilliary_task_norm_not_norm:
+            score_to_compute_ls.extend(SCORE_AUX)
+
+    printing("EVALUATION : Evaluating {} metric with details {}  ", var=[score_to_compute_ls, mode_norm_ls], verbose=verbose, verbose_level=3)
     data_read = conllu_data.read_data_to_variable(data_path, model.word_dictionary, model.char_dictionary,
                                                   model.pos_dictionary,
                                                   model.xpos_dictionary, model.type_dictionary,
                                                   use_gpu=use_gpu, symbolic_root=False,
-                                                  norm_not_norm=auxilliary_task_norm_not_norm,
+                                                  norm_not_norm=model.auxilliary_task_norm_not_norm,
                                                   symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,
                                                   normalization=normalization,
                                                   bucket=bucket,
@@ -85,30 +91,41 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                                     batchIter=batchIter, model=model, compute_mean_score_per_sent=compute_mean_score_per_sent,
                                     batch_size=batch_size)
     # NB : each batch should have the same size !! same number of words : otherwise averaging is wrong
-    try:
-      for score in score_to_compute_ls:
-          for mode_norm in mode_norm_ls:
-              print("MODEL Normalization {} on normalization {} score is {} in average out of {} tokens on evaluation based on {} "
-                    .format(score, mode_norm,score_dic[score+"-"+mode_norm]/score_dic[score+"-"+mode_norm+"-total_tokens"], score_dic[score+"-"+mode_norm+"-total_tokens"], data_path))
-    except ZeroDivisionError as e :
-        print("ERROR catched {} ".format(e))
-        raise Exception(e)
+
     for score in score_to_compute_ls:
         for mode_norm in mode_norm_ls:
+            try:
+                print("MODEL Normalization {} on normalization {} score is {} in average out of {} tokens on evaluation based on {} "
+                    .format(score, mode_norm,score_dic[score+"-"+mode_norm]/score_dic[score+"-"+mode_norm+"-total_tokens"], score_dic[score+"-"+mode_norm+"-total_tokens"], data_path))
+            except ZeroDivisionError as e:
+                print("ERROR catched {} ".format(e), mode_norm, score)
+                #raise Exception(e)
+    for score in score_to_compute_ls:
+        for mode_norm in mode_norm_ls:
+            scores_aux = SCORE_AUX
+            if score in scores_aux :
+                assert "all" in mode_norm_ls, "Only all possible for scoring aux (filter highlighted in F1)"
+                if mode_norm != "all":
+                    continue
             stat_type_ls = [""]
-            if compute_mean_score_per_sent:
+            if compute_mean_score_per_sent and score not in scores_aux:
                 stat_type_ls.append("-mean_per_sent")
             for stat_type in stat_type_ls:
                 if stat_type == "":
-                    score_value = score_dic[score+"-"+ mode_norm+stat_type]/score_dic[score+"-"+mode_norm+"-total_tokens"] #if score_dic[score+"-"+mode_norm+"-total_tokens"] > 0 else -0.001
+                    score_name, score_value, n_tokens_score = score_auxiliary(score, score_dic)
+                    if score_name is None:
+                        score_value = score_dic[score+"-"+mode_norm+stat_type]/score_dic[score+"-"+mode_norm+"-total_tokens"] #if score_dic[score+"-"+mode_norm+"-total_tokens"] > 0 else -0.001
+                        n_tokens_score = score_dic[score + "-" + mode_norm + "-total_tokens"]
                 elif stat_type == "-mean_per_sent":
                     score_value = score_dic[score + "-" + mode_norm + stat_type]/score_dic[score+"-"+mode_norm+"-n_sents"]
+                    n_tokens_score = score_dic[score+"-"+mode_norm+"-total_tokens"]
+
                 report = report_template(metric_val=score+stat_type,
                                          info_score_val=mode_norm,
                                          score_val=score_value,
                                          n_sents=score_dic[score+"-"+mode_norm+"-n_sents"],
-                                         avg_per_sent=score_dic[score+"-"+mode_norm+"-total_tokens"]/score_dic[score+"-"+mode_norm+"-n_sents"],
-                                         n_tokens_score=score_dic[score+"-"+mode_norm+"-total_tokens"],
+                                         avg_per_sent=score_dic[score+"-"+mode_norm+"-total_tokens"]/score_dic[score+"-"+mode_norm+"-n_sents"] if score_dic[score+"-"+mode_norm+"-n_sents"]>0 else None,
+                                         n_tokens_score=n_tokens_score ,
                                          model_full_name_val=model.model_full_name,
                                          task="normalization",
                                          report_path_val=model.arguments["checkpoint_dir"],
@@ -147,7 +164,8 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
 if __name__ == "__main__":
     list_all_dir = os.listdir(os.path.join(PROJECT_PATH, "checkpoints"))
     #for ablation_id in ["aaad"]:#,"bd55","0153","f178"]:
-    for ablation_id in ["42a20-WARMUP-unrolling-False0.1_scale_aux-True_aux-0.1do_char_dec-False_char_src_atten-model_13_db74-folder"]:
+    #for ablation_id in ["42a20-WARMUP-unrolling-False0.1_scale_aux-True_aux-0.1do_char_dec-False_char_src_atten-model_13_db74-folder"]:
+    for ablation_id in ["a97f2-WARMUP-unrolling-False"]:
     #for ablation_id in ["08661","d6960"]:
     #for ablation_id in ["f2f2-batchXdropout_char0.1-to_char_src-1_dir_sent-10_batch_size-model_18_aa04","8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_1_33ca"]:
     #for ablation_id in ["e390","24f9d"]:
@@ -156,8 +174,8 @@ if __name__ == "__main__":
     #for ablation_id in ["8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_1_33ca","8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_2_e437"]:
       #for data in [DEMO,DEMO2]:
       for get_batch_mode_evaluate in [True]:
-        for batch_size in [50]:
-          for data in [DEMO, DEV]:
+        for batch_size in [5]:
+          for data in [DEMO]:
             list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
             print("FOLDERS : ", list_)
             for folder_name in list_:
@@ -168,11 +186,9 @@ if __name__ == "__main__":
                        dict_path=os.path.join(PROJECT_PATH, "checkpoints", folder_name, "dictionaries"),
                        label_report="eval_again", use_gpu=None, 
                        overall_label="8d9a0-aux_not_aux-lex+liu-val_False"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch",#"f2f2-iterate+new_data-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch-validation_True",
-                       mode_norm_ls=None,
-                       normalization=True,
-                       model_specific_dictionary=True,
-                       batch_size=batch_size,
-                       debug=True,
+                       mode_norm_ls=None,score_to_compute_ls=["norm_not_norm-Recall"],
+                       normalization=True, model_specific_dictionary=True, batch_size=batch_size,
+                       debug=False,
                        compute_mean_score_per_sent=True,
                        get_batch_mode_evaluate=get_batch_mode_evaluate,
                        dir_report=os.path.join(PROJECT_PATH, "checkpoints", folder_name), verbose=1)

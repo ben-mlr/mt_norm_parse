@@ -56,11 +56,11 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
                                 src_seq=batch.input_seq, src_mask=batch.input_seq_mask, src_len=batch.input_seq_len,
                                 batch_size=batch.input_seq.size(0))
                 out, _, attention = model.forward(input_seq=batch.input_seq,
-                                           output_seq=batch.output_seq_x,
-                                           input_mask=batch.input_seq_mask,
-                                           input_word_len=batch.input_seq_len,
-                                           output_mask=batch.output_mask,
-                                           output_word_len=batch.output_seq_len)
+                                                  output_seq=batch.output_seq_x,
+                                                  input_mask=batch.input_seq_mask,
+                                                  input_word_len=batch.input_seq_len,
+                                                  output_mask=batch.output_mask,
+                                                  output_word_len=batch.output_seq_len)
 
             # compute loss , (compute score over decoding states then softmax and Cross entropy )
         else:
@@ -80,7 +80,7 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
             _start = time.time() if verbose >= 2 else _start
             _loss = loss / float(batch.ntokens)
             printing("Epoch {} Step: {}  Loss: {}  Tokens per Sec: {}  ", var=(
-                i_epoch+1, i,_loss, tokens / elapsed), verbose=verbose, verbose_level=2)
+                i_epoch+1, i, _loss, tokens / elapsed), verbose=verbose, verbose_level=2)
             tokens = 0 if verbose >= 2 else tokens
             if i % log_every_x_batch == 1 and verbose == 1:
                 print("Epoch {} Step: {}  Loss: {}  Tokens per Sec: {}  ".format(i_epoch, i, loss / float(batch.ntokens), tokens / elapsed))

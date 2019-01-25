@@ -18,15 +18,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                     padding=1, print_raw=False, normalization=False,
                     extend_n_batch=1,
                     timing=False,
-
                     verbose=0):
-    
-    #    data = conllu_data.read_data_to_variable(data_path, word_dictionary, char_dictionary,
-    #                                         pos_dictionary, xpos_dictionary, type_dictionary,
-    #                                         use_gpu=use_gpu, symbolic_root=symbolic_root,
-    #                                         symbolic_end=symbolic_end, dry_run=0, lattice=False,verbose=verbose,
-    #                                         normalization=normalization,
-    #                                         add_start_char=add_start_char, add_end_char=add_end_char)
 
     n_sents = data[-1]
     if extend_n_batch != 1:
@@ -40,7 +32,8 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
     nbatch = 1 if nbatch == 0 else nbatch
     # deterministic run over all the dataset (for evaluation)
     if not get_batch_mode:
-        for batch in tqdm(conllu_data.iterate_batch_variable(data, batch_size=batch_size, normalization=normalization),
+        for batch in tqdm(conllu_data.iterate_batch_variable(data, batch_size=batch_size,
+                                                             normalization=normalization),
                           disable=disable_tqdm_level(verbose, verbose_level=2)):
             #words, chars, chars_norm_, word_norm_not_norm, pos, xpos, heads,types, masks, lengths, order_ids, raw_word_inputs, raw_lines
             words, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, lengths, order_ids, raw_word_inputs, raw_lines = batch
@@ -51,10 +44,11 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
         for ibatch in tqdm(range(1, nbatch+1), disable=disable_tqdm_level(verbose, verbose_level=2)):
             # word, char, pos, xpos, heads, types, masks, lengths, morph
             printing("Data : getting {} out of {} batches", var=(ibatch, nbatch+1), verbose= verbose, verbose_level=2)
-            word, char, chars_norm, word_norm_not_norm,_, _, _, _, _, lenght, order_ids = conllu_data.get_batch_variable(data,
-                                                                                                                 batch_size=batch_size,
-                                                                                                                  normalization=normalization,
-                                                                                                                  unk_replace=0)
+            word, char, chars_norm, word_norm_not_norm,_, _, _, _, _, lenght, order_ids = \
+                conllu_data.get_batch_variable(data,
+                                               batch_size=batch_size,
+                                               normalization=normalization,
+                                               unk_replace=0)
             #pdb.set_trace()
             if char.size(0)<=1:
                 print("char----> ", char)
@@ -81,7 +75,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                 character_display = [" ".join([char_dictionary.get_instance(char[sent, word_ind, char_i])
                                                for char_i in range(word_len)]) + " | NORM : {} |SENT {} WORD {}| ".format(word_norm_not_norm[sent,word_ind],sent, word_ind)
                                      for ind_sent,sent in enumerate(range(char.size(0)))
-                                     for ind_w , word_ind in enumerate(range(char.size(1)))]
+                                     for ind_w, word_ind in enumerate(range(char.size(1)))]
                 word_display = [word_dictionary.get_instance(word[batch, __word_ind]) + " " for batch in range(char.size(0))]
             else:
                 word_display = []
@@ -123,6 +117,7 @@ def data_gen_dummy(V, batch, nbatches, sent_len=9, word_len=5,
         src = Variable(data, requires_grad=False)
         tgt = Variable(data, requires_grad=False)
         yield MaskBatch(src, tgt, pad=1)
+
 
 
 def data_gen(V, batch, nbatches,seq_len=10):

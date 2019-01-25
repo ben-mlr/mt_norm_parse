@@ -87,7 +87,8 @@ if __name__ == "__main__":
         print("0Evaluating {} ".format(model_full_name))
         dic_path = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder", "dictionaries")
         model_dir = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder")
-        interact(dic_path=dic_path, dir_model=model_dir, model_full_name=model_full_name, debug=False,verbose=2,
-                 save_attention=True, show_attention=False)
+        interact(dic_path=dic_path, dir_model=model_dir, model_full_name=model_full_name, debug=False,
+                 verbose=1,
+                 save_attention=False, show_attention=False)
         #break
     #show_attention("[lekfezlfkh efj ", ["se", "mjfsemkfj"], torch.tensor([[0,.4], [1,0.6]]))

@@ -1,7 +1,8 @@
 from evaluate.normalization_errors import score_ls, score_ls_
 import pdb
 pdb.set_trace = lambda :1
-
+import numpy as np
+from evaluate.normalization_errors import score_norm_not_norm
 # depreciated
 def _0test_exact_match(func_name="_0test_exact_match"):
     ls_gold = ["abcdefg", "aaaaaa", "", "_"]
@@ -113,6 +114,23 @@ def _1test_edit_inverse(func_name="_0test_edit_inverse"):
     assert score_1/n_words == 1, "ERROR score_1 {} ".format(score_1)
     print("Test {} function passed".format(func_name))
 
+
+def _test_score_norm_not_norm():
+    norm_not_norm_gold = np.array([[0, 1, 1, 1, 2],[0, 1, 0, 2, 2]])
+    norm_not_norm_pred = np.array([[0, 1, 0, 0, 0],[0, 1, 1, 1, 2]])
+    out = score_norm_not_norm(norm_not_norm_pred, norm_not_norm_gold)
+    assert out["all-norm_not_norm-pred_correct-count"] == 2+2
+    assert out["need_norm-norm_not_norm-pred_correct-count"] == 1+1, \
+        " need_norm-norm_not_norm-pred_correct-count is {} while should be 1+1".format(out["need_norm-norm_not_norm-pred_correct-count"])
+    assert out["need_norm-norm_not_norm-gold-count"] == 1+2,\
+        " need_norm-norm_not_norm-gold-count is {} while it should be 1+2".format(out["need_norm-norm_not_norm-gold-count"])
+    assert out["need_norm-norm_not_norm-pred-count"] == 3+1
+    assert out["all-norm_not_norm-gold-count"] == 4+3
+    print("_test_score_norm_not_norm all test passed for counting score")
+
+
+
+
 if __name__=="__main__":
     _0test_exact_match()
     _0test_edit_inverse()
@@ -121,3 +139,5 @@ if __name__=="__main__":
     _1test_edit_inverse()
     _1test_exact_match_NORMED_NEED_NORM()
     print("all tests score_ls_ all passed ")
+    _test_score_norm_not_norm()
+
