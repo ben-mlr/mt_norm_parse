@@ -11,6 +11,7 @@ PROJECT_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 # MODELS
 # checkpoint dir if not checkpoint_dir as defined in args.json not found
 CHECKPOINT_DIR = os.path.join(PROJECT_PATH, "checkpoints")
+
 # architecture/model/training supported
 SUPPORED_WORD_ENCODER = ["LSTM", "GRU"]
 BREAKING_NO_DECREASE = 21
@@ -37,3 +38,7 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 LEX_TRAIN:LEX_TRAIN_LABEL,
                 LEX_TEST:LEX_TEST_LABEL,
                 LEX_LIU_TRAIN:LEX_LIU_LABEL }
+
+
+# output dir for writing
+WRITING_DIR = os.path.join(PROJECT_PATH, "predictions")

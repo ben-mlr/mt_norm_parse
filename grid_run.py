@@ -219,6 +219,7 @@ if __name__ == "__main__":
                               param["shared_context"] = "all"
                               param["weight_binary_loss"] = weight_binary_loss
                               param["policy"] = policy
+                              param["clipping"] = 1
                               #label = str(dense_dim_auxilliary)+"-dense_dim_auxilliary"
                               label = str(dir_word_encoder)+"dir_word-" +str(dense_dim_auxilliary)+"_aux-"+str(drop_out_char_embedding_decoder)+"do_char_dec-"+str(char_src_attention)+"_char_src"
                                       #"dense_bin"+str(param["drop_out_word_encoder_out"])+"-do_char-" +\
@@ -234,23 +235,30 @@ if __name__ == "__main__":
           n_model = 0
           for batch_size in [10,50]:
             for scale in [2,3,4,5]:
-              for clipping in [1, 5, None]:
-                param = params_intuition.copy()
-                param["hidden_size_encoder"] *=scale 
-                param["hidden_size_sent_encoder"]*=scale
-                param["hidden_size_decoder"]*=scale
-                param["output_dim"] *= int(scale*0.5)+1
-                param["batch_size"] = batch_size
-                param["unrolling_word"] = True
-                param["dir_word_encoder"] = 1
-                param["dir_sent_encoder"] = 1
-                param["clipping"] = 1
-                params.append(param)
-                labels.append("best-scale-{}-{}-all_context-no_aux-no_att-no_dropout".format(scale,batch_size))
+              for clipping in [5]:
+                for teacher_force in [False, True]:
+                  param = params_intuition.copy()
+                  param["hidden_size_encoder"] *=scale 
+                  param["hidden_size_sent_encoder"]*=scale
+                  param["hidden_size_decoder"]*=scale
+                  param["output_dim"] *= int(scale*0.5)+1
+                  param["batch_size"] = batch_size
+                  param["unrolling_word"] = True
+                  param["dir_word_encoder"] = 1
+                  param["dir_sent_encoder"] = 1
+                  param["clipping"] = 1
+                  param["teacher_force"] = teacher_force
+                  params.append(param)
+                  labels.append("best-scale-{}-{}-{}teacher_force-all_context-no_aux-no_att-no_dropout".format(scale,batch_size, teacher_force))
 
-      warmup = True
+      warmup = False
+      test_before_run = False 
+
       RUN_ID = str(uuid4())[0:5]
-      LABEL_GRID = "best-clipping" if not warmup else "WARMUP-unrolling-False"
+      
+      LABEL_GRID = "scaleXteacher_force-clipping5" if not warmup else "WARMUP-unrolling-False"
+
+      LABEL_GRID = "test_before_run-"+LABEL_GRID if test_before_run else LABEL_GRID
       LABEL_GRID = RUN_ID+"-"+LABEL_GRID
       GRID_FOLDER_NAME = LABEL_GRID if len(LABEL_GRID) > 0 else RUN_ID
       #GRID_FOLDER_NAME = LABEL_GRID if len(LABEL_GRID) > 0 else RUN_ID
@@ -262,7 +270,7 @@ if __name__ == "__main__":
       for param, model_id_pref in zip(params, labels):
           i += 1
           printing("Adding RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 100
+          epochs = 100 if not test_before_run else 2 
           if warmup:
             param = {"hidden_size_encoder": 10, "output_dim": 15, "char_embedding_dim": 10,
                      "dropout_sent_encoder": 0., "drop_out_word_encoder": 0., "dropout_word_decoder": 0.,
@@ -293,7 +301,7 @@ if __name__ == "__main__":
                                                   compute_mean_score_per_sent=True, print_raw=False,
                                                   get_batch_mode_all=True, compute_scoring_curve=False,
                                                   freq_scoring=1, bucketing_train=True, freq_checkpointing=1,
-                                                  freq_writer=10,
+                                                  freq_writer=10 if not test_before_run else 1,
                                                   extend_n_batch=2, score_to_compute_ls=["exact","norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recall", "norm_not_norm-accuracy"],
                                                   warmup=False, args=param, use_gpu=None, n_epochs=epochs,
                                                   debug=False)

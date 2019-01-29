@@ -32,7 +32,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
              score_to_compute_ls=None, mode_norm_ls=None, get_batch_mode_evaluate=True,
              overall_label="ALL_MODELS",overall_report_dir=CHECKPOINT_DIR, bucket = False,
              model_specific_dictionary=True, label_report="", print_raw=False, model=None,
-             compute_mean_score_per_sent=False,
+             compute_mean_score_per_sent=False,write_output=False,
              normalization=True, debug=False, force_new_dic=False, use_gpu=None, verbose=0):
     assert model_specific_dictionary, "ERROR : only model_specific_dictionary = True supported now"
     # NB : now : you have to load dictionary when evaluating (cannot recompute) (could add in the LexNormalizer ability)
@@ -86,8 +86,9 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
     model.eval()
 
     score_dic = greedy_decode_batch(char_dictionary=model.char_dictionary, verbose=verbose, gold_output=True,
-                                    score_to_compute_ls=score_to_compute_ls,use_gpu=use_gpu,
-                                    stat="sum", mode_norm_score_ls=mode_norm_ls,
+                                    score_to_compute_ls=score_to_compute_ls, use_gpu=use_gpu,
+                                    write_output=write_output,
+                                    stat="sum", mode_norm_score_ls=mode_norm_ls, label_data=REPO_DATASET[data_path],
                                     batchIter=batchIter, model=model, compute_mean_score_per_sent=compute_mean_score_per_sent,
                                     batch_size=batch_size)
     # NB : each batch should have the same size !! same number of words : otherwise averaging is wrong
@@ -170,18 +171,19 @@ if __name__ == "__main__":
     list_all_dir = os.listdir(os.path.join(PROJECT_PATH, "checkpoints"))
     #for ablation_id in ["aaad"]:#,"bd55","0153","f178"]:
     #for ablation_id in ["42a20-WARMUP-unrolling-False0.1_scale_aux-True_aux-0.1do_char_dec-False_char_src_atten-model_13_db74-folder"]:
-    for ablation_id in ["5754c-bestbest"]:
+    #for ablation_id in ["5754c-bestbest"]:
     #for ablation_id in ["08661","d6960"]:
     #for ablation_id in ["f2f2-batchXdropout_char0.1-to_char_src-1_dir_sent-10_batch_size-model_18_aa04","8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_1_33ca"]:
     #for ablation_id in ["e390","24f9d"]:
     #for ablation_id in ["01880"]:
     #for ablation_id in ["d6960-new_data-batchXdropout_char0-to_char_src-1_dir_sent-10_batch_size-model_2_be5d","08661-new_data-batchXdropout_char0-to_char_src-2_dir_sent-20_batch_size-model_5_c8b2"]:
     #for ablation_id in ["8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_1_33ca","8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_2_e437"]:
-    #for ablation_id in ["21cc8-fixed_all_context-aux_dense1dir_word-200_aux-0do_char_dec-False_char_src-model_12_4d49"]:
+    for ablation_id in ["21cc8-fixed_all_context-aux_dense1dir_word-200_aux-0do_char_dec-False_char_src-model_12_4d49"]:
       #for data in [DEMO,DEMO2]:
-      for get_batch_mode_evaluate in [False, True]:
+      for get_batch_mode_evaluate in [False]:
         for batch_size in [50]:
-          for data in [LIU, DEV, LEX_TEST]:
+          #for data in [LIU, DEV, LEX_TEST]:
+          for data in [DEV]:
             list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
             print("FOLDERS : ", list_)
             for folder_name in list_:
@@ -196,7 +198,7 @@ if __name__ == "__main__":
                        normalization=True, model_specific_dictionary=True, batch_size=batch_size,
                        debug=False,bucket=False,
                        compute_mean_score_per_sent=False,
-                       get_batch_mode_evaluate=get_batch_mode_evaluate,
+                       get_batch_mode_evaluate=get_batch_mode_evaluate, write_output=True,
                        dir_report=os.path.join(PROJECT_PATH, "checkpoints", folder_name), verbose=1)
 
 

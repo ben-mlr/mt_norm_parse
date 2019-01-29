@@ -1,12 +1,15 @@
 import torch
 from torch.autograd import Variable
 from io_.info_print import printing
+from io_.dat.normalized_writer import write_normalization
 from io_.from_array_to_text import output_text, output_text_
 import numpy as np
 from evaluate.normalization_errors import score_norm_not_norm
 from evaluate.normalization_errors import score_ls_, score_ls_2
+from env.project_variables import WRITING_DIR
 from io_.dat.constants import CHAR_START_ID
 import pdb
+import os
 from evaluate.visualize_attention import show_attention
 from toolbox.norm_not_norm import get_label_norm
 # EPSILON for the test of edit distance 
@@ -34,6 +37,8 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                         use_gpu=False,
                         compute_mean_score_per_sent=False,
                         mode_norm_score_ls=None,
+                        label_data=None,
+                        write_output=False, write_to="conll", dir_normalized=None, dir_original=None,
                         verbose=0):
 
         score_dic = _init_metric_report(score_to_compute_ls, mode_norm_score_ls)
@@ -65,14 +70,23 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                                       src_seq=src_seq,
                                       src_mask=src_mask,
                                       src_len=src_len,
-                                      batch_size=batch_size, pad=pad,
+                                      pad=pad,
                                       verbose=verbose)
+                if write_output:
+                    if dir_normalized is None:
+                        dir_normalized = os.path.join(WRITING_DIR, model.model_full_name+"-{}-normalized.conll".format(label_data))
+                        dir_original = os.path.join(WRITING_DIR, model.model_full_name+"-{}-original.conll".format(label_data))
+
+                    write_normalization(format=write_to, dir_normalized=dir_normalized, dir_original=dir_original,
+                                        text_decoded_ls=text_decoded_ls, src_text_ls=src_text_ls, verbose=verbose)
+
                 total_count["src_word_count"] += counts["src_word_count"]
-                total_count["target_word_count"] += counts["target_word_count"]
                 total_count["pred_word_count"] += counts["pred_word_count"]
                 printing("Source text {} ", var=[(src_text_ls)], verbose=verbose, verbose_level=5)
                 printing("Prediction {} ", var=[(text_decoded_ls)], verbose=verbose, verbose_level=5)
+
                 if gold_output:
+                    total_count["target_word_count"] += counts["target_word_count"]
                     # we can score
                     printing("Gold {} ", var=[(gold_text_seq_ls)], verbose=verbose, verbose_level=5)
                     if score_to_compute_ls is not None:
@@ -126,18 +140,18 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                             assert np.abs(score_dic[metric + "-NEED_NORM"]+score_dic[metric + "-NORMED"] - score_dic[metric + "-all"]) < EPSILON, \
                             "ERROR : correct NEED_NORM {} , NORMED {} and all {} ".format(score_dic[metric + "-NEED_NORM"], score_dic[metric + "-NORMED"], score_dic[metric + "-all"])
                             print("TEST PASSED")
-            assert total_count["src_word_count"] == total_count["target_word_count"], \
-                "ERROR src_word_count {} vs target_word_count {}".format(total_count["src_word_count"], total_count["target_word_count"])
-            assert total_count["src_word_count"] == total_count["pred_word_count"], \
-                "ERROR src_word_count {} vs pred_word_count {}".format(total_count["src_word_count"], total_count["pred_word_count"])
-            printing("Assertion passed : there are as many words in the source side,"
-                     "the target side and"
-                     "the predicted side : {} ".format(total_count["src_word_count"]), verbose_level=0, verbose=verbose)
+                    assert total_count["src_word_count"] == total_count["target_word_count"], \
+                        "ERROR src_word_count {} vs target_word_count {}".format(total_count["src_word_count"], total_count["target_word_count"])
+                    assert total_count["src_word_count"] == total_count["pred_word_count"], \
+                        "ERROR src_word_count {} vs pred_word_count {}".format(total_count["src_word_count"], total_count["pred_word_count"])
+                    printing("Assertion passed : there are as many words in the source side,"
+                             "the target side and"
+                             "the predicted side : {} ".format(total_count["src_word_count"]), verbose_level=0, verbose=verbose)
             return score_dic
 
 
 def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
-                    batch_size, pad=1, target_seq_gold=None,
+                    pad=1, target_seq_gold=None,
                     use_gpu=False,
                     single_sequence=False, verbose=2):
 

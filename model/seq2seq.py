@@ -46,7 +46,7 @@ class LexNormalizer(nn.Module):
                  dir_sent_encoder=1,word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,
                  unrolling_word=False,
                  dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None,
-                 char_src_attention=False, shared_context="all",
+                 char_src_attention=False, shared_context="all",teacher_force=False,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
         character level Sequence to Sequence model for normalization
@@ -160,6 +160,7 @@ class LexNormalizer(nn.Module):
                                                    "drop_out_word_decoder_cell": drop_out_word_decoder_cell,
                                                    "char_src_attention":char_src_attention,
                                                    "unrolling_word": unrolling_word,
+                                                   "teacher_force":teacher_force,
                                                  },
                                   "hidden_size_encoder": hidden_size_encoder,
                                   "hidden_size_sent_encoder": hidden_size_sent_encoder,
@@ -191,7 +192,8 @@ class LexNormalizer(nn.Module):
             drop_out_word_encoder_cell, drop_out_sent_encoder_out, drop_out_word_encoder_out,\
             n_layers_word_encoder, dir_sent_encoder, word_recurrent_cell_encoder, dir_word_encoder,\
             hidden_size_decoder,  word_recurrent_cell_decoder, drop_out_word_decoder_cell, drop_out_char_embedding_decoder, \
-                    self.auxilliary_task_norm_not_norm, unrolling_word, char_src_attention, dense_dim_auxilliary, shared_context = get_args(args, False)
+                    self.auxilliary_task_norm_not_norm, unrolling_word, char_src_attention, dense_dim_auxilliary, shared_context,\
+                teacher_force = get_args(args, False)
 
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
@@ -233,7 +235,7 @@ class LexNormalizer(nn.Module):
                                    char_src_attention=char_src_attention,
                                    word_recurrent_cell=word_recurrent_cell_decoder, unrolling_word=unrolling_word,
                                    hidden_size_src_word_encoder=hidden_size_encoder,
-                                   generator=self.generator,
+                                   generator=self.generator if not teacher_force else None,
                                    verbose=verbose)
 
         self.verbose = verbose
