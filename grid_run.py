@@ -49,6 +49,8 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
     learning_rate = args.get("learning_rate", 0.001)
     clipping = args.get("clipping", None)
 
+    teacher_force = args.get("teacher_force", True)
+
     n_epochs = 1 if warmup else n_epochs
 
     if warmup:
@@ -82,6 +84,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                             print_raw=print_raw, debug=debug,
                             shared_context=shared_context,
                             bucketing=bucketing_train, weight_binary_loss=weight_binary_loss,
+                            teacher_force=teacher_force,
                             clipping=clipping,
                             checkpointing=True)
 
@@ -229,24 +232,25 @@ if __name__ == "__main__":
           params = []
           labels = []
           n_model = 0
-          for batch_size in [2,10,50,100]:
-            for scale in [1,2,3,4,5]:
-              param = params_intuition.copy()
-              param["hidden_size_encoder"] *=scale 
-              param["hidden_size_sent_encoder"]*=scale
-              param["hidden_size_decoder"]*=scale
-              param["output_dim"] *= int(scale*0.5)+1
-              param["batch_size"] = batch_size
-              param["unrolling_word"] = True
-              param["dir_word_encoder"] = 1
-              param["dir_sent_encoder"] = 1
-              params.append(param)
-              labels.append("best-scale-{}-{}-all_context-no_aux-no_att-no_dropout".format(scale,batch_size))
-
+          for batch_size in [10,50]:
+            for scale in [2,3,4,5]:
+              for clipping in [1, 5, None]:
+                param = params_intuition.copy()
+                param["hidden_size_encoder"] *=scale 
+                param["hidden_size_sent_encoder"]*=scale
+                param["hidden_size_decoder"]*=scale
+                param["output_dim"] *= int(scale*0.5)+1
+                param["batch_size"] = batch_size
+                param["unrolling_word"] = True
+                param["dir_word_encoder"] = 1
+                param["dir_sent_encoder"] = 1
+                param["clipping"] = 1
+                params.append(param)
+                labels.append("best-scale-{}-{}-all_context-no_aux-no_att-no_dropout".format(scale,batch_size))
 
       warmup = True
       RUN_ID = str(uuid4())[0:5]
-      LABEL_GRID = "best" if not warmup else "WARMUP-unrolling-False"
+      LABEL_GRID = "best-clipping" if not warmup else "WARMUP-unrolling-False"
       LABEL_GRID = RUN_ID+"-"+LABEL_GRID
       GRID_FOLDER_NAME = LABEL_GRID if len(LABEL_GRID) > 0 else RUN_ID
       #GRID_FOLDER_NAME = LABEL_GRID if len(LABEL_GRID) > 0 else RUN_ID
@@ -261,7 +265,8 @@ if __name__ == "__main__":
           epochs = 100
           if warmup:
             param = {"hidden_size_encoder": 10, "output_dim": 15, "char_embedding_dim": 10,
-                     "dropout_sent_encoder": 0., "drop_out_word_encoder": 0., "dropout_word_decoder": 0., "drop_out_sent_encoder_out": 0, "drop_out_word_encoder_out": 0,
+                     "dropout_sent_encoder": 0., "drop_out_word_encoder": 0., "dropout_word_decoder": 0.,
+                     "drop_out_sent_encoder_out": 0, "drop_out_word_encoder_out": 0,
                      "dir_word_encoder": 1,
                      "n_layers_word_encoder": 1, "dir_sent_encoder": 1, "word_recurrent_cell_decoder": "LSTM",
                      "word_recurrent_cell_encoder": "LSTM",
@@ -275,6 +280,7 @@ if __name__ == "__main__":
             param["shared_context"] = "word"
             param["dense_dim_auxilliary"] = 200
             param["clipping"] = 0.5
+            param["teacher_force"] = True
 
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))

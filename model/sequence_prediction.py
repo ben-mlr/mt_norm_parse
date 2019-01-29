@@ -76,25 +76,33 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                     # we can score
                     printing("Gold {} ", var=[(gold_text_seq_ls)], verbose=verbose, verbose_level=5)
                     if score_to_compute_ls is not None:
-                        _score_2 = score_ls_2(ls_pred=text_decoded_ls, ls_gold=gold_text_seq_ls,
-                                              ls_original=src_text_ls)
+                        # _score_2 = score_ls_2(ls_pred=text_decoded_ls, ls_gold=gold_text_seq_ls,
+                        #                      ls_original=src_text_ls)
                         for metric in score_to_compute_ls:
                             # TODO : DEPRECIATED : should be remove til # ---- no more need t set the norm/need_norm : all is done by default
                             for mode_norm_score in mode_norm_score_ls:
                                 if metric not in ["norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recall", "norm_not_norm-accuracy"]:
-                                    _score, _n_tokens = score_ls_(text_decoded_ls, gold_text_seq_ls, ls_original=src_text_ls,
-                                                                  score=metric, stat=stat,
-                                                                  compute_mean_score_per_sent=compute_mean_score_per_sent,
-                                                                  normalized_mode=mode_norm_score,
-                                                                  verbose=verbose)
-                                    #print("SCORE1", mode_norm_score, " -- ", _score)
-                                    if compute_mean_score_per_sent:
-                                        score_dic[metric + "-" + mode_norm_score + "-n_sents"] += _score["n_sents"]
-                                        score_dic[metric + "-" + mode_norm_score + "-n_word_per_sent"] += _score["n_word_per_sent"]
-                                        score_dic[metric + "-" + mode_norm_score+"-mean_per_sent"] += _score["mean_per_sent"]
-                                    score_dic[metric + "-" + mode_norm_score] += _score["sum"]
-                                    score_dic[metric + "-" + mode_norm_score + "-" + "total_tokens"] += _n_tokens
-                                # ----
+                                    try:
+                                        _score, _n_tokens = score_ls_(text_decoded_ls, gold_text_seq_ls, ls_original=src_text_ls,
+                                                                      score=metric, stat=stat,
+                                                                      compute_mean_score_per_sent=compute_mean_score_per_sent,
+                                                                      normalized_mode=mode_norm_score,
+                                                                      verbose=verbose)
+                                        if compute_mean_score_per_sent:
+                                            score_dic[metric + "-" + mode_norm_score + "-n_sents"] += _score["n_sents"]
+                                            score_dic[metric + "-" + mode_norm_score + "-n_word_per_sent"] += _score["n_word_per_sent"]
+                                            score_dic[metric + "-" + mode_norm_score+"-mean_per_sent"] += _score["mean_per_sent"]
+                                        score_dic[metric + "-" + mode_norm_score] += _score["sum"]
+                                        score_dic[metric + "-" + mode_norm_score + "-" + "total_tokens"] += _n_tokens
+                                    except Exception as e:
+                                        print("Exception {}".format(e))
+                                        score_dic[metric + "-" + mode_norm_score] += 0
+                                        score_dic[metric + "-" + mode_norm_score + "-" + "total_tokens"] += 0
+                                        if compute_mean_score_per_sent:
+                                            score_dic[metric + "-" + mode_norm_score + "-n_sents"] += 0
+                                            score_dic[metric + "-" + mode_norm_score + "-n_word_per_sent"] += 0
+                                            score_dic[metric + "-" + mode_norm_score+"-mean_per_sent"] += 0
+
                             if batch.output_norm_not_norm is not None:
                                 batch.output_norm_not_norm = batch.output_norm_not_norm[:, :pred_norm.size(1)]  # not that clean : we cut gold norm_not_norm sequence
                                 _score = score_norm_not_norm(pred_norm, batch.output_norm_not_norm)
@@ -157,13 +165,6 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                                                                   output_seq=output_seq,
                                                                   input_word_len=src_len,
                                                                   output_word_len=output_len)
-        from torchviz import make_dot
-        print("000",decoding_states.type)
-        dot = make_dot(decoding_states, dict(model.named_parameters()))
-        dot.format = 'png'
-        dot.render(filename="aaa.png", directory="./")
-        # we remove in src_seq the empty words
-        #src_seq = src_seq[:,:decoding_states.size(1),:]
         # [batch, seq_len, V]
         pred_norm_not_norm = norm_not_norm.argmax(dim=-1) if norm_not_norm is not None else None
         scores = model.generator.forward(x=decoding_states)
@@ -176,9 +177,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         # mask
         output_mask = np.ones(src_seq.size(), dtype=np.int64)
         output_mask[:, char_decode:] = 0
-        #output_mask = Variable(torch.from_numpy(output_mask), requires_grad=False)
         # new seq
-
         predictions = scores.argmax(dim=-1)
 
         printing("Prediction size {} ", var=(predictions.size()), verbose=verbose, verbose_level=4)

@@ -53,7 +53,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           auxilliary_task_norm_not_norm=False, weight_binary_loss=1, dense_dim_auxilliary=None,
           unrolling_word=False, char_src_attention=False,
           debug=False, timing=False, dev_report_loss=True,
-          bucketing=True, policy=None,
+          bucketing=True, policy=None, teacher_force=True,
           shared_context="all", clipping=None, extend_n_batch=1,
           verbose=1):
 
@@ -182,7 +182,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                                       normalization=normalization, bucket=bucketing,
                                                       add_start_char=add_start_char, add_end_char=add_end_char)
 
-    writer = SummaryWriter(log_dir="./runs/{}-model".format(model.model_full_name))
+    dir_writer = os.path.join(overall_report_dir, "runs", "{}-model".format(model.model_full_name))
+    writer = SummaryWriter(log_dir=dir_writer)
+    printing("REPORT : summary writer will be located {}", var=[dir_writer], verbose_level=1, verbose=verbose)
     step_train = 0
     step_dev = 0
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
@@ -190,7 +192,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
         policy_dic = eval(policy)(epoch) if policy is not None else None
         multi_task_mode , ponderation_normalize_loss, weight_binary_loss = \
             scheduling_policy(epoch=epoch, phases_ls=policy_dic)
-        printing("SCHEDULING : ponderation_normalize_loss is {} weight_binary_loss is {} ",
+
+        printing("TRAINING Tasks scheduling : ponderation_normalize_loss is {} weight_binary_loss is {} ",
                  var=[weight_binary_loss, ponderation_normalize_loss], verbose=verbose,verbose_level=1)
 
         printing("TRAINING : Starting {} epoch out of {} ", var=(epoch+1, n_epochs), verbose= verbose, verbose_level=1)
@@ -203,20 +206,28 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                     print_raw=print_raw,timing=timing,
                                     verbose=verbose)
         start = time.time()
+        proportion_pred_train = 0 if not teacher_force else None
+        if 40 > epoch >= 10 and not teacher_force:
+            proportion_pred_train = epoch-10
+        elif epoch > 40 and not teacher_force:
+            proportion_pred_train = 40
+        printing("TRAINING : Schedule Sampling proportion of train on prediction is {} ", var=[proportion_pred_train],
+                 verbose=verbose, verbose_level=1)
         loss_train, loss_details_train, step_train = run_epoch(batchIter, model,
-                                                   LossCompute(model.generator, opt=adam,
-                                                               weight_binary_loss=weight_binary_loss,
-                                                               ponderation_normalize_loss=ponderation_normalize_loss,
-                                                               auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
-                                                               model=model,
-                                                               writer=writer,use="train",
-                                                               use_gpu=use_gpu,verbose=verbose,timing=timing),
-                                                   verbose=verbose, i_epoch=epoch,
-                                                   multi_task_mode=multi_task_mode,
-                                                   n_epochs=n_epochs, timing=timing,
-                                                   step=step_train,
-                                                   clipping=clipping,
-                                                   log_every_x_batch=100)
+                                                               LossCompute(model.generator, opt=adam,
+                                                                           weight_binary_loss=weight_binary_loss,
+                                                                           ponderation_normalize_loss=ponderation_normalize_loss,
+                                                                           auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
+                                                                           model=model,
+                                                                           writer=writer,use="train",
+                                                                           use_gpu=use_gpu,verbose=verbose,timing=timing),
+                                                               verbose=verbose, i_epoch=epoch,
+                                                               multi_task_mode=multi_task_mode,
+                                                               n_epochs=n_epochs, timing=timing,
+                                                               step=step_train,
+                                                               clipping=clipping,
+                                                               proportion_pred_train=proportion_pred_train,
+                                                               log_every_x_batch=100)
 
         writer_weights_and_grad(model=model, freq_writer=freq_writer, epoch=epoch, writer=writer, verbose=verbose)
 
@@ -345,7 +356,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
 
         if timing:
             print("Summary : {}".format(OrderedDict([("_train_ep_time", _train_ep_time), ("_create_iter_time", _create_iter_time), ("_eval_time",_eval_time) ])))
-
 
     writer.close()
 

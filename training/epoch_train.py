@@ -27,7 +27,7 @@ def divide_loss_details_n_tokens(total_loss_details_dic, n_tokens):
 def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
               n_epochs=None, n_batches=None, empty_run=False, timing=False,
               multi_task_mode="all", clipping=None,
-              step=0,
+              step=0, proportion_pred_train=None,
               log_every_x_batch=VERBOSE_1_LOG_EVERY_x_BATCH):
     "Standard Training and Logging Function"
     assert multi_task_mode in ["all", "norm_not_norm","normalize"]
@@ -44,28 +44,13 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
         printing("Starting {} batch out of {} batches", var=(i+1, n_batches), verbose= verbose, verbose_level=2)
 
         if not empty_run:
-            teacher_force = True
-            if teacher_force:
-                start = time.time() if timing else None
-                out, norm_not_norm_hidden, attention = model.forward(input_seq=batch.input_seq,
-                                                                     output_seq=batch.output_seq_x,
-                                                                     input_word_len=batch.input_seq_len,
-                                                                     output_word_len=batch.output_seq_len)
-                forward_time, start = get_timing(start)
-            else:
-                # DEV : implement teacher force
-                from model.sequence_prediction import decode_sequence
-                decode_sequence(model=model,# generator=model.generator,#char_dictionary=char_dictionary,
-                                src_seq=batch.input_seq, src_mask=batch.input_seq_mask, src_len=batch.input_seq_len,
-                                batch_size=batch.input_seq.size(0))
-                out, _, attention = model.forward(input_seq=batch.input_seq,
-                                                  output_seq=batch.output_seq_x,
-                                                  input_mask=batch.input_seq_mask,
-                                                  input_word_len=batch.input_seq_len,
-                                                  output_mask=batch.output_mask,
-                                                  output_word_len=batch.output_seq_len)
-
-            # compute loss , (compute score over decoding states then softmax and Cross entropy )
+            start = time.time() if timing else None
+            out, norm_not_norm_hidden, attention = model.forward(input_seq=batch.input_seq,
+                                                                 output_seq=batch.output_seq_x,
+                                                                 input_word_len=batch.input_seq_len,
+                                                                 output_word_len=batch.output_seq_len,
+                                                                 proportion_pred_train=proportion_pred_train)
+            forward_time, start = get_timing(start)
         else:
             out = 0, _
             printing("DATA : \n input Sequence {} \n Target sequence {} ", var=(batch.input_seq, batch.output_seq),
@@ -97,7 +82,7 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
         batch_time_start = time.time()
         if timing:
             print("run epoch timing : {}".format(OrderedDict([("forward_time", forward_time), ("loss_time", loss_time),
-                                                            ("batch_time_start", batch_time_)])))
+                                                             ("batch_time_start", batch_time_)])))
     if not empty_run:
         printing("INFO : epoch {} done ", var=(n_epochs), verbose=verbose, verbose_level=1)
         printing("Loss epoch {} is  {} total out of {} tokens ", var=(i_epoch, float(total_loss)/int(total_tokens), total_tokens), verbose=verbose, verbose_level=1)

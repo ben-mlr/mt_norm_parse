@@ -1,6 +1,7 @@
 
 from io_.info_print import printing
 
+
 def writer_weights_and_grad(model, freq_writer, epoch, writer, verbose, report_grad=True, report_weight=True):
     if epoch % freq_writer == 0:
         for name, param in model.named_parameters():

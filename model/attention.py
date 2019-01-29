@@ -56,6 +56,7 @@ class Attention(nn.Module):
                                        encoder_outputs[:, char_src]) # CHANGE : no need of unsquueze ?
             # masking end of src words
             diag = torch.diag(score_index).float()
+            #diag.dtype(dtype=torch.float)
             if scores_energy.is_cuda:
                 diag = diag.cuda()
             attn_energies[:, char_src] = diag.matmul(scores_energy)

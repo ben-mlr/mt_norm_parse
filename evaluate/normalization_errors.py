@@ -4,6 +4,7 @@ from nltk import edit_distance
 from io_.info_print import printing
 import pdb
 from env.project_variables import SUPPORTED_STAT
+from collections import OrderedDict
 
 
 def exact_match(pred, gold):
@@ -39,7 +40,7 @@ def score_ls(ls_pred, ls_gold, score, stat="mean", verbose=0):
 
     return score, len(scores)
 
-from collections import OrderedDict
+
 def score_ls_2(ls_pred, ls_gold, ls_original=None,
                verbose=0):
     stat = "sum"

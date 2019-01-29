@@ -20,16 +20,16 @@ class CharDecoder(nn.Module):
 
     def __init__(self, char_embedding, input_dim, hidden_size_decoder, word_recurrent_cell=None,
                  drop_out_word_cell=0, timing=False, drop_out_char_embedding_decoder=0,
-                 char_src_attention=False, unrolling_word=False, teacher_force=True,
-                 hidden_size_src_word_encoder=None,
+                 char_src_attention=False, unrolling_word=False,
+                 hidden_size_src_word_encoder=None,generator=None,
                  verbose=0):
         super(CharDecoder, self).__init__()
+        self.generator = generator
         self.timing = timing
         self.char_embedding_decoder = char_embedding
         self.unrolling_word = unrolling_word
         printing("WARNING : DECODER unrolling_word is {}", var=[unrolling_word], verbose_level=0, verbose=verbose)
         printing("WARNING : DECODER char_src_attention is {}", var=[char_src_attention], verbose_level=0, verbose=verbose)
-        self.teacher_force = teacher_force
         self.drop_out_char_embedding_decoder = nn.Dropout(drop_out_char_embedding_decoder)
         if word_recurrent_cell is not None:
             assert word_recurrent_cell in SUPPORED_WORD_ENCODER, \
@@ -115,6 +115,7 @@ class CharDecoder(nn.Module):
 
     def word_encoder_target(self, output, conditioning, output_word_len,
                             word_src_sizes=None,
+                            proportion_pred_train=None,
                             char_seq_hidden_encoder=None):
         # TODO DEAL WITH MASKING (padding and prediction oriented ?)
         printing("TARGET size {} ", var=output.size(), verbose=self.verbose, verbose_level=3)
@@ -165,31 +166,52 @@ class CharDecoder(nn.Module):
                      verbose_level=3)
             max_word_len = char_vecs.size(1)
             for char_i in range(max_word_len):
-                if self.teacher_force or char_i == 0:
-                    emb_char = char_vecs[:, char_i, :]
+                if proportion_pred_train is not None:
+                    teacher_force = True if np.random.randint(0,100)>proportion_pred_train else False
                 else:
+                    teacher_force = True
+                if teacher_force or char_i == 0:
+                    emb_char = char_vecs[:, char_i, :]
+                    printing("DECODER state_decoder_current {} ", var=[state_i[0].size()], verbose=self.verbose,
+                             verbose_level=3)
+                    printing("DECODER emb_char {} ", var=[emb_char.size()], verbose=self.verbose, verbose_level=3)
+                    all_states, state_i, attention_weights = self.word_encoder_target_step(
+                        char_vec_current_batch=emb_char,
+                        state_decoder_current=state_i,
+                        char_vecs_sizes=word_src_sizes,
+                        step_char=char_i,
+                        char_seq_hidden_encoder=char_seq_hidden_encoder)
+                else:
+                    assert self.generator is not None, "Generator must be passed in decoder for decodibg if not teacher_force"
+
                     # TODO based on state_i compute as generator : get id : lookup character embedding and that's it
                     # TODO : not fir the first one that should be the STARTING_SYMBOL
-                    print("not supported yet")
+
                     pdb.set_trace()
-                    scores = self.generator.forward(x=state_i)
+                    # given the current emb_char, the states of the cell (inirialized with the conditoning source )
+                    #  we compute the next states
+                    # [batch x sent_max_len, len_words] ??
+                    decoding_states, state_i, attention_weights = self.word_encoder_target_step(
+                        char_vec_current_batch=emb_char,
+                        state_decoder_current=state_i,
+                        char_vecs_sizes=word_src_sizes,
+                        step_char=char_i,
+                        char_seq_hidden_encoder=char_seq_hidden_encoder)
+                    printing("DECODING in schedule sampling {} ", var=[state_i[0].size()], verbose=self.verbose,
+                             verbose_level=3)
+                    # we feed to generator to get the score and the prediction
+                    # [batch x sent_max_len, len_words, hidden_dim] ??
+                    scores = self.generator.forward(x=decoding_states)
                     pdb.set_trace()
                     predictions = scores.argmax(dim=-1)
                     pdb.set_trace()
-                    pred = predictions[:, :, -1]
+                    # TODO : to confirm the shapes here
+                    pred = predictions[:,  -1]
                     pdb.set_trace()
+                    # given the prediction we get the next character embedding
                     emb_char = self.char_embedding_decoder(pred)
                     pdb.set_trace()
                 # no more pack sequence
-                printing("DECODER state_decoder_current {} ", var=[state_i[0].size()], verbose=self.verbose,verbose_level=3)
-                printing("DECODER emb_char {} ", var=[emb_char.size()], verbose=self.verbose, verbose_level=3)
-                all_states, state_i, attention_weights = self.word_encoder_target_step(
-                                                    char_vec_current_batch=emb_char,
-                                                    state_decoder_current=state_i,
-                                                    char_vecs_sizes=word_src_sizes,
-                                                    step_char=char_i,
-                                                    char_seq_hidden_encoder=char_seq_hidden_encoder)
-                #pdb.set_trace()
                 # TODO : should shorted sequence output and state by setting them to 0 using step_char and char_vecs_sizes_target (but it should be fine with the loss outpu)
                 #c_i = state_i[1] if isinstance(self.seq_decoder, nn.LSTM) else None
                 h_i = state_i[0] if isinstance(self.seq_decoder, nn.LSTM) else h_i
@@ -216,7 +238,7 @@ class CharDecoder(nn.Module):
             output, output_sizes = pad_packed_sequence(output, batch_first=True)
             padd_time, start = get_timing(start)
             output = output[inverse_perm_idx_output, :, :]
-            printing("TARGET ENCODED UNPACKED  {} output {} h_n (output (includes all the hidden states of last layers), "
+            printing("TARGET ENCODED UNPACKED  {} output {} h_n (output (includes all the hidden states of last layers)"
                      "last hidden hidden for each dir+layers)", var=(output, h_n), verbose=self.verbose, verbose_level=5)
 
             printing("TARGET ENCODED UNPACKED SIZE {} output {} h_n (output (includes all "
@@ -234,14 +256,9 @@ class CharDecoder(nn.Module):
         return output, attention_weight_all
 
     def forward(self, output, conditioning, output_word_len,
-                            char_seq_hidden_encoder=None,
-                            word_src_sizes=None,
-                            sent_len_max_source=None,verbose=0):
-
-        # WARNING conditioning is for now the same for every decoded token
-        #printing("TARGET output_mask size {}  mask  {} size length size {} ", var=(output_mask.size(), output_mask.size(),
-        #                                                                           output_mask.size()), verbose=verbose,
-        #         verbose_level=3)
+                char_seq_hidden_encoder=None,
+                word_src_sizes=None,proportion_pred_train=None,
+                sent_len_max_source=None,verbose=0):
 
         conditioning = conditioning.view(1, conditioning.size(0) * conditioning.size(1), -1)
         start = time.time() if self.timing else None
@@ -291,6 +308,7 @@ class CharDecoder(nn.Module):
         printing("TARGET output before word encoder {}", var=[output_seq.size()], verbose=verbose, verbose_level=3)
         output_w_decoder, attention_weight_all = self.word_encoder_target(output_seq, conditioning, output_word_len,
                                                                           word_src_sizes=word_src_sizes,
+                                                                          proportion_pred_train=proportion_pred_train,
                                                                           char_seq_hidden_encoder=char_seq_hidden_encoder)
         word_encoders, start = get_timing(start)
         # output_w_decoder : [ batch x max sent len, max word len , hidden_size_decoder ]

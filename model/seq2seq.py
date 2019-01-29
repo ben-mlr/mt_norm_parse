@@ -224,7 +224,8 @@ class LexNormalizer(nn.Module):
         self.normalize_not_normalize = BinaryPredictor(input_dim=hidden_size_decoder, dense_dim=dense_dim_auxilliary) \
             if self.auxilliary_task_norm_not_norm else None
         #self.char_embedding_2 = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
-
+        self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size,
+                                   output_dim=output_dim, verbose=verbose)
         self.decoder = CharDecoder(self.char_embedding, input_dim=char_embedding_dim,
                                    hidden_size_decoder=hidden_size_decoder,timing=timing,
                                    drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
@@ -232,9 +233,9 @@ class LexNormalizer(nn.Module):
                                    char_src_attention=char_src_attention,
                                    word_recurrent_cell=word_recurrent_cell_decoder, unrolling_word=unrolling_word,
                                    hidden_size_src_word_encoder=hidden_size_encoder,
+                                   generator=self.generator,
                                    verbose=verbose)
-        self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size,
-                                   output_dim=output_dim, verbose=verbose)
+
         self.verbose = verbose
         # bridge between encoder hidden representation and decoder
 
@@ -246,7 +247,7 @@ class LexNormalizer(nn.Module):
             else:
                 self.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
 
-    def forward(self, input_seq, output_seq, input_word_len, output_word_len):
+    def forward(self, input_seq, output_seq, input_word_len, output_word_len, proportion_pred_train=None):
         # [batch, seq_len ] , batch of sequences of indexes (that corresponds to character 1-hot encoded)
         # char_vecs_input = self.char_embedding(input_seq)
         # [batch, seq_len, input_dim] n batch of sequences of embedded character
@@ -260,10 +261,9 @@ class LexNormalizer(nn.Module):
         source_encoder, start = get_timing(start)
         # [] [batch, , hiden_size_decoder]
         printing("DECODER hidden state before bridge size {}", var=[context.size()], verbose=0, verbose_level=3)
-        pdb.set_trace()
         context = torch.tanh(self.bridge(context))
         #h = self.layer_norm(h) if self.layer_norm is not None else h
-        #h = self.dropout_bridge(h)
+        context = self.dropout_bridge(context)
         bridge, start = get_timing(start)
         printing("TYPE  encoder {} is cuda ", var=context.is_cuda, verbose=0, verbose_level=4)
         printing("DECODER hidden state after bridge size {}", var=[context.size()], verbose=0, verbose_level=3)
@@ -274,6 +274,7 @@ class LexNormalizer(nn.Module):
         output, attention_weight_all = self.decoder.forward(output_seq, context, output_word_len,
                                                             word_src_sizes=word_src_sizes,
                                                             char_seq_hidden_encoder=char_seq_hidden_encoder,
+                                                            proportion_pred_train=proportion_pred_train,
                                                             sent_len_max_source=sent_len_max_source)
 
         target_encoder, start = get_timing(start)

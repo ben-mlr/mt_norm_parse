@@ -13,6 +13,7 @@ from toolbox.sanity_check import get_timing
 from toolbox.norm_not_norm import schedule_training
 from collections import OrderedDict
 
+
 class LossCompute:
 
     def __init__(self, generator,
@@ -79,7 +80,6 @@ class LossCompute:
         reshaping, start = get_timing(start)
         loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1))
         loss_distance_time, start = get_timing(start)
-        pdb.set_trace()
         loss_binary = self.loss_binary(x_norm_not_norm.contiguous().view(-1, x_norm_not_norm.size(-1)),
                                        y_norm_not_norm.contiguous().view(-1)) if self.loss_binary is not None else None
 
