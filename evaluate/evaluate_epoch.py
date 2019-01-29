@@ -114,12 +114,16 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                 if stat_type == "":
                     score_name, score_value, n_tokens_score = score_auxiliary(score, score_dic)
                     if score_name is None:
-                        score_value = score_dic[score+"-"+mode_norm+stat_type]/score_dic[score+"-"+mode_norm+"-total_tokens"]
+                        score_value = score_dic[score+"-"+mode_norm+stat_type]/score_dic[score+"-"+mode_norm+"-total_tokens"] if score_dic[score+"-"+mode_norm+"-total_tokens"] >0 else None 
                         # if score_dic[score+"-"+mode_norm+"-total_tokens"] > 0 else -0.001
+                        if score_value is None:
+                          print("WARNING : score_value is None for stat_type ''")
                         n_tokens_score = score_dic[score + "-" + mode_norm + "-total_tokens"]
                 elif stat_type == "-mean_per_sent":
-                    score_value = score_dic[score + "-" + mode_norm + stat_type]/score_dic[score+"-"+mode_norm+"-n_sents"]
+                    score_value = score_dic[score + "-" + mode_norm + stat_type]/score_dic[score+"-"+mode_norm+"-n_sents"] if score_dic[score+"-"+mode_norm+"-n_sents"] > 0 else None
                     n_tokens_score = score_dic[score+"-"+mode_norm+"-total_tokens"]
+                    if score_value is None:
+                      print("WARNING : score_value is None for stat_type 'mean_per_sent' ")
 
                 report = report_template(metric_val=score+stat_type,
                                          info_score_val=mode_norm,
@@ -166,14 +170,14 @@ if __name__ == "__main__":
     list_all_dir = os.listdir(os.path.join(PROJECT_PATH, "checkpoints"))
     #for ablation_id in ["aaad"]:#,"bd55","0153","f178"]:
     #for ablation_id in ["42a20-WARMUP-unrolling-False0.1_scale_aux-True_aux-0.1do_char_dec-False_char_src_atten-model_13_db74-folder"]:
-    #for ablation_id in ["a97f2-WARMUP-unrolling-False"]:
+    for ablation_id in ["a97f2-WARMUP-unrolling-False"]:
     #for ablation_id in ["08661","d6960"]:
     #for ablation_id in ["f2f2-batchXdropout_char0.1-to_char_src-1_dir_sent-10_batch_size-model_18_aa04","8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_1_33ca"]:
     #for ablation_id in ["e390","24f9d"]:
     #for ablation_id in ["01880"]:
     #for ablation_id in ["d6960-new_data-batchXdropout_char0-to_char_src-1_dir_sent-10_batch_size-model_2_be5d","08661-new_data-batchXdropout_char0-to_char_src-2_dir_sent-20_batch_size-model_5_c8b2"]:
     #for ablation_id in ["8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_1_33ca","8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_2_e437"]:
-    for ablation_id in ["21cc8-fixed_all_context-aux_dense1dir_word-200_aux-0do_char_dec-False_char_src-model_12_4d49"]:
+    #for ablation_id in ["21cc8-fixed_all_context-aux_dense1dir_word-200_aux-0do_char_dec-False_char_src-model_12_4d49"]:
       #for data in [DEMO,DEMO2]:
       for get_batch_mode_evaluate in [False]:
         for batch_size in [20]:

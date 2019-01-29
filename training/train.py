@@ -22,6 +22,8 @@ from tracking.plot_loss import simple_plot_ls
 from evaluate.evaluate_epoch import evaluate
 from model.schedule_training_policy import AVAILABLE_SCHEDULING_POLICIES
 from toolbox.norm_not_norm import scheduling_policy
+from toolbox.tensorboard_tools import writer_weights_and_grad
+from tensorboardX import SummaryWriter
 from env.project_variables import AVAILABLE_TASKS
 from model.schedule_training_policy import policy_1
 np.random.seed(SEED_NP)
@@ -41,22 +43,26 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           hidden_size_encoder=None, output_dim=None, char_embedding_dim=None,
           hidden_size_decoder=None, hidden_size_sent_encoder=None, freq_scoring=5,
           compute_scoring_curve=False, score_to_compute_ls=None, mode_norm_ls=None,
-          checkpointing=True, freq_checkpointing=None, model_dir=None,
+          checkpointing=True, freq_checkpointing=None,freq_writer=None,
+          model_dir=None,
           reload=False, model_full_name=None, model_id_pref="", print_raw=False,
           model_specific_dictionary=False, dir_sent_encoder=1,
           add_start_char=None, add_end_char=1,
           overall_label="DEFAULT",overall_report_dir=CHECKPOINT_DIR,
           compute_mean_score_per_sent=False,
           auxilliary_task_norm_not_norm=False, weight_binary_loss=1, dense_dim_auxilliary=None,
-          unrolling_word=False,char_src_attention=False,
-          debug=False,timing=False,
-          dev_report_loss=True,
-          bucketing=True,
-          policy=None,
-          shared_context="all",
-          extend_n_batch=1,
+          unrolling_word=False, char_src_attention=False,
+          debug=False, timing=False, dev_report_loss=True,
+          bucketing=True, policy=None,
+          shared_context="all", clipping=None, extend_n_batch=1,
           verbose=1):
+
+    if not unrolling_word:
+        assert not char_src_attention, "ERROR attention requires step by step unrolling  "
     printing("WARNING bucketing is {} ", var=bucketing, verbose=verbose, verbose_level=1)
+    if freq_writer is None:
+        freq_writer = freq_checkpointing
+        printing("REPORTING freq_writer set to freq_checkpointing {}", var=[freq_checkpointing], verbose=verbose, verbose_level=1)
     if auxilliary_task_norm_not_norm:
         printing("MODEL : training model with auxillisary task (loss weighted with {})", var=[weight_binary_loss], verbose=verbose, verbose_level=1)
     if compute_scoring_curve:
@@ -119,7 +125,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                           weight_binary_loss=weight_binary_loss,
                           load=reload,
                           char_embedding_dim=char_embedding_dim, voc_size=voc_size,
-                          dir_model=model_dir, use_gpu=use_gpu,dict_path=dict_path,
+                          dir_model=model_dir, use_gpu=use_gpu, dict_path=dict_path,
                           word_recurrent_cell_decoder=word_recurrent_cell_decoder, word_recurrent_cell_encoder=word_recurrent_cell_encoder,
                           train_path=_train_path, dev_path=_dev_path, add_start_char=_add_start_char,
                           model_specific_dictionary=model_specific_dictionary,
@@ -133,6 +139,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                           hidden_size_sent_encoder=hidden_size_sent_encoder,shared_context=shared_context,
                           unrolling_word=unrolling_word,char_src_attention=char_src_attention,
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
+
     if use_gpu:
         model = model.cuda()
         printing("TYPE model is cuda : {} ", var=(next(model.parameters()).is_cuda), verbose=verbose, verbose_level=4)
@@ -175,6 +182,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                                       normalization=normalization, bucket=bucketing,
                                                       add_start_char=add_start_char, add_end_char=add_end_char)
 
+    writer = SummaryWriter(log_dir="./runs/{}-model".format(model.model_full_name))
+    step_train = 0
+    step_dev = 0
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
         assert policy in AVAILABLE_SCHEDULING_POLICIES
         policy_dic = eval(policy)(epoch) if policy is not None else None
@@ -193,15 +203,23 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                     print_raw=print_raw,timing=timing,
                                     verbose=verbose)
         start = time.time()
-        loss_train, loss_details_train = run_epoch(batchIter, model, LossCompute(model.generator, opt=adam,
-                                                                                 weight_binary_loss=weight_binary_loss,
-                                                                                 ponderation_normalize_loss =ponderation_normalize_loss,
-                                                                                 auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
-                                                                                 use_gpu=use_gpu,verbose=verbose, timing=timing),
-                                                                                 verbose=verbose, i_epoch=epoch,
-                                                                                 multi_task_mode=multi_task_mode,
-                                                                                 n_epochs=n_epochs, timing=timing,
-                                                                                 log_every_x_batch=100)
+        loss_train, loss_details_train, step_train = run_epoch(batchIter, model,
+                                                   LossCompute(model.generator, opt=adam,
+                                                               weight_binary_loss=weight_binary_loss,
+                                                               ponderation_normalize_loss=ponderation_normalize_loss,
+                                                               auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
+                                                               model=model,
+                                                               writer=writer,use="train",
+                                                               use_gpu=use_gpu,verbose=verbose,timing=timing),
+                                                   verbose=verbose, i_epoch=epoch,
+                                                   multi_task_mode=multi_task_mode,
+                                                   n_epochs=n_epochs, timing=timing,
+                                                   step=step_train,
+                                                   clipping=clipping,
+                                                   log_every_x_batch=100)
+
+        writer_weights_and_grad(model=model, freq_writer=freq_writer, epoch=epoch, writer=writer, verbose=verbose)
+
         _train_ep_time, start = get_timing(start)
         model.eval()
         # TODO : should be added in the freq_checkpointing orhterwise useless
@@ -216,17 +234,20 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
         # TODO : should not evaluate for each epoch : should evalaute every x epoch : check if it decrease and checkpoint
         if (dev_report_loss and (epoch % freq_checkpointing == 0)) or (epoch + 1 == n_epochs):
             printing("EVALUATION : computing loss on dev epoch {}  ",var=epoch, verbose=verbose, verbose_level=1)
-            loss_dev, loss_details_dev = run_epoch(batchIter_eval, model, LossCompute(model.generator, use_gpu=use_gpu,verbose=verbose,
-                                                                                      weight_binary_loss=weight_binary_loss,
-                                                                                      ponderation_normalize_loss=ponderation_normalize_loss,
-                                                                                      auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm),
-                                                                                      i_epoch=epoch, n_epochs=n_epochs,
-                                                                                      verbose=verbose,timing=timing,
-                                                                                      log_every_x_batch=100)
+            loss_obj = LossCompute(model.generator, use_gpu=use_gpu,verbose=verbose,
+                                   weight_binary_loss=weight_binary_loss,
+                                   ponderation_normalize_loss=ponderation_normalize_loss,
+                                   writer=writer,use="dev",
+                                   auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm)
+            loss_dev, loss_details_dev, step_dev = run_epoch(batchIter_eval, model, loss_compute=loss_obj,
+                                                             i_epoch=epoch, n_epochs=n_epochs,
+                                                             verbose=verbose, timing=timing,step=step_dev,
+                                                             log_every_x_batch=100, )
+
             loss_developing.append(loss_dev)
             epoch_ls_dev.append(epoch)
 
-            if auxilliary_task_norm_not_norm :
+            if auxilliary_task_norm_not_norm:
                 # in this case we report loss detail
                 for ind, loss_key in enumerate(loss_details_dev.keys()):
                     if loss_key != "other":
@@ -294,30 +315,25 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
 
             dir_plot = simple_plot(final_loss=loss_train, loss_2=loss_developing, loss_ls=loss_training,
                                    epochs=str(epoch)+reloading,
-                                   epoch_ls_1=epoch_ls_train, epoch_ls_2=epoch_ls_dev,
-                                   label=label_train+"-train",
-                                   label_2=label_dev+"-dev",
-                                   save=True, dir=model.dir_model,
-                                   verbose=verbose, verbose_level=1,
-                                   lr=lr, prefix=model.model_full_name,
-                                   show=False)
+                                   epoch_ls_1=epoch_ls_train, epoch_ls_2=epoch_ls_dev, label=label_train+"-train",
+                                   label_2=label_dev+"-dev", save=True, dir=model.dir_model, verbose=verbose,
+                                   verbose_level=1, lr=lr, prefix=model.model_full_name, show=False)
 
             model, _loss_dev, counter_no_deacrease, saved_epoch = \
-                    checkpoint(loss_saved =_loss_dev, loss=loss_dev, model=model,
+                    checkpoint(loss_saved=_loss_dev, loss=loss_dev, model=model,
                                counter_no_decrease=counter_no_deacrease, saved_epoch=saved_epoch,
-                               model_dir= model.dir_model,
+                               model_dir=model.dir_model,
                                info_checkpoint={"n_epochs": epoch, "batch_size": batch_size,
                                                 "train_data_path": train_path, "dev_data_path": dev_path,
-                                                 "other": {"error_curves": dir_plot, "loss": _loss_dev, "error_curves_details":dir_plot_detailed,
-                                                           "weight_binary_loss": weight_binary_loss,
-                                                           "data":"dev", "seed(np/torch)": (SEED_TORCH, SEED_TORCH),
-                                                           "extend_n_batch": extend_n_batch,
-                                                           "time_training(min)": "{0:.2f}".format(total_time/60),
-                                                           "average_per_epoch(min)": "{0:.2f}".format((total_time/n_epochs)/60)}},
+                                                "other": {"error_curves": dir_plot, "loss": _loss_dev, "error_curves_details":dir_plot_detailed,
+                                                          "weight_binary_loss": weight_binary_loss,
+                                                          "data": "dev", "seed(np/torch)": (SEED_TORCH, SEED_TORCH),
+                                                          "extend_n_batch": extend_n_batch,
+                                                          "time_training(min)": "{0:.2f}".format(total_time/60),
+                                                          "average_per_epoch(min)": "{0:.2f}".format((total_time/n_epochs)/60)}},
                              epoch=epoch, epochs=n_epochs,
                              verbose=verbose)
             if counter_no_deacrease*freq_checkpointing >= BREAKING_NO_DECREASE:
-                assert freq_checkpointing == 1, "ERROR : to implement"
                 printing("CHECKPOINTING : Breaking training : loss did not decrease on dev for 10 checkpoints "
                          "so keeping model from {} epoch  ".format(saved_epoch),
                          verbose=verbose, verbose_level=0)
@@ -330,14 +346,12 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
         if timing:
             print("Summary : {}".format(OrderedDict([("_train_ep_time", _train_ep_time), ("_create_iter_time", _create_iter_time), ("_eval_time",_eval_time) ])))
 
-    #model.save(model_dir, model, info_checkpoint={"n_epochs": n_epochs, "batch_size": batch_size,
-    #                                             "train_data_path": train_path, "dev_data_path": dev_path,
-    #                                             "other": {"error_curves": dir_plot}})
 
-    #report_model(parameters=True, ,arguments_dic=model.arguments, dir_models_repositories=REPOSITORIES)
+    writer.close()
 
-    simple_plot(final_loss=loss_dev, loss_ls=loss_training, loss_2=loss_developing,
-                epoch_ls_1=[i for i in range(n_epochs)],epoch_ls_2=epoch_ls_dev,
+    simple_plot(final_loss=loss_dev,
+                loss_ls=loss_training, loss_2=loss_developing,
+                epoch_ls_1=epoch_ls_train,epoch_ls_2=epoch_ls_dev,
                 epochs=n_epochs, save=True,
                 dir=model.dir_model, label=label_train, label_2=label_dev,
                 lr=lr, prefix=model.model_full_name+"-LAST")

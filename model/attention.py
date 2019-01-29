@@ -10,9 +10,11 @@ EPSILON = 1e-5
 class Attention(nn.Module):
 
     def __init__(self,  hidden_size_word_decoder,
-                 char_embedding_dim, hidden_size_src_word_encoder, method="general",use_gpu=False):
+                 char_embedding_dim, hidden_size_src_word_encoder, time=False,
+                 method="general",use_gpu=False):
 
         super(Attention, self).__init__()
+        self.time = time
         self.hidden_size_word_decoder = hidden_size_word_decoder
         self.attn = nn.Linear(hidden_size_word_decoder ,#+ char_embedding_dim,
                               hidden_size_src_word_encoder)#+hidden_size, hidden_size) # CHANGE--> (compared to example) we (hidden_size * 2+hidden_size because we have the embedding size +  ..
@@ -54,7 +56,6 @@ class Attention(nn.Module):
                                        encoder_outputs[:, char_src]) # CHANGE : no need of unsquueze ?
             # masking end of src words
             diag = torch.diag(score_index).float()
-            #diag.dtype(dtype=torch.float)
             if scores_energy.is_cuda:
                 diag = diag.cuda()
             attn_energies[:, char_src] = diag.matmul(scores_energy)

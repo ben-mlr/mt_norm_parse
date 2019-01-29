@@ -53,8 +53,10 @@ class CharDecoder(nn.Module):
         printing("MODEL Decoder : word_recurrent_cell has been set to {} ".format(str(word_recurrent_cell)),
                  verbose=verbose, verbose_level=1)
         #self.attn_param = nn.Linear(hidden_size_decoder*1) if char_src_attention else None
+
         self.attn_layer = Attention(hidden_size_word_decoder=hidden_size_decoder,
                                     char_embedding_dim=self.char_embedding_decoder.embedding_dim,
+                                    time=self.timing,
                                     hidden_size_src_word_encoder=hidden_size_src_word_encoder) if char_src_attention else None
         self.verbose = verbose
 
@@ -78,9 +80,11 @@ class CharDecoder(nn.Module):
         # current_state : for each word (in sentence batches)  1 character local target context
         # (char embedding + previous recurrent state of the decoder))
         # current_state  : dim batch x sentence max len , char embedding + hidden_dim decoder
+        start_atten = time.time()
         if self.attn_layer is not None:
             attention_weights = self.attn_layer(char_state_decoder=state_hiden.squeeze(0),#current_state,
                                                 word_src_sizes=char_vecs_sizes,
+
                                                 encoder_outputs=char_seq_hidden_encoder)
             printing("DECODER STEP : attention context {} char_seq_hidden_encoder {} ", var=[attention_weights.size(), char_seq_hidden_encoder.size()],
                      verbose_level=3, verbose=self.verbose)
@@ -94,12 +98,18 @@ class CharDecoder(nn.Module):
             char_and_context = torch.cat((context, char_vec_current_batch), dim=2)
             char_vec_current_batch = char_and_context
             # compute product attention_weights with  char_seq_hidden_encoder (updated for each character)
-            # this provide a new character context that we concatanate with char_vec_current_batch + possibly conditioning_other as they do https://github.com/spro/practical-pytorch/blob/master/seq2seq-translation/seq2seq-translation-batched.ipynb
+            # this provide a new character context that we concatanate
+            #  with char_vec_current_batch + possibly conditioning_other
+            #  as they do https://github.com/spro/practical-pytorch/blob/master/seq2seq-translation/seq2seq-translation-batched.ipynb
             # the context is goes as input as the character embedding : we add the tranditional conditioning_other
         else:
             attention_weights = None
+        time_atten, start = get_timing(start_atten)
         output, state = self.seq_decoder(char_vec_current_batch, state_decoder_current)
-
+        time_step_decoder, _ = get_timing(start)
+        if self.timing:
+            print("Attention time {} ".format(OrderedDict([('time_attention', time_atten),
+                                                           ("time_step_decoder", time_step_decoder)])))
         # output and state are equal because we call the GRU step by step (no the entire sequence)
         return output, state, attention_weights
 
@@ -131,7 +141,8 @@ class CharDecoder(nn.Module):
         # pdb.set_trace()
         zero_last, start = get_timing(start)
         packed_char_vecs_output = pack_padded_sequence(char_vecs, output_word_len.squeeze().cpu().numpy(), batch_first=True)
-        pack, start = get_timing(start)
+        pack_time, start = get_timing(start)
+        _start_recurrence = start
         printing("TARGET packed_char_vecs {}  dim", var=[packed_char_vecs_output.data.shape], verbose=self.verbose,
                  verbose_level=3) # .size(), packed_char_vecs)
         # conditioning is the output of the encoder (work as the first initial state of the decoder)
@@ -191,24 +202,19 @@ class CharDecoder(nn.Module):
             # we reoder char_vecs so need to do it
             output = output[inverse_perm_idx_output, :, :]
             printing("DECODER : target unrolling : output {} size ", var=[output.size()], verbose=0, verbose_level=3)
+            recurrent_cell_time, pack_time, padd_time = None, None, None
         else:
-            # state_char_decoder should be cat to char_vecs
-            # attention_weights = F.softmax(self.attn_param(torch.cat((char_vecs,state_char_decoder))))
-            # then product with char_seq_hidden_encoder
-            # then cat in a way with conditioning (and should remove word level part of it also )
-            # then feed as conditioning
-            # back to old implementation
             pdb.set_trace()
             output, h_n = self.seq_decoder(packed_char_vecs_output, conditioning)
             h_n = h_n[0] if isinstance(self.seq_decoder, nn.LSTM) else h_n
-            recurrent_cell, start = get_timing(start)
+            recurrent_cell_time, start = get_timing(start)
             printing("TARGET ENCODED {} output {} h_n (output (includes all the hidden states of last layers), "
                      "last hidden hidden for each dir+layers)", var=(output, h_n), verbose=self.verbose, verbose_level=5)
             printing("TARGET ENCODED SIZE {} output {} h_n (output (includes all the hidden states of last layers), "
                      "last hidden hidden for each dir+layers)", var=(output.data.shape, h_n.size()), verbose=self.verbose,
                      verbose_level=3)
             output, output_sizes = pad_packed_sequence(output, batch_first=True)
-            padd, start = get_timing(start)
+            padd_time, start = get_timing(start)
             output = output[inverse_perm_idx_output, :, :]
             printing("TARGET ENCODED UNPACKED  {} output {} h_n (output (includes all the hidden states of last layers), "
                      "last hidden hidden for each dir+layers)", var=(output, h_n), verbose=self.verbose, verbose_level=5)
@@ -218,14 +224,16 @@ class CharDecoder(nn.Module):
                      "last hidden hidden for each dir+layers)", var=(output.size(), h_n.size()),
                      verbose=self.verbose, verbose_level=3)
             attention_weight_all = None
-            if self.timing:
-                print("WORD TARGET {} ".format(OrderedDict([('char_embedding', char_embedding),
-                     ("reorder_conditioning", reorder_conditioning), ("zero_last", zero_last), ("not_printing",not_printing),
-                     ("pack",pack), ("recurrent_cell", recurrent_cell), ("padd", padd)])))
-        #pdb.set_trace()
+        all_recurrent_time, _ = get_timing(_start_recurrence)
+        if self.timing:
+            print("WORD TARGET {} ".format(OrderedDict([('char_embedding', char_embedding),
+                                                        ("reorder_conditioning", reorder_conditioning),
+                                                        ("zero_last", zero_last), ("not_printing", not_printing),
+                                                        ("pack_time", pack_time), ("recurrent_cell_time", recurrent_cell_time),
+                                                        ("all_recurrent_time", all_recurrent_time), ("pad_time", padd_time)])))
         return output, attention_weight_all
 
-    def sent_encoder_target(self, output, conditioning, output_word_len,
+    def forward(self, output, conditioning, output_word_len,
                             char_seq_hidden_encoder=None,
                             word_src_sizes=None,
                             sent_len_max_source=None,verbose=0):
@@ -293,12 +301,12 @@ class CharDecoder(nn.Module):
         if self.attn_layer is not None:
             attention_weight_all = torch.cat(attention_weight_all, dim=1)
             attention_weight_all = attention_weight_all.view(output_char_vecs.size(0), max_word, attention_weight_all.size(1),attention_weight_all.size(2))
-            reshape, start = get_timing(start)
         else:
             attention_weight_all = None
+        reshape_attention, start = get_timing(start)
         # output_w_decoder : [ batch , max sent len, max word len , hidden_size_decoder ]
         if self.timing:
             print("SENT TARGET : {}".format(OrderedDict([("clone_len", clone_len), ("argmin_squeeze", argmin_squeeze),("sorting", sorting),
                                                          ("packed_sent", packed_sent), ("padd_sent",padd_sent), ("reshape_sent",reshape_sent),
-                                                         ("reshape_len",reshape_len),("word_encoders", word_encoders), ("reshape",reshape)])))
+                                                         ("reshape_len",reshape_len),("word_encoders", word_encoders), ("reshape_attention",reshape_attention)])))
         return output_w_decoder, attention_weight_all

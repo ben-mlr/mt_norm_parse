@@ -219,9 +219,12 @@ class LexNormalizer(nn.Module):
         self.bridge = nn.Linear(
             hidden_size_encoder * n_layers_word_encoder*p_word + hidden_size_sent_encoder * dir_sent_encoder*p_sent,
             hidden_size_decoder)
+        self.layer_norm = nn.LayerNorm(hidden_size_decoder, elementwise_affine=False) if True else None
         self.dropout_bridge = nn.Dropout(p=drop_out_bridge)
         self.normalize_not_normalize = BinaryPredictor(input_dim=hidden_size_decoder, dense_dim=dense_dim_auxilliary) \
             if self.auxilliary_task_norm_not_norm else None
+        #self.char_embedding_2 = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
+
         self.decoder = CharDecoder(self.char_embedding, input_dim=char_embedding_dim,
                                    hidden_size_decoder=hidden_size_decoder,timing=timing,
                                    drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
@@ -252,41 +255,44 @@ class LexNormalizer(nn.Module):
                  verbose=0, verbose_level=4)
         # input_seq : [batch, max sentence length, max word length] : batch of sentences
         start = time.time() if timing else None
-        h, sent_len_max_source, char_seq_hidden_encoder, word_src_sizes = \
-            self.encoder.sent_encoder_source(input_seq, input_word_len)
+        context, sent_len_max_source, char_seq_hidden_encoder, word_src_sizes = \
+            self.encoder.forward(input_seq, input_word_len)
         source_encoder, start = get_timing(start)
         # [] [batch, , hiden_size_decoder]
-        printing("DECODER hidden state before bridge size {}", var=[h.size()], verbose=0, verbose_level=3)
-        h = self.bridge(h)
-        h = self.dropout_bridge(h)
+        printing("DECODER hidden state before bridge size {}", var=[context.size()], verbose=0, verbose_level=3)
+        pdb.set_trace()
+        context = torch.tanh(self.bridge(context))
+        #h = self.layer_norm(h) if self.layer_norm is not None else h
+        #h = self.dropout_bridge(h)
         bridge, start = get_timing(start)
-        printing("TYPE  encoder {} is cuda ", var=h.is_cuda, verbose=0, verbose_level=4)
-        printing("DECODER hidden state after bridge size {}", var=[h.size()], verbose=0, verbose_level=3)
-        norm_not_norm_hidden = self.normalize_not_normalize(h) if self.auxilliary_task_norm_not_norm else None
+        printing("TYPE  encoder {} is cuda ", var=context.is_cuda, verbose=0, verbose_level=4)
+        printing("DECODER hidden state after bridge size {}", var=[context.size()], verbose=0, verbose_level=3)
+        norm_not_norm_hidden = self.normalize_not_normalize(context) if self.auxilliary_task_norm_not_norm else None
         if self.auxilliary_task_norm_not_norm:
             printing("DECODER hidden state after norm_not_norm_hidden size {}", var=[norm_not_norm_hidden.size()],
                      verbose=0, verbose_level=4)
-        output, attention_weight_all = self.decoder.sent_encoder_target(output_seq, h, output_word_len,
-                                                                        word_src_sizes=word_src_sizes,
-                                                                        char_seq_hidden_encoder=char_seq_hidden_encoder,
-                                                                        sent_len_max_source=sent_len_max_source)
+        output, attention_weight_all = self.decoder.forward(output_seq, context, output_word_len,
+                                                            word_src_sizes=word_src_sizes,
+                                                            char_seq_hidden_encoder=char_seq_hidden_encoder,
+                                                            sent_len_max_source=sent_len_max_source)
 
         target_encoder, start = get_timing(start)
-        printing("TYPE  decoder {} is cuda ", var=(output.is_cuda),
+        printing("TYPE  decoder {} is cuda ", var=output.is_cuda,
                  verbose=0, verbose_level=4)
         # output_score = nn.ReLU()(self.output_predictor(h_out))
         # [batch, output_voc_size], one score per output character token
-        printing("DECODER full  output sequence encoded of size {} ", var=(output.size()), verbose=self.verbose,
+        printing("DECODER full  output sequence encoded of size {} ", var=[output.size()], verbose=self.verbose,
                  verbose_level=3)
-        printing("DECODER full  output sequence encoded of {}", var=(output), verbose=self.verbose, verbose_level=5)
+        printing("DECODER full  output sequence encoded of {}", var=[output], verbose=self.verbose, verbose_level=5)
         if timing:
             time_report = OrderedDict(
                 [("source_encoder", source_encoder), ("target_encoder", target_encoder), ("bridge", bridge)])
             print("time report {}".format(time_report))
+
         return output, norm_not_norm_hidden, attention_weight_all
 
     @staticmethod
-    def save(dir, model, info_checkpoint, suffix_name="", verbose=0):
+    def save(dir, model, info_checkpoint, suffix_name="",verbose=0):
         """
         saving model as and arguments as json
         """
@@ -297,6 +303,7 @@ class LexNormalizer(nn.Module):
         model.arguments["hyperparameters"]["n_trainable_parameters"] = count_trainable_parameters(model)
         printing("MODEL : trainable parameters : {} ", var=model.arguments["hyperparameters"]["n_trainable_parameters"],
                  verbose_level=0, verbose=verbose)
+        model.arguments["hyperparameters"]["batch_size"] = info_checkpoint["batch_size"]
         model.arguments["info_checkpoint"] = info_checkpoint
         model.arguments["info_checkpoint"]["git_id"] = get_commit_id()
         model.arguments["checkpoint_dir"] = checkpoint_dir

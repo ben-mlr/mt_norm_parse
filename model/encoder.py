@@ -89,7 +89,7 @@ class CharEncoder(nn.Module):
         # TODO: check that using packed sequence provides the last state of the sequence(not the end of the padded one!)
         return h_n, output, word_src_sizes
 
-    def sent_encoder_source(self, input, input_word_len=None, verbose=0):
+    def forward(self, input, input_word_len=None, verbose=0):
         # input should be a batach of sentences
         # input : [batch, max sent len, max word len], input_word_len [batch, max_sent_len]
         context_level = self.context_level
@@ -129,8 +129,10 @@ class CharEncoder(nn.Module):
 
         # input_char_vecs : [batch x max sent_len , MAX_CHAR_LENGTH or bucket max_char_length]
         # input_word_len  [batch x max sent_len]
+
         h_w, char_seq_hidden, word_src_sizes = self.word_encoder_source(input=input_char_vecs, input_word_len=input_word_len)
         # [batch x max sent_len , packed max_char_length, hidden_size_encoder]
+        pdb.set_trace()
         h_w = h_w.view(shape_sent_seq[0], shape_sent_seq[1], -1)
         # [batch,  max sent_len , packed max_char_length, hidden_size_encoder]
         printing("SOURCE word encoder reshaped dim sent : {} ", var=[h_w.size()],
@@ -157,5 +159,5 @@ class CharEncoder(nn.Module):
         # source_context_word_vector : [1, batch x sent len, hidden_size_sent_encoder + hidden_size_encoder]
         printing("SOURCE contextual last representation : {} ", var=[source_context_word_vector.size()],
                  verbose=verbose, verbose_level=3)
-
+        pdb.set_trace()
         return source_context_word_vector, sent_len_max_source, char_seq_hidden, word_src_sizes

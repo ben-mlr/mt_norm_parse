@@ -26,7 +26,8 @@ def divide_loss_details_n_tokens(total_loss_details_dic, n_tokens):
 
 def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
               n_epochs=None, n_batches=None, empty_run=False, timing=False,
-              multi_task_mode="all",
+              multi_task_mode="all", clipping=None,
+              step=0,
               log_every_x_batch=VERBOSE_1_LOG_EVERY_x_BATCH):
     "Standard Training and Logging Function"
     assert multi_task_mode in ["all", "norm_not_norm","normalize"]
@@ -72,7 +73,10 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
         if not empty_run:
             loss, loss_details_current = loss_compute(out, batch.output_seq_y,
                                                       x_norm_not_norm=norm_not_norm_hidden,
-                                                      y_norm_not_norm=batch.output_norm_not_norm)#, batch.ntokens)
+                                                      y_norm_not_norm=batch.output_norm_not_norm,
+                                                      clipping=clipping,
+                                                      step=i+step)#, batch.ntokens)
+
             loss_time, start = get_timing(start)
             total_loss += loss
             total_loss_details = update_loss_details_dic(total_loss_details, loss_details_current)
@@ -100,5 +104,6 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
 
     total_loss_details = divide_loss_details_n_tokens(total_loss_details, total_tokens)
     #training_report = {"n_epochs":n_epochs, "batch_size": batch.input_seq.size(0), "time_training": None, "total_tokens" : total_tokens, "loss": total_loss / total_tokens}
+    step = step+i
 
-    return float(total_loss) / int(total_tokens), total_loss_details
+    return float(total_loss) / int(total_tokens), total_loss_details, step

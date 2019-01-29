@@ -87,7 +87,7 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                                                                   compute_mean_score_per_sent=compute_mean_score_per_sent,
                                                                   normalized_mode=mode_norm_score,
                                                                   verbose=verbose)
-                                    print("SCORE1", mode_norm_score, " -- ", _score)
+                                    #print("SCORE1", mode_norm_score, " -- ", _score)
                                     if compute_mean_score_per_sent:
                                         score_dic[metric + "-" + mode_norm_score + "-n_sents"] += _score["n_sents"]
                                         score_dic[metric + "-" + mode_norm_score + "-n_word_per_sent"] += _score["n_word_per_sent"]
@@ -157,6 +157,11 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                                                                   output_seq=output_seq,
                                                                   input_word_len=src_len,
                                                                   output_word_len=output_len)
+        from torchviz import make_dot
+        print("000",decoding_states.type)
+        dot = make_dot(decoding_states, dict(model.named_parameters()))
+        dot.format = 'png'
+        dot.render(filename="aaa.png", directory="./")
         # we remove in src_seq the empty words
         #src_seq = src_seq[:,:decoding_states.size(1),:]
         # [batch, seq_len, V]
@@ -185,7 +190,8 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                  output_seq.size()),
                  verbose=verbose, verbose_level=5)
         output_seq = output_seq[:, :scores.size(1), :]
-        pred_norm_not_norm = pred_norm_not_norm[:, :scores.size(1)]  # followign what's done above
+        if pred_norm_not_norm is not None:
+            pred_norm_not_norm = pred_norm_not_norm[:, :scores.size(1)]  # followign what's done above
         output_seq[:, :, char_decode - 1] = predictions[:, :, -1]
         if verbose >= 5:
             sequence = [" ".join([char_dictionary.get_instance(output_seq[sent, word_ind, char_i]) for char_i in range(max_len)])

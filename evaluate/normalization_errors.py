@@ -170,7 +170,7 @@ def score_auxiliary(score_label, score_dic):
         n_tokens_score = score_dic["need_norm-norm_not_norm-gold-count"]
     elif score_label.endswith("accuracy"):
         score_name = "norm_not_norm-accuracy"
-        score_value = score_dic["all-norm_not_norm-pred_correct-count"] / score_dic["all-norm_not_norm-gold-count"]
+        score_value = score_dic["all-norm_not_norm-pred_correct-count"] / score_dic["all-norm_not_norm-gold-count"] if  score_dic["all-norm_not_norm-gold-count"] else None
         n_tokens_score = score_dic["all-norm_not_norm-gold-count"]
     elif score_label.endswith("F1"):
         score_name = "norm_not_norm-F1"
