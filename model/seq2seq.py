@@ -164,8 +164,8 @@ class LexNormalizer(nn.Module):
                                                    "unrolling_word": unrolling_word,
                                                    "teacher_force": teacher_force,
                                                  },
-                                  "hidden_size_encoder": hidden_size_encoder,
-                                  "hidden_size_sent_encoder": hidden_size_sent_encoder,
+                                  "hidden_size_encoder": int(hidden_size_encoder/dir_word_encoder),
+                                  "hidden_size_sent_encoder": int(hidden_size_sent_encoder/dir_sent_encoder),
                                   "hidden_size_decoder": hidden_size_decoder,
                                   "voc_size": voc_size, "output_dim": output_dim
                                  }}
@@ -221,7 +221,7 @@ class LexNormalizer(nn.Module):
         p_sent = 1 if shared_context in ["sent", "all"] else 0
 
         self.bridge = nn.Linear(
-            hidden_size_encoder * n_layers_word_encoder*p_word + hidden_size_sent_encoder * dir_sent_encoder*p_sent,
+            hidden_size_encoder * n_layers_word_encoder*p_word + hidden_size_sent_encoder*p_sent,#*dir_sent_encoder : added diviion by 2 if dir 2
             hidden_size_decoder)
         self.layer_norm = nn.LayerNorm(hidden_size_decoder, elementwise_affine=False) if True else None
         self.dropout_bridge = nn.Dropout(p=drop_out_bridge)

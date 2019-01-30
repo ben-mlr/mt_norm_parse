@@ -113,16 +113,11 @@ class LossCompute:
 
             if clipping is not None:
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), clipping)
-                for name, param in self.model.named_parameters():
-                    if param.requires_grad and param.grad is not None:
-                        norm = param.grad.norm()
-                        print("grad norm ", norm)
-                        assert norm < clipping
+
             gradient_clipping, start = get_timing(start)
             printing("Optimizing", self.verbose, verbose_level=3)
             self.opt.step()
             step_opt_time, start = get_timing(start)
-
             # TODO : should it be before ?
             zero_gradtime, start = get_timing(start)
         else:

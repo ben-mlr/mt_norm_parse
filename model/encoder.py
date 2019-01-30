@@ -9,7 +9,7 @@ from env.project_variables import SUPPORED_WORD_ENCODER
 
 class CharEncoder(nn.Module):
 
-    def __init__(self, char_embedding, input_dim, hidden_size_encoder, hidden_size_sent_encoder,
+    def     __init__(self, char_embedding, input_dim, hidden_size_encoder, hidden_size_sent_encoder,
                  word_recurrent_cell=None, dropout_sent_encoder_cell=0, dropout_word_encoder_cell=0,
                  n_layers_word_cell=1, timing=False, bidir_sent=True,context_level="all",
                  drop_out_word_encoder_out=0, drop_out_sent_encoder_out=0,
@@ -22,8 +22,10 @@ class CharEncoder(nn.Module):
         self.context_level = context_level
         if dir_word_encoder == 2:
             assert hidden_size_encoder%2==0, "ERROR = it will be divided by two and remultipy so need even number for simplicity"
-        self.sent_encoder = nn.LSTM(input_size=hidden_size_encoder*n_layers_word_cell,#*dir_word_encoder,
-                                    hidden_size=hidden_size_sent_encoder,
+        if bidir_sent:
+            assert hidden_size_sent_encoder%2==0, "ERROR = it will be divided by two and remultipy so need even number for simplicity"
+        self.sent_encoder = nn.LSTM(input_size=hidden_size_encoder*n_layers_word_cell,
+                                    hidden_size=int(hidden_size_sent_encoder/(bidir_sent+1)),
                                     num_layers=1, bias=True, batch_first=True,
                                     dropout=dropout_word_encoder_cell,
                                     bidirectional=bidir_sent)
@@ -71,6 +73,7 @@ class CharEncoder(nn.Module):
         # all sequence encoding [batch, max seq_len, n_dir x encoding dim] ,
         # last complete hidden state: [dir*n_layer, batch, dim encoding dim]
         output, h_n = self.seq_encoder(packed_char_vecs)
+        pdb.set_trace()
         # see if you really want that
         h_n = h_n[0] if isinstance(self.seq_encoder, nn.LSTM) else h_n
         # TODO add attention out of the output (or maybe output the all output and define attention later)
@@ -132,16 +135,21 @@ class CharEncoder(nn.Module):
 
         h_w, char_seq_hidden, word_src_sizes = self.word_encoder_source(input=input_char_vecs, input_word_len=input_word_len)
         # [batch x max sent_len , packed max_char_length, hidden_size_encoder]
-        h_w = h_w.view(shape_sent_seq[0], shape_sent_seq[1], -1)
+        pdb.set_trace()
+        h_w = h_w.transpose(1, 0)
+        pdb.set_trace()
+        # n_dir x dim hidden
+        hidden_dim = h_w.size(2) * h_w.size(1)
+        h_w = h_w.contiguous().view(shape_sent_seq[0], shape_sent_seq[1], hidden_dim)
         # [batch,  max sent_len , packed max_char_length, hidden_size_encoder]
-        printing("SOURCE word encoder reshaped dim sent : {} ", var=[h_w.size()],
-                 verbose=verbose, verbose_level=3)
+        printing("SOURCE word encoding reshaped dim sent : {} ", var=[h_w.size()],
+                 verbose=verbose, verbose_level=0)
         printing("SOURCE char_seq_hidden encoder reshaped dim sent : {} ", var=[char_seq_hidden.size()],
-                 verbose=verbose, verbose_level=3)
+                 verbose=verbose, verbose_level=0)
         sent_encoded, hidden = self.sent_encoder(h_w)
         # sent_encoded : [batch, max sent len ,hidden_size_sent_encoder]
         printing("SOURCE sentence encoder output dim sent : {} ", var=[sent_encoded.size()],
-                 verbose=verbose, verbose_level=3)
+                 verbose=verbose, verbose_level=0)
         # concatanate
         sent_encoded = self.drop_out_sent_encoder_out(sent_encoded)
         h_w = self.drop_out_word_encoder_out(h_w)

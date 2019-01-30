@@ -178,9 +178,10 @@ if __name__ == "__main__":
     #for ablation_id in ["01880"]:
     #for ablation_id in ["d6960-new_data-batchXdropout_char0-to_char_src-1_dir_sent-10_batch_size-model_2_be5d","08661-new_data-batchXdropout_char0-to_char_src-2_dir_sent-20_batch_size-model_5_c8b2"]:
     #for ablation_id in ["8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_1_33ca","8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_2_e437"]:
-    for ablation_id in ["21cc8-fixed_all_context-aux_dense1dir_word-200_aux-0do_char_dec-False_char_src-model_12_4d49"]:
+    #for ablation_id in ["21cc8-fixed_all_context-aux_dense1dir_word-200_aux-0do_char_dec-False_char_src-model_12_4d49"]:
+    for ablation_id in ["28aa3-schedule-policy_2"]:
       #for data in [DEMO,DEMO2]:
-      for get_batch_mode_evaluate in [False]:
+      for get_batch_mode_evaluate in [False, True]:
         for batch_size in [50]:
           #for data in [LIU, DEV, LEX_TEST]:
           for data in [DEV]:

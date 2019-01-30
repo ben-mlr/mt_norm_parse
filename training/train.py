@@ -25,7 +25,7 @@ from toolbox.norm_not_norm import scheduling_policy
 from toolbox.tensorboard_tools import writer_weights_and_grad
 from tensorboardX import SummaryWriter
 from env.project_variables import AVAILABLE_TASKS
-from model.schedule_training_policy import policy_1
+from model.schedule_training_policy import policy_1, policy_2
 np.random.seed(SEED_NP)
 torch.manual_seed(SEED_TORCH)
 

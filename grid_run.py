@@ -184,13 +184,13 @@ if __name__ == "__main__":
           params.append(param)
           labels.append("dir_word_encoder_2-sent_source_dir_2-dropout_0.2_everywhere-LSTM-batch_10")
 
-      WITH_AUX = False 
+      WITH_AUX = False
       if WITH_AUX:
           params = []
           labels = []
           n_model = 0
           for dense_dim_auxilliary in [None, 200, 400]:
-              policy_ls = ["policy_1", None] if dense_dim_auxilliary is not None else [None]
+              policy_ls = ["policy_2", None] if dense_dim_auxilliary is not None else [None]
               auxilliary_task_norm_not_norm = False if dense_dim_auxilliary is None else True
               for policy in policy_ls:
               #for weight_binary_loss in [0.001,1,10,100]:
@@ -233,33 +233,36 @@ if __name__ == "__main__":
           params = []
           labels = []
           n_model = 0
-          for batch_size in [10,50]:
-            for scale in [2,3,4,5]:
-              for clipping in [5]:
-                for teacher_force in [False, True]:
-                  param = params_intuition.copy()
-                  param["hidden_size_encoder"] *=scale 
-                  param["hidden_size_sent_encoder"]*=scale
-                  param["hidden_size_decoder"]*=scale
-                  param["output_dim"] *= int(scale*0.5)+1
-                  param["batch_size"] = batch_size
-                  param["unrolling_word"] = True
-                  param["dir_word_encoder"] = 1
-                  param["dir_sent_encoder"] = 1
-                  param["clipping"] = 1
-                  param["teacher_force"] = teacher_force
-                  params.append(param)
-                  labels.append("best-scale-{}-{}-{}teacher_force-all_context-no_aux-no_att-no_dropout".format(scale,batch_size, teacher_force))
+          for batch_size in [10, 50]:
+            for scale in [2, 5]:
+              for clipping in [1]:
+                for dir_word_encoder in [1,2]:
+                    for teacher_force in [True]:
+                      param = params_intuition.copy()
+                      param["hidden_size_encoder"] *=scale
+                      param["hidden_size_sent_encoder"]*=scale
+                      param["hidden_size_decoder"]*=scale
+                      param["output_dim"] *= int(scale*0.5)+1
+                      param["batch_size"] = batch_size
+                      param["unrolling_word"] = True
+                      param["dir_word_encoder"] = dir_word_encoder
+                      param["dir_sent_encoder"] = 1
+                      param["teacher_force"] = teacher_force
+                      params.append(param)
+                      labels.append("best-scale-{}-{}-{}dir_word_encoder-all_context-no_aux-no_att-no_dropout".format(scale,batch_size, dir_word_encoder))
 
-      warmup = True
-      test_before_run = False 
+      warmup = False
+      test_before_run = True 
 
       RUN_ID = str(uuid4())[0:5]
       
-      LABEL_GRID = "scaleXteacher_force-clipping5" if not warmup else "WARMUP-unrolling-False"
-
+      LABEL_GRID = "best-dim_word_fixed" if not warmup else "WARMUP-unrolling-False"
       LABEL_GRID = "test_before_run-"+LABEL_GRID if test_before_run else LABEL_GRID
-      LABEL_GRID = RUN_ID+"-"+LABEL_GRID
+
+      OAR = os.environ.get('OAR_JOB_ID')+"_rioc-" if os.environ.get('OAR_JOB_ID', None) is not None else ""
+      LABEL_GRID = OAR+RUN_ID+"-"+LABEL_GRID
+
+
       GRID_FOLDER_NAME = LABEL_GRID if len(LABEL_GRID) > 0 else RUN_ID
       #GRID_FOLDER_NAME = LABEL_GRID if len(LABEL_GRID) > 0 else RUN_ID
       GRID_FOLDER_NAME += "-summary"
@@ -270,12 +273,12 @@ if __name__ == "__main__":
       for param, model_id_pref in zip(params, labels):
           i += 1
           printing("Adding RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 10 if not test_before_run else 2
+          epochs = 80 if not test_before_run else 2
           if warmup:
-            param = {"hidden_size_encoder": 10, "output_dim": 15, "char_embedding_dim": 10,
+            param = {"hidden_size_encoder": 20, "output_dim": 15, "char_embedding_dim": 10,
                      "dropout_sent_encoder": 0., "drop_out_word_encoder": 0., "dropout_word_decoder": 0.,
                      "drop_out_sent_encoder_out": 0, "drop_out_word_encoder_out": 0,
-                     "dir_word_encoder": 1,
+                     "dir_word_encoder": 2,
                      "n_layers_word_encoder": 1, "dir_sent_encoder": 1, "word_recurrent_cell_decoder": "LSTM",
                      "word_recurrent_cell_encoder": "LSTM",
                      "hidden_size_sent_encoder": 20, "hidden_size_decoder": 30, "batch_size": 10}
@@ -296,7 +299,6 @@ if __name__ == "__main__":
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
                                                   test_path=None,
                                                   verbose=1,
-                                                  #schedule_training_policy="policy_1",
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,
                                                   get_batch_mode_all=True, compute_scoring_curve=False,
