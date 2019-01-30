@@ -93,13 +93,13 @@ class LossCompute:
             printing("LOSS BINARY loss size {} ", var=(str(loss_binary.size())), verbose=self.verbose, verbose_level=3)
             printing("TYPE  loss_binary {} is cuda ", var=(loss_binary.is_cuda), verbose=0, verbose_level=5)
 
-        if self.writer is not None :
-            self.writer.add_scalars("loss-"+self.use, {"loss-{}-seq_pred".format(self.use): loss.clone().cpu().data.numpy(),
-                                             "loss-{}-seq_pred-ponderation_normalize_loss".format(self.use): loss.clone().cpu().data.numpy()*self.ponderation_normalize_loss,
-                                             "loss-{}-multitask".format(self.use): multi_task_loss.clone().cpu().data.numpy(),
-                                             "loss-{}-loss_binary".format(self.use): loss_binary.clone().cpu().data.numpy() if loss_binary is not None else 0,
-                                             "loss-{}-loss_binary-weight_binary_loss".format(self.use): loss_binary.clone().cpu().data.numpy()*self.weight_binary_loss if loss_binary is not None else 0,
-                                             },
+        if self.writer is not None:
+            self.writer.add_scalars("loss-"+self.use,
+                                    {"loss-{}-seq_pred".format(self.use): loss.clone().cpu().data.numpy(),
+                                     "loss-{}-seq_pred-ponderation_normalize_loss".format(self.use): loss.clone().cpu().data.numpy()*self.ponderation_normalize_loss,
+                                     "loss-{}-multitask".format(self.use): multi_task_loss.clone().cpu().data.numpy(),
+                                     "loss-{}-loss_binary".format(self.use): loss_binary.clone().cpu().data.numpy() if loss_binary is not None else 0,
+                                     "loss-{}-loss_binary-weight_binary_loss".format(self.use): loss_binary.clone().cpu().data.numpy()*self.weight_binary_loss if loss_binary is not None else 0,},
                                     step)
 
         #printing("LOSS loss size {} ", var=(str(loss.size())), verbose=self.verbose, verbose_level=3)
@@ -113,10 +113,12 @@ class LossCompute:
 
             if clipping is not None:
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), clipping)
+                for name, param in self.model.named_parameters():
+                    if param.requires_grad and param.grad is not None:
+                        norm = param.grad.norm()
+                        print("grad norm ", norm)
+                        assert norm < clipping
             gradient_clipping, start = get_timing(start)
-            #self.writer.add_histogram("grad-loss", multi_task_loss.grad.clone().cpu().data.numpy(), 1)
-            #self.writer.add_histogram("grad-loss", multi_task_loss.grad.data.cpu().numpy())
-
             printing("Optimizing", self.verbose, verbose_level=3)
             self.opt.step()
             step_opt_time, start = get_timing(start)

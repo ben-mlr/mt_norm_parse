@@ -46,5 +46,5 @@ def get_args(args, dropout_loading_strict=True, verbose=0):
            args["hidden_size_decoder"], args["decoder_arch"].get("cell_word", None), args["decoder_arch"].get(
               "drop_out_word_decoder_cell", default_dropout), args["decoder_arch"].get("drop_out_char_embedding_decoder", default_dropout),\
             args.get("auxilliary_arch", {}).get("auxilliary_task_norm_not_norm", False), args["decoder_arch"].get("unrolling_word", False), args["decoder_arch"].get("char_src_attention", False),\
-            args.get("auxilliary_arch", {}).get("auxilliary_task_norm_not_norm-dense_dim", None), args.get("shared_context","all"),  args.get("teacher_force", True)
+            args.get("auxilliary_arch", {}).get("auxilliary_task_norm_not_norm-dense_dim", None), args.get("shared_context","all"),  args["decoder_arch"].get("teacher_force", True)
 

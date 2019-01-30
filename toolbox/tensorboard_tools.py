@@ -1,9 +1,17 @@
 
 from io_.info_print import printing
+TEST_CLIPPING, CLIP = False, 5
 
 
 def writer_weights_and_grad(model, freq_writer, epoch, writer, verbose, report_grad=True, report_weight=True):
     if epoch % freq_writer == 0:
+        # # TODO : make this a unit test in test/
+        if TEST_CLIPPING:
+            for name, param in model.named_parameters():
+                if param.requires_grad and param.grad is not None:
+                    norm = param.grad.norm()
+                    print("grad_norm writer_weights_and_grad", norm)
+                    assert norm < CLIP
         for name, param in model.named_parameters():
             if report_weight:
                 writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch)

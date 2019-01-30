@@ -251,7 +251,7 @@ if __name__ == "__main__":
                   params.append(param)
                   labels.append("best-scale-{}-{}-{}teacher_force-all_context-no_aux-no_att-no_dropout".format(scale,batch_size, teacher_force))
 
-      warmup = False
+      warmup = True
       test_before_run = False 
 
       RUN_ID = str(uuid4())[0:5]
@@ -270,7 +270,7 @@ if __name__ == "__main__":
       for param, model_id_pref in zip(params, labels):
           i += 1
           printing("Adding RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 100 if not test_before_run else 2 
+          epochs = 10 if not test_before_run else 2
           if warmup:
             param = {"hidden_size_encoder": 10, "output_dim": 15, "char_embedding_dim": 10,
                      "dropout_sent_encoder": 0., "drop_out_word_encoder": 0., "dropout_word_decoder": 0.,
@@ -287,14 +287,14 @@ if __name__ == "__main__":
             train_path, dev_path = DEMO2, DEMO
             param["shared_context"] = "word"
             param["dense_dim_auxilliary"] = 200
-            param["clipping"] = 0.5
-            param["teacher_force"] = True
+            param["clipping"] = None
+            param["teacher_force"] = False
 
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
 
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
-                                                  test_path=LEX_TEST,
+                                                  test_path=None,
                                                   verbose=1,
                                                   #schedule_training_policy="policy_1",
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,

@@ -137,10 +137,12 @@ class LexNormalizer(nn.Module):
                                                   "git_id": git_commit_id},
                               "hyperparameters": {
                                   "shared_context": shared_context,
+                                  "gradient_clipping": None,
+                                  "tasks_schedule_policy": None,
                                   "auxilliary_arch": {
-                                                      "weight_binary_loss": weight_binary_loss,
-                                                      "auxilliary_task_norm_not_norm": self.auxilliary_task_norm_not_norm,
-                                                      "auxilliary_task_norm_not_norm-dense_dim": dense_dim_auxilliary
+                                                  "weight_binary_loss": weight_binary_loss,
+                                                  "auxilliary_task_norm_not_norm": self.auxilliary_task_norm_not_norm,
+                                                  "auxilliary_task_norm_not_norm-dense_dim": dense_dim_auxilliary
                                                       },
                                   "n_trainable_parameters": None,
                                   "char_embedding_dim": char_embedding_dim,
@@ -160,7 +162,7 @@ class LexNormalizer(nn.Module):
                                                    "drop_out_word_decoder_cell": drop_out_word_decoder_cell,
                                                    "char_src_attention":char_src_attention,
                                                    "unrolling_word": unrolling_word,
-                                                   "teacher_force":teacher_force,
+                                                   "teacher_force": teacher_force,
                                                  },
                                   "hidden_size_encoder": hidden_size_encoder,
                                   "hidden_size_sent_encoder": hidden_size_sent_encoder,
@@ -304,9 +306,11 @@ class LexNormalizer(nn.Module):
         checkpoint_dir = os.path.join(dir, model.model_full_name + "-" + suffix_name + "-" + "checkpoint.pt")
         # we update the checkpoint_dir
         model.arguments["hyperparameters"]["n_trainable_parameters"] = count_trainable_parameters(model)
-        printing("MODEL : trainable parameters : {} ", var=model.arguments["hyperparameters"]["n_trainable_parameters"],
-                 verbose_level=0, verbose=verbose)
+        printing("MODEL : trainable parameters : {} ",  var=model.arguments["hyperparameters"]["n_trainable_parameters"]
+                 , verbose_level=0, verbose=verbose)
         model.arguments["hyperparameters"]["batch_size"] = info_checkpoint["batch_size"]
+        model.arguments["hyperparameters"]["gradient_clipping"] = info_checkpoint["gradient_clipping"]
+        model.arguments["hyperparameters"]["tasks_schedule_policy"] = info_checkpoint["tasks_schedule_policy"]
         model.arguments["info_checkpoint"] = info_checkpoint
         model.arguments["info_checkpoint"]["git_id"] = get_commit_id()
         model.arguments["checkpoint_dir"] = checkpoint_dir

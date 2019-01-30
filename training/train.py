@@ -190,11 +190,11 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
         assert policy in AVAILABLE_SCHEDULING_POLICIES
         policy_dic = eval(policy)(epoch) if policy is not None else None
-        multi_task_mode , ponderation_normalize_loss, weight_binary_loss = \
+        multi_task_mode, ponderation_normalize_loss, weight_binary_loss = \
             scheduling_policy(epoch=epoch, phases_ls=policy_dic)
 
         printing("TRAINING Tasks scheduling : ponderation_normalize_loss is {} weight_binary_loss is {} ",
-                 var=[weight_binary_loss, ponderation_normalize_loss], verbose=verbose,verbose_level=1)
+                 var=[ponderation_normalize_loss, weight_binary_loss], verbose=verbose, verbose_level=1)
 
         printing("TRAINING : Starting {} epoch out of {} ", var=(epoch+1, n_epochs), verbose= verbose, verbose_level=1)
         model.train()
@@ -238,7 +238,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
         batchIter_eval = data_gen_conllu(data_read_dev,
                                          model.word_dictionary, model.char_dictionary,
                                          batch_size=batch_size, get_batch_mode=False,
-                                         normalization=normalization,extend_n_batch=1,
+                                         normalization=normalization, extend_n_batch=1,
                                          verbose=verbose)
         _create_iter_time, start = get_timing(start)
         # TODO : should be able o factorize this to have a single run_epoch() for train and dev (I think the computaiton would be same )
@@ -335,6 +335,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                counter_no_decrease=counter_no_deacrease, saved_epoch=saved_epoch,
                                model_dir=model.dir_model,
                                info_checkpoint={"n_epochs": epoch, "batch_size": batch_size,
+                                                "gradient_clipping": clipping,
+                                                "tasks_schedule_policy": policy,
+                                                "teacher_force": teacher_force,
                                                 "train_data_path": train_path, "dev_data_path": dev_path,
                                                 "other": {"error_curves": dir_plot, "loss": _loss_dev, "error_curves_details":dir_plot_detailed,
                                                           "weight_binary_loss": weight_binary_loss,
