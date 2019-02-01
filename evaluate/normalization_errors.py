@@ -137,12 +137,8 @@ def score_norm_not_norm(norm_not_norm_pred, norm_not_norm_gold, output_seq_n_hot
         # binary predition based norm_not_norm # TODO : confirm the inversion
         predicted_not_pad_need_norm = np.argwhere(predicted_not_pad == 1).squeeze()
         predicted_not_pad_normed = np.argwhere(predicted_not_pad == 0).squeeze()
-        total_word = len(gold_not_pad)
-        assert len(gold_not_pad) == len(predicted_not_pad)
         # gold_not_pad == 0 means need_norm else means normed
         # get prediction normed : np.argwhere(predicted_not_pad==1)
-        pred_correct_need_norm_prediction_count = np.sum(np.array(gold_not_pad == predicted_not_pad)[np.array(gold_not_pad)==0])
-        pred_correct_prediction_count = np.sum(np.array(gold_not_pad == predicted_not_pad))
 
         need_norm_norm_not_normUnormalization_pred_count = len(predicted_not_pad_need_norm)+len(predicted_not_pad_seq_need_norm)-len(list(set(predicted_not_pad_need_norm.tolist()) & set(predicted_not_pad_seq_need_norm.tolist())))
         normed_norm_not_normUnormalization_pred_count = len(predicted_not_pad_seq_normed)+len(predicted_not_pad_normed)-len(list(set(predicted_not_pad_seq_normed.tolist()) & set(predicted_not_pad_normed.tolist())))
@@ -154,6 +150,11 @@ def score_norm_not_norm(norm_not_norm_pred, norm_not_norm_gold, output_seq_n_hot
         normed_norm_not_normUnormalization_pred_count = None
         need_norm_norm_not_normXnormalization_pred_count = None
         normed_norm_not_normXnormalization_pred_count = None
+
+    pred_correct_need_norm_prediction_count = np.sum(np.array(gold_not_pad == predicted_not_pad)[np.array(gold_not_pad) == 0])
+    pred_correct_prediction_count = np.sum(np.array(gold_not_pad == predicted_not_pad))
+    total_word = len(gold_not_pad)
+    assert len(gold_not_pad) == len(predicted_not_pad)
 
     gold_need_norm_count = len(np.array(gold_not_pad[gold_not_pad == 0]))
     pred_need_norm_count = len(np.array(predicted_not_pad[predicted_not_pad == 0]))

@@ -103,7 +103,7 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                                         ok = _score[token + "-norm_not_norm-" + type_ + "-count"]
                         except :
                             print("TEST failed score_3", _score_2)
-                            
+
                         for metric in score_to_compute_ls:
                             # TODO : DEPRECIATED : should be remove til # ---- no more need t set the norm/need_norm : all is done by default
                             for mode_norm_score in mode_norm_score_ls:
