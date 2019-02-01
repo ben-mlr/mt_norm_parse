@@ -24,5 +24,18 @@ def policy_2(epoch):
         {"epoch_start": 20, "epoch_stop": 80,
          "weight_binary_loss": 0.05*(80-epoch)/60, "ponderation_normalize_loss": 0.001*(epoch-20),
          "multi_task_mode": "all"
-        },
+         },
             ]
+
+
+def policy_3(epoch):
+
+    return [
+        {"epoch_start": 0, "epoch_stop": 20,
+         "weight_binary_loss": 0.01, "ponderation_normalize_loss": 1,
+         "multi_task_mode": "norm_not_norm"},
+        {"epoch_start": 20, "epoch_stop": 80,
+         "weight_binary_loss": 0.05*(80-epoch)/60, "ponderation_normalize_loss": 0.001*(epoch-20),
+         "multi_task_mode": "all"
+        },
+        ]

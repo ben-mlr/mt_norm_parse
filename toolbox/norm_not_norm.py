@@ -21,7 +21,11 @@ def schedule_training(multi_task_mode):
 def scheduling_policy(phases_ls, epoch, verbose=1):
 
     if phases_ls is None:
-        printing("WARNING : default policy scheduling (no scheduling", verbose_level=1, verbose=verbose)
+        ponderation = 1
+        weight_binary_loss = 0.01
+        printing("WARNING : default policy scheduling (no scheduling {} ponderation_normalize_loss and {}"
+                 " weight_binary_loss ", var=[ponderation, weight_binary_loss],
+                 verbose_level=1, verbose=verbose)
         return "all", 1, 0.01
     for phase in phases_ls:
         assert phase.get("epoch_start") is not None

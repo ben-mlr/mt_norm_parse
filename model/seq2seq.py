@@ -47,6 +47,7 @@ class LexNormalizer(nn.Module):
                  unrolling_word=False,
                  dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None,
                  char_src_attention=False, shared_context="all",teacher_force=False,
+                 dense_dim_auxilliary_2=None,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
         character level Sequence to Sequence model for normalization
@@ -142,13 +143,13 @@ class LexNormalizer(nn.Module):
                                   "auxilliary_arch": {
                                                   "weight_binary_loss": weight_binary_loss,
                                                   "auxilliary_task_norm_not_norm": self.auxilliary_task_norm_not_norm,
-                                                  "auxilliary_task_norm_not_norm-dense_dim": dense_dim_auxilliary
+                                                  "auxilliary_task_norm_not_norm-dense_dim": dense_dim_auxilliary,
+                                                  "auxilliary_task_norm_not_norm-dense_dim_2": dense_dim_auxilliary_2,
                                                       },
                                   "n_trainable_parameters": None,
                                   "char_embedding_dim": char_embedding_dim,
                                   "encoder_arch": {"cell_word": word_recurrent_cell_encoder, "cell_sentence": "LSTM",
                                                    "n_layers_word_encoder": n_layers_word_encoder,
-                                                   "attention": "No", "dir_word": "uni",
                                                    "dir_sent_encoder": dir_sent_encoder,
                                                    "dir_word_encoder": dir_word_encoder,
                                                    "drop_out_sent_encoder_out": drop_out_sent_encoder_out,
@@ -157,15 +158,15 @@ class LexNormalizer(nn.Module):
                                                    "dropout_sent_encoder_cell": drop_out_sent_encoder_cell,
                                                  },
                                   "decoder_arch": {"cell_word": word_recurrent_cell_decoder, "cell_sentence": "none",
-                                                   "attention": "No", "dir_word": "uni",
+                                                   "dir_word": "uni",
                                                    "drop_out_char_embedding_decoder": drop_out_char_embedding_decoder,
                                                    "drop_out_word_decoder_cell": drop_out_word_decoder_cell,
                                                    "char_src_attention":char_src_attention,
                                                    "unrolling_word": unrolling_word,
                                                    "teacher_force": teacher_force,
                                                  },
-                                  "hidden_size_encoder": int(hidden_size_encoder/dir_word_encoder),
-                                  "hidden_size_sent_encoder": int(hidden_size_sent_encoder/dir_sent_encoder),
+                                  "hidden_size_encoder": hidden_size_encoder,
+                                  "hidden_size_sent_encoder": hidden_size_sent_encoder,
                                   "hidden_size_decoder": hidden_size_decoder,
                                   "voc_size": voc_size, "output_dim": output_dim
                                  }}
@@ -195,10 +196,14 @@ class LexNormalizer(nn.Module):
             n_layers_word_encoder, dir_sent_encoder, word_recurrent_cell_encoder, dir_word_encoder,\
             hidden_size_decoder,  word_recurrent_cell_decoder, drop_out_word_decoder_cell, drop_out_char_embedding_decoder, \
                     self.auxilliary_task_norm_not_norm, unrolling_word, char_src_attention, dense_dim_auxilliary, shared_context,\
-                teacher_force = get_args(args, False)
+                teacher_force, dense_dim_auxilliary_2 = get_args(args, False)
 
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
+
+        # adjusting for directions : the hidden_size_sent_encoder provided and are the dir x hidden_dim dimensions
+        hidden_size_sent_encoder = int(hidden_size_sent_encoder/(dir_sent_encoder))
+        hidden_size_encoder = int(hidden_size_encoder/dir_word_encoder)
 
         self.dir_model = dir_model
         self.model_full_name = model_full_name
@@ -221,11 +226,12 @@ class LexNormalizer(nn.Module):
         p_sent = 1 if shared_context in ["sent", "all"] else 0
 
         self.bridge = nn.Linear(
-            hidden_size_encoder * n_layers_word_encoder*p_word + hidden_size_sent_encoder*p_sent,#*dir_sent_encoder : added diviion by 2 if dir 2
+            hidden_size_encoder * dir_word_encoder * n_layers_word_encoder*p_word + hidden_size_sent_encoder*dir_sent_encoder*p_sent,#*dir_sent_encoder : added diviion by 2 if dir 2
             hidden_size_decoder)
         self.layer_norm = nn.LayerNorm(hidden_size_decoder, elementwise_affine=False) if True else None
         self.dropout_bridge = nn.Dropout(p=drop_out_bridge)
-        self.normalize_not_normalize = BinaryPredictor(input_dim=hidden_size_decoder, dense_dim=dense_dim_auxilliary) \
+        self.normalize_not_normalize = BinaryPredictor(input_dim=hidden_size_decoder,
+                                                       dense_dim=dense_dim_auxilliary, dense_dim_2=dense_dim_auxilliary_2) \
             if self.auxilliary_task_norm_not_norm else None
         #self.char_embedding_2 = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
         self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size,

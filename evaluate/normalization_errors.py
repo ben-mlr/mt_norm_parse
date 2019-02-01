@@ -5,7 +5,8 @@ from io_.info_print import printing
 import pdb
 from env.project_variables import SUPPORTED_STAT
 from collections import OrderedDict
-
+from io_.dat.constants import PAD_ID_CHAR
+import torch
 
 def exact_match(pred, gold):
     if pred == gold:
@@ -41,15 +42,21 @@ def score_ls(ls_pred, ls_gold, score, stat="mean", verbose=0):
     return score, len(scores)
 
 
-def score_ls_2(ls_pred, ls_gold, ls_original=None,
+def score_ls_2(ls_pred, ls_gold, ls_original=None, pred_norm_not_norm=None, gold_norm_not_norm=None,
+               output_seq_n_hot=None,src_seq=None,target_seq_gold=None,
                verbose=0):
-    stat = "sum"
     dic = OrderedDict()
-
     assert len(ls_gold) == len(ls_pred), "ERROR ls_gold is len {} vs {} : {} while ls_pred is {} ".format(len(ls_gold), len(ls_pred), ls_gold, ls_pred)
+    assert len(ls_gold) == len(ls_original), "ERROR ls_gold is len {} vs {} : {} while src is {} ".format(len(ls_gold), len(ls_original), ls_gold, ls_original)
     normalization_ls = [[src_token == gold_token for src_token, gold_token in zip(batch_src, batch_gold)] for
                         batch_src, batch_gold in zip(ls_original, ls_gold)]
-    for normalized_mode in ["all","NEED_NORM", "NORMED"]:
+    # if False : sequence predictor predicts NEED_NORM otherwise NORMED
+    #normalization_prediction_by_seq = [[src_token == pred_token for src_token, pred_token in zip(batch_src, batch_pred)] for
+    #                    batch_src, batch_pred in zip(ls_original, ls_pred)]
+    #normalization_prediction_by_seq_norm = np.argwhere(normalization_prediction_by_seq)
+    #normalization_prediction_by_seq_need_norm = np.argwhere(normalization_prediction_by_seq!=True)
+    #assert len(normalization_prediction_by_seq) == len(normalization_ls)
+    for normalized_mode in ["all", "NEED_NORM", "NORMED"]:
         scores = []
         sent_score_ls = []
         assert ls_original is not None, "ERROR : need to provide original sequence to compute NORMED/NEED_NORM analysis"
@@ -62,7 +69,11 @@ def score_ls_2(ls_pred, ls_gold, ls_original=None,
             _ls_gold = ls_gold
             _ls_pred = ls_pred
         for ind, (gold_sent, pred_sent) in enumerate(zip(_ls_gold, _ls_pred)):
-            assert len(gold_sent) == len(pred_sent), "len : pred {}, gold {} - pred {} gold {} (normalized_mode is {})".format(len(pred_sent), len(gold_sent), pred_sent, gold_sent, normalized_mode)
+            try:
+                assert len(gold_sent) == len(pred_sent), "len : pred {}, gold {} - pred {} gold {} (normalized_mode is {})".format(len(pred_sent), len(gold_sent), pred_sent, gold_sent, normalized_mode)
+            except Exception as e:
+                print("Assertion failed")
+                print(e)
             sent_score = []
             for word_gold, word_pred in zip(gold_sent, pred_sent):
                 eval_func = METRIC_DIC["exact"]
@@ -83,28 +94,82 @@ def score_ls_2(ls_pred, ls_gold, ls_original=None,
                       normalized_mode+"-normalization-pred_correct_per_sent-count": mean_score_per_sent,
                       normalized_mode+"-normalization-gold-count": len(scores)}
         dic.update(return_dic)
+
+    if pred_norm_not_norm is not None and gold_norm_not_norm is not None:
+        #pdb.set_trace()
+        print("output_seq_n_hot", output_seq_n_hot.size())
+        score_binary = score_norm_not_norm(pred_norm_not_norm, gold_norm_not_norm[:, :pred_norm_not_norm.size(1)],
+                                           output_seq_n_hot, src_seq, target_seq_gold)
+        # testing consistency in counting
+        assert score_binary["all-norm_not_norm-gold-count"] == dic["all-normalization-gold-count"], \
+            "ERROR : inconsistency between score binary gold count on all and on sequence prediction"
+        assert score_binary["need_norm-norm_not_norm-gold-count"] == dic["NEED_NORM-normalization-gold-count"], \
+            "ERROR : inconsistency between score binary gold count on NEED_NORM and on sequence prediction"
+        dic.update(score_binary)
+
     dic["n_sents"] = n_sents
     return dic
 
 
-def score_norm_not_norm(norm_not_norm_pred, norm_not_norm_gold):
+def get_same_word_batch(output_seq_n_hot, src_seq):
+    pred_normed_need_norm_by_seq_pred = torch.empty(output_seq_n_hot.size(0), output_seq_n_hot.size(1), dtype=torch.int)
+    for sent in range(output_seq_n_hot.size(0)):
+        for word in range(output_seq_n_hot.size(1)):
+            pred_normed_need_norm_by_seq_pred[sent, word] = \
+                int(torch.equal(output_seq_n_hot[sent, word, :][output_seq_n_hot[sent, word, :] != PAD_ID_CHAR], src_seq[sent, word, :][src_seq[sent, word, :] != PAD_ID_CHAR]))
+    return pred_normed_need_norm_by_seq_pred
+
+
+def score_norm_not_norm(norm_not_norm_pred, norm_not_norm_gold, output_seq_n_hot=None, src_seq=None,target_seq_gold=None):
+    # remove padding
     predicted_not_pad = norm_not_norm_pred[norm_not_norm_gold != 2]
     gold_not_pad = norm_not_norm_gold[norm_not_norm_gold != 2]
-    total_word = len(gold_not_pad)
-    assert len(gold_not_pad) == len(predicted_not_pad)
+    # if we provide output_seq_n_hot and src_seq we compute score on agreement of both tasks
+    if output_seq_n_hot is not None:
+        # TODO : confirm why you need this , why more words in src than in prediction
+        src_seq = src_seq[:, :output_seq_n_hot.size(1), :]
+        need_norm_norm = get_same_word_batch(output_seq_n_hot, src_seq)
+        # we trust padding from norm_not_norm_gold to compute metric on sequence prediction
+        predicted_not_pad_seq = need_norm_norm[norm_not_norm_gold != 2]
+        # sequence prediction based norm_not_norm
+        predicted_not_pad_seq_need_norm = np.argwhere(predicted_not_pad_seq == 0).squeeze()
+        predicted_not_pad_seq_normed = np.argwhere(predicted_not_pad_seq == 1).squeeze()
+        # binary predition based norm_not_norm # TODO : confirm the inversion
+        predicted_not_pad_need_norm = np.argwhere(predicted_not_pad == 1).squeeze()
+        predicted_not_pad_normed = np.argwhere(predicted_not_pad == 0).squeeze()
+        total_word = len(gold_not_pad)
+        assert len(gold_not_pad) == len(predicted_not_pad)
+        # gold_not_pad == 0 means need_norm else means normed
+        # get prediction normed : np.argwhere(predicted_not_pad==1)
+        pred_correct_need_norm_prediction_count = np.sum(np.array(gold_not_pad == predicted_not_pad)[np.array(gold_not_pad)==0])
+        pred_correct_prediction_count = np.sum(np.array(gold_not_pad == predicted_not_pad))
 
-    pred_correct_need_norm_prediction_count = np.sum(np.array(gold_not_pad == predicted_not_pad)[np.array(gold_not_pad)==0])
-    pred_correct_prediction_count = np.sum(np.array(gold_not_pad == predicted_not_pad))
-    #print(gold_not_pad[gold_not_pad == 0])#,dtype=int))
+        need_norm_norm_not_normUnormalization_pred_count = len(predicted_not_pad_need_norm)+len(predicted_not_pad_seq_need_norm)-len(list(set(predicted_not_pad_need_norm.tolist()) & set(predicted_not_pad_seq_need_norm.tolist())))
+        normed_norm_not_normUnormalization_pred_count = len(predicted_not_pad_seq_normed)+len(predicted_not_pad_normed)-len(list(set(predicted_not_pad_seq_normed.tolist()) & set(predicted_not_pad_normed.tolist())))
+        need_norm_norm_not_normXnormalization_pred_count = len(list(set(predicted_not_pad_need_norm.tolist())&set(predicted_not_pad_seq_need_norm.tolist())))
+        normed_norm_not_normXnormalization_pred_count = len(list(set(predicted_not_pad_seq_normed.tolist())&set(predicted_not_pad_normed.tolist())))
+
+    else:
+        need_norm_norm_not_normUnormalization_pred_count = None
+        normed_norm_not_normUnormalization_pred_count = None
+        need_norm_norm_not_normXnormalization_pred_count = None
+        normed_norm_not_normXnormalization_pred_count = None
+
     gold_need_norm_count = len(np.array(gold_not_pad[gold_not_pad == 0]))
     pred_need_norm_count = len(np.array(predicted_not_pad[predicted_not_pad == 0]))
-    pdb.set_trace()
+
+
+
     return {
-            "all-norm_not_norm-pred_correct-count": pred_correct_prediction_count,
-            "need_norm-norm_not_norm-pred_correct-count": pred_correct_need_norm_prediction_count,
-            "need_norm-norm_not_norm-gold-count": gold_need_norm_count,
-            "need_norm-norm_not_norm-pred-count": pred_need_norm_count,
-            "all-norm_not_norm-gold-count": total_word
+           "need_norm-norm_not_normUnormalization-pred-count": need_norm_norm_not_normUnormalization_pred_count,
+           "normed-norm_not_normUnormalization-pred-count": normed_norm_not_normUnormalization_pred_count,
+           "need_norm-norm_not_normXnormalization-pred-count": need_norm_norm_not_normXnormalization_pred_count,
+           "normed-norm_not_normXnormalization-pred-count": normed_norm_not_normXnormalization_pred_count,
+           "all-norm_not_norm-pred_correct-count": pred_correct_prediction_count,
+           "need_norm-norm_not_norm-pred_correct-count": pred_correct_need_norm_prediction_count,
+           "need_norm-norm_not_norm-gold-count": gold_need_norm_count,
+           "need_norm-norm_not_norm-pred-count": pred_need_norm_count,
+           "all-norm_not_norm-gold-count": total_word
             }
 
 
@@ -175,7 +240,6 @@ def score_auxiliary(score_label, score_dic):
         n_tokens_score = score_dic["all-norm_not_norm-gold-count"]
     elif score_label.endswith("F1"):
         score_name = "norm_not_norm-F1"
-        pdb.set_trace()
         n_tokens_score = score_dic["all-norm_not_norm-gold-count"]
         recall = score_dic["need_norm-norm_not_norm-pred_correct-count"]/score_dic["need_norm-norm_not_norm-gold-count"] if score_dic["need_norm-norm_not_norm-gold-count"] > 0 else None
         precision = score_dic["need_norm-norm_not_norm-pred_correct-count"] / score_dic["need_norm-norm_not_norm-pred-count"] if score_dic["need_norm-norm_not_norm-pred-count"] > 0 else None

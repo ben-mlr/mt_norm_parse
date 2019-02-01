@@ -35,10 +35,11 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
         for batch in tqdm(conllu_data.iterate_batch_variable(data, batch_size=batch_size,
                                                              normalization=normalization),
                           disable=disable_tqdm_level(verbose, verbose_level=2)):
-            #words, chars, chars_norm_, word_norm_not_norm, pos, xpos, heads,types, masks, lengths, order_ids, raw_word_inputs, raw_lines
+
             words, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, lengths, order_ids, raw_word_inputs, raw_lines = batch
-            #pdb.set_trace()
-            yield MaskBatch(chars, chars_norm,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing, verbose=verbose), order_ids
+            yield MaskBatch(chars, chars_norm,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
+                            verbose=verbose), order_ids
+
     # get_batch randomly (for training purpose)
     elif get_batch_mode:
         for ibatch in tqdm(range(1, nbatch+1), disable=disable_tqdm_level(verbose, verbose_level=2)):
@@ -49,17 +50,15 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                                                batch_size=batch_size,
                                                normalization=normalization,
                                                unk_replace=0)
-            #pdb.set_trace()
-            if char.size(0)<=1:
-                print("char----> ", char)
+            if char.size(0) <= 1:
+                print("WARNING : Skip character ", char)
                 continue 
             printing("TYPE {} word, char {} , chars_norm {} length {} ", var=(word.is_cuda, char.is_cuda,
                                                                               chars_norm.is_cuda, lenght.is_cuda),
                      verbose=verbose, verbose_level=5)
             assert min(lenght.data) > 0, "ERROR : min(lenght.data) is {} ".format(min(lenght.data))
             # TODO : you want to correct that : you're missing word !!
-            #for sent_ind in range(char.size(1)):
-            #for word_ind in range(min(lenght.data)):
+
             __word_ind = 0
             word_len = char.size(2)
             if normalization:
@@ -102,8 +101,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             yield MaskBatch(char, chars_norm, output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing, verbose=verbose), order_ids
 
 
-def data_gen_dummy(V, batch, nbatches, sent_len=9, word_len=5,
-                   verbose=0, seed=None):
+def data_gen_dummy(V, batch, nbatches, sent_len=9, word_len=5, verbose=0, seed=None):
     "Generate random data for a src-tgt copy task."
     if seed is not None:
         np.random.seed(seed)
@@ -117,7 +115,6 @@ def data_gen_dummy(V, batch, nbatches, sent_len=9, word_len=5,
         src = Variable(data, requires_grad=False)
         tgt = Variable(data, requires_grad=False)
         yield MaskBatch(src, tgt, pad=1)
-
 
 
 def data_gen(V, batch, nbatches,seq_len=10):
@@ -143,9 +140,7 @@ if __name__=="__main__":
             print("TARGET MASK : ", batch.output_mask)
     elif conll:
         dict_path = "../dictionaries/"
-
         test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo2"
-        #pdb.set_trace = lambda: 1
 
         verbose = 2
         batch_size = 10

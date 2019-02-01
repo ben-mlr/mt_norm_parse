@@ -54,7 +54,6 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
     voc_size = None
     if not debug:
         pdb.set_trace = lambda: 1
-
     model = LexNormalizer(generator=Generator, load=True, model_full_name=model_full_name,
                           voc_size=voc_size, use_gpu=use_gpu, dict_path=dict_path, model_specific_dictionary=True,
                           dir_model=os.path.join(PROJECT_PATH, "checkpoints",
@@ -115,7 +114,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                 if stat_type == "":
                     score_name, score_value, n_tokens_score = score_auxiliary(score, score_dic)
                     if score_name is None:
-                        score_value = score_dic[score+"-"+mode_norm+stat_type]/score_dic[score+"-"+mode_norm+"-total_tokens"] if score_dic[score+"-"+mode_norm+"-total_tokens"] >0 else None 
+                        score_value = score_dic[score+"-"+mode_norm+stat_type]/score_dic[score+"-"+mode_norm+"-total_tokens"] if score_dic[score+"-"+mode_norm+"-total_tokens"] >0 else None
                         # if score_dic[score+"-"+mode_norm+"-total_tokens"] > 0 else -0.001
                         if score_value is None:
                           print("WARNING : score_value is None for stat_type ''")
@@ -155,22 +154,23 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                   print("Creating new over_all_report_dir {} ".format(over_all_report_dir))
                   json.dump([report], open(over_all_report_dir, writing_mode))
                 else:
-                  #print("Appending over_all_report_dir {} ".format(over_all_report_dir))
                   all_report = json.load(open(over_all_report_dir, "r"))
                   all_report.append(report)
                   json.dump(all_report,open(over_all_report_dir, "w"))
                 printing("Report saved {} ".format(_dir_report), verbose=verbose, verbose_level=1)
 
         printing("REPORT : model specific report saved {} ".format(over_all_report_dir), verbose=verbose, verbose_level=1)
-        printing("REPORT : overall report saved {} ".format(over_all_report_dir_all_models), verbose=verbose, verbose_level=1)
+        printing("REPORT : overall report saved {} ".format(over_all_report_dir_all_models), verbose=verbose,
+                 verbose_level=1)
 
     return score_dic
 
+#4538 , 4578
 
 if __name__ == "__main__":
     list_all_dir = os.listdir(os.path.join(PROJECT_PATH, "checkpoints"))
     #for ablation_id in ["aaad"]:#,"bd55","0153","f178"]:
-    #for ablation_id in ["42a20-WARMUP-unrolling-False0.1_scale_aux-True_aux-0.1do_char_dec-False_char_src_atten-model_13_db74-folder"]:
+    for ablation_id in ["42a20-WARMUP-unrolling-False0.1_scale_aux-True_aux-0.1do_char_dec-False_char_src_atten-model_13_db74-folder"]:
     #for ablation_id in ["5754c-bestbest"]:
     #for ablation_id in ["08661","d6960"]:
     #for ablation_id in ["f2f2-batchXdropout_char0.1-to_char_src-1_dir_sent-10_batch_size-model_18_aa04","8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_1_33ca"]:
@@ -179,12 +179,12 @@ if __name__ == "__main__":
     #for ablation_id in ["d6960-new_data-batchXdropout_char0-to_char_src-1_dir_sent-10_batch_size-model_2_be5d","08661-new_data-batchXdropout_char0-to_char_src-2_dir_sent-20_batch_size-model_5_c8b2"]:
     #for ablation_id in ["8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_1_33ca","8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_2_e437"]:
     #for ablation_id in ["21cc8-fixed_all_context-aux_dense1dir_word-200_aux-0do_char_dec-False_char_src-model_12_4d49"]:
-    for ablation_id in ["28aa3-schedule-policy_2"]:
+    #for ablation_id in ["28aa3-schedule-policy_2"]:
       #for data in [DEMO,DEMO2]:
-      for get_batch_mode_evaluate in [False, True]:
+      for get_batch_mode_evaluate in [False]:
         for batch_size in [50]:
           #for data in [LIU, DEV, LEX_TEST]:
-          for data in [DEV]:
+          for data in [DEMO]:
             list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
             print("FOLDERS : ", list_)
             for folder_name in list_:
@@ -193,13 +193,13 @@ if __name__ == "__main__":
               print("0Evaluating {} ".format(model_full_name))
               evaluate(model_full_name=model_full_name, data_path=data,#LIU,
                        dict_path=os.path.join(PROJECT_PATH, "checkpoints", folder_name, "dictionaries"),
-                       label_report="eval_again", use_gpu=None, 
-                       overall_label="5754c-best-scaleXbatch-eval"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch",#"f2f2-iterate+new_data-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch-validation_True",
+                       label_report="eval_again", use_gpu=None,   
+                       overall_label=ablation_id+"-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch",#"f2f2-iterate+new_data-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch-validation_True",
                        mode_norm_ls=None,#score_to_compute_ls=["norm_not_norm-Recall"],
                        normalization=True, model_specific_dictionary=True, batch_size=batch_size,
-                       debug=False,bucket=False,
+                       debug=True,bucket=False,
                        compute_mean_score_per_sent=False,
-                       get_batch_mode_evaluate=get_batch_mode_evaluate, write_output=True,
+                       get_batch_mode_evaluate=get_batch_mode_evaluate, write_output=False,
                        dir_report=os.path.join(PROJECT_PATH, "checkpoints", folder_name), verbose=1)
 
 
