@@ -228,11 +228,12 @@ class LexNormalizer(nn.Module):
         self.bridge = nn.Linear(
             hidden_size_encoder * dir_word_encoder * n_layers_word_encoder*p_word + hidden_size_sent_encoder*dir_sent_encoder*p_sent,#*dir_sent_encoder : added diviion by 2 if dir 2
             hidden_size_decoder)
-        self.layer_norm = nn.LayerNorm(hidden_size_decoder, elementwise_affine=False) if True else None
+        #self.layer_norm = nn.LayerNorm(hidden_size_decoder, elementwise_affine=False) if True else None
         self.dropout_bridge = nn.Dropout(p=drop_out_bridge)
-        self.normalize_not_normalize = BinaryPredictor(input_dim=hidden_size_decoder,
-                                                       dense_dim=dense_dim_auxilliary, dense_dim_2=dense_dim_auxilliary_2) \
-            if self.auxilliary_task_norm_not_norm else None
+        self.normalize_not_normalize \
+            = BinaryPredictor(input_dim=hidden_size_decoder,
+                              dense_dim=dense_dim_auxilliary,
+                              dense_dim_2=dense_dim_auxilliary_2) if self.auxilliary_task_norm_not_norm else None
         #self.char_embedding_2 = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
         self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size,
                                    output_dim=output_dim, verbose=verbose)

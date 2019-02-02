@@ -15,6 +15,8 @@ import json
 import sys
 import numpy as np
 import torch
+import re
+
 from scipy.stats import hmean
 from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, DEMO, DEMO2, LIU, LEX_TEST, REPO_DATASET, CHECKPOINT_DIR, SEED_TORCH, SEED_NP, LEX_TRAIN
 from toolbox.gpu_related import use_gpu_
@@ -83,85 +85,133 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                                 print_raw=print_raw,  verbose=verbose)
 
     model.eval()
-
-    score_dic = greedy_decode_batch(char_dictionary=model.char_dictionary, verbose=verbose, gold_output=True,
+    # the formulas comes from normalization_erros functions
+    score_dic_new, formulas = greedy_decode_batch(char_dictionary=model.char_dictionary, verbose=verbose, gold_output=True,
                                     score_to_compute_ls=score_to_compute_ls, use_gpu=use_gpu,
-                                    write_output=write_output,
+                                    write_output=write_output,eval_new=True,
                                     stat="sum", mode_norm_score_ls=mode_norm_ls, label_data=REPO_DATASET[data_path],
                                     batchIter=batchIter, model=model, compute_mean_score_per_sent=compute_mean_score_per_sent,
                                     batch_size=batch_size)
-    # NB : each batch should have the same size !! same number of words : otherwise averaging is wrong
+    score_dic, _ = greedy_decode_batch(char_dictionary=model.char_dictionary, verbose=verbose, gold_output=True,
+                                              score_to_compute_ls=score_to_compute_ls, use_gpu=use_gpu,
+                                              write_output=write_output,
+                                              stat="sum", mode_norm_score_ls=mode_norm_ls,
+                                              label_data=REPO_DATASET[data_path],
+                                              batchIter=batchIter, model=model,
+                                              compute_mean_score_per_sent=compute_mean_score_per_sent,
+                                              batch_size=batch_size)
 
-    for score in score_to_compute_ls:
-        for mode_norm in mode_norm_ls:
-            try:
-                print("MODEL Normalization {} on normalization {} score is {} in average out of {} tokens on evaluation based on {} "
-                    .format(score, mode_norm,score_dic[score+"-"+mode_norm]/score_dic[score+"-"+mode_norm+"-total_tokens"], score_dic[score+"-"+mode_norm+"-total_tokens"], data_path))
-            except ZeroDivisionError as e:
-                print("ERROR catched {} ".format(e), mode_norm, score)
-                #raise Exception(e)
-    for score in score_to_compute_ls:
-        for mode_norm in mode_norm_ls:
-            scores_aux = SCORE_AUX
-            if score in scores_aux:
-                assert "all" in mode_norm_ls, "Only all possible for scoring aux (filter highlighted in F1)"
-                if mode_norm != "all":
-                    continue
-            stat_type_ls = [""]
-            if compute_mean_score_per_sent and score not in scores_aux:
-                stat_type_ls.append("-mean_per_sent")
-            for stat_type in stat_type_ls:
-                if stat_type == "":
-                    score_name, score_value, n_tokens_score = score_auxiliary(score, score_dic)
-                    if score_name is None:
-                        score_value = score_dic[score+"-"+mode_norm+stat_type]/score_dic[score+"-"+mode_norm+"-total_tokens"] if score_dic[score+"-"+mode_norm+"-total_tokens"] >0 else None
-                        # if score_dic[score+"-"+mode_norm+"-total_tokens"] > 0 else -0.001
-                        if score_value is None:
-                          print("WARNING : score_value is None for stat_type ''")
-                        n_tokens_score = score_dic[score + "-" + mode_norm + "-total_tokens"]
-                elif stat_type == "-mean_per_sent":
-                    score_value = score_dic[score + "-" + mode_norm + stat_type]/score_dic[score+"-"+mode_norm+"-n_sents"] if score_dic[score+"-"+mode_norm+"-n_sents"] > 0 else None
-                    n_tokens_score = score_dic[score+"-"+mode_norm+"-total_tokens"]
-                    if score_value is None:
-                      print("WARNING : score_value is None for stat_type 'mean_per_sent' ")
-
-                report = report_template(metric_val=score+stat_type,
-                                         info_score_val=mode_norm,
-                                         score_val=score_value,
-                                         n_sents=score_dic[score+"-"+mode_norm+"-n_sents"],
-                                         avg_per_sent=score_dic[score+"-"+mode_norm+"-total_tokens"]/score_dic[score+"-"+mode_norm+"-n_sents"] if score_dic[score+"-"+mode_norm+"-n_sents"]>0 else None,
-                                         n_tokens_score=n_tokens_score ,
-                                         model_full_name_val=model.model_full_name,
-                                         task="normalization",
-                                         report_path_val=model.arguments["checkpoint_dir"],
-                                         evaluation_script_val="normalization_"+score,
-                                         model_args_dir=model.args_dir,
-                                         data_val=REPO_DATASET[data_path])
-                _dir_report = os.path.join(dir_report, model.model_full_name+"-"+score+"-"+mode_norm+"-report-"+label_report+".json")
-                over_all_report_dir = os.path.join(dir_report, model.model_full_name+"-report-"+label_report+".json")
-                over_all_report_dir_all_models = os.path.join(overall_report_dir, overall_label+"-report.json")
-                writing_mode = "w" if not os.path.isfile(over_all_report_dir) else "a"
-                writing_mode_all_models = "w" if not os.path.isfile(over_all_report_dir_all_models) else "a"
-                json.dump(report, open(_dir_report, "w"))
-                if writing_mode_all_models == "w":
-                  json.dump([report], open(over_all_report_dir_all_models, writing_mode_all_models))
-                  print("Creating new over_all_report_dir_all_models {} ".format(over_all_report_dir_all_models))
-                else:
-                  all_report = json.load(open(over_all_report_dir_all_models, "r"))
-                  all_report.append(report)
-                  json.dump(all_report,open(over_all_report_dir_all_models, "w"))
+    for score_name, formula in formulas.items():
+        if isinstance(formula, tuple) and len(formula) > 1:
+            (num, denom) = formula
+            score_value = score_dic_new[num]/score_dic_new[denom] if score_dic_new[denom]>0 else None
+            #score_value_per_sent =
+            if score_dic_new[denom] == 0:
+                print("WARNING Score {} has denumerator {} null ".format(score_value, denom))
+                score_value = None
+            mode_norm = re.match("([^-]+)-.*", num).group(1)
+            # report all in a dictionary
+            report = report_template(metric_val=score_name,
+                                     info_score_val=mode_norm,
+                                     score_val=score_value,
+                                     n_sents=score_dic_new["n_sents"],
+                                     avg_per_sent=0,
+                                     n_tokens_score=score_dic_new[mode_norm+"-normalization-gold-count"],
+                                     model_full_name_val=model.model_full_name,
+                                     task="normalization",
+                                     report_path_val=model.arguments["checkpoint_dir"],
+                                     evaluation_script_val="normalization-exact",
+                                     model_args_dir=model.args_dir,
+                                     data_val=REPO_DATASET[data_path])
+            over_all_report_dir = os.path.join(dir_report, "NEW-"+model.model_full_name + "-report-" + label_report + ".json")
+            over_all_report_dir_all_models = os.path.join(overall_report_dir, "NEW-"+overall_label + "-report.json")
+            writing_mode = "w" if not os.path.isfile(over_all_report_dir) else "a"
+            writing_mode_all_models = "w" if not os.path.isfile(over_all_report_dir_all_models) else "a"
+            for dir, writing_mode in zip([over_all_report_dir, over_all_report_dir_all_models ], [writing_mode, writing_mode_all_models]):
                 if writing_mode == "w":
-                  print("Creating new over_all_report_dir {} ".format(over_all_report_dir))
-                  json.dump([report], open(over_all_report_dir, writing_mode))
+                    json.dump([report], open(dir, writing_mode))
+                    printing("REPORT : Creating new report  {} ".format(dir), verbose=verbose, verbose_level=1)
                 else:
-                  all_report = json.load(open(over_all_report_dir, "r"))
-                  all_report.append(report)
-                  json.dump(all_report,open(over_all_report_dir, "w"))
-                printing("Report saved {} ".format(_dir_report), verbose=verbose, verbose_level=1)
+                    all_report = json.load(open(dir, "r"))
+                    all_report.append(report)
+                    json.dump(all_report, open(dir, "w"))
 
-        printing("REPORT : model specific report saved {} ".format(over_all_report_dir), verbose=verbose, verbose_level=1)
-        printing("REPORT : overall report saved {} ".format(over_all_report_dir_all_models), verbose=verbose,
-                 verbose_level=1)
+    printing("NEW REPORT : model specific report saved {} ".format(over_all_report_dir), verbose=verbose, verbose_level=1)
+    printing("NEW REPORT : overall report saved {} ".format(over_all_report_dir_all_models), verbose=verbose,verbose_level=1)
+
+
+    ### Depreciated
+    if True:
+        for score in score_to_compute_ls:
+            for mode_norm in mode_norm_ls:
+                try:
+                    print("MODEL Normalization {} on normalization {} score is {} in average out of {} tokens on evaluation based on {} "
+                        .format(score, mode_norm, score_dic[score+"-"+mode_norm]/score_dic[score+"-"+mode_norm+"-total_tokens"], score_dic[score+"-"+mode_norm+"-total_tokens"], data_path))
+                except ZeroDivisionError as e:
+                    print("ERROR catched {} ".format(e), mode_norm, score)
+                    #raise Exception(e)
+        for score in score_to_compute_ls:
+            for mode_norm in mode_norm_ls:
+                scores_aux = SCORE_AUX
+                if score in scores_aux:
+                    assert "all" in mode_norm_ls, "Only all possible for scoring aux (filter highlighted in F1)"
+                    if mode_norm != "all":
+                        continue
+                stat_type_ls = [""]
+                if compute_mean_score_per_sent and score not in scores_aux:
+                    stat_type_ls.append("-mean_per_sent")
+                for stat_type in stat_type_ls:
+                    if stat_type == "":
+                        score_name, score_value, n_tokens_score = score_auxiliary(score, score_dic)
+                        if score_name is None:
+                            score_value = score_dic[score+"-"+mode_norm+stat_type]/score_dic[score+"-"+mode_norm+"-total_tokens"] if score_dic[score+"-"+mode_norm+"-total_tokens"] >0 else None
+                            # if score_dic[score+"-"+mode_norm+"-total_tokens"] > 0 else -0.001
+                            if score_value is None:
+                              print("WARNING : score_value is None for stat_type ''")
+                            n_tokens_score = score_dic[score + "-" + mode_norm + "-total_tokens"]
+                    elif stat_type == "-mean_per_sent":
+                        score_value = score_dic[score + "-" + mode_norm + stat_type]/score_dic[score+"-"+mode_norm+"-n_sents"] if score_dic[score+"-"+mode_norm+"-n_sents"] > 0 else None
+                        n_tokens_score = score_dic[score+"-"+mode_norm+"-total_tokens"]
+                        if score_value is None:
+                          print("WARNING : score_value is None for stat_type 'mean_per_sent' ")
+
+                    report = report_template(metric_val=score+stat_type,
+                                             info_score_val=mode_norm,
+                                             score_val=score_value,
+                                             n_sents=score_dic[score+"-"+mode_norm+"-n_sents"],
+                                             avg_per_sent=score_dic[score+"-"+mode_norm+"-total_tokens"]/score_dic[score+"-"+mode_norm+"-n_sents"] if score_dic[score+"-"+mode_norm+"-n_sents"]>0 else None,
+                                             n_tokens_score=n_tokens_score ,
+                                             model_full_name_val=model.model_full_name,
+                                             task="normalization",
+                                             report_path_val=model.arguments["checkpoint_dir"],
+                                             evaluation_script_val="normalization_"+score,
+                                             model_args_dir=model.args_dir,
+                                             data_val=REPO_DATASET[data_path])
+                    _dir_report = os.path.join(dir_report, model.model_full_name+"-"+score+"-"+mode_norm+"-report-"+label_report+".json")
+                    over_all_report_dir = os.path.join(dir_report, model.model_full_name+"-report-"+label_report+".json")
+                    over_all_report_dir_all_models = os.path.join(overall_report_dir, overall_label+"-report.json")
+                    writing_mode = "w" if not os.path.isfile(over_all_report_dir) else "a"
+                    writing_mode_all_models = "w" if not os.path.isfile(over_all_report_dir_all_models) else "a"
+                    json.dump(report, open(_dir_report, "w"))
+                    if writing_mode_all_models == "w":
+                      json.dump([report], open(over_all_report_dir_all_models, writing_mode_all_models))
+                      print("Creating new over_all_report_dir_all_models {} ".format(over_all_report_dir_all_models))
+                    else:
+                      all_report = json.load(open(over_all_report_dir_all_models, "r"))
+                      all_report.append(report)
+                      json.dump(all_report,open(over_all_report_dir_all_models, "w"))
+                    if writing_mode == "w":
+                      print("Creating new over_all_report_dir {} ".format(over_all_report_dir))
+                      json.dump([report], open(over_all_report_dir, writing_mode))
+                    else:
+                      all_report = json.load(open(over_all_report_dir, "r"))
+                      all_report.append(report)
+                      json.dump(all_report,open(over_all_report_dir, "w"))
+                    printing("Report saved {} ".format(_dir_report), verbose=verbose, verbose_level=1)
+
+            printing("REPORT : model specific report saved {} ".format(over_all_report_dir), verbose=verbose, verbose_level=1)
+            printing("REPORT : overall report saved {} ".format(over_all_report_dir_all_models), verbose=verbose,
+                     verbose_level=1)
 
     return score_dic
 

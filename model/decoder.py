@@ -187,7 +187,6 @@ class CharDecoder(nn.Module):
                     # TODO based on state_i compute as generator : get id : lookup character embedding and that's it
                     # TODO : not fir the first one that should be the STARTING_SYMBOL
 
-                    pdb.set_trace()
                     # given the current emb_char, the states of the cell (inirialized with the conditoning source )
                     #  we compute the next states
                     # [batch x sent_max_len, len_words] ??
@@ -226,7 +225,7 @@ class CharDecoder(nn.Module):
             printing("DECODER : target unrolling : output {} size ", var=[output.size()], verbose=0, verbose_level=3)
             recurrent_cell_time, pack_time, padd_time = None, None, None
         else:
-            pdb.set_trace()
+
             output, h_n = self.seq_decoder(packed_char_vecs_output, conditioning)
             h_n = h_n[0] if isinstance(self.seq_decoder, nn.LSTM) else h_n
             recurrent_cell_time, start = get_timing(start)

@@ -5,7 +5,7 @@ from io_.dat.normalized_writer import write_normalization
 from io_.from_array_to_text import output_text, output_text_
 import numpy as np
 from evaluate.normalization_errors import score_norm_not_norm
-from evaluate.normalization_errors import score_ls_, score_ls_2
+from evaluate.normalization_errors import score_ls_, correct_pred_counter
 from env.project_variables import WRITING_DIR
 from io_.dat.constants import CHAR_START_ID
 import pdb
@@ -32,22 +32,65 @@ def _init_metric_report(score_to_compute_ls, mode_norm_score_ls):
     return None
 
 
+def _init_metric_report_2():
+
+    formulas = {
+        "recall-normalization": ("NEED_NORM-normalization-pred_correct-count", "NEED_NORM-normalization-gold-count"),
+        "tnr-normalization": ("NORMED-normalization-pred_correct-count", "NORMED-normalization-gold-count"),
+        "precision-normalization": ("NEED_NORM-normalization-pred_correct-count", "NEED_NORM-normalization-pred-count"),
+        "npv-normalization": ("NORMED-normalization-pred_correct-count", "NORMED-normalization-pred-count"),
+        "accuracy-normalization": ("all-normalization-pred_correct-count", "all-normalization-gold-count"),
+        "accuracy-per_sent-normalization": ("all-normalization-pred_correct_per_sent-count", "n_sents"),
+        "all-per_sent-normalization": ("all-normalization-n_word_per_sent-count", "n_sents"),
+        "NORMED-per_sent-normalization": ("NORMED-normalization-n_word_per_sent-count", "n_sents"),
+        "recall-per_sent-normalization": ("NEED_NORM-normalization-pred_correct_per_sent-count", "n_sents"),
+        "NEED_NORM-per_sent-normalization": ("NEED_NORM-normalization-n_word_per_sent-count", "n_sents"),
+        "tnr-per_sent-normalization": ("NORMED-normalization-pred_correct_per_sent-count", "n_sents")
+    }
+
+    formulas_2 = {
+        "recall-norm_not_norm": ("need_norm-norm_not_norm-pred_correct-count", "need_norm-norm_not_norm-gold-count"),
+        "precision-norm_not_norm": ("need_norm-norm_not_norm-pred_correct-count", "need_norm-norm_not_norm-pred-count"),
+        "accuracy-norm_not_norm": ("all-norm_not_norm-pred_correct-count", "all-norm_not_norm-gold-count"),
+        "IoU-pred-need_norm": (
+        "need_norm-norm_not_normXnormalization-pred-count", "normed-norm_not_normUnormalization-pred-count"),
+        "IoU-pred-normed": (
+        "normed-norm_not_normXnormalization-pred-count", "need_norm-norm_not_normUnormalization-pred-count")
+    }
+
+    from collections import OrderedDict
+    dic = OrderedDict()
+    for a, (val, val2) in formulas.items():
+        dic[val] = 0
+        dic[val2] = 0
+    for a, (val1, val12) in formulas_2.items():
+        dic[val1] = 0
+        dic[val12] = 0
+    dic["all-normalization-pred-count"] = 0
+
+
+    return dic
+
+
 def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                         gold_output=False, score_to_compute_ls=None, stat=None,
                         use_gpu=False,
                         compute_mean_score_per_sent=False,
                         mode_norm_score_ls=None,
-                        label_data=None,
+                        label_data=None,eval_new=False,
                         write_output=False, write_to="conll", dir_normalized=None, dir_original=None,
                         verbose=0):
 
         score_dic = _init_metric_report(score_to_compute_ls, mode_norm_score_ls)
+        counter_correct = _init_metric_report_2()
         total_count = {"src_word_count": 0,
                        "target_word_count": 0,
                        "pred_word_count": 0}
         if mode_norm_score_ls is None:
             mode_norm_score_ls = ["all"]
+
         assert len(set(mode_norm_score_ls) & set(["all", "NEED_NORM", "NORMED"])) >0
+
         with torch.no_grad():
             for step, (batch, _) in enumerate(batchIter):
                 # read src sequence
@@ -88,22 +131,23 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                     total_count["target_word_count"] += counts["target_word_count"]
                     # we can score
                     printing("Gold {} ", var=[(gold_text_seq_ls)], verbose=verbose, verbose_level=5)
-                    if score_to_compute_ls is not None:
-                        try:
-                            _score_2 = score_ls_2(ls_pred=text_decoded_ls, ls_gold=gold_text_seq_ls,
-                                                  output_seq_n_hot=output_seq_n_hot, src_seq=src_seq, target_seq_gold=target_seq_gold,
-                                                  pred_norm_not_norm=pred_norm, gold_norm_not_norm=batch.output_norm_not_norm,
-                                                  ls_original=src_text_ls)
-                            if batch.output_norm_not_norm is not None and False :
-                                for token in ["all", "need_norm"]:
-                                    for type_ in ["pred", "gold", "pred_correct"]:
-                                        if token == "all" and type_ == "pred":
-                                            continue
-                                        #score_dic[token + "-norm_not_norm-" + type_ + "-count"] += \
-                                        ok = _score[token + "-norm_not_norm-" + type_ + "-count"]
-                        except :
-                            print("TEST failed score_3", _score_2)
-
+                    # output exact score only
+                    # sent mean not yet supported for npv and tnr, precision
+                    counter_correct_batch, score_formulas = correct_pred_counter(ls_pred=text_decoded_ls,
+                                                                                 ls_gold=gold_text_seq_ls,
+                                                                                 output_seq_n_hot=output_seq_n_hot,
+                                                                                 src_seq=src_seq,
+                                                                                 target_seq_gold=target_seq_gold,
+                                                                                 pred_norm_not_norm=pred_norm,
+                                                                                 gold_norm_not_norm=batch.output_norm_not_norm,
+                                                                                 ls_original=src_text_ls)
+                    # we sum for all
+                    # implicit checking here counter_correct
+                    # must have all the keys included in counter_correct_batch (should be the same !)
+                    #assert len(counter_correct_batch) == len(counter_correct)
+                    for key, val in counter_correct_batch.items():
+                        counter_correct[key] += val
+                    if score_to_compute_ls is not None and False:
                         for metric in score_to_compute_ls:
                             # TODO : DEPRECIATED : should be remove til # ---- no more need t set the norm/need_norm : all is done by default
                             for mode_norm_score in mode_norm_score_ls:
@@ -158,7 +202,10 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                 printing("Assertion passed : there are as many words in the source side,"
                          "the target side and"
                          "the predicted side : {} ".format(total_count["src_word_count"]), verbose_level=0, verbose=verbose)
-            return score_dic
+            if eval_new:
+                return counter_correct, score_formulas
+            else:
+                return score_dic, None
 
 
 def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
