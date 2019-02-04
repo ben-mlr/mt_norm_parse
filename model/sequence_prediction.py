@@ -10,6 +10,8 @@ from env.project_variables import WRITING_DIR
 from io_.dat.constants import CHAR_START_ID
 import pdb
 import os
+from collections import OrderedDict
+
 from evaluate.visualize_attention import show_attention
 from toolbox.norm_not_norm import get_label_norm
 # EPSILON for the test of edit distance 
@@ -34,19 +36,20 @@ def _init_metric_report(score_to_compute_ls, mode_norm_score_ls):
 
 def _init_metric_report_2():
 
-    formulas = {
-        "recall-normalization": ("NEED_NORM-normalization-pred_correct-count", "NEED_NORM-normalization-gold-count"),
-        "tnr-normalization": ("NORMED-normalization-pred_correct-count", "NORMED-normalization-gold-count"),
-        "precision-normalization": ("NEED_NORM-normalization-pred_correct-count", "NEED_NORM-normalization-pred-count"),
-        "npv-normalization": ("NORMED-normalization-pred_correct-count", "NORMED-normalization-pred-count"),
-        "accuracy-normalization": ("all-normalization-pred_correct-count", "all-normalization-gold-count"),
-        "accuracy-per_sent-normalization": ("all-normalization-pred_correct_per_sent-count", "n_sents"),
-        "all-per_sent-normalization": ("all-normalization-n_word_per_sent-count", "n_sents"),
-        "NORMED-per_sent-normalization": ("NORMED-normalization-n_word_per_sent-count", "n_sents"),
-        "recall-per_sent-normalization": ("NEED_NORM-normalization-pred_correct_per_sent-count", "n_sents"),
-        "NEED_NORM-per_sent-normalization": ("NEED_NORM-normalization-n_word_per_sent-count", "n_sents"),
-        "tnr-per_sent-normalization": ("NORMED-normalization-pred_correct_per_sent-count", "n_sents")
-    }
+    formulas = {"recall-normalization": ("NEED_NORM-normalization-pred_correct-count", "NEED_NORM-normalization-gold-count"),
+                "tnr-normalization": ("NORMED-normalization-pred_correct-count", "NORMED-normalization-gold-count"),
+                "precision-normalization": ("NEED_NORM-normalization-pred_correct-count", "NEED_NORM-normalization-pred-count"),
+                "npv-normalization": ("NORMED-normalization-pred_correct-count", "NORMED-normalization-pred-count"),
+                "accuracy-normalization": ("all-normalization-pred_correct-count", "all-normalization-gold-count"),
+                "accuracy-per_sent-normalization": ("all-normalization-pred_correct_per_sent-count", "all-n_sents"),
+                "info-all-per_sent": ("all-normalization-n_word_per_sent-count", "all-n_sents"),
+                "info-NORMED-per_sent": ("NORMED-normalization-n_word_per_sent-count", "NORMED-n_sents"),
+                "recall-per_sent-normalization": ("NEED_NORM-normalization-pred_correct_per_sent-count", "NEED_NORM-n_sents"),
+                "info-NEED_NORM-per_sent": ("NEED_NORM-normalization-n_word_per_sent-count", "NEED_NORM-n_sents"),
+                "tnr-per_sent-normalization": ("NORMED-normalization-pred_correct_per_sent-count", "NORMED-n_sents"),
+                "aa": ("n_sents","n_sents")
+                }
+
 
     formulas_2 = {
         "recall-norm_not_norm": ("need_norm-norm_not_norm-pred_correct-count", "need_norm-norm_not_norm-gold-count"),
@@ -58,7 +61,6 @@ def _init_metric_report_2():
         "normed-norm_not_normXnormalization-pred-count", "need_norm-norm_not_normUnormalization-pred-count")
     }
 
-    from collections import OrderedDict
     dic = OrderedDict()
     for a, (val, val2) in formulas.items():
         dic[val] = 0
@@ -184,7 +186,6 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                                         if token == "all" and type_ == "pred":
                                             continue
                                         score_dic[token+"-norm_not_norm-"+type_+"-count"] += _score[token+"-norm_not_norm-"+type_+"-count"]
-                            print("SCORE TOTAL TOKENS  0 ", score_dic["exact" + "-" + "all" + "-" + "total_tokens"])
                     test_scoring = TEST_SCORING_IN_CODE
                     if test_scoring:
                         assert len(list((set(mode_norm_score_ls)&set(["NEED_NORM", "NORMED","all"])))) == 3, "ERROR : to perform test need all normalization mode "
@@ -202,7 +203,7 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                     "ERROR src_word_count {} vs pred_word_count {}".format(total_count["src_word_count"], total_count["pred_word_count"])
                 printing("Assertion passed : there are as many words in the source side,"
                          "the target side and"
-                         "the predicted side : {} ".format(total_count["src_word_count"]), verbose_level=0, verbose=verbose)
+                         "the predicted side : {} ".format(total_count["src_word_count"]), verbose_level=2, verbose=verbose)
             if eval_new:
                 return counter_correct, score_formulas
             else:

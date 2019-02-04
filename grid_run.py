@@ -137,11 +137,12 @@ if __name__ == "__main__":
                          "n_layers_word_encoder": 1, "dir_sent_encoder": 1, "word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder":"LSTM",
                          "hidden_size_sent_encoder": 50, "hidden_size_decoder": 50, "batch_size": 10}
       params_intuition = {"hidden_size_encoder": 40, "output_dim": 50, "char_embedding_dim": 30,
-                         "dropout_sent_encoder": 0., "drop_out_word_encoder": 0., "dropout_word_decoder": 0.,
-                         "drop_out_sent_encoder_out": 0, "drop_out_word_encoder_out": 0, "dir_word_encoder": 1,
-                         "n_layers_word_encoder": 1, "dir_sent_encoder": 1, "word_recurrent_cell_decoder": "LSTM",
-                         "word_recurrent_cell_encoder": "LSTM",
-                         "hidden_size_sent_encoder": 15, "hidden_size_decoder": 40, "batch_size": 10}
+                          "dropout_sent_encoder": 0., "drop_out_word_encoder": 0., "dropout_word_decoder": 0.,
+                          "drop_out_sent_encoder_out": 0, "drop_out_word_encoder_out": 0, "dir_word_encoder": 1,
+                          "n_layers_word_encoder": 1, "dir_sent_encoder": 1, "word_recurrent_cell_decoder": "LSTM",
+                          "word_recurrent_cell_encoder": "LSTM",
+                          "hidden_size_sent_encoder": 15, "hidden_size_decoder": 40, "batch_size": 10
+                         }
       params_strong = {"hidden_size_encoder": 200, "output_dim": 100, "char_embedding_dim": 50,
                          "dropout_sent_encoder": 0, "drop_out_word_encoder": 0, "dropout_word_decoder": 0.,
                          "drop_out_word_encoder_out": 0.3, "drop_out_sent_encoder_out": 0.3, "drop_out_char_embedding_decoder":0.3, "dropout_bridge":0.01,
@@ -168,13 +169,13 @@ if __name__ == "__main__":
       if ABLATION_DROPOUT:
           params = []
           labels = [""]
-          for add_dropout_encoder in [0,0.1,0.2,0.5,0.8]:
+          for add_dropout_encoder in [0, 0.1, 0.2, 0.5, 0.8]:
             for batch_size in [10, 20, 50, 100]:
               for dir_sent_encoder in [1, 2]:
                 param = params_baseline.copy()
                 param["drop_out_sent_encoder_out"] = 0.2#add_dropout_encoder
                 param["drop_out_word_encoder_out"] = 0.2#add_dropout_encoder
-                param["dropout_bridge"] = 0.2#add_dropout_encoder
+                param["dropout_bridge"] = 0.2 #add_dropout_encoder
                 param["drop_out_char_embedding_decoder"] = add_dropout_encoder
                 param["dir_sent_encoder"] = dir_sent_encoder
                 param["batch_size"] = batch_size
@@ -200,8 +201,9 @@ if __name__ == "__main__":
           labels = []
           n_model = 0
           for replicate in ["replicate1","replicate2"]:
-            for dense_dim_auxilliary in [None, 200]:
-                for dense_dim_auxilliary_2 in [0, 50]:
+            for dense_dim_auxilliary in [200, None]:
+                dense_dim_auxilliary_2_ls = [0, 50] if dense_dim_auxilliary is not None else [0]
+                for dense_dim_auxilliary_2 in dense_dim_auxilliary_2_ls:
                   policy_ls = [ None] #if dense_dim_auxilliary is not None else [None]
                   auxilliary_task_norm_not_norm = False if dense_dim_auxilliary is None else True
                   for policy in policy_ls:
@@ -298,7 +300,7 @@ if __name__ == "__main__":
                      "word_recurrent_cell_encoder": "LSTM",
                      "hidden_size_sent_encoder": 20, "hidden_size_decoder": 50, "batch_size": 10}
             param["batch_size"] = 2
-            param["auxilliary_task_norm_not_norm"] = True
+            param["auxilliary_task_norm_not_norm"] = False
             param["weight_binary_loss"] = 0.05
             param["unrolling_word"] = True
             param["char_src_attention"] = False
@@ -307,7 +309,7 @@ if __name__ == "__main__":
             param["dense_dim_auxilliary"] = 0
             param["clipping"] = None
             param["teacher_force"] = True
-            param["dense_dim_auxilliary_2"] = 50
+            param["dense_dim_auxilliary_2"] = 0
 
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
@@ -325,7 +327,7 @@ if __name__ == "__main__":
                                                                        "norm_not_norm-Recall",
                                                                        "norm_not_norm-accuracy"],
                                                   warmup=warmup, args=param, use_gpu=None, n_epochs=epochs,
-                                                  debug=True)
+                                                  debug=False)
           run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("Log RUN is : {} to see model list ".format(run_dir))

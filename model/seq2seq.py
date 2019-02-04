@@ -73,6 +73,13 @@ class LexNormalizer(nn.Module):
         :param use_gpu:
         """
         super(LexNormalizer, self).__init__()
+        if not auxilliary_task_norm_not_norm:
+            assert dense_dim_auxilliary_2 is None or dense_dim_auxilliary_2 == 0, \
+                "ERROR dense_dim_auxilliary_2 shound be None or 0 when auxilliary_task_norm_not_norm is False"
+            assert dense_dim_auxilliary is None or dense_dim_auxilliary == 0,\
+                "ERROR dense_dim_auxilliary shound be None or 0 when auxilliary_task_norm_not_norm is False"
+        if dense_dim_auxilliary is None or dense_dim_auxilliary == 0:
+            assert dense_dim_auxilliary_2 == 0 or dense_dim_auxilliary_2 is None, "dense_dim_auxilliary_2 should be 0 or None as dense_dim_auxilliary is "
         # initialize dictionaries
         self.timing = timing
         self.dict_path, self.word_dictionary, self.char_dictionary, self.pos_dictionary, self.xpos_dictionary, self.type_dictionary = None, None, None, None, None, None

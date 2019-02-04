@@ -256,7 +256,7 @@ def score_ls_(ls_pred, ls_gold, score, ls_original=None, stat="mean", normalized
             sent_score.append(score_word)
             scores.append(score_word)
             printing("{} score ,  predicted word {} sentence predicted {} ".format(eval_func(word_pred, word_gold),
-                                                                                   word_pred, word_gold), verbose=verbose, verbose_level=0)
+                                                                                   word_pred, word_gold), verbose=verbose, verbose_level=5)
         sent_score_ls.append(sent_score)
 
     if stat == "sum":
