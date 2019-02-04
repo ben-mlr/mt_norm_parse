@@ -9,7 +9,6 @@ from io_.dat.constants import PAD_ID_CHAR
 import torch
 
 
-
 def exact_match(pred, gold):
     if pred == gold:
         return 1
@@ -45,8 +44,8 @@ def score_ls(ls_pred, ls_gold, score, stat="mean", verbose=0):
     return score, len(scores)
 
 
-def correct_pred_counter(ls_pred, ls_gold, ls_original=None, pred_norm_not_norm=None, gold_norm_not_norm=None,
-                        output_seq_n_hot=None,src_seq=None,target_seq_gold=None,
+def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None, gold_norm_not_norm=None,
+                        output_seq_n_hot=None,src_seq=None, target_seq_gold=None,
                         verbose=0):
     # only exact score here !!
     dic = OrderedDict()
@@ -55,7 +54,7 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original=None, pred_norm_not_norm=
     normalization_ls = [[src_token == gold_token for src_token, gold_token in zip(batch_src, batch_gold)] for
                         batch_src, batch_gold in zip(ls_original, ls_gold)]
     # if False : sequence predictor predicts NEED_NORM otherwise NORMED
-    #normalization_prediction_by_seq = [[src_token == pred_token for src_token, pred_token in zip(batch_src, batch_pred)] for batch_src, batch_pred in zip(ls_original, ls_pred)]
+    normalization_prediction_by_seq = [[src_token == pred_token for src_token, pred_token in zip(batch_src, batch_pred)] for batch_src, batch_pred in zip(ls_original, ls_pred)]
     #normalization_prediction_by_seq_norm = len(normalization_prediction_by_seq[normalization_prediction_by_seq == True])
     #normalization_prediction_by_seq_need_norm = len(normalization_prediction_by_seq[normalization_prediction_by_seq == False])
     #assert len(normalization_prediction_by_seq) == len(normalization_ls)
@@ -88,31 +87,39 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original=None, pred_norm_not_norm=
                 printing("{} score ,  predicted word {} sentence predicted {} ".format(eval_func(word_pred, word_gold), word_pred, word_gold),
                          verbose=verbose, verbose_level=6)
             sent_score_ls.append(sent_score)
+
         score = np.sum(scores)
+
         n_mode_words_per_sent = np.sum([len(scores_sent) for scores_sent in sent_score_ls])
-        n_sents = len(sent_score_ls)
-        pdb.set_trace()
-        normalized_sent_error_out_of_overall_sent_len = [np.sum(scores_sent)/len(scores_sent) for scores_sent in sent_score_ls]#, get_sent_lengths)]
+        n_sents = len([a for a in sent_score_ls if len(a)>0])
+
+        normalized_sent_error_out_of_overall_sent_len = [np.sum(scores_sent)/len(scores_sent) if len(scores_sent) else 0  for scores_sent in sent_score_ls] # get_sent_lengths)]
         mean_score_per_sent = np.sum(normalized_sent_error_out_of_overall_sent_len)
+        pdb.set_trace()
 
         if normalized_mode == "all":
             count_pred_number = len(scores)
         else:
-            cond = False if normalized_mode == "NEED_NORM" else "True"
-            count_pred_number = len(normalization_ls[normalization_ls == cond])
+            cond = False if normalized_mode == "NEED_NORM" else True
+            pdb.set_trace()
+            normalization_ls_flat = np.array([a for ls in normalization_prediction_by_seq  for a in ls])
+            count_pred_number = len(normalization_ls_flat[normalization_ls_flat == cond])
 
         return_dic = {normalized_mode+"-normalization-pred_correct-count": score,
                       normalized_mode+"-normalization-pred-count": count_pred_number,
                       normalized_mode+"-normalization-n_word_per_sent-count": n_mode_words_per_sent,
                       normalized_mode+"-normalization-pred_correct_per_sent-count": mean_score_per_sent,
-                      normalized_mode+"-normalization-gold-count": len(scores)}
+                      normalized_mode+"-normalization-gold-count": len(scores),
+                      normalized_mode+"-n_sents":n_sents,
+                      }
+
         dic.update(return_dic)
 
     if pred_norm_not_norm is not None and gold_norm_not_norm is not None:
-        #pdb.set_trace()
+
         print("output_seq_n_hot", output_seq_n_hot.size())
         score_binary, formulas_bin = score_norm_not_norm(pred_norm_not_norm, gold_norm_not_norm[:, :pred_norm_not_norm.size(1)],
-                                           output_seq_n_hot, src_seq, target_seq_gold)
+                                                            output_seq_n_hot, src_seq, target_seq_gold)
         # testing consistency in counting
         try:
             assert score_binary["all-norm_not_norm-gold-count"] == dic["all-normalization-gold-count"], \
@@ -123,26 +130,28 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original=None, pred_norm_not_norm=
             print("Assertion failed : CONSISTENCY between two tasks in terms of tokens ", e)
 
         dic.update(score_binary)
-
-    dic["n_sents"] = n_sents
+    # DEPRECIATED
+    dic["n_sents"] = len(sent_score_ls)
 
     # output raw performance counting and formulas associated
     # to a metric name:(numerator/denominator) for higher level score just as to sum
+
     formulas = {"recall-normalization": ("NEED_NORM-normalization-pred_correct-count", "NEED_NORM-normalization-gold-count"),
                 "tnr-normalization": ("NORMED-normalization-pred_correct-count", "NORMED-normalization-gold-count"),
                 "precision-normalization": ("NEED_NORM-normalization-pred_correct-count", "NEED_NORM-normalization-pred-count"),
                 "npv-normalization": ("NORMED-normalization-pred_correct-count", "NORMED-normalization-pred-count"),
                 "accuracy-normalization": ("all-normalization-pred_correct-count", "all-normalization-gold-count"),
-                "all-per_sent-normalization": ("all-normalization-pred_correct_per_sent-count", "n_sents"),
-                "info-all-per_sent": ("all-normalization-n_word_per_sent-count", "n_sents"),
-                "info-NORMED-per_sent": ("NORMED-normalization-n_word_per_sent-count", "n_sents"),
-                "recall-per_sent-normalization": ("NEED_NORM-normalization-pred_correct_per_sent-count", "n_sents"),
-                "info-NEED_NORM-per_sent": ("NEED_NORM-normalization-n_word_per_sent-count", "n_sents"),
-                "tnr-per_sent-normalization": ("NORMED-normalization-pred_correct_per_sent-count", "n_sents"),
+                "accuracy-per_sent-normalization": ("all-normalization-pred_correct_per_sent-count", "all-n_sents"),
+                "info-all-per_sent": ("all-normalization-n_word_per_sent-count", "all-n_sents"),
+                "info-NORMED-per_sent": ("NORMED-normalization-n_word_per_sent-count", "NORMED-n_sents"),
+                "recall-per_sent-normalization": ("NEED_NORM-normalization-pred_correct_per_sent-count", "NEED_NORM-n_sents"),
+                "info-NEED_NORM-per_sent": ("NEED_NORM-normalization-n_word_per_sent-count", "NEED_NORM-n_sents"),
+                "tnr-per_sent-normalization": ("NORMED-normalization-pred_correct_per_sent-count", "NORMED-n_sents"),
                 "info-all_tokens-normalization": ("all-normalization-gold-count"),
                 "info-NEED_NORM_tokens-normalization": ("NEED_NORM-normalization-gold-count"),
                 "info-NORMED_tokens-normalization": ("NORMED-normalization-gold-count"),
-                "info-all-n_sents":("n_sents") }
+                "info-all-n_sents":("all-n_sents")
+                }
 
     formulas.update(formulas)
 
@@ -170,14 +179,13 @@ def score_norm_not_norm(norm_not_norm_pred, norm_not_norm_gold, output_seq_n_hot
         # we trust padding from norm_not_norm_gold to compute metric on sequence prediction
         predicted_not_pad_seq = need_norm_norm[norm_not_norm_gold != 2]
         # sequence prediction based norm_not_norm
-        predicted_not_pad_seq_need_norm = np.argwhere(predicted_not_pad_seq == 0).squeeze()
-        predicted_not_pad_seq_normed = np.argwhere(predicted_not_pad_seq == 1).squeeze()
+        predicted_not_pad_seq_need_norm = np.argwhere(predicted_not_pad_seq == 0)[0,:]#.squeeze()
+        predicted_not_pad_seq_normed = np.argwhere(predicted_not_pad_seq == 1)#[0,:]#.squeeze()
         # binary predition based norm_not_norm # TODO : confirm the inversion
-        predicted_not_pad_need_norm = np.argwhere(predicted_not_pad == 1).squeeze()
-        predicted_not_pad_normed = np.argwhere(predicted_not_pad == 0).squeeze()
+        predicted_not_pad_need_norm = np.argwhere(predicted_not_pad == 1)[0,:]#.squeeze()
+        predicted_not_pad_normed = np.argwhere(predicted_not_pad == 0)[0,:]#.squeeze()
         # gold_not_pad == 0 means need_norm else means normed
         # get prediction normed : np.argwhere(predicted_not_pad==1)
-
         need_norm_norm_not_normUnormalization_pred_count = len(predicted_not_pad_need_norm)+len(predicted_not_pad_seq_need_norm)-len(list(set(predicted_not_pad_need_norm.tolist()) & set(predicted_not_pad_seq_need_norm.tolist())))
         normed_norm_not_normUnormalization_pred_count = len(predicted_not_pad_seq_normed)+len(predicted_not_pad_normed)-len(list(set(predicted_not_pad_seq_normed.tolist()) & set(predicted_not_pad_normed.tolist())))
         need_norm_norm_not_normXnormalization_pred_count = len(list(set(predicted_not_pad_need_norm.tolist())&set(predicted_not_pad_seq_need_norm.tolist())))
@@ -248,14 +256,14 @@ def score_ls_(ls_pred, ls_gold, score, ls_original=None, stat="mean", normalized
             sent_score.append(score_word)
             scores.append(score_word)
             printing("{} score ,  predicted word {} sentence predicted {} ".format(eval_func(word_pred, word_gold),
-                                                                                   word_pred, word_gold), verbose=verbose, verbose_level=6)
+                                                                                   word_pred, word_gold), verbose=verbose, verbose_level=0)
         sent_score_ls.append(sent_score)
 
     if stat == "sum":
         score = np.sum(scores)
     if compute_mean_score_per_sent :
         #get_sent_lengths = [len(sent) for sent in normalization_ls]
-        normalized_sent_error_out_of_overall_sent_len = [np.sum(scores_sent)/len(scores_sent) for scores_sent in sent_score_ls]#, get_sent_lengths)]
+        normalized_sent_error_out_of_overall_sent_len = [np.sum(scores_sent)/len(scores_sent)  for scores_sent in sent_score_ls]#, get_sent_lengths)]
         n_mode_words_per_sent = np.mean([len(scores_sent) for scores_sent in sent_score_ls])
         n_sents = len(sent_score_ls)
         mean_score_per_sent = np.sum(normalized_sent_error_out_of_overall_sent_len)

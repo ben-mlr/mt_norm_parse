@@ -1,6 +1,6 @@
 from evaluate.normalization_errors import score_ls, score_ls_
 import pdb
-pdb.set_trace = lambda :1
+
 import numpy as np
 from evaluate.normalization_errors import score_norm_not_norm
 # depreciated
@@ -129,15 +129,104 @@ def _test_score_norm_not_norm():
     print("_test_score_norm_not_norm all test passed for counting score")
 
 
+from evaluate.normalization_errors import correct_pred_counter, score_norm_not_norm
 
+
+def _test_correct_pred_counter():
+    norm_not_norm_gold = np.array([['Watchinqq', 'ayee', 'Moviiie'], ['new', 'pix', 'comming', 'tomoroe'], ['lovin', 'my', 'bg', ':)'], ['C', 'nt', 'fuckn', 'Slp']])
+    norm_not_norm_pred = np.array([['Watchinqq', 'ayee', 'Moviiie0'], ['new0', 'pix0', 'comming0', 'tomoroe0'], ['lovin0', 'my0', 'bg0', ':)'], ['0C', '0nt', '0fuckn', '0Slp']])
+    norm_not_norm_ori = np.array([['watching', 'ayee', 'movie'], ['new', 'pictures', 'coming', 'tomorrow'], ['loving', 'my', 'background', ':)'], ['can', 'not', 'fucking', 'sleep']])
+
+    ret, _ = correct_pred_counter(ls_pred=norm_not_norm_pred, ls_gold=norm_not_norm_gold, ls_original=norm_not_norm_ori)
+    print(ret.keys())
+    # testing counting
+    assert ret['all-normalization-gold-count'] == 15
+    assert ret['all-normalization-pred-count'] == 15
+    assert ret['all-normalization-pred_correct-count'] == 3
+
+    assert ret['NEED_NORM-normalization-pred_correct-count'] == 1
+    assert ret['NORMED-normalization-pred_correct-count'] == 2
+    assert ret['n_sents'] == 4
+    assert ret['NEED_NORM-normalization-gold-count'] == 11, "NEED_NORM-normalization-gold-count"
+    assert ret['NEED_NORM-normalization-pred-count'] == 13, "NEED_NORM-normalization-pred-count"
+    assert ret['NORMED-normalization-gold-count'] == 4, "NORMED-normalization-gold-count"
+    assert ret['NORMED-normalization-pred-count'] == 2, "NORMED-normalization-pred-count"
+
+    assert ret['NEED_NORM-normalization-n_word_per_sent-count'] == 11
+    assert ret['NORMED-normalization-n_word_per_sent-count'], ret['NORMED-normalization-n_word_per_sent-count'] == 3
+    assert ret['all-normalization-n_word_per_sent-count'] == 15, str(ret['all-normalization-n_word_per_sent-count'])+"all-normalization-n_word_per_sent-count"
+    assert ret['all-normalization-pred_correct_per_sent-count'] == 2 / 3 + 1 / 4
+    assert ret['NEED_NORM-normalization-pred_correct_per_sent-count'] == 1/2,  "NEED_NORM-normalization-pred_correct_per_sent-count"
+    assert ret['NORMED-normalization-pred_correct_per_sent-count'] == 1/1+1/2,  "NORMED-normalization-pred_correct_per_sent-count"
+
+    assert ret["NEED_NORM-n_sents"] == 4
+    assert ret["all-n_sents"] == 4
+    assert ret["NORMED-n_sents"] == 3
+    print("Test counter passed ")
+
+
+def _test_correct_pred_counter_formulas():
+
+    norm_not_norm_gold = np.array([['Watchinqq', 'ayee', 'Moviiie'], ['new', 'pix', 'comming', 'tomoroe'], ['lovin', 'my', 'bg', ':)'],['C', 'nt', 'fuckn', 'Slp']])
+    norm_not_norm_pred = np.array([['Watchinqq', 'ayee', 'Moviiie0'], ['new0', 'pix0', 'comming0', 'tomoroe0'], ['lovin0', 'my0', 'bg0', ':)'],['0C', '0nt', '0fuckn', '0Slp']])
+    norm_not_norm_ori = np.array([['watching', 'ayee', 'movie'], ['new', 'pictures', 'coming', 'tomorrow'], ['loving', 'my', 'background', ':)'],['can', 'not', 'fucking', 'sleep']])
+
+    ret, formulas = correct_pred_counter(ls_pred=norm_not_norm_pred, ls_gold=norm_not_norm_gold, ls_original=norm_not_norm_ori)
+    dic= {}
+    for score, val in formulas.items():
+        if isinstance(val, tuple) and len(val)>0:
+            dic[score] = ret[val[0]]/ret[val[1]]
+
+    # NB : n_sents takes into account if no NEED_NORM and no NORMED
+    assert dic['recall-normalization'] == 1/11
+    assert abs(dic['precision-normalization'] - 1/13) < 0.00001, dic['precision-normalization']
+    assert dic['npv-normalization'] == 2/2
+    assert dic['tnr-normalization'] == 2/4
+    assert dic['accuracy-normalization'] == 3/15
+    assert dic['recall-per_sent-normalization'] == (1/2+0/3+0/2+0/4)/4, dic['recall-per_sent-normalization']
+    assert dic['tnr-per_sent-normalization'] == (1/1+0/1+1/2)/3
+    assert dic['accuracy-per_sent-normalization'] == (2/3+0/4+1/4+0/4)/4
+    print("Test formula passed ")
+
+def _test_correct_norm_no_norm_counter():
+
+    gold_seq = np.array([[0, 1, 0, 2],
+                         [1, 0, 0, 0],
+                         [0, 1, 0, 1],
+                         [0, 0, 0, 0]])
+    pred = np.array([[0, 1, 1, 1],
+                     [1, 1, 0, 1],
+                     [0, 1, 0, 1],
+                     [1, 1, 1, 0]])
+    #tp =
+    #tn =
+    #pp =
+    #np =
+
+    ret, formulas = score_norm_not_norm(norm_not_norm_pred=pred, norm_not_norm_gold=gold_seq)
+    print(ret)
 
 if __name__=="__main__":
-    _0test_exact_match()
-    _0test_edit_inverse()
-    print("all tests score_ls  0 passed ")
-    _1test_exact_match()
-    _1test_edit_inverse()
-    _1test_exact_match_NORMED_NEED_NORM()
-    print("all tests score_ls_ all passed ")
-    _test_score_norm_not_norm()
+
+    pdb.set_trace = lambda: 1
+
+    if False:
+        _0test_exact_match()
+        _0test_edit_inverse()
+        print("all tests score_ls  0 passed ")
+        _1test_exact_match()
+        _1test_edit_inverse()
+        _1test_exact_match_NORMED_NEED_NORM()
+        print("all tests score_ls_ all passed ")
+        _test_score_norm_not_norm()
+
+    _test_correct_pred_counter()
+    _test_correct_pred_counter_formulas()
+    #_test_correct_norm_no_norm_counter()
+
+
+
+
+
+
 

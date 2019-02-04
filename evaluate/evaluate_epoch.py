@@ -87,19 +87,11 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
     model.eval()
     # the formulas comes from normalization_erros functions
     score_dic_new, formulas = greedy_decode_batch(char_dictionary=model.char_dictionary, verbose=verbose, gold_output=True,
-                                    score_to_compute_ls=score_to_compute_ls, use_gpu=use_gpu,
-                                    write_output=write_output,eval_new=True,
-                                    stat="sum", mode_norm_score_ls=mode_norm_ls, label_data=REPO_DATASET[data_path],
-                                    batchIter=batchIter, model=model, compute_mean_score_per_sent=compute_mean_score_per_sent,
-                                    batch_size=batch_size)
-    score_dic, _ = greedy_decode_batch(char_dictionary=model.char_dictionary, verbose=verbose, gold_output=True,
-                                              score_to_compute_ls=score_to_compute_ls, use_gpu=use_gpu,
-                                              write_output=write_output,
-                                              stat="sum", mode_norm_score_ls=mode_norm_ls,
-                                              label_data=REPO_DATASET[data_path],
-                                              batchIter=batchIter, model=model,
-                                              compute_mean_score_per_sent=compute_mean_score_per_sent,
-                                              batch_size=batch_size)
+                                                  score_to_compute_ls=score_to_compute_ls, use_gpu=use_gpu,
+                                                  write_output=write_output, eval_new=True,
+                                                  stat="sum", mode_norm_score_ls=mode_norm_ls, label_data=REPO_DATASET[data_path],
+                                                  batchIter=batchIter, model=model, compute_mean_score_per_sent=compute_mean_score_per_sent,
+                                                  batch_size=batch_size)
 
     for score_name, formula in formulas.items():
         if isinstance(formula, tuple) and len(formula) > 1:
@@ -138,8 +130,20 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
 
     printing("NEW REPORT : model specific report saved {} ".format(over_all_report_dir), verbose=verbose, verbose_level=1)
     printing("NEW REPORT : overall report saved {} ".format(over_all_report_dir_all_models), verbose=verbose,verbose_level=1)
+    batchIter_2 = data_gen_conllu(data_read, model.word_dictionary, model.char_dictionary,
+                                batch_size=batch_size,
+                                get_batch_mode=get_batch_mode_evaluate,
+                                normalization=normalization,
+                                print_raw=print_raw,  verbose=verbose)
 
-
+    score_dic, _ = greedy_decode_batch(char_dictionary=model.char_dictionary, verbose=verbose, gold_output=True,
+                                       score_to_compute_ls=score_to_compute_ls, use_gpu=use_gpu,
+                                       write_output=write_output,
+                                       stat="sum", mode_norm_score_ls=mode_norm_ls,
+                                       label_data=REPO_DATASET[data_path],
+                                       batchIter=batchIter_2, model=model, eval_new=False,
+                                       compute_mean_score_per_sent=compute_mean_score_per_sent,
+                                       batch_size=batch_size)
     ### Depreciated
     if True:
         for score in score_to_compute_ls:
@@ -148,7 +152,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                     print("MODEL Normalization {} on normalization {} score is {} in average out of {} tokens on evaluation based on {} "
                         .format(score, mode_norm, score_dic[score+"-"+mode_norm]/score_dic[score+"-"+mode_norm+"-total_tokens"], score_dic[score+"-"+mode_norm+"-total_tokens"], data_path))
                 except ZeroDivisionError as e:
-                    print("ERROR catched {} ".format(e), mode_norm, score)
+                    print("ERROR catched {} ".format(e), mode_norm, score, score_dic[score+"-"+mode_norm+"-total_tokens"])
                     #raise Exception(e)
         for score in score_to_compute_ls:
             for mode_norm in mode_norm_ls:
@@ -164,10 +168,10 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                     if stat_type == "":
                         score_name, score_value, n_tokens_score = score_auxiliary(score, score_dic)
                         if score_name is None:
-                            score_value = score_dic[score+"-"+mode_norm+stat_type]/score_dic[score+"-"+mode_norm+"-total_tokens"] if score_dic[score+"-"+mode_norm+"-total_tokens"] >0 else None
+                            score_value = score_dic[score+"-"+mode_norm+stat_type]/score_dic[score+"-"+mode_norm+"-total_tokens"] if score_dic[score+"-"+mode_norm+"-total_tokens"] > 0 else None
                             # if score_dic[score+"-"+mode_norm+"-total_tokens"] > 0 else -0.001
                             if score_value is None:
-                              print("WARNING : score_value is None for stat_type ''")
+                              print("WARNING : score_value is None for stat_type ''   score {} and mode {}".format(score, mode_norm))
                             n_tokens_score = score_dic[score + "-" + mode_norm + "-total_tokens"]
                     elif stat_type == "-mean_per_sent":
                         score_value = score_dic[score + "-" + mode_norm + stat_type]/score_dic[score+"-"+mode_norm+"-n_sents"] if score_dic[score+"-"+mode_norm+"-n_sents"] > 0 else None

@@ -77,11 +77,12 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                         use_gpu=False,
                         compute_mean_score_per_sent=False,
                         mode_norm_score_ls=None,
-                        label_data=None,eval_new=False,
+                        label_data=None, eval_new=False,
                         write_output=False, write_to="conll", dir_normalized=None, dir_original=None,
                         verbose=0):
 
         score_dic = _init_metric_report(score_to_compute_ls, mode_norm_score_ls)
+
         counter_correct = _init_metric_report_2()
         total_count = {"src_word_count": 0,
                        "target_word_count": 0,
@@ -147,7 +148,7 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                     #assert len(counter_correct_batch) == len(counter_correct)
                     for key, val in counter_correct_batch.items():
                         counter_correct[key] += val
-                    if score_to_compute_ls is not None and False:
+                    if score_to_compute_ls is not None and not eval_new:
                         for metric in score_to_compute_ls:
                             # TODO : DEPRECIATED : should be remove til # ---- no more need t set the norm/need_norm : all is done by default
                             for mode_norm_score in mode_norm_score_ls:
@@ -164,10 +165,11 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                                             score_dic[metric + "-" + mode_norm_score+"-mean_per_sent"] += _score["mean_per_sent"]
                                         score_dic[metric + "-" + mode_norm_score] += _score["sum"]
                                         score_dic[metric + "-" + mode_norm_score + "-" + "total_tokens"] += _n_tokens
+
                                     except Exception as e:
                                         print("Exception {}".format(e))
                                         score_dic[metric + "-" + mode_norm_score] += 0
-                                        score_dic[metric + "-" + mode_norm_score + "-" + "total_tokens"] += 0
+                                        #score_dic[metric + "-" + mode_norm_score + "-" + "total_tokens"] += 0
                                         if compute_mean_score_per_sent:
                                             score_dic[metric + "-" + mode_norm_score + "-n_sents"] += 0
                                             score_dic[metric + "-" + mode_norm_score + "-n_word_per_sent"] += 0
@@ -175,15 +177,14 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
 
                             if batch.output_norm_not_norm is not None:
                                 batch.output_norm_not_norm = batch.output_norm_not_norm[:, :pred_norm.size(1)]  # not that clean : we cut gold norm_not_norm sequence
-                                _score = score_norm_not_norm(pred_norm, batch.output_norm_not_norm)
+                                _score, _ = score_norm_not_norm(pred_norm, batch.output_norm_not_norm)
                                 # means : aux task is on
                                 for token in ["all", "need_norm"]:
                                     for type_ in ["pred", "gold","pred_correct"]:
                                         if token == "all" and type_ == "pred":
                                             continue
-                                        score_dic[token+"-norm_not_norm-"+type_+"-count"] \
-                                                += _score[token+"-norm_not_norm-"+type_+"-count"]
-
+                                        score_dic[token+"-norm_not_norm-"+type_+"-count"] += _score[token+"-norm_not_norm-"+type_+"-count"]
+                            print("SCORE TOTAL TOKENS  0 ", score_dic["exact" + "-" + "all" + "-" + "total_tokens"])
                     test_scoring = TEST_SCORING_IN_CODE
                     if test_scoring:
                         assert len(list((set(mode_norm_score_ls)&set(["NEED_NORM", "NORMED","all"])))) == 3, "ERROR : to perform test need all normalization mode "

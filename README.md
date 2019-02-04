@@ -18,6 +18,17 @@ When any new features is implemented the impact the training process :
 - train on normalization == True and see if it fits demo2 dataset
 - evaluate the model and get the metrics  
 
+## Evaluation pipeline
+
+- The evaluation code is/was a big mess
+- Now the idea is : 
+   - at the lower level 
+        - you define : a scoring formula dictionary that gives a score name and how to get it (what fraction to do)
+        - the numerators, denominator
+   - This is used toward upper level (after iterating over all batch) for summing all relevant stats and computing the score using the formula
+   
+- It's meant to be flexible
+-  
 
 
 ## Verbosity typology

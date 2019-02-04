@@ -96,8 +96,9 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
     if test_path is not None:
       dict_path = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder", "dictionaries")
       printing("START EVALUATION FINAL ", verbose_level=0, verbose=verbose)
-      #eval_data_paths = [train_path, dev_path, test_path]
-      eval_data_paths = [test_path]
+      eval_data_paths = [train_path, dev_path, test_path]
+      if warmup:
+          eval_data_paths = [test_path]
       import time
       start_eval = time.time()
       for get_batch_mode_evaluate in [False]:
@@ -206,7 +207,7 @@ if __name__ == "__main__":
                   for policy in policy_ls:
                   #for weight_binary_loss in [0.001,1,10,100]:
                     #auxilliary_task_norm_not_norm = False if dense_dim_auxilliary else True
-                    for dir_word_encoder in [2,1]:
+                    for dir_word_encoder in [2, 1]:
                         for drop_out_char_embedding_decoder in [0.2]:
                             for char_src_attention in [False]:
                               for unrolling_word in [True]:
@@ -287,7 +288,7 @@ if __name__ == "__main__":
       for param, model_id_pref in zip(params, labels):
           i += 1
           printing("Adding RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 50 if not test_before_run else 2
+          epochs = 80 if not test_before_run else 2
           if warmup:
             param = {"hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10,
                      "dropout_sent_encoder": 0., "drop_out_word_encoder": 0., "dropout_word_decoder": 0.,
@@ -323,8 +324,8 @@ if __name__ == "__main__":
                                                                        "norm_not_norm-Precision",
                                                                        "norm_not_norm-Recall",
                                                                        "norm_not_norm-accuracy"],
-                                                  warmup=False, args=param, use_gpu=None, n_epochs=epochs,
-                                                  debug=False)
+                                                  warmup=warmup, args=param, use_gpu=None, n_epochs=epochs,
+                                                  debug=True)
           run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("Log RUN is : {} to see model list ".format(run_dir))
@@ -333,4 +334,3 @@ if __name__ == "__main__":
           if warmup :
             break
 
-# CCL want to have a specific seed : when work --> reproduce with several seed
