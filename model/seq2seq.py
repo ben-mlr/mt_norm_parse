@@ -250,7 +250,7 @@ class LexNormalizer(nn.Module):
                                    drop_out_word_cell=drop_out_word_decoder_cell,
                                    char_src_attention=char_src_attention,
                                    word_recurrent_cell=word_recurrent_cell_decoder, unrolling_word=unrolling_word,
-                                   hidden_size_src_word_encoder=hidden_size_encoder,
+                                   hidden_size_src_word_encoder=hidden_size_encoder*dir_word_encoder,
                                    generator=self.generator if not teacher_force else None,
                                    verbose=verbose)
 

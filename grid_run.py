@@ -195,7 +195,7 @@ if __name__ == "__main__":
           params.append(param)
           labels.append("dir_word_encoder_2-sent_source_dir_2-dropout_0.2_everywhere-LSTM-batch_10")
 
-      WITH_AUX = True
+      WITH_AUX = False
       if WITH_AUX:
           params = []
           labels = []
@@ -247,36 +247,39 @@ if __name__ == "__main__":
                                   #labels.append("model_"+str(n_model))
                                   labels.append(label)
 
-      FROM_BEST = False
+      FROM_BEST = True
 
       if FROM_BEST:
           params = []
           labels = []
           n_model = 0
-          for batch_size in [10, 50]:
-            for scale in [2, 5]:
+          for batch_size in [25]:
+            for scale in [2]:
               for clipping in [1]:
                 for dir_word_encoder in [2, 1]:
                     for teacher_force in [True]:
-                      param = params_intuition.copy()
-                      param["hidden_size_encoder"] = int(param["hidden_size_encoder"]*scale)
-                      param["hidden_size_sent_encoder"] = int(param["hidden_size_sent_encoder"]*scale)
-                      param["hidden_size_decoder"] = int(param["hidden_size_sent_encoder"]*scale)
-                      param["output_dim"] *= int(scale*0.5)+1
-                      param["batch_size"] = batch_size
-                      param["unrolling_word"] = True
-                      param["dir_word_encoder"] = dir_word_encoder
-                      param["dir_sent_encoder"] = 1
-                      param["teacher_force"] = teacher_force
-                      params.append(param)
-                      labels.append("best-scale-{}-{}-{}dir_word_encoder-all_context-no_aux-no_att-no_dropout".format(scale,batch_size, dir_word_encoder))
+                      for char_src_attention in [True,False]:
+                          param = params_intuition.copy()
+                          param["char_src_attention"] = char_src_attention
+                          param["hidden_size_encoder"] = int(param["hidden_size_encoder"]*scale)
+                          param["hidden_size_sent_encoder"] = int(param["hidden_size_sent_encoder"]*scale)
+                          param["hidden_size_decoder"] = int(param["hidden_size_sent_encoder"]*scale)
+                          param["output_dim"] *= int(scale*0.5)+1
+                          param["batch_size"] = batch_size
+                          param["unrolling_word"] = True
+                          param["dir_word_encoder"] = dir_word_encoder
+                          param["dir_sent_encoder"] = 1
+                          param["teacher_force"] = teacher_force
+                          params.append(param)
+                          labels.append("best-scale-{}-{}-{}dir_word_encoder-all_context-att{}".format(scale, char_src_attention,
+                                                                                                       batch_size, dir_word_encoder))
 
-      warmup = True
+      warmup = False
       test_before_run = False
 
       RUN_ID = str(uuid4())[0:5]
       
-      LABEL_GRID = "" if not warmup else "WARMUP-unrolling-False"
+      LABEL_GRID = "ATT" if not warmup else "WARMUP-unrolling-False"
       LABEL_GRID = "test_before_run-"+LABEL_GRID if test_before_run else LABEL_GRID
 
       OAR = os.environ.get('OAR_JOB_ID')+"_rioc-" if os.environ.get('OAR_JOB_ID', None) is not None else ""
