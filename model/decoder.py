@@ -82,9 +82,9 @@ class CharDecoder(nn.Module):
         # current_state  : dim batch x sentence max len , char embedding + hidden_dim decoder
         start_atten = time.time()
         if self.attn_layer is not None:
-            attention_weights = self.attn_layer(char_state_decoder=state_hiden.squeeze(0),#current_state,
+            pdb.set_trace()
+            attention_weights = self.attn_layer(char_state_decoder=state_hiden.squeeze(0),# current_state,
                                                 word_src_sizes=char_vecs_sizes,
-
                                                 encoder_outputs=char_seq_hidden_encoder)
             printing("DECODER STEP : attention context {} char_seq_hidden_encoder {} ", var=[attention_weights.size(), char_seq_hidden_encoder.size()],
                      verbose_level=3, verbose=self.verbose)
@@ -192,10 +192,8 @@ class CharDecoder(nn.Module):
                     # [batch x sent_max_len, len_words] ??
                     decoding_states, state_i, attention_weights = self.word_encoder_target_step(
                         char_vec_current_batch=emb_char,
-                        state_decoder_current=state_i,
-                        char_vecs_sizes=word_src_sizes,
-                        step_char=char_i,
-                        char_seq_hidden_encoder=char_seq_hidden_encoder)
+                        state_decoder_current=state_i, char_vecs_sizes=word_src_sizes,
+                        step_char=char_i, char_seq_hidden_encoder=char_seq_hidden_encoder)
                     printing("DECODING in schedule sampling {} ", var=[state_i[0].size()], verbose=self.verbose,
                              verbose_level=3)
                     # we feed to generator to get the score and the prediction

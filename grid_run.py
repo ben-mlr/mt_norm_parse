@@ -204,7 +204,7 @@ if __name__ == "__main__":
             for dense_dim_auxilliary in [200, None]:
                 dense_dim_auxilliary_2_ls = [0, 50] if dense_dim_auxilliary is not None else [0]
                 for dense_dim_auxilliary_2 in dense_dim_auxilliary_2_ls:
-                  policy_ls = [ None] #if dense_dim_auxilliary is not None else [None]
+                  policy_ls = [None] #if dense_dim_auxilliary is not None else [None]
                   auxilliary_task_norm_not_norm = False if dense_dim_auxilliary is None else True
                   for policy in policy_ls:
                   #for weight_binary_loss in [0.001,1,10,100]:
@@ -213,10 +213,10 @@ if __name__ == "__main__":
                         for drop_out_char_embedding_decoder in [0.2]:
                             for char_src_attention in [False]:
                               for unrolling_word in [True]:
-                                if char_src_attention == True and unrolling_word==False:
+                                if char_src_attention == True and unrolling_word == False:
                                   continue
                                 i += 1
-                                for scale in [1, 1.5, 2]:
+                                for scale in [1, 2]:
                                   param = params_strong.copy()
                                   param["hidden_size_encoder"] *= int(scale)
                                   param["hidden_size_sent_encoder"] *= int(scale)
@@ -228,7 +228,7 @@ if __name__ == "__main__":
                                   param["drop_out_char_embedding_decoder"] = drop_out_char_embedding_decoder
                                   param["dir_word_encoder"] = dir_word_encoder
                                   param["dir_sent_encoder"] = 1
-                                  param["batch_size"] = 25
+                                  param["batch_size"] = 40
                                   param["char_src_attention"] = char_src_attention
                                   param["dense_dim_auxilliary"] = dense_dim_auxilliary
                                   param["dense_dim_auxilliary_2"] = dense_dim_auxilliary_2
@@ -239,7 +239,7 @@ if __name__ == "__main__":
                                   param["policy"] = policy
                                   param["clipping"] = 1
                                   #label = str(dense_dim_auxilliary)+"-dense_dim_auxilliary"
-                                  label = "REPLICATE-"+replicate+"-"+str(dir_word_encoder)+"dir_word-" +str(dense_dim_auxilliary)+"_aux"
+                                  label = "REP_-"+replicate+"-"+str(dir_word_encoder)+"dir-scale_"+str(scale)#+str(dense_dim_auxilliary)+"_aux"
                                           #"dense_bin"+str(param["drop_out_word_encoder_out"])+"-do_char-" +\
                                           #str(param["dir_sent_encoder"])+"_dir_sent-"+str(param["batch_size"])+"_batch" + "-dir_word_src_" +\
                                           #str(param["dir_word_encoder"])+"-unrolling_word_"+str(unrolling_word)+
@@ -248,6 +248,7 @@ if __name__ == "__main__":
                                   labels.append(label)
 
       FROM_BEST = False
+
       if FROM_BEST:
           params = []
           labels = []
@@ -275,7 +276,7 @@ if __name__ == "__main__":
 
       RUN_ID = str(uuid4())[0:5]
       
-      LABEL_GRID = "aux-again-bigger" if not warmup else "WARMUP-unrolling-False"
+      LABEL_GRID = "" if not warmup else "WARMUP-unrolling-False"
       LABEL_GRID = "test_before_run-"+LABEL_GRID if test_before_run else LABEL_GRID
 
       OAR = os.environ.get('OAR_JOB_ID')+"_rioc-" if os.environ.get('OAR_JOB_ID', None) is not None else ""
@@ -303,7 +304,7 @@ if __name__ == "__main__":
             param["auxilliary_task_norm_not_norm"] = False
             param["weight_binary_loss"] = 0.05
             param["unrolling_word"] = True
-            param["char_src_attention"] = False
+            param["char_src_attention"] = True
             train_path, dev_path = DEMO, DEMO
             param["shared_context"] = "word"
             param["dense_dim_auxilliary"] = 0
@@ -314,7 +315,7 @@ if __name__ == "__main__":
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
-                                                  test_path=DEMO,
+                                                  test_path=TEST,
                                                   verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,
@@ -335,4 +336,4 @@ if __name__ == "__main__":
 
           if warmup :
             break
-
+#oarsub -q gpu -l /core=2,walltime=48:00:00  -p "host='gpu004'" -O ./logs/%jobid%-job.stdout -E ./logs/%jobid%-job.stderr ./train/train_mt_norm.sh 

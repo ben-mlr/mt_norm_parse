@@ -182,8 +182,17 @@ def score_norm_not_norm(norm_not_norm_pred, norm_not_norm_gold, output_seq_n_hot
         predicted_not_pad_seq_need_norm = np.argwhere(predicted_not_pad_seq == 0)[0,:]#.squeeze()
         predicted_not_pad_seq_normed = np.argwhere(predicted_not_pad_seq == 1)#[0,:]#.squeeze()
         # binary predition based norm_not_norm # TODO : confirm the inversion
-        predicted_not_pad_need_norm = np.argwhere(predicted_not_pad == 1)[0,:]#.squeeze()
-        predicted_not_pad_normed = np.argwhere(predicted_not_pad == 0)[0,:]#.squeeze()
+        try:
+            predicted_not_pad_need_norm = np.argwhere(predicted_not_pad == 1)[0,:]#.squeeze()
+        except:
+            print("[0,:] failed on predicted_not_pad {} ".format(predicted_not_pad))
+            predicted_not_pad_need_norm = []
+
+        try:
+            predicted_not_pad_normed = np.argwhere(predicted_not_pad == 0)[0,:]#.squeeze()
+        except:
+            print("[0,:] failed on predicted_not_pad_normed {} ".format(predicted_not_pad_normed))
+            predicted_not_pad_normed = []
         # gold_not_pad == 0 means need_norm else means normed
         # get prediction normed : np.argwhere(predicted_not_pad==1)
         need_norm_norm_not_normUnormalization_pred_count = len(predicted_not_pad_need_norm)+len(predicted_not_pad_seq_need_norm)-len(list(set(predicted_not_pad_need_norm.tolist()) & set(predicted_not_pad_seq_need_norm.tolist())))
