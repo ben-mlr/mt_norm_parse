@@ -6,6 +6,9 @@ import numpy as np
 import torch
 from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, CHECKPOINT_DIR, DEMO, DEMO2, REPO_DATASET, LIU, LEX_TRAIN, LEX_TEST, SEED_NP, SEED_TORCH, LEX_LIU_TRAIN
 from uuid import uuid4
+import argparse
+from sys import platform
+
 
 np.random.seed(SEED_NP+1)
 torch.manual_seed(SEED_TORCH)
@@ -58,7 +61,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
 
     if warmup:
         printing("Warm up : running 1 epoch ", verbose=verbose, verbose_level=0)
-    printing("START TRAINING ", verbose_level=0, verbose=verbose)
+    printing("GRID : START TRAINING ", verbose_level=0, verbose=verbose)
     model_full_name = train(train_path, dev_path,
                             auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
                             dense_dim_auxilliary=dense_dim_auxilliary, dense_dim_auxilliary_2=dense_dim_auxilliary_2,
@@ -95,7 +98,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
     model_dir = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder")
     if test_path is not None:
       dict_path = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder", "dictionaries")
-      printing("START EVALUATION FINAL ", verbose_level=0, verbose=verbose)
+      printing("GRID : START EVALUATION FINAL ", verbose_level=0, verbose=verbose)
       eval_data_paths = [train_path, dev_path, test_path]
       if warmup:
           eval_data_paths = [test_path]
@@ -113,7 +116,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                          compute_mean_score_per_sent=compute_mean_score_per_sent,
                          batch_size=50,debug=debug,
                          dir_report=model_dir, verbose=1)
-    print("END EVAL", time.time()-start_eval)
+    print("GRID : END EVAL", time.time()-start_eval)
     return model_full_name, model_dir
 
 #4538
@@ -259,61 +262,75 @@ if __name__ == "__main__":
                 for dir_word_encoder in [2]:
                     for teacher_force in [True]:
                       for char_src_attention in [True]:
-                        for auxilliary_task_norm_not_norm in [False, True]:
-                          if auxilliary_task_norm_not_norm:
-                            dense_dim_auxilliary, dense_dim_auxilliary_2 = 100,50 
-                          else:
-                            dense_dim_auxilliary, dense_dim_auxilliary_2  = 0,0
-                          param = params_strong.copy()
-                          param["char_src_attention"] = char_src_attention
-                          param["hidden_size_encoder"] = int(param["hidden_size_encoder"]*scale)
-                          param["hidden_size_sent_encoder"] = int(param["hidden_size_sent_encoder"]*scale)
-                          param["hidden_size_decoder"] = int(param["hidden_size_sent_encoder"]*scale)
-                          param["output_dim"] *= int(scale*0.5)+1
-                          param["batch_size"] = batch_size
-                          param["unrolling_word"] = True
-                          param["auxilliary_task_norm_not_norm"] = auxilliary_task_norm_not_norm
-                          param["dense_dim_auxilliary"] = dense_dim_auxilliary
-                          param["dense_dim_auxilliary_2"] = dense_dim_auxilliary_2
-                          param["drop_out_char_embedding_decoder"] = 0.2
-                          param["dropout_bridge"] = 0.1
-                          param["dir_word_encoder"] = dir_word_encoder
-                          param["dir_sent_encoder"] = 1
-                          param["clipping"] = clipping
-                          param["teacher_force"] = teacher_force
-                          params.append(param)
-                          labels.append("best-scale-with_att-dir_2-aux{}".format(auxilliary_task_norm_not_norm))
-          print("GRID INFO : parameters of interest : auxilliary_task_norm_not_norm-dense_dim auxilliary_task_norm_not_norm-dense_dim_2 n_trainable_parameters")
+                        for auxilliary_task_norm_not_norm in [False]:
+                            for shared_context in ["all", "sent", "word"]:
+                              if shared_context == "word":
+                                dropout_bridge_ls = [1,0.1]
+                              else:
+                                dropout_bridge_ls = [0.1]
+                              for dropout_bridge in dropout_bridge_ls:
+                                if auxilliary_task_norm_not_norm:
+                                  dense_dim_auxilliary, dense_dim_auxilliary_2 = 100,50
+                                else:
+                                  dense_dim_auxilliary, dense_dim_auxilliary_2  = 0,0
+                                  param = params_strong.copy()
+                                  param["char_src_attention"] = char_src_attention
+                                  param["hidden_size_encoder"] = int(param["hidden_size_encoder"]*scale)
+                                  param["hidden_size_sent_encoder"] = int(param["hidden_size_sent_encoder"]*scale)
+                                  param["hidden_size_decoder"] = int(param["hidden_size_sent_encoder"]*scale)
+                                  param["output_dim"] *= int(scale*0.5)+1
+                                  param["batch_size"] = batch_size
+                                  param["unrolling_word"] = True
+                                  param["auxilliary_task_norm_not_norm"] = auxilliary_task_norm_not_norm
+                                  param["dense_dim_auxilliary"] = dense_dim_auxilliary
+                                  param["dense_dim_auxilliary_2"] = dense_dim_auxilliary_2
+                                  param["drop_out_char_embedding_decoder"] = 0.2
+                                  param["dropout_bridge"] = dropout_bridge
+                                  param["dir_word_encoder"] = dir_word_encoder
+                                  param["dir_sent_encoder"] = 1
+                                  param["clipping"] = clipping
+                                  param["teacher_force"] = teacher_force
+                                  param["shared_context"] = shared_context
+                                  params.append(param)
+                                  labels.append("CONTEXT-with_att-dir_2-X-dropout_bridge{}-context_{}".format(dropout_bridge, shared_context))
+          print("GRID_INFO= auxilliary_task_norm_not_norm-dense_dim auxilliary_task_norm_not_norm-dense_dim_2 n_trainable_parameters")
 
-      warmup = True
-      test_before_run = False
-
-      RUN_ID = str(uuid4())[0:5]
+      # only for cloud run :
+      if platform != "darwin":
+          printing("ENV : running not from os x assuming we are in command shell run", verbose=0, verbose_level=0)
+          parser = argparse.ArgumentParser()
+          parser.add_argument("--test_before_run", help="test_before_run", action="store_true")
+          args = parser.parse_args()
+          test_before_run = args.test_before_run
+          print("GRID : test_before_run set to {} ".format(test_before_run))
+      else:
+          test_before_run = False
       
+      warmup = False
+      RUN_ID = str(uuid4())[0:5]
       LABEL_GRID = "ATT" if not warmup else "WARMUP-unrolling-False"
       LABEL_GRID = "test_before_run-"+LABEL_GRID if test_before_run else LABEL_GRID
 
       OAR = os.environ.get('OAR_JOB_ID')+"_rioc-" if os.environ.get('OAR_JOB_ID', None) is not None else ""
+      print("OAR=",OAR)
       LABEL_GRID = OAR+RUN_ID+"-"+LABEL_GRID
 
       GRID_FOLDER_NAME = LABEL_GRID if len(LABEL_GRID) > 0 else RUN_ID
       GRID_FOLDER_NAME += "-summary"
       dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
       os.mkdir(dir_grid)
-      printing("INFO : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
+      printing("GRID RUN : Grid directory : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
       train_path, dev_path = LIU, DEV
       for param, model_id_pref in zip(params, labels):
           i += 1
-          printing("Adding RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
+          printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
           epochs = 80 if not test_before_run else 2
           if warmup:
-            param = {"hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10,
-                     "dropout_sent_encoder": 0., "drop_out_word_encoder": 0., "dropout_word_decoder": 0.,
+            param = {"hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10, "dropout_sent_encoder": 0., "drop_out_word_encoder": 0., "dropout_word_decoder": 0.,
                      "drop_out_sent_encoder_out": 0, "drop_out_word_encoder_out": 0,
-                     "dir_word_encoder": 1,
-                     "n_layers_word_encoder": 1, "dir_sent_encoder": 1, "word_recurrent_cell_decoder": "LSTM",
-                     "word_recurrent_cell_encoder": "LSTM",
-                     "hidden_size_sent_encoder": 20, "hidden_size_decoder": 50, "batch_size": 10}
+                     "dir_word_encoder": 1, "n_layers_word_encoder": 1, "dir_sent_encoder": 1, "word_recurrent_cell_decoder": "LSTM",
+                     "word_recurrent_cell_encoder": "LSTM", "hidden_size_sent_encoder": 20, "hidden_size_decoder": 50, "batch_size": 10
+                     }
             param["batch_size"] = 2
             param["auxilliary_task_norm_not_norm"] = True
             param["weight_binary_loss"] = 0.05
@@ -345,7 +362,7 @@ if __name__ == "__main__":
                                                   debug=False)
           run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
-          print("Log RUN is : {} to see model list ".format(run_dir))
+          print("GRID : Log RUN is : {} to see model list ".format(run_dir))
           print("GRID RUN : DONE MODEL {} with param {} ".format(model_id_pref, param))
 
           if warmup :

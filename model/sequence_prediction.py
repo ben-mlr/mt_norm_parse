@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 from torch.autograd import Variable
 from io_.info_print import printing
 from io_.dat.normalized_writer import write_normalization
@@ -210,6 +211,70 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                 return score_dic, None
 
 
+def decode_sequence_beam(model, max_len, src_seq, src_mask, src_len,
+                    pad=1, target_seq_gold=None,
+                    use_gpu=False,
+                    verbose=2):
+
+    output_seq = pad*np.ones(src_seq.size(), dtype=np.int64)
+    # we start with the _START symbol
+    output_seq[:, :, 0] = src_seq[:, :, 0] #CHAR_START_ID
+    src_text_ls = []
+    target_seq_gold_ls = [] if target_seq_gold is not None else None
+    output_mask = np.ones(src_mask.size(), dtype=np.int64)
+    output_mask[:, :, 1:] = 0
+    output_len = Variable(torch.from_numpy(np.ones((src_seq.size(0), src_seq.size(1), 1), dtype=np.int64)), requires_grad=False)
+    output_mask = Variable(torch.from_numpy(output_mask), requires_grad=False)
+    output_seq = Variable(torch.from_numpy(output_seq), requires_grad=False)
+    printing("Data Start source {} {} ", var=(src_seq, src_seq.size()), verbose=verbose, verbose_level=5)
+    output_str = True
+    printing("WARNING : output_str = True hardcoded (decode_sequence)", verbose=verbose, verbose_level=2)
+    printing("Data output sizes ", var=(output_seq.size(), output_len.size(), output_mask.size()), verbose=verbose, verbose_level=6)
+
+    # for beam dim we add a dimension
+    output_seq = output_seq.unsqueeze(-1)
+    for step, char_decode in enumerate(range(2,  max_len)):
+        if use_gpu:
+            src_seq = src_seq.cuda()
+            output_seq = output_seq.cuda()
+            src_len = src_len.cuda()
+            output_len = output_len.cuda()
+        beam_size = 2
+        log_scores_all_candidates = torch.zeros(109, beam_size)
+        log_scores_ranked_former = torch.zeros(output_seq.size(0), beam_size)
+        for candidate_ind in range(beam_size):
+            decoding_states, norm_not_norm, attention = model.forward(input_seq=src_seq,
+                                                                      output_seq=output_seq[:,:,:,candidate_ind],
+                                                                      input_word_len=src_len,
+                                                                      output_word_len=output_len)
+
+            scores = model.generator.forward(x=decoding_states)
+
+            log_softmax_score = nn.LogSoftmax(dim=-1)(scores)
+            log_scores_ranked, predictions = log_softmax_score.sort(descending=True,dim=-1)
+            # get the product of probability
+            pdb.set_trace()
+            # !! --> make the sum
+            log_scores_ranked[:, 0, 0, :] += log_scores_ranked_former[:, candidate_ind]
+            log_scores_all_candidates[:, candidate_ind] = log_scores_ranked[:,0,0,:]+log_scores_ranked_former[:,candidate_ind]
+        top_index = np.argsort(log_scores_all_candidates, axis=-1)
+        # get top k
+        #update log_scores_ranked_former  and top_k_predictions
+        # with each top k log scores + get token pred for each candidate ind
+
+        output_seq = output_seq[:, :log_softmax_score.size(1), :, :]
+        pdb.set_trace()
+        # TODO try to code it as batch
+        # update output_seq
+        #for candidate_ind in range(beam_size):
+        #    output_seq[:, :, char_decode - 1, candidate_ind] = top_k_predictions[:, :, -1, candidate_ind]
+        # keep top k probbility (top log softmax to confirm)
+        # keep the indexes + the scores
+        # loop on this k candidates and get the scores of the next steps k x V get the log scores by summing ??
+        # keep the top k scores and so on
+        break
+
+
 def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                     pad=1, target_seq_gold=None,
                     use_gpu=False,
@@ -256,22 +321,26 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
 
         printing("Prediction size {} ", var=(predictions.size()), verbose=verbose, verbose_level=4)
         printing("Prediction {} ", var=(predictions), verbose=verbose, verbose_level=5)
+
         printing("scores: {} scores {} scores sized  {} predicion size {} prediction {} outputseq ", var=(scores,
-                 scores.size(),
-                 predictions.size(),
-                 predictions[:, -1],
+                 scores.size(), predictions.size(), predictions[:, -1],
                  output_seq.size()),
                  verbose=verbose, verbose_level=5)
+
         output_seq = output_seq[:, :scores.size(1), :]
+
         if pred_norm_not_norm is not None:
             pred_norm_not_norm = pred_norm_not_norm[:, :scores.size(1)]  # followign what's done above
         output_seq[:, :, char_decode - 1] = predictions[:, :, -1]
+
         if verbose >= 5:
             sequence = [" ".join([char_dictionary.get_instance(output_seq[sent, word_ind, char_i]) for char_i in range(max_len)])
                         + "|sent-{}|".format(sent) for sent in range(output_seq.size(0)) for word_ind in range(output_seq.size(1))]
         else:
             sequence = []
+
         printing("Decoding step {} decoded target {} ", var=(step, sequence), verbose=verbose, verbose_level=5)
+
         pred_word_count, text_decoded, decoded_ls = output_text_(output_seq,#predictions,
                                                                  char_dictionary, single_sequence=single_sequence,
                                                                  output_str=output_str, last=char_decode==(max_len-1),
@@ -300,12 +369,12 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
            "pred_word_count": pred_word_count
            },\
            (attention, src_all_ls,), \
-           (pred_norm_not_norm,output_seq,src_seq,target_seq_gold)
+           (pred_norm_not_norm, output_seq, src_seq, target_seq_gold)
 
 
 def decode_seq_str(seq_string, model, char_dictionary, pad=1,
                    dir_attention=None, save_attention=False,
-                   show_att=False,
+                   show_att=False, beam_decode=False,
                    max_len=20, verbose=2, sent_mode=False):
     assert sent_mode
     sent = seq_string.copy()
@@ -340,11 +409,15 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
         batch_masks = Variable(torch.from_numpy(np.array([sent_words_mask, sent_words_mask])), requires_grad=False)
         batch_lens = Variable(torch.from_numpy(np.array([sent_words_lens, sent_words_lens])), requires_grad=False)
         batch_lens = batch_lens.unsqueeze(dim=2)
-        batch_size = 2
-        (text_decoded, src_text, target), _, (attention, src_seq), (pred_norm,)\
-            = decode_sequence(model=model, char_dictionary=char_dictionary,
-                              max_len=max_len, batch_size=batch_size, src_seq=batch, src_len=batch_lens,
-                              src_mask=batch_masks, single_sequence=True, pad=pad, verbose=verbose)
+        if beam_decode:
+            decode_sequence_beam(model=model,
+                                  max_len=max_len, src_seq=batch, src_len=batch_lens,
+                                  src_mask=batch_masks, pad=pad, verbose=verbose)
+        else:
+            (text_decoded, src_text, target), _, (attention, src_seq), (pred_norm,_, _, _)  \
+                = decode_sequence(model=model, char_dictionary=char_dictionary,
+                                  max_len=max_len, src_seq=batch, src_len=batch_lens,
+                                  src_mask=batch_masks, single_sequence=True, pad=pad, verbose=verbose)
         if attention is not None:
             print("Attention", attention, src_seq, text_decoded)
             for pred_word, src_word, attention_word in zip(text_decoded, src_seq, attention):
@@ -361,8 +434,8 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
 
 
 def decode_interacively(model , char_dictionary,  max_len, pad=1, sent_mode=False, save_attention=False,
-                        show_attention=False,
-                        dir_attention=None,verbose=0):
+                        show_attention=False, beam_decode=False,
+                        dir_attention=None, verbose=0):
     if char_dictionary is None:
         printing("INFO : dictionary is None so setting char_dictionary to model.char_dictionary",
                  verbose=verbose, verbose_level=0)
@@ -379,7 +452,7 @@ def decode_interacively(model , char_dictionary,  max_len, pad=1, sent_mode=Fals
                 break
             else:
                 decode_seq_str(seq_string=sentence, model=model, char_dictionary=char_dictionary, pad=pad,max_len= max_len,
-                               show_att=True,
+                               show_att=True, beam_decode=beam_decode,
                                verbose=verbose, sent_mode=True, dir_attention=dir_attention, save_attention=save_attention)
                 sentence = []
 

@@ -8,9 +8,11 @@ from model.generator import Generator
 MAX_LEN = 20
 
 
-def interact(dic_path, model_full_name, dir_model, debug=False,
-             model_specific_dictionary=True,save_attention=False, show_attention=False,
+def interact(dic_path, model_full_name,
+             dir_model, debug=False, model_specific_dictionary=True,
+             save_attention=False, show_attention=False, beam_decode=False,
              verbose=2):
+
     assert model_specific_dictionary
     char_dictionary = None
     voc_size = None
@@ -38,7 +40,8 @@ def interact(dic_path, model_full_name, dir_model, debug=False,
     else:
         dir_attention = None
     decode_interacively(max_len=MAX_LEN, model=model, char_dictionary=char_dictionary, sent_mode=True,
-                        dir_attention=dir_attention, save_attention=save_attention,show_attention=show_attention,
+                        dir_attention=dir_attention, save_attention=save_attention, show_attention=show_attention,
+                        beam_decode=beam_decode,
                         verbose=verbose)
 import io
 import torchvision
@@ -87,8 +90,8 @@ if __name__ == "__main__":
         print("0Evaluating {} ".format(model_full_name))
         dic_path = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder", "dictionaries")
         model_dir = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder")
-        interact(dic_path=dic_path, dir_model=model_dir, model_full_name=model_full_name, debug=False,
-                 verbose=1,
+        interact(dic_path=dic_path, dir_model=model_dir, model_full_name=model_full_name, debug=True,
+                 verbose=1, beam_decode=True,
                  save_attention=False, show_attention=False)
         #break
     #show_attention("[lekfezlfkh efj ", ["se", "mjfsemkfj"], torch.tensor([[0,.4], [1,0.6]]))
