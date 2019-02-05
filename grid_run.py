@@ -256,10 +256,15 @@ if __name__ == "__main__":
           for batch_size in [25]:
             for scale in [2]:
               for clipping in [1]:
-                for dir_word_encoder in [2, 1]:
+                for dir_word_encoder in [2]:
                     for teacher_force in [True]:
-                      for char_src_attention in [True,False]:
-                          param = params_intuition.copy()
+                      for char_src_attention in [True]:
+                        for auxilliary_task_norm_not_norm in [False, True]:
+                          if auxilliary_task_norm_not_norm:
+                            dense_dim_auxilliary, dense_dim_auxilliary_2 = 100,50 
+                          else:
+                            dense_dim_auxilliary, dense_dim_auxilliary_2  = 0,0
+                          param = params_strong.copy()
                           param["char_src_attention"] = char_src_attention
                           param["hidden_size_encoder"] = int(param["hidden_size_encoder"]*scale)
                           param["hidden_size_sent_encoder"] = int(param["hidden_size_sent_encoder"]*scale)
@@ -267,14 +272,20 @@ if __name__ == "__main__":
                           param["output_dim"] *= int(scale*0.5)+1
                           param["batch_size"] = batch_size
                           param["unrolling_word"] = True
+                          param["auxilliary_task_norm_not_norm"] = auxilliary_task_norm_not_norm
+                          param["dense_dim_auxilliary"] = dense_dim_auxilliary
+                          param["dense_dim_auxilliary_2"] = dense_dim_auxilliary_2
+                          param["drop_out_char_embedding_decoder"] = 0.2
+                          param["dropout_bridge"] = 0.1
                           param["dir_word_encoder"] = dir_word_encoder
                           param["dir_sent_encoder"] = 1
+                          param["clipping"] = clipping
                           param["teacher_force"] = teacher_force
                           params.append(param)
-                          labels.append("best-scale-{}-{}-{}dir_word_encoder-all_context-att{}".format(scale, char_src_attention,
-                                                                                                       batch_size, dir_word_encoder))
+                          labels.append("best-scale-with_att-dir_2-aux{}".format(auxilliary_task_norm_not_norm))
+          print("GRID INFO : parameters of interest : auxilliary_task_norm_not_norm-dense_dim auxilliary_task_norm_not_norm-dense_dim_2 n_trainable_parameters")
 
-      warmup = False
+      warmup = True
       test_before_run = False
 
       RUN_ID = str(uuid4())[0:5]
@@ -304,7 +315,7 @@ if __name__ == "__main__":
                      "word_recurrent_cell_encoder": "LSTM",
                      "hidden_size_sent_encoder": 20, "hidden_size_decoder": 50, "batch_size": 10}
             param["batch_size"] = 2
-            param["auxilliary_task_norm_not_norm"] = False
+            param["auxilliary_task_norm_not_norm"] = True
             param["weight_binary_loss"] = 0.05
             param["unrolling_word"] = True
             param["char_src_attention"] = True
@@ -318,7 +329,7 @@ if __name__ == "__main__":
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
-                                                  test_path=TEST,
+                                                  test_path=DEMO2,
                                                   verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,

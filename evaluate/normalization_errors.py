@@ -105,19 +105,18 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
             normalization_ls_flat = np.array([a for ls in normalization_prediction_by_seq  for a in ls])
             count_pred_number = len(normalization_ls_flat[normalization_ls_flat == cond])
 
-        return_dic = {normalized_mode+"-normalization-pred_correct-count": score,
+        return_dic = {
+                      normalized_mode+"-normalization-pred_correct-count": score,
                       normalized_mode+"-normalization-pred-count": count_pred_number,
                       normalized_mode+"-normalization-n_word_per_sent-count": n_mode_words_per_sent,
                       normalized_mode+"-normalization-pred_correct_per_sent-count": mean_score_per_sent,
                       normalized_mode+"-normalization-gold-count": len(scores),
-                      normalized_mode+"-n_sents":n_sents,
+                      normalized_mode+"-n_sents": n_sents,
                       }
-
         dic.update(return_dic)
 
     if pred_norm_not_norm is not None and gold_norm_not_norm is not None:
 
-        print("output_seq_n_hot", output_seq_n_hot.size())
         score_binary, formulas_bin = score_norm_not_norm(pred_norm_not_norm, gold_norm_not_norm[:, :pred_norm_not_norm.size(1)],
                                                             output_seq_n_hot, src_seq, target_seq_gold)
         # testing consistency in counting
@@ -130,6 +129,8 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
             print("Assertion failed : CONSISTENCY between two tasks in terms of tokens ", e)
 
         dic.update(score_binary)
+    else:
+        formulas_bin = None
     # DEPRECIATED
     dic["n_sents"] = len(sent_score_ls)
 
@@ -152,8 +153,8 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
                 "info-NORMED_tokens-normalization": ("NORMED-normalization-gold-count"),
                 "info-all-n_sents":("all-n_sents")
                 }
-
-    formulas.update(formulas)
+    if formulas_bin is not None:
+        formulas.update(formulas_bin)
 
     return dic, formulas
 
@@ -185,14 +186,14 @@ def score_norm_not_norm(norm_not_norm_pred, norm_not_norm_gold, output_seq_n_hot
         try:
             predicted_not_pad_need_norm = np.argwhere(predicted_not_pad == 1)[0,:]#.squeeze()
         except:
-            print("[0,:] failed on predicted_not_pad {} ".format(predicted_not_pad))
+            print("== 1 [0,:] failed on predicted_not_pad  {} ".format(predicted_not_pad))
             predicted_not_pad_need_norm = []
 
         try:
             predicted_not_pad_normed = np.argwhere(predicted_not_pad == 0)[0,:]#.squeeze()
         except:
-            print("[0,:] failed on predicted_not_pad_normed {} ".format(predicted_not_pad_normed))
-            predicted_not_pad_normed = []
+            print("==0 [0,:] failed on predicted_not_pad_normed {} ".format(predicted_not_pad))
+            predicted_not_pad_normed = torch.tensor([])
         # gold_not_pad == 0 means need_norm else means normed
         # get prediction normed : np.argwhere(predicted_not_pad==1)
         need_norm_norm_not_normUnormalization_pred_count = len(predicted_not_pad_need_norm)+len(predicted_not_pad_seq_need_norm)-len(list(set(predicted_not_pad_need_norm.tolist()) & set(predicted_not_pad_seq_need_norm.tolist())))

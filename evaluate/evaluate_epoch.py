@@ -101,14 +101,16 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
             if score_dic_new[denom] == 0:
                 print("WARNING Score {} has denumerator {} null ".format(score_value, denom))
                 score_value = None
-            mode_norm = re.match("([^-]+)-.*", num).group(1)
+            reg = re.match("([^-]+)-([^-]+)-.*", num)
+            mode_norm = reg.group(1)
+            task = reg.group(2)
             # report all in a dictionary
             report = report_template(metric_val=score_name,
                                      info_score_val=mode_norm,
                                      score_val=score_value,
                                      n_sents=score_dic_new["n_sents"],
                                      avg_per_sent=0,
-                                     n_tokens_score=score_dic_new[mode_norm+"-normalization-gold-count"],
+                                     n_tokens_score=score_dic_new.get(mode_norm+"-"+task+"-gold-count",-1),
                                      model_full_name_val=model.model_full_name,
                                      task="normalization",
                                      report_path_val=model.arguments["checkpoint_dir"],
