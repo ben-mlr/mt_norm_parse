@@ -57,7 +57,8 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
 
     teacher_force = args.get("teacher_force", True)
 
-    stable_decoding_state = args.get("stable_decoding_state",False)
+    stable_decoding_state = args.get("stable_decoding_state", False)
+    init_context_decoder = args.get("init_context_decoder", True)
 
     n_epochs = 1 if warmup else n_epochs
 
@@ -95,7 +96,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                             bucketing=bucketing_train, weight_binary_loss=weight_binary_loss,
                             teacher_force=teacher_force,
                             clipping=clipping,
-                            stable_decoding_state=stable_decoding_state,
+                            stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                             checkpointing=True)
 
     model_dir = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder")
@@ -340,12 +341,13 @@ if __name__ == "__main__":
             param["unrolling_word"] = True
             param["char_src_attention"] = True
             train_path, dev_path = DEMO, DEMO
-            param["shared_context"] = "word"
+            param["shared_context"] = "all"
             param["dense_dim_auxilliary"] = 0
             param["clipping"] = None
             param["teacher_force"] = True
             param["dense_dim_auxilliary_2"] = 0
             param["stable_decoding_state"] = True
+            param["init_context_decoder"] = False
 
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
@@ -363,7 +365,7 @@ if __name__ == "__main__":
                                                                        "norm_not_norm-Recall",
                                                                        "norm_not_norm-accuracy"],
                                                   warmup=warmup, args=param, use_gpu=None, n_epochs=epochs,
-                                                  debug=True)
+                                                  debug=False)
           run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("GRID : Log RUN is : {} to see model list ".format(run_dir))

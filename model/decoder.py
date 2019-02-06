@@ -20,7 +20,7 @@ class CharDecoder(nn.Module):
 
     def __init__(self, char_embedding, input_dim, hidden_size_decoder, shared_context, word_recurrent_cell=None,
                  drop_out_word_cell=0, timing=False, drop_out_char_embedding_decoder=0,
-                 char_src_attention=False, unrolling_word=False,
+                 char_src_attention=False, unrolling_word=False,init_context_decoder=True,
                  hidden_size_src_word_encoder=None, generator=None, stable_decoding_state=False,
                  verbose=0):
         super(CharDecoder, self).__init__()
@@ -30,7 +30,9 @@ class CharDecoder(nn.Module):
         self.shared_context = shared_context
         self.unrolling_word = unrolling_word
         self.stable_decoding_state = stable_decoding_state
-
+        self.init_context_decoder = init_context_decoder
+        printing("WARNING : stable_decoding_state is {}", var=[stable_decoding_state], verbose_level=0, verbose=verbose)
+        printing("WARNING : init_context_decoder is {}", var=[init_context_decoder], verbose_level=0, verbose=verbose)
         printing("WARNING : DECODER unrolling_word is {}", var=[unrolling_word], verbose_level=0, verbose=verbose)
         printing("WARNING : DECODER char_src_attention is {}", var=[char_src_attention], verbose_level=0, verbose=verbose)
         self.drop_out_char_embedding_decoder = nn.Dropout(drop_out_char_embedding_decoder)
@@ -169,7 +171,7 @@ class CharDecoder(nn.Module):
             pdb.set_trace()
             stable_decoding_word_state = conditioning.clone() if self.stable_decoding_state else None
             # TODO : ugly because we have done a projection and reshaping for nothing on conditioning
-            conditioning = (torch.zeros_like(conditioning), conditioning) if self.shared_context != "none" else (torch.zeros_like(conditioning), torch.zeros_like(conditioning))
+            conditioning = (torch.zeros_like(conditioning), conditioning) if self.init_context_decoder else (torch.zeros_like(conditioning), torch.zeros_like(conditioning))
         # attention
         if self.attn_layer is not None:
             assert char_seq_hidden_encoder is not None, 'ERROR sent_len_max_source is None'
@@ -201,7 +203,7 @@ class CharDecoder(nn.Module):
                         char_vec_current_batch=emb_char,
                         state_decoder_current=state_i,
                         char_vecs_sizes=word_src_sizes,
-                        step_char=char_i, word_stable_context=stable_decoding_word_state ,
+                        step_char=char_i, word_stable_context=stable_decoding_word_state,
                         char_seq_hidden_encoder=char_seq_hidden_encoder)
                 else:
                     assert self.generator is not None, "Generator must be passed in decoder for decodibg if not teacher_force"

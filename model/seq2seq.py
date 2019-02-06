@@ -49,6 +49,7 @@ class LexNormalizer(nn.Module):
                  char_src_attention=False, shared_context="all",teacher_force=False,
                  dense_dim_auxilliary_2=None,
                  stable_decoding_state=False,
+                 init_context_decoder=True,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
         character level Sequence to Sequence model for normalization
@@ -174,6 +175,7 @@ class LexNormalizer(nn.Module):
                                                    "unrolling_word": unrolling_word,
                                                    "teacher_force": teacher_force,
                                                    "stable_decoding_state":stable_decoding_state,
+                                                   "init_context_decoder":init_context_decoder,
                                                  },
                                   "hidden_size_encoder": hidden_size_encoder,
                                   "hidden_size_sent_encoder": hidden_size_sent_encoder,
@@ -206,7 +208,7 @@ class LexNormalizer(nn.Module):
             n_layers_word_encoder, dir_sent_encoder, word_recurrent_cell_encoder, dir_word_encoder,\
             hidden_size_decoder,  word_recurrent_cell_decoder, drop_out_word_decoder_cell, drop_out_char_embedding_decoder, \
                     self.auxilliary_task_norm_not_norm, unrolling_word, char_src_attention, dense_dim_auxilliary, shared_context,\
-                teacher_force, dense_dim_auxilliary_2, stable_decoding_state = get_args(args, False)
+                teacher_force, dense_dim_auxilliary_2, stable_decoding_state, init_context_decoder = get_args(args, False)
 
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
@@ -256,6 +258,7 @@ class LexNormalizer(nn.Module):
                                    char_src_attention=char_src_attention,
                                    word_recurrent_cell=word_recurrent_cell_decoder, unrolling_word=unrolling_word,
                                    hidden_size_src_word_encoder=hidden_size_encoder*dir_word_encoder,
+                                   init_context_decoder=init_context_decoder,
                                    generator=self.generator if not teacher_force else None, shared_context=shared_context,
                                    stable_decoding_state=stable_decoding_state,
                                    verbose=verbose)

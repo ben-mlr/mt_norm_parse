@@ -56,7 +56,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           debug=False, timing=False, dev_report_loss=True,
           bucketing=True, policy=None, teacher_force=True,
           shared_context="all", clipping=None, extend_n_batch=1,
-          stable_decoding_state=False,
+          stable_decoding_state=False, init_context_decoder=True,
           verbose=1):
 
     if not unrolling_word:
@@ -145,7 +145,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                           model_id_pref=model_id_pref, model_full_name=model_full_name,
                           hidden_size_sent_encoder=hidden_size_sent_encoder,shared_context=shared_context,
                           unrolling_word=unrolling_word,char_src_attention=char_src_attention,
-                          stable_decoding_state=stable_decoding_state,
+                          stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
 
     if use_gpu:
