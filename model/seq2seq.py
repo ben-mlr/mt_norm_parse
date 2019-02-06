@@ -48,6 +48,7 @@ class LexNormalizer(nn.Module):
                  dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None,
                  char_src_attention=False, shared_context="all",teacher_force=False,
                  dense_dim_auxilliary_2=None,
+                 stable_decoding_state=False,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
         character level Sequence to Sequence model for normalization
@@ -166,11 +167,13 @@ class LexNormalizer(nn.Module):
                                                  },
                                   "decoder_arch": {"cell_word": word_recurrent_cell_decoder, "cell_sentence": "none",
                                                    "dir_word": "uni",
+                                                   "drop_out_bridge":drop_out_bridge,
                                                    "drop_out_char_embedding_decoder": drop_out_char_embedding_decoder,
                                                    "drop_out_word_decoder_cell": drop_out_word_decoder_cell,
                                                    "char_src_attention":char_src_attention,
                                                    "unrolling_word": unrolling_word,
                                                    "teacher_force": teacher_force,
+                                                   "stable_decoding_state":stable_decoding_state,
                                                  },
                                   "hidden_size_encoder": hidden_size_encoder,
                                   "hidden_size_sent_encoder": hidden_size_sent_encoder,
@@ -203,7 +206,7 @@ class LexNormalizer(nn.Module):
             n_layers_word_encoder, dir_sent_encoder, word_recurrent_cell_encoder, dir_word_encoder,\
             hidden_size_decoder,  word_recurrent_cell_decoder, drop_out_word_decoder_cell, drop_out_char_embedding_decoder, \
                     self.auxilliary_task_norm_not_norm, unrolling_word, char_src_attention, dense_dim_auxilliary, shared_context,\
-                teacher_force, dense_dim_auxilliary_2 = get_args(args, False)
+                teacher_force, dense_dim_auxilliary_2, stable_decoding_state = get_args(args, False)
 
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
@@ -229,12 +232,14 @@ class LexNormalizer(nn.Module):
                                    dir_word_encoder=dir_word_encoder,context_level=shared_context,
                                    verbose=verbose)
 
-        p_word = 1 if shared_context in ["word", "all"] else 0
+        p_word = 1 if shared_context in ["word", "all", "none"] else 0
         p_sent = 1 if shared_context in ["sent", "all"] else 0
+        self.shared_context = shared_context
 
         self.bridge = nn.Linear(
             hidden_size_encoder * dir_word_encoder * n_layers_word_encoder*p_word + hidden_size_sent_encoder*dir_sent_encoder*p_sent,#*dir_sent_encoder : added diviion by 2 if dir 2
             hidden_size_decoder)
+        self.hidden_size_decoder = hidden_size_decoder
         #self.layer_norm = nn.LayerNorm(hidden_size_decoder, elementwise_affine=False) if True else None
         self.dropout_bridge = nn.Dropout(p=drop_out_bridge)
         self.normalize_not_normalize \
@@ -251,7 +256,8 @@ class LexNormalizer(nn.Module):
                                    char_src_attention=char_src_attention,
                                    word_recurrent_cell=word_recurrent_cell_decoder, unrolling_word=unrolling_word,
                                    hidden_size_src_word_encoder=hidden_size_encoder*dir_word_encoder,
-                                   generator=self.generator if not teacher_force else None,
+                                   generator=self.generator if not teacher_force else None, shared_context=shared_context,
+                                   stable_decoding_state=stable_decoding_state,
                                    verbose=verbose)
 
         self.verbose = verbose
@@ -278,7 +284,8 @@ class LexNormalizer(nn.Module):
             self.encoder.forward(input_seq, input_word_len)
         source_encoder, start = get_timing(start)
         # [] [batch, , hiden_size_decoder]
-        printing("DECODER hidden state before bridge size {}", var=[context.size()], verbose=0, verbose_level=3)
+        printing("DECODER hidden state before bridge size {}", var=[context.size() if context is not None else 0], verbose=0, verbose_level=3)
+
         context = torch.tanh(self.bridge(context))
         #h = self.layer_norm(h) if self.layer_norm is not None else h
         context = self.dropout_bridge(context)

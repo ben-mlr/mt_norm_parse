@@ -57,6 +57,8 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
 
     teacher_force = args.get("teacher_force", True)
 
+    stable_decoding_state = args.get("stable_decoding_state",False)
+
     n_epochs = 1 if warmup else n_epochs
 
     if warmup:
@@ -93,6 +95,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                             bucketing=bucketing_train, weight_binary_loss=weight_binary_loss,
                             teacher_force=teacher_force,
                             clipping=clipping,
+                            stable_decoding_state=stable_decoding_state,
                             checkpointing=True)
 
     model_dir = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder")
@@ -306,7 +309,7 @@ if __name__ == "__main__":
       else:
           test_before_run = False
       
-      warmup = False
+      warmup = True
       RUN_ID = str(uuid4())[0:5]
       LABEL_GRID = "ATT" if not warmup else "WARMUP-unrolling-False"
       LABEL_GRID = "test_before_run-"+LABEL_GRID if test_before_run else LABEL_GRID
@@ -342,6 +345,7 @@ if __name__ == "__main__":
             param["clipping"] = None
             param["teacher_force"] = True
             param["dense_dim_auxilliary_2"] = 0
+            param["stable_decoding_state"] = True
 
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))

@@ -96,7 +96,7 @@ class CharEncoder(nn.Module):
         # input should be a batach of sentences
         # input : [batch, max sent len, max word len], input_word_len [batch, max_sent_len]
         context_level = self.context_level
-        assert context_level in ["all","word", "sent"], 'context_level : should be in ["all","word", "sent"]'
+        assert context_level in ["all","word", "sent", "none"], 'context_level : should be in ["all","word", "sent"]'
         printing("SOURCE : input size {}  length size {}",
                  var=(input.size(), input_word_len.size()),
                  verbose=verbose, verbose_level=4)
@@ -154,16 +154,14 @@ class CharEncoder(nn.Module):
         sent_encoded = self.drop_out_sent_encoder_out(sent_encoded)
         h_w = self.drop_out_word_encoder_out(h_w)
         if context_level == "all":
-            " 'all' means word and sentence level "
+            #" 'all' means word and sentence level "
             source_context_word_vector = torch.cat((sent_encoded, h_w), dim=2)
         elif context_level == "sent":
             source_context_word_vector = sent_encoded
         elif context_level == "word":
             source_context_word_vector = h_w
-        printing("SOURCE contextual before reshape for decoding: {} ", var=[source_context_word_vector.size()],
-                 verbose=verbose, verbose_level=3)
-        #source_context_word_vector = source_context_word_vector.view(1, source_context_word_vector.size(0)*source_context_word_vector.size(1), -1)
-        # source_context_word_vector : [1, batch x sent len, hidden_size_sent_encoder + hidden_size_encoder]
-        printing("SOURCE contextual last representation : {} ", var=[source_context_word_vector.size()],
+        elif context_level == "none":
+            source_context_word_vector = h_w
+        printing("SOURCE contextual for decoding: {} ", var=[source_context_word_vector.size() if source_context_word_vector is not None else 0],
                  verbose=verbose, verbose_level=3)
         return source_context_word_vector, sent_len_max_source, char_seq_hidden, word_src_sizes

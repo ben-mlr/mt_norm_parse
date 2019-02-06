@@ -34,9 +34,8 @@ class Attention(nn.Module):
             energy = self.attn(char_state_decoder)
             energy = energy.unsqueeze(-1)
             encoder_output = encoder_output.squeeze(-1)#.unsqueeze(1)
-            pdb.set_trace()
             #energy = encoder_output.matmul(energy)
-            pdb.set_trace()
+
             energy = torch.bmm(encoder_output, energy)
             #energy = energy.squeeze(1).squeeze(1)
             energy = energy.squeeze(-1)
@@ -54,8 +53,7 @@ class Attention(nn.Module):
         # is the loop on the batch necessary
         #for batch in range(this_batch_size):
         # index of src word for masking
-        pdb.set_trace()
-        batch_diag = torch.empty(encoder_outputs.size(1), len(word_src_sizes),len(word_src_sizes))
+        #batch_diag = torch.empty(encoder_outputs.size(1), len(word_src_sizes),len(word_src_sizes))
         #for word in range(len(encoder_outputs.size(1))):
             #score_index = np.array([i for i in range(len(word)) > word_src_sizes[word]])
             #diag = torch.diag(score_index).float()
@@ -66,7 +64,6 @@ class Attention(nn.Module):
         # scores_energy shaped : number of decoded word (batch x len_sent max) times n_character max src
         # we have a attention energy for the current decoding character for each src word target word pair
         #attn_energies[:, char_src] = diag.matmul(scores_energy)
-        pdb.set_trace()
         if False:
             for char_src in range(max_word_len_src):
                 # TODO : ADD MASKING HERE : SET TO 0 when char_src above SIZE of source encoder_outputs

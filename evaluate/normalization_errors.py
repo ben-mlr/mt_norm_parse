@@ -187,7 +187,7 @@ def score_norm_not_norm(norm_not_norm_pred, norm_not_norm_gold, output_seq_n_hot
             predicted_not_pad_need_norm = np.argwhere(predicted_not_pad == 1)[0,:]#.squeeze()
         except:
             print("== 1 [0,:] failed on predicted_not_pad  {} ".format(predicted_not_pad))
-            predicted_not_pad_need_norm = []
+            predicted_not_pad_need_norm = torch.tensor([])
 
         try:
             predicted_not_pad_normed = np.argwhere(predicted_not_pad == 0)[0,:]#.squeeze()
