@@ -363,7 +363,7 @@ if __name__ == "__main__":
                                                                        "norm_not_norm-Recall",
                                                                        "norm_not_norm-accuracy"],
                                                   warmup=warmup, args=param, use_gpu=None, n_epochs=epochs,
-                                                  debug=False)
+                                                  debug=True)
           run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("GRID : Log RUN is : {} to see model list ".format(run_dir))

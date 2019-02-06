@@ -53,7 +53,7 @@ class Attention(nn.Module):
         # is the loop on the batch necessary
         #for batch in range(this_batch_size):
         # index of src word for masking
-        #batch_diag = torch.empty(encoder_outputs.size(1), len(word_src_sizes),len(word_src_sizes))
+        batch_diag = torch.empty(encoder_outputs.size(1), len(word_src_sizes),len(word_src_sizes))
         #for word in range(len(encoder_outputs.size(1))):
             #score_index = np.array([i for i in range(len(word)) > word_src_sizes[word]])
             #diag = torch.diag(score_index).float()
@@ -64,27 +64,9 @@ class Attention(nn.Module):
         # scores_energy shaped : number of decoded word (batch x len_sent max) times n_character max src
         # we have a attention energy for the current decoding character for each src word target word pair
         #attn_energies[:, char_src] = diag.matmul(scores_energy)
-        if False:
-            for char_src in range(max_word_len_src):
-                # TODO : ADD MASKING HERE : SET TO 0 when char_src above SIZE of source encoder_outputs
-                # encoder_outputs[batch, char_src] : contextual character
-                #   - embedding of character ind char_src at batch (word level context) of the source word
-                # char_state_decoder[batch, :] : state of the decoder for batch ind (embedding)
-                score_index = char_src+1 < word_src_sizes
-
-                scores_energy = self.score(char_state_decoder[:, :],
-                                           encoder_outputs[:, char_src]) # CHANGE : no need of unsquueze ?
-                pdb.set_trace()
-                # masking end of src words
-                diag = torch.diag(score_index).float()
-                #diag.dtype(dtype=torch.float)
-                if scores_energy.is_cuda:
-                    diag = diag.cuda()
-                attn_energies[:, char_src] = diag.matmul(scores_energy)
-                #attn_energies[:, char_src] = torch.diag(score_index).matmul(attn_energies[:, char_src])
-                #attn_energies[char_src+1 >= word_src_sizes, char_src] = -1e6
-                # we zero the softmax by assigning an ennergy of -inf
-        softmax = F.softmax(attn_energies)
+        # DO WE NEED TO SET THE ENERGY TO -inf to force the softmax to be zero to all padded vector
+        softmax = F.softmax(attn_energies, dim=1)
+        pdb.set_trace()
         try:
             assert ((softmax.sum(dim=1) - torch.ones(softmax.size(0))) < EPSILON).all(), "ERROR : softmax not softmax"
         except:
@@ -92,7 +74,7 @@ class Attention(nn.Module):
         #  we do masking here : word that are only 1 len (START character) :
         #  we set their softmax to 0 so that their context vector is
         #  Q? is it useful
-        #softmax_clone = softmax.clone()
+        # masking of softmax weights : we set the weights to 0 if padded value
         diag_sotm = torch.diag(word_src_sizes != 1).float()
 
         if softmax.is_cuda:

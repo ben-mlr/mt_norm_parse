@@ -197,7 +197,6 @@ class CharDecoder(nn.Module):
                     printing("DECODER state_decoder_current {} ", var=[state_i[0].size()], verbose=self.verbose,
                              verbose_level=3)
                     printing("DECODER emb_char {} ", var=[emb_char.size()], verbose=self.verbose, verbose_level=3)
-                    pdb.set_trace()
                     all_states, state_i, attention_weights = self.word_encoder_target_step(
                         char_vec_current_batch=emb_char,
                         state_decoder_current=state_i,
