@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import numpy as np
 
 import time
-EPSILON = 1e-5
+EPSILON = 1e-4
 
 
 
@@ -35,7 +35,6 @@ class Attention(nn.Module):
             energy = energy.unsqueeze(-1)
             encoder_output = encoder_output.squeeze(-1)#.unsqueeze(1)
             #energy = encoder_output.matmul(energy)
-
             energy = torch.bmm(encoder_output, energy)
             #energy = energy.squeeze(1).squeeze(1)
             energy = energy.squeeze(-1)
@@ -66,11 +65,12 @@ class Attention(nn.Module):
         #attn_energies[:, char_src] = diag.matmul(scores_energy)
         # DO WE NEED TO SET THE ENERGY TO -inf to force the softmax to be zero to all padded vector
         softmax = F.softmax(attn_energies, dim=1)
-        pdb.set_trace()
         try:
-            assert ((softmax.sum(dim=1) - torch.ones(softmax.size(0))) < EPSILON).all(), "ERROR : softmax not softmax"
+            ones = torch.ones(softmax.size(0)).cuda() if softmax.is_cuda else torch.ones(softmax.size(0))
+            assert ((softmax.sum(dim=1) - ones) < EPSILON).all(), "ERROR : softmax not softmax"
         except:
-            print("SOFTMAX is not softmax : softmax.size(0)")
+            print("SOFTMAX0 is not softmax : softmax.size(0)")
+            print(softmax.sum(dim=1))
         #  we do masking here : word that are only 1 len (START character) :
         #  we set their softmax to 0 so that their context vector is
         #  Q? is it useful

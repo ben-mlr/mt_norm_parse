@@ -266,37 +266,39 @@ if __name__ == "__main__":
                 for dir_word_encoder in [2]:
                     for teacher_force in [True]:
                       for char_src_attention in [True]:
-                        for auxilliary_task_norm_not_norm in [False]:
+                        for auxilliary_task_norm_not_norm in [False, True]:
                             for shared_context in ["all", "sent", "word"]:
-                              if shared_context == "word":
-                                dropout_bridge_ls = [1,0.1]
+                              if auxilliary_task_norm_not_norm:
+                                dense_dim_auxilliary, dense_dim_auxilliary_2 = 100, 100
                               else:
-                                dropout_bridge_ls = [0.1]
-                              for dropout_bridge in dropout_bridge_ls:
-                                if auxilliary_task_norm_not_norm:
-                                  dense_dim_auxilliary, dense_dim_auxilliary_2 = 100,50
-                                else:
-                                  dense_dim_auxilliary, dense_dim_auxilliary_2  = 0,0
-                                  param = params_strong.copy()
-                                  param["char_src_attention"] = char_src_attention
-                                  param["hidden_size_encoder"] = int(param["hidden_size_encoder"]*scale)
-                                  param["hidden_size_sent_encoder"] = int(param["hidden_size_sent_encoder"]*scale)
-                                  param["hidden_size_decoder"] = int(param["hidden_size_sent_encoder"]*scale)
-                                  param["output_dim"] *= int(scale*0.5)+1
-                                  param["batch_size"] = batch_size
-                                  param["unrolling_word"] = True
-                                  param["auxilliary_task_norm_not_norm"] = auxilliary_task_norm_not_norm
-                                  param["dense_dim_auxilliary"] = dense_dim_auxilliary
-                                  param["dense_dim_auxilliary_2"] = dense_dim_auxilliary_2
-                                  param["drop_out_char_embedding_decoder"] = 0.2
-                                  param["dropout_bridge"] = dropout_bridge
-                                  param["dir_word_encoder"] = dir_word_encoder
-                                  param["dir_sent_encoder"] = 1
-                                  param["clipping"] = clipping
-                                  param["teacher_force"] = teacher_force
-                                  param["shared_context"] = shared_context
-                                  params.append(param)
-                                  labels.append("CONTEXT-with_att-dir_2-X-dropout_bridge{}-context_{}".format(dropout_bridge, shared_context))
+                                dense_dim_auxilliary, dense_dim_auxilliary_2  = 0,0
+                              for stable_decoding_state in [True]:
+                                param = params_strong.copy()
+                                param["char_src_attention"] = char_src_attention
+                                param["hidden_size_encoder"] = int(param["hidden_size_encoder"]*scale)
+                                param["hidden_size_sent_encoder"] = int(param["hidden_size_sent_encoder"]*scale)
+                                param["hidden_size_decoder"] = int(param["hidden_size_sent_encoder"]*scale)
+                                param["output_dim"] *= int(scale*0.5)+1
+                                param["batch_size"] = batch_size
+                                param["unrolling_word"] = True
+                                param["auxilliary_task_norm_not_norm"] = auxilliary_task_norm_not_norm
+                                param["dense_dim_auxilliary"] = dense_dim_auxilliary
+                                param["dense_dim_auxilliary_2"] = dense_dim_auxilliary_2
+                                param["drop_out_char_embedding_decoder"] = 0.2
+                                param["dropout_bridge"] = 0.1
+                                param["dir_word_encoder"] = dir_word_encoder
+                                param["dir_sent_encoder"] = 1
+                                param["clipping"] = clipping
+
+                                param["teacher_force"] = teacher_force
+
+                                param["shared_context"] = shared_context
+
+                                param["stable_decoding_state"] = stable_decoding_state
+                                param["init_context_decoder"] = not param["stable_decoding_state"]
+
+                                params.append(param)
+                                labels.append("step_bysteppassing-with_att-dir_2-X-context_{}-stable_decoding_state-init_context_decoder_{}".format(shared_context, param["stable_decoding_state"],param["init_context_decoder"] ))
           print("GRID_INFO= auxilliary_task_norm_not_norm-dense_dim auxilliary_task_norm_not_norm-dense_dim_2 n_trainable_parameters")
 
       # only for cloud run :
@@ -352,7 +354,7 @@ if __name__ == "__main__":
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
-                                                  test_path=DEMO2,
+                                                  test_path=TEST,
                                                   verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,

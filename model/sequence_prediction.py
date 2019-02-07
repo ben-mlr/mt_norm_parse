@@ -12,7 +12,7 @@ from io_.dat.constants import CHAR_START_ID
 import pdb
 import os
 from collections import OrderedDict
-
+#from toolbox.beam_related_reshape_ind import get_beam_ind_token_ind
 from evaluate.visualize_attention import show_attention
 from toolbox.norm_not_norm import get_label_norm
 # EPSILON for the test of edit distance 
@@ -211,9 +211,9 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                 return score_dic, None
 
 
-def decode_sequence_beam(model, max_len, src_seq, src_mask, src_len,
+def decode_sequence_beam(model, max_len, src_seq, src_mask, src_len,char_dictionary,
                     pad=1, target_seq_gold=None,
-                    use_gpu=False,
+                    use_gpu=False, beam_size=2,
                     verbose=2):
 
     output_seq = pad*np.ones(src_seq.size(), dtype=np.int64)
@@ -232,47 +232,76 @@ def decode_sequence_beam(model, max_len, src_seq, src_mask, src_len,
     printing("Data output sizes ", var=(output_seq.size(), output_len.size(), output_mask.size()), verbose=verbose, verbose_level=6)
 
     # for beam dim we add a dimension
-    output_seq = output_seq.unsqueeze(-1)
+    # the first before starting decoding is the same for all beam
+
+    output_seq = output_seq.unsqueeze(-1).expand(output_seq.size(0),
+                                                 output_seq.size(1),
+                                                 output_seq.size(2),
+                                                 beam_size)
+    # is going to store the log probability for all decoding step of all best beams
+
+    log_scores_ranked_former = torch.zeros(output_seq.size(0), output_seq.size(1), beam_size)
     for step, char_decode in enumerate(range(2,  max_len)):
         if use_gpu:
             src_seq = src_seq.cuda()
             output_seq = output_seq.cuda()
             src_len = src_len.cuda()
             output_len = output_len.cuda()
-        beam_size = 2
-        log_scores_all_candidates = torch.zeros(109, beam_size)
-        log_scores_ranked_former = torch.zeros(output_seq.size(0), beam_size)
+
+        # for each sentence, each word, the current decoding state
+        # is going to store all the scores foe each possible decoding token
+        log_scores_all_candidates = torch.ones(output_seq.size(0), output_seq.size(1), 109, beam_size)*(-float("inf"))
         for candidate_ind in range(beam_size):
+
+            # we decode the sequence for each beam
             decoding_states, norm_not_norm, attention = model.forward(input_seq=src_seq,
-                                                                      output_seq=output_seq[:,:,:,candidate_ind],
+                                                                      output_seq=output_seq[:, :, :, candidate_ind],
                                                                       input_word_len=src_len,
                                                                       output_word_len=output_len)
-
             scores = model.generator.forward(x=decoding_states)
-
+            # we get the log sores
+            output_len = (src_len[:, :, 0] != 0).unsqueeze(dim=2) * char_decode
             log_softmax_score = nn.LogSoftmax(dim=-1)(scores)
-            log_scores_ranked, predictions = log_softmax_score.sort(descending=True,dim=-1)
-            # get the product of probability
-            pdb.set_trace()
-            # !! --> make the sum
-            log_scores_ranked[:, 0, 0, :] += log_scores_ranked_former[:, candidate_ind]
-            log_scores_all_candidates[:, candidate_ind] = log_scores_ranked[:,0,0,:]+log_scores_ranked_former[:,candidate_ind]
-        top_index = np.argsort(log_scores_all_candidates, axis=-1)
-        # get top k
-        #update log_scores_ranked_former  and top_k_predictions
-        # with each top k log scores + get token pred for each candidate ind
+            # get the score of the last predicted tokens
+            log_softmax_score = log_softmax_score[:, :, char_decode-2,:]#squeeze(-2)
+            # we remove padded scores
+            log_softmax_score = log_softmax_score[:, :log_softmax_score.size(1), :]
+            # we sum along the voc dimension by expanding the
 
-        output_seq = output_seq[:, :log_softmax_score.size(1), :, :]
+            expand_score_former = log_scores_ranked_former[:, :log_softmax_score.size(1), candidate_ind].unsqueeze(-1)
+            expand_score_former = expand_score_former.expand(output_seq.size(0), log_softmax_score.size(1),
+                                                             log_softmax_score.size(-1))
+            # we update the log score of all candidates with the new ones
+            pdb.set_trace()
+            log_scores_all_candidates[:, :log_softmax_score.size(1), :, candidate_ind] = torch.add(log_softmax_score, expand_score_former)
+        # we find the best scores of all beam x decoded tokens
+        log_scores_all_candidates_reshaped = log_scores_all_candidates.view(log_scores_all_candidates.size(0), log_scores_all_candidates.size(1), log_scores_all_candidates.size(2)*log_scores_all_candidates.size(3))
+        log_score_best, index_pred = log_scores_all_candidates_reshaped.sort(dim=-1, descending=True)
         pdb.set_trace()
-        # TODO try to code it as batch
-        # update output_seq
-        #for candidate_ind in range(beam_size):
-        #    output_seq[:, :, char_decode - 1, candidate_ind] = top_k_predictions[:, :, -1, candidate_ind]
-        # keep top k probbility (top log softmax to confirm)
-        # keep the indexes + the scores
-        # loop on this k candidates and get the scores of the next steps k x V get the log scores by summing ??
-        # keep the top k scores and so on
-        break
+
+        def get_beam_ind_token_ind(ind_flatted_ls, first_dim_in_view):
+            first_ind = ind_flatted_ls / first_dim_in_view
+            second_ind = ind_flatted_ls - (ind_flatted_ls / first_dim_in_view) * first_dim_in_view
+            return first_ind, second_ind
+        # get the predictions and update the output_seq foe each beam
+        for candidate_ind in range(beam_size):
+            index_pred_top = index_pred[:, :, candidate_ind]
+            beam_id, token_pred_id = get_beam_ind_token_ind(index_pred_top, 109)
+            output_seq = output_seq[:, :log_scores_all_candidates.size(1), :]
+            pdb.set_trace()
+            output_seq[:, :, char_decode-1, candidate_ind] = token_pred_id
+            print(token_pred_id)
+            log_scores_ranked_former[:, :, candidate_ind] = log_score_best[:, :, candidate_ind]
+            # so on until we end decoding
+    # we have now beam_size sequence
+    for beam in range(beam_size):
+        pred_word_count, text_decoded, decoded_ls = output_text_(output_seq[:,:,:,beam],  # predictions,
+                                                                 char_dictionary,
+                                                                 single_sequence=True,
+                                                                 output_str=output_str,
+                                                                 last=char_decode == (max_len - 1),
+                                                                 debug=False)
+        print("BEAM {} sequence is {}".format(beam, text_decoded))
 
 
 def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
@@ -374,7 +403,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
 
 def decode_seq_str(seq_string, model, char_dictionary, pad=1,
                    dir_attention=None, save_attention=False,
-                   show_att=False, beam_decode=False,
+                   show_att=False, beam_decode=False,beam_size=None,
                    max_len=20, verbose=2, sent_mode=False):
     assert sent_mode
     sent = seq_string.copy()
@@ -410,8 +439,8 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
         batch_lens = Variable(torch.from_numpy(np.array([sent_words_lens, sent_words_lens])), requires_grad=False)
         batch_lens = batch_lens.unsqueeze(dim=2)
         if beam_decode:
-            decode_sequence_beam(model=model,
-                                  max_len=max_len, src_seq=batch, src_len=batch_lens,
+            decode_sequence_beam(model=model,char_dictionary=char_dictionary,
+                                  max_len=max_len, src_seq=batch, src_len=batch_lens,beam_size=beam_size,
                                   src_mask=batch_masks, pad=pad, verbose=verbose)
         else:
             (text_decoded, src_text, target), _, (attention, src_seq), (pred_norm,_, _, _)  \
@@ -433,8 +462,8 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
         printing("DECODED text is : {} original is {}",var=(text_decoded, src_text), verbose_level=0, verbose=0)
 
 
-def decode_interacively(model , char_dictionary,  max_len, pad=1, sent_mode=False, save_attention=False,
-                        show_attention=False, beam_decode=False,
+def decode_interacively(model, char_dictionary,  max_len, pad=1, sent_mode=False, save_attention=False,
+                        show_attention=False, beam_decode=False,beam_size=None,
                         dir_attention=None, verbose=0):
     if char_dictionary is None:
         printing("INFO : dictionary is None so setting char_dictionary to model.char_dictionary",
@@ -451,11 +480,10 @@ def decode_interacively(model , char_dictionary,  max_len, pad=1, sent_mode=Fals
 
                 break
             else:
-                decode_seq_str(seq_string=sentence, model=model, char_dictionary=char_dictionary, pad=pad,max_len= max_len,
-                               show_att=True, beam_decode=beam_decode,
+                decode_seq_str(seq_string=sentence, model=model, char_dictionary=char_dictionary, pad=pad, max_len= max_len,
+                               show_att=show_attention, beam_decode=beam_decode,beam_size=beam_size,
                                verbose=verbose, sent_mode=True, dir_attention=dir_attention, save_attention=save_attention)
                 sentence = []
-
         elif seq_string == "END":
             printing("ENDING INTERACTION", verbose=verbose, verbose_level=0)
             break
