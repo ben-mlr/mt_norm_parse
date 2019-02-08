@@ -90,7 +90,6 @@ class CharDecoder(nn.Module):
         # current_state  : dim batch x sentence max len , char embedding + hidden_dim decoder
         start_atten = time.time()
         if self.attn_layer is not None:
-            pdb.set_trace()
             attention_weights = self.attn_layer(char_state_decoder=state_hiden.squeeze(0),# current_state,
                                                 word_src_sizes=char_vecs_sizes,
                                                 encoder_outputs=char_seq_hidden_encoder)
@@ -106,15 +105,11 @@ class CharDecoder(nn.Module):
 
             if self.stable_decoding_state:
                 word_stable_context = word_stable_context.transpose(1, 0)
-                pdb.set_trace()
                 context = torch.cat((word_stable_context, context), dim=2)
-                pdb.set_trace()
                 # proj the overall context (word stable, attention based)
                 context = self.context_proj(context)
-                pdb.set_trace()
                 char_vec_current_batch = torch.cat((context, char_vec_current_batch), dim=2)
             else:
-                pdb.set_trace()
                 char_vec_current_batch = torch.cat((context, char_vec_current_batch), dim=2)
 
             # compute product attention_weights with  char_seq_hidden_encoder (updated for each character)
@@ -168,7 +163,6 @@ class CharDecoder(nn.Module):
                  verbose_level=3) # .size(), packed_char_vecs)
         # conditioning is the output of the encoder (work as the first initial state of the decoder)
         if isinstance(self.seq_decoder, nn.LSTM):
-            pdb.set_trace()
             stable_decoding_word_state = conditioning.clone() if self.stable_decoding_state else None
             # TODO : ugly because we have done a projection and reshaping for nothing on conditioning
             conditioning = (torch.zeros_like(conditioning), conditioning) if self.init_context_decoder else (torch.zeros_like(conditioning), torch.zeros_like(conditioning))
@@ -215,7 +209,7 @@ class CharDecoder(nn.Module):
                     #  we compute the next states
                     # [batch x sent_max_len, len_words] ??
                     decoding_states, state_i, attention_weights = self.word_encoder_target_step(
-                        char_vec_current_batch=emb_char, word_stable_context=conditioning,
+                        char_vec_current_batch=emb_char, word_stable_context=stable_decoding_word_state,
                         state_decoder_current=state_i, char_vecs_sizes=word_src_sizes,
                         step_char=char_i, char_seq_hidden_encoder=char_seq_hidden_encoder)
                     printing("DECODING in schedule sampling {} ", var=[state_i[0].size()], verbose=self.verbose,
@@ -280,7 +274,6 @@ class CharDecoder(nn.Module):
                 char_seq_hidden_encoder=None,
                 word_src_sizes=None,proportion_pred_train=None,
                 sent_len_max_source=None,verbose=0):
-        pdb.set_trace()
         conditioning = conditioning.view(1, conditioning.size(0) * conditioning.size(1), -1)
         start = time.time() if self.timing else None
         _output_word_len = output_word_len.clone()
@@ -349,3 +342,21 @@ class CharDecoder(nn.Module):
                                                          ("packed_sent", packed_sent), ("padd_sent",padd_sent), ("reshape_sent",reshape_sent),
                                                          ("reshape_len",reshape_len),("word_encoders", word_encoders), ("reshape_attention",reshape_attention)])))
         return output_w_decoder, attention_weight_all
+
+
+class WordDecoder(nn.Module):
+    def __init__(self,  input_dim,
+                 voc_size,
+                 verbose=2):
+        super(WordDecoder, self).__init__()
+
+        self.dense_output_1 = nn.Linear(input_dim, 100)
+        self.dense_output_2 = nn.Linear(100, voc_size)
+
+    def forward(self, context):
+
+        prediction_state = nn.ReLU()(self.dense_output_2(nn.ReLU()(self.dense_output_1(context))))
+        return prediction_state
+        # TODO :
+        #1 process output gold sequence at the word level pack and
+        #2 : reshape conditioning so that it fits the cell

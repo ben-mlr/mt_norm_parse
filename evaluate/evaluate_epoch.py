@@ -117,8 +117,8 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                                      evaluation_script_val="normalization-exact",
                                      model_args_dir=model.args_dir,
                                      data_val=REPO_DATASET[data_path])
-            over_all_report_dir = os.path.join(dir_report, "NEW-"+model.model_full_name + "-report-" + label_report + ".json")
-            over_all_report_dir_all_models = os.path.join(overall_report_dir, "NEW-"+overall_label + "-report.json")
+            over_all_report_dir = os.path.join(dir_report, model.model_full_name + "NEW-report-" + label_report + ".json")
+            over_all_report_dir_all_models = os.path.join(overall_report_dir, overall_label + "NEW-report.json")
             writing_mode = "w" if not os.path.isfile(over_all_report_dir) else "a"
             writing_mode_all_models = "w" if not os.path.isfile(over_all_report_dir_all_models) else "a"
             for dir, writing_mode in zip([over_all_report_dir, over_all_report_dir_all_models ], [writing_mode, writing_mode_all_models]):

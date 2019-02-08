@@ -12,24 +12,25 @@ def _test_iterator_get_batch_mode_False(batch_size,bucket, get_batch_mode, exten
     path = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/data/LiLiu/2577_tweets-li.conll"
     path = DEV
     print("test on {}".format(DEV))
-    pdb.set_trace = lambda: 1
+    #pdb.set_trace = lambda: 1
 
     add_start_char = 1
     add_end_char = 1
     dict_path = "../dictionaries/"
     normalization = True
-    word_dictionary, char_dictionary, pos_dictionary, \
+    word_dictionary, word_norm_dictionary, char_dictionary, pos_dictionary, \
     xpos_dictionary, type_dictionary = conllu_data.create_dict(dict_path=dict_path,
                                                                train_path=path,
                                                                dev_path=path,
                                                                test_path=None,
                                                                word_embed_dict={},
-                                                               dry_run=False,
+                                                               dry_run=False, word_normalization=True,
                                                                vocab_trim=True, add_start_char=add_start_char)
 
     data = conllu_data.read_data_to_variable(path, word_dictionary, char_dictionary,
                                              pos_dictionary,
                                              xpos_dictionary,type_dictionary,
+                                             word_norm_dictionary=word_norm_dictionary,
                                              use_gpu=None, symbolic_root=False,
                                              bucket=bucket,
                                              symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,

@@ -36,8 +36,9 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                                                              normalization=normalization),
                           disable=disable_tqdm_level(verbose, verbose_level=2)):
 
-            words, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, lengths, order_ids, raw_word_inputs, raw_lines = batch
+            words, word_norm, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, lengths, order_ids, raw_word_inputs, raw_lines = batch
             yield MaskBatch(chars, chars_norm,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
+                            output_word=word_norm,
                             verbose=verbose), order_ids
 
     # get_batch randomly (for training purpose)
@@ -45,7 +46,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
         for ibatch in tqdm(range(1, nbatch+1), disable=disable_tqdm_level(verbose, verbose_level=2)):
             # word, char, pos, xpos, heads, types, masks, lengths, morph
             printing("Data : getting {} out of {} batches", var=(ibatch, nbatch+1), verbose= verbose, verbose_level=2)
-            word, char, chars_norm, word_norm_not_norm,_, _, _, _, _, lenght, order_ids = \
+            word, word_norm, char, chars_norm, word_norm_not_norm,_, _, _, _, _, lenght, order_ids = \
                 conllu_data.get_batch_variable(data,
                                                batch_size=batch_size,
                                                normalization=normalization,
@@ -98,7 +99,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             printing("Feeding source words {} ", var=[word_display], verbose=_verbose, verbose_level=5)
             printing("TYPE {} char before batch chars_norm {} ", var=(char.is_cuda, chars_norm.is_cuda),
                      verbose=verbose, verbose_level=5)
-            yield MaskBatch(char, chars_norm, output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing, verbose=verbose), order_ids
+            yield MaskBatch(char, chars_norm, output_word=word_norm,output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing, verbose=verbose), order_ids
 
 
 def data_gen_dummy(V, batch, nbatches, sent_len=9, word_len=5, verbose=0, seed=None):
@@ -128,7 +129,7 @@ def data_gen(V, batch, nbatches,seq_len=10):
 
 
 if __name__=="__main__":
-    dummy , conll = True, False
+    dummy, conll = False, True
     if dummy:
         iter = data_gen_dummy(V=5, batch=2, nbatches=1)
 
@@ -137,18 +138,17 @@ if __name__=="__main__":
             print("SRC : ", batch.input_seq)
             print("SRC MASK : ", batch.input_seq_mask)
             print("TARGET : ", batch.output_seq)
-            print("TARGET MASK : ", batch.output_mask)
+            #print("TARGET MASK : ", batch.output_mask)
     elif conll:
         dict_path = "../dictionaries/"
-        test_path = "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo2"
-
+        test_path = "/Users/bemuller/Documents/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo2"
         verbose = 2
         batch_size = 10
         nbatch = 50
         add_start_char = 1
         add_end_char = 1
         normalization = True
-        word_dictionary, char_dictionary, pos_dictionary,\
+        word_dictionary,word_dictionary_norm , char_dictionary, pos_dictionary,\
         xpos_dictionary, type_dictionary = conllu_data.create_dict(dict_path=dict_path,
                                                                    train_path=test_path,
                                                                    dev_path=test_path,
@@ -158,11 +158,7 @@ if __name__=="__main__":
                                                                    vocab_trim=True, add_start_char=add_start_char)
         batchIter = data_gen_conllu(test_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
                                     type_dictionary,
-                                    add_start_char=add_start_char,
-                                    symbolic_root=False, symbolic_end=False,
-                                    batch_size=batch_size,
                                     print_raw=False, normalization=normalization,
-                                    add_end_char=add_end_char,
-                                    nbatch=nbatch, verbose=verbose)
+                                    verbose=verbose)
         for i, batch in enumerate(batchIter):
             print("Batch {} ".format(i))

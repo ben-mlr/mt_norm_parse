@@ -164,3 +164,4 @@ class CharEncoder(nn.Module):
         printing("SOURCE contextual for decoding: {} ", var=[source_context_word_vector.size() if source_context_word_vector is not None else 0],
                  verbose=verbose, verbose_level=3)
         return source_context_word_vector, sent_len_max_source, char_seq_hidden, word_src_sizes
+

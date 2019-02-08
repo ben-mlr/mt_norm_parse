@@ -57,6 +57,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           bucketing=True, policy=None, teacher_force=True,
           shared_context="all", clipping=None, extend_n_batch=1,
           stable_decoding_state=False, init_context_decoder=True,
+          word_decoding=False,
           verbose=1):
 
     if not unrolling_word:
@@ -108,6 +109,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                               vocab_trim=True,
                               force_new_dic=True,
                               add_start_char=add_start_char, verbose=1)
+
         voc_size = len(char_dictionary.instance2index)+1
         printing("DICTIONARY ; character vocabulary is len {} : {} ", var=str(len(char_dictionary.instance2index)+1,
                                                                               char_dictionary.instance2index),
@@ -145,6 +147,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                           model_id_pref=model_id_pref, model_full_name=model_full_name,
                           hidden_size_sent_encoder=hidden_size_sent_encoder,shared_context=shared_context,
                           unrolling_word=unrolling_word,char_src_attention=char_src_attention,
+                          word_decoding=word_decoding,
                           stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
 
@@ -214,11 +217,11 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                     print_raw=print_raw,timing=timing,
                                     verbose=verbose)
         start = time.time()
-        proportion_pred_train = 0 if not teacher_force else None
-        if 40 > epoch >= 10 and not teacher_force:
-            proportion_pred_train = epoch-10
-        elif epoch > 40 and not teacher_force:
-            proportion_pred_train = 40
+        proportion_pred_train = 10 if not teacher_force else None
+        #if 40 > epoch >= 10 and not teacher_force:
+        #    proportion_pred_train = epoch-10
+        #elif epoch > 40 and not teacher_force:
+        #    proportion_pred_train = 40
         printing("TRAINING : Schedule Sampling proportion of train on prediction is {} ", var=[proportion_pred_train],
                  verbose=verbose, verbose_level=1)
         loss_train, loss_details_train, step_train = run_epoch(batchIter, model,

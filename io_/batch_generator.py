@@ -9,6 +9,7 @@ import time
 from toolbox.sanity_check import get_timing
 from collections import OrderedDict
 
+
 def subsequent_mask(size):
     "Mask out subsequent positions."
     attn_shape = (1, size, size)
@@ -17,7 +18,9 @@ def subsequent_mask(size):
 
 
 class MaskBatch(object):
-    def __init__(self, input_seq, output_seq, output_norm_not_norm=None, pad=0, verbose=0, timing=False):
+    def __init__(self, input_seq, output_seq,
+                 output_word=None,
+                 output_norm_not_norm=None, pad=0, verbose=0, timing=False):
         # input mask
         if not output_seq.size(0) >1:
             pdb.set_trace()
@@ -25,6 +28,7 @@ class MaskBatch(object):
         # originnaly batch_size, word len
         self.input_seq = input_seq
         self.output_norm_not_norm = output_norm_not_norm
+        self.output_word = output_word
         # unsqueeze add 1 dim between batch and word len ##- ?   ##- for commenting on context implementaiton
         start = time.time()
         self.input_seq_mask = (input_seq != pad).unsqueeze(-2)
@@ -44,6 +48,7 @@ class MaskBatch(object):
         if output_seq is not None:
             ##- would be last dim also !
             self.output_seq_x = output_seq[:, :, :-1]
+
             zero_last_output, start = get_timing(start)
             ##- ? what unsequeeze
             _output_mask_x = (self.output_seq_x != pad).unsqueeze(-2)
@@ -56,8 +61,7 @@ class MaskBatch(object):
             ##- last dim also
             self.output_seq_len = torch.argmin(_output_mask_x, dim=-1)
             get_len_output, start = get_timing(start)
-            #printing("BATCH : OUTPUT self.output_mask  subsequent {} {} ", var=(self.output_mask.size(),  self.output_mask), verbose=verbose, verbose_level=5)
-            printing("BATCH : OUTPUT self.output_seq_x,  subsequent {} {} ", var=(self.output_seq_x.size(), self.output_seq_x),verbose= verbose, verbose_level=5)
+            printing("BATCH : OUTPUT self.output_seq_x,  subsequent {} {} ", var=(self.output_seq_x.size(), self.output_seq_x), verbose= verbose, verbose_level=5)
             printing("BATCH : OUTPUT self.output_seq_len,  {} {} ", var=(self.output_seq_len.size(), self.output_seq_len), verbose=verbose, verbose_level=5)
             self.ntokens = (self.output_seq_y != pad).data.sum()
             get_n_token, start = get_timing(start)

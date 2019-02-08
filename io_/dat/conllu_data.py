@@ -19,35 +19,47 @@ from io_.info_print import printing
 
 
 def load_dict(dict_path, train_path=None, dev_path=None, test_path=None, word_embed_dict=None,
+                word_normalization=False,
                 dry_run=0, vocab_trim=False, add_start_char=None, verbose=1, force_new_dic=False):
 
   to_create = False
-  for dict_type in ["word","character","pos","xpos","type"]:
+
+  for dict_type in ["word", "character", "pos", "xpos", "type"]:
     if not os.path.isfile(os.path.join(dict_path, "{}.json".format(dict_type))):
       to_create = True
+
   to_create = True if force_new_dic else to_create
+
   if to_create:
     assert train_path is not None and dev_path is not None and add_start_char is not None
     printing("Creating dictionary in {} ".format(dict_path), verbose=verbose, verbose_level=1)
-    word_dictionary, char_dictionary, pos_dictionary, \
-    xpos_dictionary, type_dictionary = create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
-                                                   dry_run, vocab_trim=False, add_start_char=add_start_char)
+    word_dictionary, word_norm_dictionary, char_dictionary, pos_dictionary, \
+    xpos_dictionary, type_dictionary = create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict, dry_run,
+                                                   vocab_trim=False, add_start_char=add_start_char, word_normalization=word_normalization,)
   else:
+    # ??
     assert train_path is None and dev_path is None and test_path is None and add_start_char is None
     printing("Loading dictionary from {} ".format(dict_path), verbose=verbose, verbose_level=1)
     word_dictionary = Dictionary('word', default_value=True, singleton=True)
+    word_norm_dictionary = Dictionary('word_norm', default_value=True, singleton=True) if word_normalization else None
     char_dictionary = Dictionary('character', default_value=True)
     pos_dictionary = Dictionary('pos', default_value=True)
     xpos_dictionary = Dictionary('xpos', default_value=True)
     type_dictionary = Dictionary('type', default_value=True)
-    for name, dic in zip(["word","character","pos","xpos","type"], [word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary]):
+    dic_to_load_names = ["word","character","pos","xpos","type"]
+    dict_to_load = [word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary]
+    pdb.set_trace()
+    if word_normalization:
+      dic_to_load_names.append("word_norm")
+      dict_to_load.append(word_norm_dictionary)
+    for name, dic in zip(dic_to_load_names, dict_to_load):
       dic.load(input_directory=dict_path, name=name)
 
-  return word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary
+  return word_dictionary, word_norm_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary
 
 
 def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
-                dry_run, vocab_trim=False, add_start_char=0):
+                dry_run, word_normalization=False, vocab_trim=False, add_start_char=0):
   """
   Given train, dev, test treebanks and a word embedding matrix :
   - basic mode : create key_value instanes for each CHAR, WORD, U|X-POS , Relation with special cases for Roots, Padding and End symbols
@@ -56,6 +68,7 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
   check TODOs
   """
   word_dictionary = Dictionary('word', default_value=True, singleton=True)
+  word_norm_dictionary = Dictionary('word_norm', default_value=True, singleton=True) if word_normalization else None
   char_dictionary = Dictionary('character', default_value=True)
   pos_dictionary = Dictionary('pos', default_value=True)
   xpos_dictionary = Dictionary('xpos', default_value=True)
@@ -67,12 +80,10 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
   pos_dictionary.add(PAD_POS)
   xpos_dictionary.add(PAD_POS)
   type_dictionary.add(PAD_TYPE)
-
   char_dictionary.add(ROOT_CHAR)
   pos_dictionary.add(ROOT_POS)
   xpos_dictionary.add(ROOT_POS)
   type_dictionary.add(ROOT_TYPE)
-
   char_dictionary.add(END_CHAR)
   pos_dictionary.add(END_POS)
   xpos_dictionary.add(END_POS)
@@ -89,13 +100,13 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
       tokens = line.split('\t')
       if '-' in tokens[0] or '.' in tokens[0]:
         continue
-
       for char in tokens[1]:
         char_dictionary.add(char)
       word = DIGIT_RE.sub(b"0", str.encode(tokens[1])).decode()
-      pos = tokens[3] #if tokens[4]=='_' else tokens[3]+'$$$'+tokens[4]
+      pos = tokens[3]  #if tokens[4]=='_' else tokens[3]+'$$$'+tokens[4]
       xpos = tokens[4]
       typ = tokens[7]
+      word_dictionary.add(word)
       pos_dictionary.add(pos)
       xpos_dictionary.add(xpos)
       type_dictionary.add(typ)
@@ -108,11 +119,9 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
       li = li + 1
       if dry_run and li == 100:
         break
-
   # collect singletons
   min_occurence = 1
   singletons = set([word for word, count in vocab.items() if count <= min_occurence])
-
   # if a singleton is in pretrained embedding dict, set the count to min_occur + c
   for word in vocab.keys():
     if word in word_embed_dict or word.lower() in word_embed_dict:
@@ -120,7 +129,6 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
 
   vocab_list = _START_VOCAB + sorted(vocab, key=vocab.get, reverse=True)
   vocab_list = [word for word in vocab_list if word in _START_VOCAB or vocab[word] > min_occurence]
-
   max_vocabulary_size = 50000
   if len(vocab_list) > max_vocabulary_size:
     vocab_list = vocab_list[:max_vocabulary_size]
@@ -139,10 +147,8 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
             tokens = line.split('\t')
             if '-' in tokens[0] or '.' in tokens[0]:
               continue
-
             for char in tokens[1]:
               char_dictionary.add(char)
-
             word = DIGIT_RE.sub(b"0", str.encode(tokens[1])).decode()
             pos = tokens[3] # if tokens[4]=='_' else tokens[3]+'$$$'+tokens[4]
             xpos = tokens[4]
@@ -167,6 +173,8 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
     if word in singletons:
       word_dictionary.add_singleton(word_dictionary.get_index(word))
   word_dictionary.save(dict_path)
+  if word_norm_dictionary is not None:
+    word_norm_dictionary.save(dict_path)
   char_dictionary.save(dict_path)
   pos_dictionary.save(dict_path)
   xpos_dictionary.save(dict_path)
@@ -176,12 +184,11 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
   pos_dictionary.close()
   xpos_dictionary.close()
   type_dictionary.close()
+  return word_dictionary, word_norm_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary
 
-  return word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary
 
-
-def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary,
-              max_size=None,
+def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary, max_size=None,
+              word_norm_dictionary=None,
               normalize_digits=True,
               normalization=False, bucket=False,
               symbolic_root=False, symbolic_end=False, dry_run=False,
@@ -189,7 +196,8 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
   """
   Given vocabularies , data_file :
   - creates a  list of bucket
-  - each bucket is a list of unicode encoded worrds, character, pos tags, relations, ... based on DependancyInstances() and Sentence() objects
+  - each bucket is a list of unicode encoded worrds, character, pos tags, relations, ... based on DependancyInstances()
+   and Sentence() objects
   """
   if bucket:
     _buckets = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, -1]
@@ -206,7 +214,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
     print('Reading data from %s' % source_path)
   counter = 0
   reader = CoNLLReader(source_path, word_dictionary, char_dictionary, pos_dictionary, type_dictionary, xpos_dictionary,
-                       None)
+                       lemma_dictionary=None, word_norm_dictionary=word_norm_dictionary)
   inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end,
                         normalization=normalization)
 
@@ -217,7 +225,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
     sent = inst.sentence
     for bucket_id, bucket_size in enumerate(_buckets):
       if inst_size < bucket_size or bucket_id == last_bucket_id:
-        data[bucket_id].append([sent.word_ids, sent.char_id_seqs, sent.char_norm_ids_seq, inst.pos_ids, inst.heads, inst.type_ids,
+        data[bucket_id].append([sent.word_ids, sent.word_norm_ids, sent.char_id_seqs, sent.char_norm_ids_seq, inst.pos_ids, inst.heads, inst.type_ids,
                                 counter, sent.words, sent.raw_lines, inst.xpos_ids])
         max_char_len = max([len(char_seq) for char_seq in sent.char_seqs])
         if normalization:
@@ -232,20 +240,20 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
         if bucket_id == last_bucket_id and _buckets[last_bucket_id] < len(sent.word_ids):
           _buckets[last_bucket_id] = len(sent.word_ids)+2
         break
+
     inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end,
                           normalization=normalization)
     counter += 1
     if inst is None or not (not dry_run or counter < 100):
       printing("Breaking : breaking because inst {} counter<100 {} dry {} ".format(inst is None, counter < 100, dry_run),
                verbose=verbose, verbose_level=3)
-
   reader.close()
 
   return data, {"max_char_length": max_char_length, "max_char_norm_length": max_char_norm_length, "n_sent": counter}, _buckets
 
 
 def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
-                          type_dictionary, max_size=None, normalize_digits=True, symbolic_root=False,
+                          type_dictionary, max_size=None, normalize_digits=True, symbolic_root=False,word_norm_dictionary=None,
                           symbolic_end=False, use_gpu=False, volatile=False, dry_run=False, lattice=None,
                           verbose=0, normalization=False,bucket=True,norm_not_norm=False,
                           add_end_char=0, add_start_char=0):
@@ -255,7 +263,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
   if norm_not_norm:
     assert normalization, "norm_not_norm can't be set without normalisation info"
   data, max_char_length_dic, _buckets = read_data(source_path, word_dictionary, char_dictionary, pos_dictionary,
-                                                  xpos_dictionary, type_dictionary, bucket=bucket,
+                                                  xpos_dictionary, type_dictionary, bucket=bucket,word_norm_dictionary=word_norm_dictionary,
                                                   verbose=verbose, max_size=max_size, normalization=normalization,
                                                   normalize_digits=normalize_digits, symbolic_root=symbolic_root,
                                                   symbolic_end=symbolic_end, dry_run=dry_run)
@@ -286,6 +294,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
     if normalization:
       char_norm_length = min(MAX_CHAR_LENGTH+NUM_CHAR_PAD, max_char_norm_length[bucket_id] + NUM_CHAR_PAD)
       cids_norm = np.empty([bucket_size, bucket_length, char_norm_length], dtype=np.int64)
+      wid_norm_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)
       if norm_not_norm:
         word_norm_not_norm = np.empty([bucket_size, bucket_length], dtype=np.int64)
 
@@ -300,7 +309,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
     for i, inst in enumerate(data[bucket_id]):
       ss[bucket_id] += 1
       ss1[bucket_id] = bucket_length
-      wids, cid_seqs, cid_norm_seqs, pids, hids, tids, orderid, word_raw, lines, xpids = inst
+      wids, wids_norm, cid_seqs, cid_norm_seqs, pids, hids, tids, orderid, word_raw, lines, xpids = inst
       inst_size = len(wids)
       lengths_inputs[i] = inst_size
       order_inputs[i] = orderid
@@ -308,6 +317,10 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       # word ids
       wid_inputs[i, :inst_size] = wids
       wid_inputs[i, inst_size:] = PAD_ID_WORD
+      # we assume word to word mapping for now
+      if normalization:
+        wid_norm_inputs[i, :inst_size] = wids_norm
+        wid_norm_inputs[i, inst_size:] = PAD_ID_WORD
 
       shift, shift_end = 0, 0
 
@@ -375,6 +388,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
 
     words = Variable(torch.from_numpy(wid_inputs), requires_grad=False)
     chars = Variable(torch.from_numpy(cid_inputs), requires_grad=False)
+    word_norm = Variable(torch.from_numpy(wid_norm_inputs), requires_grad=False) if normalization else None
     chars_norm = Variable(torch.from_numpy(cids_norm), requires_grad=False) if normalization else None
     word_norm_not_norm = Variable(torch.from_numpy(word_norm_not_norm), requires_grad=False) if norm_not_norm else None
 
@@ -389,6 +403,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       words = words.cuda()
       chars_norm = chars_norm.cuda() if normalization else None
       word_norm_not_norm = word_norm_not_norm.cuda() if norm_not_norm else None
+      word_norm = word_norm.cuda() if normalization else None
       chars = chars.cuda()
       pos = pos.cuda()
       xpos = xpos.cuda()
@@ -397,7 +412,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       masks = masks.cuda()
       single = single.cuda()
       lengths = lengths.cuda()
-    data_variable.append((words, chars, chars_norm, word_norm_not_norm,pos, xpos, heads, types,
+    data_variable.append((words,word_norm, chars, chars_norm, word_norm_not_norm,pos, xpos, heads, types,
                           masks, single, lengths, order_inputs, raw_word_inputs, raw_lines))
   return data_variable, bucket_sizes, _buckets, max_char_length_dic["n_sent"]
 
@@ -419,7 +434,7 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
   bucket_id = min([i for i in range(len(buckets_scale)) if buckets_scale[i] > random_number])
   bucket_length = _buckets[bucket_id]
 
-  words, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, single, lengths, order_inputs, raw, raw_lines = data_variable[bucket_id]
+  words, word_norm, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, single, lengths, order_inputs, raw, raw_lines = data_variable[bucket_id]
   bucket_size = bucket_sizes[bucket_id]
 
   batch_size = min(bucket_size, batch_size)
@@ -436,10 +451,12 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
     words = words * (ones - single[index] * noise)
   if normalization:
     chars_norm = chars_norm[index]
+    word_norm = word_norm[index]
     if word_norm_not_norm is not None:
+
       word_norm_not_norm = word_norm_not_norm[index]
 
-  return words, chars[index], chars_norm, word_norm_not_norm, pos[index], xpos[index], heads[index], types[index], masks[index], lengths[index], order_inputs[index]
+  return words,word_norm ,chars[index], chars_norm, word_norm_not_norm, pos[index], xpos[index], heads[index], types[index], masks[index], lengths[index], order_inputs[index]
 
 
 def iterate_batch_variable(data, batch_size, unk_replace=0.,
@@ -457,7 +474,7 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
     if bucket_size == 0:
       continue
 
-    words, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, single, lengths, order_ids,  raw_word_inputs, raw_lines = data_variable[bucket_id]
+    words, word_norm,chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, single, lengths, order_ids,  raw_word_inputs, raw_lines = data_variable[bucket_id]
 
     if unk_replace:
       ones = Variable(single.data.new(bucket_size, bucket_length).fill_(1))
@@ -468,6 +485,7 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
       excerpt = slice(start_idx, start_idx + batch_size)
       if normalization:
         chars_norm_ = chars_norm[excerpt] if normalization else None
+        word_norm = word_norm[excerpt] if normalization else None
         if word_norm_not_norm is not None:
           _word_norm_not_norm = word_norm_not_norm[excerpt]
         else:
@@ -477,7 +495,7 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
               " char and {} for char_nor".format(chars[excerpt].size(), chars_norm_.size()))
         continue
 
-      yield words[excerpt], chars[excerpt], chars_norm_, _word_norm_not_norm , \
+      yield words[excerpt], word_norm, chars[excerpt], chars_norm_, _word_norm_not_norm , \
             pos[excerpt], xpos[excerpt], heads[excerpt], \
             types[excerpt],\
             masks[excerpt], lengths[excerpt], order_ids[excerpt], \

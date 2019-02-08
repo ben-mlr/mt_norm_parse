@@ -50,6 +50,7 @@ class LexNormalizer(nn.Module):
                  dense_dim_auxilliary_2=None,
                  stable_decoding_state=False,
                  init_context_decoder=True,
+                 word_decoding=False,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
         character level Sequence to Sequence model for normalization
@@ -84,7 +85,7 @@ class LexNormalizer(nn.Module):
             assert dense_dim_auxilliary_2 == 0 or dense_dim_auxilliary_2 is None, "dense_dim_auxilliary_2 should be 0 or None as dense_dim_auxilliary is "
         # initialize dictionaries
         self.timing = timing
-        self.dict_path, self.word_dictionary, self.char_dictionary, self.pos_dictionary, self.xpos_dictionary, self.type_dictionary = None, None, None, None, None, None
+        self.dict_path, self.word_dictionary, self.word_norm_dictionary,  self.char_dictionary, self.pos_dictionary, self.xpos_dictionary, self.type_dictionary = None, None, None, None, None, None, None
         self.auxilliary_task_norm_not_norm = auxilliary_task_norm_not_norm
         # new model : we create an id , and a saving directory for the model (checkpoints, reporting, arguments)
         if not load:
@@ -123,7 +124,7 @@ class LexNormalizer(nn.Module):
                 assert dict_path is not None, "ERROR dict_path should be specified"
                 assert os.path.isdir(dict_path), "ERROR : dict_path {} does not exist".format(dict_path)
 
-            self.word_dictionary, self.char_dictionary, \
+            self.word_dictionary, self.word_nom_dictionary, self.char_dictionary, \
             self.pos_dictionary, self.xpos_dictionary, self.type_dictionary =\
                 conllu_data.load_dict(dict_path=dict_path,
                                       train_path=train_path,
@@ -132,9 +133,12 @@ class LexNormalizer(nn.Module):
                                       word_embed_dict={},
                                       dry_run=False,
                                       vocab_trim=True,
+                                      word_normalization=word_decoding,
                                       add_start_char=add_start_char,
+
                                       verbose=1)
             voc_size = len(self.char_dictionary.instance2index) + 1
+            word_voc_output_size = len(self.word_nom_dictionary)+1 if self.word_norm_dictionary is not None else None
             printing("char_dictionary {} ", var=([self.char_dictionary.instance2index]), verbose=verbose, verbose_level=1)
             printing("Character vocabulary is {} length", var=(len(self.char_dictionary.instance2index) + 1),
                      verbose=verbose, verbose_level=0)
@@ -262,7 +266,9 @@ class LexNormalizer(nn.Module):
                                    generator=self.generator if not teacher_force else None, shared_context=shared_context,
                                    stable_decoding_state=stable_decoding_state,
                                    verbose=verbose)
-
+        from model.decoder import WordDecoder
+        print(word_voc_output_size, "word_voc_output_size")
+        self.word_decoder = WordDecoder(voc_size=word_voc_output_size, input_dim=hidden_size_decoder) if word_decoding else None
         self.verbose = verbose
         # bridge between encoder hidden representation and decoder
 
@@ -293,19 +299,26 @@ class LexNormalizer(nn.Module):
         #h = self.layer_norm(h) if self.layer_norm is not None else h
         context = self.dropout_bridge(context)
         bridge, start = get_timing(start)
+
         printing("TYPE  encoder {} is cuda ", var=context.is_cuda, verbose=0, verbose_level=4)
         printing("DECODER hidden state after bridge size {}", var=[context.size()], verbose=0, verbose_level=3)
+
         norm_not_norm_hidden = self.normalize_not_normalize(context) if self.auxilliary_task_norm_not_norm else None
+
         if self.auxilliary_task_norm_not_norm:
             printing("DECODER hidden state after norm_not_norm_hidden size {}", var=[norm_not_norm_hidden.size()],
                      verbose=0, verbose_level=4)
+
         output, attention_weight_all = self.decoder.forward(output_seq, context, output_word_len,
                                                             word_src_sizes=word_src_sizes,
                                                             char_seq_hidden_encoder=char_seq_hidden_encoder,
                                                             proportion_pred_train=proportion_pred_train,
                                                             sent_len_max_source=sent_len_max_source)
 
+        word_pred_state = self.word_decoder.forward(context) if self.word_decoder is not None else None
+
         target_encoder, start = get_timing(start)
+        pdb.set_trace()
         printing("TYPE  decoder {} is cuda ", var=output.is_cuda,
                  verbose=0, verbose_level=4)
         # output_score = nn.ReLU()(self.output_predictor(h_out))
@@ -318,7 +331,7 @@ class LexNormalizer(nn.Module):
                 [("source_encoder", source_encoder), ("target_encoder", target_encoder), ("bridge", bridge)])
             print("time report {}".format(time_report))
 
-        return output, norm_not_norm_hidden, attention_weight_all
+        return output, word_pred_state, norm_not_norm_hidden, attention_weight_all
 
     @staticmethod
     def save(dir, model, info_checkpoint, suffix_name="",verbose=0):

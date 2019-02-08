@@ -9,13 +9,15 @@ import pdb
 
 class CoNLLReader(object):
 
-  def __init__(self, file_path, word_dictionary, char_dictionary, pos_dictionary, type_dictionary, xpos_dictionary,
-               lemma_dictionary):
+  def __init__(self, file_path, word_dictionary,
+               char_dictionary, pos_dictionary, type_dictionary, xpos_dictionary,
+               lemma_dictionary, word_norm_dictionary=None):
     self.__source_file = codecs.open(file_path, 'r', 'utf-8', errors='ignore')
     self.__file_path = file_path
     self.__word_dictionary = word_dictionary
     self.__char_dictionary = char_dictionary
     self.__lemma_dictionary = lemma_dictionary
+    self.__word_norm_dictionary = word_norm_dictionary
 
     self.__pos_dictionary = pos_dictionary
     self.__xpos_dictionary = xpos_dictionary
@@ -64,7 +66,9 @@ class CoNLLReader(object):
     type_ids = []
     heads = []
 
-    norm_ids = []
+    norm_words = []
+    norm_word_ids = []
+
     char_norm_id_seqs = []
     char_norm_str_seq = []
 
@@ -92,10 +96,11 @@ class CoNLLReader(object):
       if len(tokens)<10:
         sys.stderr.write("Sentence broken for unkwown reasons \n".format(lines))
         open("/scratch/bemuller/parsing/sosweet/processing/logs/catching_errors.txt", "a").write("Line broken {} because of tokens "
-                                                                                                 "{} from {} file \n ".format(lines, tokens,self.__file_path))
+                                                                                              "{} from {} file \n ".format(lines, tokens,self.__file_path))
         continue
       n_exception = 0
       if normalization:
+        # includes sequence level and word level
         match = re.match("^Norm=([^|]+)|.+", tokens[9])
         try:
           assert match.group(1) is not None, " ERROR : not normalization found for token {} ".format(tokens)
@@ -108,9 +113,13 @@ class CoNLLReader(object):
           else:
             print("Failed to handle exception with | ")
             raise(Exception)
+
+
         normalized_token = match.group(1)
-        normalized_token_id = self.__word_dictionary.get_index(normalized_token)
-        norm_ids.append(normalized_token_id )
+        # extracting normalized words as sequence of characters as string and ids, string and ids
+        normalized_token_id = self.__word_norm_dictionary.get_index(normalized_token) if self.__word_norm_dictionary is not None else self.__word_dictionary.get_index(normalized_token)
+        norm_words.append(normalized_token)
+        norm_word_ids.append(normalized_token_id)
         char_norm_ids = []
         char_norm_str = []
 
@@ -131,8 +140,6 @@ class CoNLLReader(object):
                                          verbose_level=6, verbose=verbose)
       chars = []
       char_ids = []
-      # sys.stderr.write("DEBUG --> tokens ERROR {} \n".format(tokens))
-      # sys.stderr.write("DEBUG --> lines ERROR {} \n".format(lines))
 
       for char in tokens[1]:
         chars.append(char)
@@ -144,24 +151,19 @@ class CoNLLReader(object):
       char_seqs.append(chars)
       char_id_seqs.append(char_ids)
       #pdb.set_trace()
-
       #sys.stderr.write("CHAR FILLED \n")
-
       words.append(tokens[1])
       lemmas.append(tokens[2])
       #sys.stderr.write("LEMMAS  FILLED \n")
-
       word = DIGIT_RE.sub(b"0", str.encode(tokens[1])).decode()
       word_ids.append(self.__word_dictionary.get_index(word))
       #lemma_ids.append(self.__lemma_dictionary.get_index(tokens[2]))
-
       pos = tokens[3]# if tokens[4]=='_' else tokens[3]+'$$$'+tokens[4]
       xpos = tokens[4]
       postags.append(pos)
       xpostags.append(xpos)
       pos_ids.append(self.__pos_dictionary.get_index(pos))
       xpos_ids.append(self.__xpos_dictionary.get_index(xpos))
-
       head = tokens[6]
       type = tokens[7]
       types.append(type)
@@ -178,8 +180,13 @@ class CoNLLReader(object):
       types.append(END_TYPE)
       type_ids.append(self.__type_dictionary.get_index(END_TYPE))
       heads.append(0)
-    return DependencyInstance(Sentence(words, word_ids, char_seqs, char_id_seqs, [lines, raw_text],
-                                       char_norm_ids_seq=char_norm_id_seqs, char_norm_seq=char_norm_str_seq),
+
+    return DependencyInstance(Sentence(words, word_ids, char_seqs,
+                                       char_id_seqs, [lines, raw_text],
+                                       word_norm=norm_words,
+                                       word_norm_ids=norm_word_ids,
+                                       char_norm_ids_seq=char_norm_id_seqs,
+                                       char_norm_seq=char_norm_str_seq),
                               postags, pos_ids, xpostags, xpos_ids, lemmas, lemma_ids, heads, types, type_ids)
 
 # TODO : add end begin symbol both for character sequence and normalized character sequence

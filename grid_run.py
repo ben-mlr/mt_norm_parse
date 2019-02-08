@@ -60,6 +60,8 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
     stable_decoding_state = args.get("stable_decoding_state", False)
     init_context_decoder = args.get("init_context_decoder", True)
 
+    word_decoding = args.get("word_decoding", False)
+
     n_epochs = 1 if warmup else n_epochs
 
     if warmup:
@@ -96,6 +98,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                             bucketing=bucketing_train, weight_binary_loss=weight_binary_loss,
                             teacher_force=teacher_force,
                             clipping=clipping,
+                            word_decoding=word_decoding,
                             stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                             checkpointing=True)
 
@@ -261,18 +264,18 @@ if __name__ == "__main__":
           labels = []
           n_model = 0
           for batch_size in [25]:
-            for scale in [2]:
+            for scale in [3, 2]:
               for clipping in [1]:
                 for dir_word_encoder in [2]:
-                    for teacher_force in [True]:
+                    for teacher_force in [False, True]:
                       for char_src_attention in [True]:
                         for auxilliary_task_norm_not_norm in [False, True]:
-                            for shared_context in ["all", "sent", "word"]:
+                            for shared_context in ["all"]:
                               if auxilliary_task_norm_not_norm:
-                                dense_dim_auxilliary, dense_dim_auxilliary_2 = 100, 100
+                                dense_dim_auxilliary, dense_dim_auxilliary_2 = 200, 100
                               else:
                                 dense_dim_auxilliary, dense_dim_auxilliary_2  = 0,0
-                              for stable_decoding_state in [True]:
+                              for stable_decoding_state in [False]:
                                 param = params_strong.copy()
                                 param["char_src_attention"] = char_src_attention
                                 param["hidden_size_encoder"] = int(param["hidden_size_encoder"]*scale)
@@ -298,10 +301,12 @@ if __name__ == "__main__":
                                 param["init_context_decoder"] = not param["stable_decoding_state"]
 
                                 params.append(param)
-                                labels.append("step_bysteppassing-with_att-dir_2-X-context_{}-stable_decoding_state-init_context_decoder_{}".format(shared_context, param["stable_decoding_state"],param["init_context_decoder"] ))
-          print("GRID_INFO= auxilliary_task_norm_not_norm-dense_dim auxilliary_task_norm_not_norm-dense_dim_2 n_trainable_parameters")
+                                labels.append("teacher_force_2-big-teacher-with_att-dir_2-X-context_{}-stable_decod-init_con_{}-teacher_forceprop10_{}".format(shared_context,\
+                                              param["stable_decoding_state"],param["init_context_decoder"],teacher_force))
+          print("GRID_INFO= auxilliary_task_norm_not_norm shared_context char_src_attention stable_decoding_state")
 
       # only for cloud run :
+      warmup = True
       if platform != "darwin":
           printing("ENV : running not from os x assuming we are in command shell run", verbose=0, verbose_level=0)
           parser = argparse.ArgumentParser()
@@ -309,10 +314,11 @@ if __name__ == "__main__":
           args = parser.parse_args()
           test_before_run = args.test_before_run
           print("GRID : test_before_run set to {} ".format(test_before_run))
+          warmup = False
       else:
           test_before_run = False
       
-      warmup = True
+      
       RUN_ID = str(uuid4())[0:5]
       LABEL_GRID = "ATT" if not warmup else "WARMUP-unrolling-False"
       LABEL_GRID = "test_before_run-"+LABEL_GRID if test_before_run else LABEL_GRID
@@ -334,7 +340,7 @@ if __name__ == "__main__":
           if warmup:
             param = {"hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10, "dropout_sent_encoder": 0., "drop_out_word_encoder": 0., "dropout_word_decoder": 0.,
                      "drop_out_sent_encoder_out": 0, "drop_out_word_encoder_out": 0,
-                     "dir_word_encoder": 1, "n_layers_word_encoder": 1, "dir_sent_encoder": 1, "word_recurrent_cell_decoder": "LSTM",
+                     "dir_word_encoder": 2, "n_layers_word_encoder": 1, "dir_sent_encoder": 1, "word_recurrent_cell_decoder": "LSTM",
                      "word_recurrent_cell_encoder": "LSTM", "hidden_size_sent_encoder": 20, "hidden_size_decoder": 50, "batch_size": 10
                      }
             param["batch_size"] = 2
@@ -346,15 +352,16 @@ if __name__ == "__main__":
             param["shared_context"] = "all"
             param["dense_dim_auxilliary"] = 0
             param["clipping"] = None
-            param["teacher_force"] = True
+            param["teacher_force"] = False
             param["dense_dim_auxilliary_2"] = 0
             param["stable_decoding_state"] = True
             param["init_context_decoder"] = False
+            param["word_decoding"] = False
 
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
-                                                  test_path=TEST,
+                                                  test_path=DEMO,
                                                   verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,
@@ -372,7 +379,6 @@ if __name__ == "__main__":
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("GRID : Log RUN is : {} to see model list ".format(run_dir))
           print("GRID RUN : DONE MODEL {} with param {} ".format(model_id_pref, param))
-
-          if warmup :
+          if warmup:
             break
 #oarsub -q gpu -l /core=2,walltime=48:00:00  -p "host='gpu004'" -O ./logs/%jobid%-job.stdout -E ./logs/%jobid%-job.stderr ./train/train_mt_norm.sh 

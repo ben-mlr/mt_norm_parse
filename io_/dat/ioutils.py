@@ -101,7 +101,9 @@ def getOOVWords(word_dictionary, test_path):
 
 
 class Sentence(object):
-  def __init__(self, words, word_ids, char_seqs, char_id_seqs, lines, char_norm_seq=None, char_norm_ids_seq=None):
+  def __init__(self, words, word_ids, char_seqs, char_id_seqs, lines,
+               word_norm=None, word_norm_ids=None,
+               char_norm_seq=None, char_norm_ids_seq=None):
     self.words = words
     self.word_ids = word_ids
     self.char_seqs = char_seqs
@@ -109,9 +111,12 @@ class Sentence(object):
     self.raw_lines = lines
     self.char_norm_seq = char_norm_seq
     self.char_norm_ids_seq = char_norm_ids_seq
+    self.word_norm = word_norm
+    self.word_norm_ids = word_norm_ids
 
   def length(self):
     return len(self.words)
+
 
 class DependencyInstance(object):
   def __init__(self, sentence, postags, pos_ids, xpostags, xpos_ids, lemmas, lemma_ids, heads, types, type_ids):
