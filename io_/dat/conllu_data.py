@@ -35,7 +35,9 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None, word_em
     printing("Creating dictionary in {} ".format(dict_path), verbose=verbose, verbose_level=1)
     word_dictionary, word_norm_dictionary, char_dictionary, pos_dictionary, \
     xpos_dictionary, type_dictionary = create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict, dry_run,
-                                                   vocab_trim=False, add_start_char=add_start_char, word_normalization=word_normalization,)
+                                                   vocab_trim=False, add_start_char=add_start_char,
+                                                   word_normalization=word_normalization)
+    pdb.set_trace()
   else:
     # ??
     assert train_path is None and dev_path is None and test_path is None and add_start_char is None
@@ -110,6 +112,8 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
       pos_dictionary.add(pos)
       xpos_dictionary.add(xpos)
       type_dictionary.add(typ)
+      #if word_normalization:
+      #  word_norm_dictionary.add()
 
       if word in vocab:
         vocab[word] += 1

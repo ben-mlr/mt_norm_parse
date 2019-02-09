@@ -85,7 +85,7 @@ class LexNormalizer(nn.Module):
             assert dense_dim_auxilliary_2 == 0 or dense_dim_auxilliary_2 is None, "dense_dim_auxilliary_2 should be 0 or None as dense_dim_auxilliary is "
         # initialize dictionaries
         self.timing = timing
-        self.dict_path, self.word_dictionary, self.word_norm_dictionary,  self.char_dictionary, self.pos_dictionary, self.xpos_dictionary, self.type_dictionary = None, None, None, None, None, None, None
+        self.dict_path, self.word_dictionary, self.word_nom_dictionary,  self.char_dictionary, self.pos_dictionary, self.xpos_dictionary, self.type_dictionary = None, None, None, None, None, None, None
         self.auxilliary_task_norm_not_norm = auxilliary_task_norm_not_norm
         # new model : we create an id , and a saving directory for the model (checkpoints, reporting, arguments)
         if not load:
@@ -127,18 +127,14 @@ class LexNormalizer(nn.Module):
             self.word_dictionary, self.word_nom_dictionary, self.char_dictionary, \
             self.pos_dictionary, self.xpos_dictionary, self.type_dictionary =\
                 conllu_data.load_dict(dict_path=dict_path,
-                                      train_path=train_path,
-                                      dev_path=dev_path,
-                                      test_path=None,
-                                      word_embed_dict={},
-                                      dry_run=False,
-                                      vocab_trim=True,
-                                      word_normalization=word_decoding,
-                                      add_start_char=add_start_char,
-
-                                      verbose=1)
+                                      train_path=train_path, dev_path=dev_path,
+                                      test_path=None, word_embed_dict={}, dry_run=False, vocab_trim=True,
+                                      word_normalization=word_decoding, add_start_char=add_start_char, verbose=1)
             voc_size = len(self.char_dictionary.instance2index) + 1
-            word_voc_output_size = len(self.word_nom_dictionary)+1 if self.word_norm_dictionary is not None else None
+            pdb.set_trace()
+            if word_decoding:
+                assert self.word_nom_dictionary is not None, "ERROR self.word_nom_dictionary should not be None"
+            word_voc_output_size = len(self.word_nom_dictionary.instance2index)+1 if self.word_nom_dictionary is not None else None
             printing("char_dictionary {} ", var=([self.char_dictionary.instance2index]), verbose=verbose, verbose_level=1)
             printing("Character vocabulary is {} length", var=(len(self.char_dictionary.instance2index) + 1),
                      verbose=verbose, verbose_level=0)
@@ -314,11 +310,9 @@ class LexNormalizer(nn.Module):
                                                             char_seq_hidden_encoder=char_seq_hidden_encoder,
                                                             proportion_pred_train=proportion_pred_train,
                                                             sent_len_max_source=sent_len_max_source)
-
-        word_pred_state = self.word_decoder.forward(context) if self.word_decoder is not None else None
-
-        target_encoder, start = get_timing(start)
         pdb.set_trace()
+        word_pred_state = self.word_decoder.forward(context) if self.word_decoder is not None else None
+        target_encoder, start = get_timing(start)
         printing("TYPE  decoder {} is cuda ", var=output.is_cuda,
                  verbose=0, verbose_level=4)
         # output_score = nn.ReLU()(self.output_predictor(h_out))

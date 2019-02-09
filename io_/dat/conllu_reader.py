@@ -7,6 +7,22 @@ import re
 import pdb
 
 
+def get_normalized_token(norm_field, n_exception):
+  match = re.match("^Norm=([^|]+)|.+", norm_field)
+  try:
+    assert match.group(1) is not None, " ERROR : not normalization found for token {} ".format(tokens)
+  except:
+    match_double_bar = re.match("^Norm=([|]+)|.+", norm_field)
+    if match_double_bar.group(1) is not None:
+      match = match_double_bar
+      n_exception += 1
+      printing("Exception handled we match with {}".format(match_double_bar.group(1)), verbose=verbose, verbose_level=2)
+    else:
+      print("Failed to handle exception with | ")
+      raise (Exception)
+  normalized_token = match.group(1)
+  return normalized_token, n_exception
+
 class CoNLLReader(object):
 
   def __init__(self, file_path, word_dictionary,
@@ -101,21 +117,7 @@ class CoNLLReader(object):
       n_exception = 0
       if normalization:
         # includes sequence level and word level
-        match = re.match("^Norm=([^|]+)|.+", tokens[9])
-        try:
-          assert match.group(1) is not None, " ERROR : not normalization found for token {} ".format(tokens)
-        except:
-          match_double_bar = re.match("^Norm=([|]+)|.+", tokens[9])
-          if match_double_bar.group(1) is not None:
-            match = match_double_bar
-            n_exception+=1
-            printing("Exception handled we match with {}".format(match_double_bar.group(1)), verbose=verbose, verbose_level=2)
-          else:
-            print("Failed to handle exception with | ")
-            raise(Exception)
-
-
-        normalized_token = match.group(1)
+        normalized_token, n_exception = get_normalized_token(norm_field=tokens[9], n_exception=n_exception)
         # extracting normalized words as sequence of characters as string and ids, string and ids
         normalized_token_id = self.__word_norm_dictionary.get_index(normalized_token) if self.__word_norm_dictionary is not None else self.__word_dictionary.get_index(normalized_token)
         norm_words.append(normalized_token)

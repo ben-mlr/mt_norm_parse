@@ -111,9 +111,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                               add_start_char=add_start_char, verbose=1)
 
         voc_size = len(char_dictionary.instance2index)+1
-        printing("DICTIONARY ; character vocabulary is len {} : {} ", var=str(len(char_dictionary.instance2index)+1,
-                                                                              char_dictionary.instance2index),
-         verbose=verbose, verbose_level=0)
+        printing("DICTIONARY ; character vocabulary is len {} : {} ", var=str(len(char_dictionary.instance2index)+1, char_dictionary.instance2index), verbose=verbose, verbose_level=0)
         _train_path, _dev_path, _add_start_char = None, None, None
     else:
         voc_size = None

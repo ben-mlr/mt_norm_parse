@@ -226,7 +226,7 @@ class CharDecoder(nn.Module):
                     # given the prediction we get the next character embedding
                     emb_char = self.char_embedding_decoder(pred)
                     pdb.set_trace()
-                # no more pack sequence
+                # no more pack sequence&
                 # TODO : should shorted sequence output and state by setting them to 0 using step_char and char_vecs_sizes_target (but it should be fine with the loss outpu)
                 #c_i = state_i[1] if isinstance(self.seq_decoder, nn.LSTM) else None
                 h_i = state_i[0] if isinstance(self.seq_decoder, nn.LSTM) else h_i
