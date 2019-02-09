@@ -75,7 +75,6 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
                 assert len(gold_sent) == len(pred_sent), "len : pred {}, gold {} - pred {} gold {} " \
                                                          "(normalized_mode is {})".format(len(pred_sent), len(gold_sent), pred_sent, gold_sent, normalized_mode)
             except Exception as e:
-                pdb.set_trace()
                 print("Assertion failed")
                 print(e)
             sent_score = []
@@ -95,13 +94,11 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
 
         normalized_sent_error_out_of_overall_sent_len = [np.sum(scores_sent)/len(scores_sent) if len(scores_sent) else 0  for scores_sent in sent_score_ls] # get_sent_lengths)]
         mean_score_per_sent = np.sum(normalized_sent_error_out_of_overall_sent_len)
-        pdb.set_trace()
 
         if normalized_mode == "all":
             count_pred_number = len(scores)
         else:
             cond = False if normalized_mode == "NEED_NORM" else True
-            pdb.set_trace()
             normalization_ls_flat = np.array([a for ls in normalization_prediction_by_seq  for a in ls])
             count_pred_number = len(normalization_ls_flat[normalization_ls_flat == cond])
 

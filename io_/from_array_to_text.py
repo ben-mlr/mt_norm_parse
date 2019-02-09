@@ -1,5 +1,5 @@
 import numpy as np
-from io_.dat.constants import END_CHAR, PAD_CHAR, CHAR_START
+from io_.dat.constants import END_CHAR, PAD_CHAR, CHAR_START, PAD_ID_WORD
 import pdb
 
 
@@ -28,8 +28,8 @@ def output_text(one_code_prediction, char_dic, start_symbol=CHAR_START ,
     return np.array(decoding), str_decoded
 
 
-def output_text_(one_code_prediction, char_dic, start_symbol=CHAR_START,
-                 output_str=False,
+def output_text_(one_code_prediction, char_dic=None, start_symbol=CHAR_START,
+                 output_str=False, word_dic=None, word_decode=False, char_decode=True,
                  stop_symbol=END_CHAR, single_sequence=True, last=False, debug=False):
 
     decoding = []
@@ -45,27 +45,34 @@ def output_text_(one_code_prediction, char_dic, start_symbol=CHAR_START,
             word_to_print = ""
             word_all_sequence = []
             break_word_to_print = False
-            for i_char, char in enumerate(range(one_code_prediction.size(2))):
-                char_decoded = char_dic.get_instance(one_code_prediction[batch, word_i, char])
-                # if not char_decoded == stop_symbol and not char_decoded == start_symbol:
-                empty_decoded_word = False
-                # We break decoding when we reach padding symbol or stop symnol
-                if (char_decoded == stop_symbol) or (char_decoded == PAD_CHAR):
-                    # WARNING : we assume always add_start = 1 ! we also :
-                    if i_char == 1 and (char_decoded == stop_symbol or char_decoded == PAD_CHAR):
-                        empty_decoded_word = True
+            if char_decode:
+                for i_char, char in enumerate(range(one_code_prediction.size(2))):
+                    char_decoded = char_dic.get_instance(one_code_prediction[batch, word_i, char])
+                    # if not char_decoded == stop_symbol and not char_decoded == start_symbol:
+                    empty_decoded_word = False
+                    # We break decoding when we reach padding symbol or stop symnol
+                    if (char_decoded == stop_symbol) or (char_decoded == PAD_CHAR):
+                        # WARNING : we assume always add_start = 1 ! we also :
+                        if i_char == 1 and (char_decoded == stop_symbol or char_decoded == PAD_CHAR):
+                            empty_decoded_word = True
 
-                    # we break if only one padded symbol witout adding anything
-                    # to word to print : only one PADDED symbol to the array
-                    break_word_to_print = True
-                    #break
-                # we append word_to_print only starting the second decoding (we assume _START is here)
-                if not (char_decoded == start_symbol and i_char == 0) and not break_word_to_print:
-                    word_to_print += char_decoded
+                        # we break if only one padded symbol witout adding anything
+                        # to word to print : only one PADDED symbol to the array
+                        break_word_to_print = True
+                        #break
+                    # we append word_to_print only starting the second decoding (we assume _START is here)
+                    if not (char_decoded == start_symbol and i_char == 0) and not break_word_to_print:
+                        word_to_print += char_decoded
 
-                if not break_word_to_print:
-                    word.append(char_decoded)
-                word_all_sequence.append(char_decoded)
+                    if not break_word_to_print:
+                        word.append(char_decoded)
+                    word_all_sequence.append(char_decoded)
+            if word_decode:
+                word_to_print = word_dic.get_instance(one_code_prediction[batch, word_i]) if one_code_prediction[batch, word_i]!= PAD_ID_WORD  else ""
+                # TODO : add way to remove padding
+                empty_decoded_word = True
+                word_all_sequence.append(word_to_print)
+                word = word_to_print
             if len(word) > 0:
                 #print("WARNING : from_array_to_text.py --> adding filter !! ")
                 sent.append(word)

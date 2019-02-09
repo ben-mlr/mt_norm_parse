@@ -103,7 +103,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                             checkpointing=True)
 
     model_dir = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder")
-    if test_path is not None and False:
+    if test_path is not None :
       dict_path = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder", "dictionaries")
       printing("GRID : START EVALUATION FINAL ", verbose_level=0, verbose=verbose)
       eval_data_paths = [train_path, dev_path, test_path]
@@ -122,8 +122,10 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                          model_specific_dictionary=True, get_batch_mode_evaluate=get_batch_mode_evaluate, bucket=True,
                          compute_mean_score_per_sent=compute_mean_score_per_sent,
                          batch_size=50, debug=debug,
+                         word_decoding=word_decoding, char_decoding=char_decoding,
                          dir_report=model_dir, verbose=1)
         print("GRID : END EVAL", time.time()-start_eval)
+
     return model_full_name, model_dir
 
 #4538
@@ -375,7 +377,7 @@ if __name__ == "__main__":
                                                                        "norm_not_norm-Recall",
                                                                        "norm_not_norm-accuracy"],
                                                   warmup=warmup, args=param, use_gpu=None, n_epochs=epochs,
-                                                  debug=False)
+                                                  debug=True)
           run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("GRID : Log RUN is : {} to see model list ".format(run_dir))

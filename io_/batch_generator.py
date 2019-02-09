@@ -43,12 +43,12 @@ class MaskBatch(object):
         get_len_input, start = get_timing(start)
         printing("BATCH : SOURCE true dim size {} ", var=(self.input_seq.size()), verbose=verbose, verbose_level=3)
         printing("BATCH : SOURCE input_seq_len  {} ", var=(self.input_seq_len), verbose=verbose, verbose_level=5)
-        printing("BATCH : SOURCE input_seq_len size {} ", var=(self.input_seq_len.size()), verbose=verbose, verbose_level=5)
+        printing("BATCH : SOURCE input_seq_len size {} ", var=(self.input_seq_len.size()), verbose=verbose,
+                 verbose_level=5)
         self.output_seq = output_seq
         if output_seq is not None:
             ##- would be last dim also !
             self.output_seq_x = output_seq[:, :, :-1]
-
             zero_last_output, start = get_timing(start)
             ##- ? what unsequeeze
             _output_mask_x = (self.output_seq_x != pad).unsqueeze(-2)

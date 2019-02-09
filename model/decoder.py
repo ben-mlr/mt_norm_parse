@@ -115,7 +115,8 @@ class CharDecoder(nn.Module):
             # compute product attention_weights with  char_seq_hidden_encoder (updated for each character)
             # this provide a new character context that we concatanate
             #  with char_vec_current_batch + possibly conditioning_other
-            #  as they do https://github.com/spro/practical-pytorch/blob/master/seq2seq-translation/seq2seq-translation-batched.ipynb
+            #  as they do
+            ##https://github.com/spro/practical-pytorch/blob/master/seq2seq-translation/seq2seq-translation-batched.ipynb
             # the context is goes as input as the character embedding : we add the tranditional conditioning_other
         else:
             attention_weights = None
@@ -154,7 +155,6 @@ class CharDecoder(nn.Module):
                  var=[output_word_len.size()], verbose=self.verbose, verbose_level=3)
         # same as target sequence and source ..
         output_word_len[output_word_len == 0] = 1
-        # pdb.set_trace()
         zero_last, start = get_timing(start)
         packed_char_vecs_output = pack_padded_sequence(char_vecs, output_word_len.squeeze().cpu().numpy(), batch_first=True)
         pack_time, start = get_timing(start)

@@ -133,7 +133,7 @@ class LexNormalizer(nn.Module):
                                       test_path=None, word_embed_dict={}, dry_run=False, vocab_trim=True,
                                       word_normalization=word_decoding, add_start_char=add_start_char, verbose=1)
             voc_size = len(self.char_dictionary.instance2index) + 1
-            pdb.set_trace()
+
             if word_decoding:
                 assert self.word_nom_dictionary is not None, "ERROR self.word_nom_dictionary should not be None"
             word_voc_output_size = len(self.word_nom_dictionary.instance2index)+1 if self.word_nom_dictionary is not None else None
@@ -279,11 +279,14 @@ class LexNormalizer(nn.Module):
             else:
                 self.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
 
-    def forward(self, input_seq, output_seq, input_word_len, output_word_len, proportion_pred_train=None):
+    def forward(self, input_seq, input_word_len, output_word_len=None, output_seq=None,proportion_pred_train=None):
         # [batch, seq_len ] , batch of sequences of indexes (that corresponds to character 1-hot encoded)
         # char_vecs_input = self.char_embedding(input_seq)
         # [batch, seq_len, input_dim] n batch of sequences of embedded character
         timing = self.timing
+        if self.decoder:
+            assert output_seq is not None and output_word_len is not None, "ERROR : output_seq is None"
+
         printing("TYPE  input_seq {} input_word_len ", var=(input_seq.is_cuda, input_word_len.is_cuda),
                  verbose=0, verbose_level=4)
         # input_seq : [batch, max sentence length, max word length] : batch of sentences
@@ -313,7 +316,7 @@ class LexNormalizer(nn.Module):
                                                             char_seq_hidden_encoder=char_seq_hidden_encoder,
                                                             proportion_pred_train=proportion_pred_train,
                                                             sent_len_max_source=sent_len_max_source) if self.decoder is not None else None, None
-        pdb.set_trace()
+
         word_pred_state = self.word_decoder.forward(context) if self.word_decoder is not None else None
         target_encoder, start = get_timing(start)
         printing("TYPE  decoder {} is cuda ", var=output.is_cuda if output is not None else None,

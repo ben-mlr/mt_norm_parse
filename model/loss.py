@@ -96,7 +96,7 @@ class LossCompute:
         loss_details["overall_loss"] = multi_task_loss
         loss_details["loss_seq_prediction"] = loss
 
-        if loss_binary is not None :
+        if loss_binary is not None:
             printing("LOSS BINARY loss size {} ", var=(str(loss_binary.size())), verbose=self.verbose, verbose_level=3)
             printing("TYPE  loss_binary {} is cuda ", var=(loss_binary.is_cuda), verbose=0, verbose_level=5)
 
@@ -115,7 +115,6 @@ class LossCompute:
             loss_backwrd_time, start = get_timing(start)
             if clipping is not None:
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), clipping)
-
             gradient_clipping, start = get_timing(start)
             printing("Optimizing", self.verbose, verbose_level=3)
             self.opt.step()
