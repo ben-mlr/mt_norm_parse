@@ -42,14 +42,13 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
     for i, (batch,_) in enumerate(data_iter):
         batch_time_, batch_time_start = get_timing(batch_time_start)
         printing("Starting {} batch out of {} batches", var=(i+1, n_batches), verbose= verbose, verbose_level=2)
-
         if not empty_run:
             start = time.time() if timing else None
-            out, out_word , norm_not_norm_hidden, attention = model.forward(input_seq=batch.input_seq,
-                                                                 output_seq=batch.output_seq_x,
-                                                                 input_word_len=batch.input_seq_len,
-                                                                 output_word_len=batch.output_seq_len,
-                                                                 proportion_pred_train=proportion_pred_train)
+            out, out_word, norm_not_norm_hidden, attention = model.forward(input_seq=batch.input_seq,
+                                                                           output_seq=batch.output_seq_x,
+                                                                           input_word_len=batch.input_seq_len,
+                                                                           output_word_len=batch.output_seq_len,
+                                                                           proportion_pred_train=proportion_pred_train)
             forward_time, start = get_timing(start)
         else:
             out = 0, _
@@ -60,6 +59,8 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
                                                       x_norm_not_norm=norm_not_norm_hidden,
                                                       y_norm_not_norm=batch.output_norm_not_norm,
                                                       clipping=clipping,
+                                                      y_word=batch.output_word,
+                                                      x_word_pred=out_word,
                                                       step=i+step)#, batch.ntokens)
 
             loss_time, start = get_timing(start)

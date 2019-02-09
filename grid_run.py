@@ -41,7 +41,6 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
     dense_dim_auxilliary = args.get("dense_dim_auxilliary", None)
     dense_dim_auxilliary_2 = args.get("dense_dim_auxilliary_2", None)
 
-
     drop_out_char_embedding_decoder = args.get("drop_out_char_embedding_decoder", 0)
     unrolling_word= args.get("unrolling_word", False)
 
@@ -61,6 +60,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
     init_context_decoder = args.get("init_context_decoder", True)
 
     word_decoding = args.get("word_decoding", False)
+    char_decoding = args.get("char_decoding",True)
 
     n_epochs = 1 if warmup else n_epochs
 
@@ -98,12 +98,12 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                             bucketing=bucketing_train, weight_binary_loss=weight_binary_loss,
                             teacher_force=teacher_force,
                             clipping=clipping,
-                            word_decoding=word_decoding,
+                            word_decoding=word_decoding, char_decoding=char_decoding,
                             stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                             checkpointing=True)
 
     model_dir = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder")
-    if test_path is not None:
+    if test_path is not None and False:
       dict_path = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder", "dictionaries")
       printing("GRID : START EVALUATION FINAL ", verbose_level=0, verbose=verbose)
       eval_data_paths = [train_path, dev_path, test_path]
@@ -121,9 +121,9 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                          normalization=True, print_raw=print_raw,
                          model_specific_dictionary=True, get_batch_mode_evaluate=get_batch_mode_evaluate, bucket=True,
                          compute_mean_score_per_sent=compute_mean_score_per_sent,
-                         batch_size=50,debug=debug,
+                         batch_size=50, debug=debug,
                          dir_report=model_dir, verbose=1)
-    print("GRID : END EVAL", time.time()-start_eval)
+        print("GRID : END EVAL", time.time()-start_eval)
     return model_full_name, model_dir
 
 #4538
@@ -357,6 +357,7 @@ if __name__ == "__main__":
             param["stable_decoding_state"] = True
             param["init_context_decoder"] = False
             param["word_decoding"] = True
+            param["char_decoding"] = False
 
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
@@ -374,7 +375,7 @@ if __name__ == "__main__":
                                                                        "norm_not_norm-Recall",
                                                                        "norm_not_norm-accuracy"],
                                                   warmup=warmup, args=param, use_gpu=None, n_epochs=epochs,
-                                                  debug=True)
+                                                  debug=False)
           run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("GRID : Log RUN is : {} to see model list ".format(run_dir))

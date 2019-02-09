@@ -51,6 +51,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                                                batch_size=batch_size,
                                                normalization=normalization,
                                                unk_replace=0)
+
             if char.size(0) <= 1:
                 print("WARNING : Skip character ", char)
                 continue 
@@ -99,7 +100,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             printing("Feeding source words {} ", var=[word_display], verbose=_verbose, verbose_level=5)
             printing("TYPE {} char before batch chars_norm {} ", var=(char.is_cuda, chars_norm.is_cuda),
                      verbose=verbose, verbose_level=5)
-            yield MaskBatch(char, chars_norm, output_word=word_norm,output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing, verbose=verbose), order_ids
+            yield MaskBatch(char, chars_norm, output_word=word_norm, output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing, verbose=verbose), order_ids
 
 
 def data_gen_dummy(V, batch, nbatches, sent_len=9, word_len=5, verbose=0, seed=None):

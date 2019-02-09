@@ -5,7 +5,7 @@ from model.generator import Generator
 import matplotlib.pyplot as plt
 import numpy as np
 from io_.info_print import printing
-from io_.dat.constants import PAD_ID_NORM_NOT_NORM
+from io_.dat.constants import PAD_ID_NORM_NOT_NORM, PAD_ID_WORD
 import pdb
 from env.project_variables import LOSS_DETAIL_TEMPLATE
 import time
@@ -18,30 +18,31 @@ class LossCompute:
 
     def __init__(self, generator,
                  auxilliary_task_norm_not_norm=False,
-                 weight_binary_loss=1,
-                 opt=None, pad=1, use_gpu=False, timing=False,
-                 multi_task_mode="all",
-                 writer=None,
-                 ponderation_normalize_loss=1,
-                 model=None,
-                 use="",
-                 verbose=0):
+                 word_decoding=False,
+                 char_decoding=True,
+                 weight_binary_loss=1, opt=None, pad=1, use_gpu=False, timing=False,
+                 multi_task_mode="all", writer=None, ponderation_normalize_loss=1, model=None,
+                 use="", verbose=0):
+
+        assert (word_decoding or char_decoding) and not (word_decoding and char_decoding), \
+            "ERROR : strictly one of the two (word,char) decoding should be True "
         self.generator = generator
         self.multi_task_mode = multi_task_mode
         self.ponderation_normalize_loss = ponderation_normalize_loss
         self.writer = writer
-        self.loss_distance = nn.CrossEntropyLoss(reduce=True, ignore_index=pad)
+        self.loss_distance = nn.CrossEntropyLoss(reduce=True, ignore_index=pad) if char_decoding else None
         printing("LOSS : weight_binary_loss is set to {}", var=(weight_binary_loss), verbose=verbose, verbose_level=2)
-        self.loss_binary = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_NORM_NOT_NORM) if \
-            auxilliary_task_norm_not_norm else None
+        self.loss_binary = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_NORM_NOT_NORM) if auxilliary_task_norm_not_norm else None
+        self.loss_distance_word_level = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_WORD) if word_decoding else None
         self.weight_binary_loss = weight_binary_loss if self.loss_binary is not None else None
         if use_gpu:
             printing("Setting loss_distance to GPU mode", verbose=verbose, verbose_level=3)
             self.loss_distance = self.loss_distance.cuda()
             if self.loss_binary is not None:
                 self.loss_binary = self.loss_binary.cuda()
+            if self.loss_distance_word_level is not None:
+                self.loss_distance_word_level = self.loss_distance_word_level.cuda()
         self.opt = opt
-
         self.loss_details_template = LOSS_DETAIL_TEMPLATE.copy()
         if auxilliary_task_norm_not_norm:
             self.loss_details_template["loss_binary"] = 0
@@ -51,7 +52,10 @@ class LossCompute:
         self.verbose = verbose
         self.timing = timing
 
-    def __call__(self, x, y, x_norm_not_norm=None, y_norm_not_norm=None, clipping=None, step=None):
+    def __call__(self, x, y, x_norm_not_norm=None,
+                 y_norm_not_norm=None,
+                 y_word=None, x_word_pred=None,
+                 clipping=None, step=None):
         if clipping is not None:
 
             assert self.model is not None, "Using clipping requires passing the model in the loss"
@@ -60,25 +64,28 @@ class LossCompute:
             assert x_norm_not_norm is not None and y_norm_not_norm is not None, \
                 "ERROR : auxilliary_task_norm_not_norm was set to True but x_norm_not_norm or" \
                 " x_norm_not_norm was not y_norm_not_norm "
-        printing("LOSS decoding states {} ", var=(x.size()), verbose=self.verbose, verbose_level=3)
+        printing("LOSS decoding states {} ", var=[x.size()] if x is not None else None, verbose=self.verbose, verbose_level=3)
         start = time.time() if self.timing else None
-        x = self.generator(x)
+        x = self.generator(x) if x is not None else None
         generate_time, start = get_timing(start)
         if self.use_gpu:
             printing("LOSS : use gpu is True", self.verbose, verbose_level=3)
-        printing("LOSS input x candidate scores size {} ", var=[x.size()],verbose= self.verbose, verbose_level=4)
-        printing("LOSS input y observations size {} ", var=[y.size()], verbose=self.verbose, verbose_level=4)
-        printing("LOSS input x candidate scores   {} ", var=(x), verbose=self.verbose,verbose_level=5)
-        printing("LOSS input x candidate scores  reshaped {} ", var=(x.view(-1, x.size(-1))),
-                 verbose=self.verbose,verbose_level=5)
-        printing("LOSS input y observations {} reshaped {} ", var=(y, y.contiguous().view(-1)),
-                 verbose=self.verbose, verbose_level=5)
-        # we remove empty words in the gold
-        y = y[:, :x.size(1), :]
+        if x is not None:
+            printing("LOSS input x candidate scores size {} ", var=[x.size()],verbose= self.verbose, verbose_level=4)
+            printing("LOSS input y observations size {} ", var=[y.size()], verbose=self.verbose, verbose_level=4)
+            printing("LOSS input x candidate scores   {} ", var=(x), verbose=self.verbose,verbose_level=5)
+            printing("LOSS input x candidate scores  reshaped {} ", var=(x.view(-1, x.size(-1))),
+                     verbose=self.verbose,verbose_level=5)
+            printing("LOSS input y observations {} reshaped {} ", var=(y, y.contiguous().view(-1)),
+                     verbose=self.verbose, verbose_level=5)
+            # we remove empty words in the gold
+        y = y[:, :x.size(1), :] if x is not None else None
         y_norm_not_norm = y_norm_not_norm[:, :x_norm_not_norm.size(1)] if y_norm_not_norm is not None else None
-        printing("TYPE  y {} is cuda ", var=(y.is_cuda), verbose=0, verbose_level=5)
+        y_word = y_word[:, :x_word_pred.size(1)] if y_word is not None and x_word_pred is not None else None
+        if y is not None:
+            printing("TYPE  y {} is cuda ", var=(y.is_cuda), verbose=0, verbose_level=5)
         reshaping, start = get_timing(start)
-        loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1))
+        loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1)) if self.loss_distance is not None else self.loss_distance_word_level(x_word_pred.contiguous().view(-1, x_word_pred.size(-1)), y_word.contiguous().view(-1))
         loss_distance_time, start = get_timing(start)
         loss_binary = self.loss_binary(x_norm_not_norm.contiguous().view(-1, x_norm_not_norm.size(-1)),
                                        y_norm_not_norm.contiguous().view(-1)) if self.loss_binary is not None else None
@@ -102,15 +109,10 @@ class LossCompute:
                                      "loss-{}-loss_binary-weight_binary_loss".format(self.use): loss_binary.clone().cpu().data.numpy()*self.weight_binary_loss if loss_binary is not None else 0,},
                                     step)
 
-        #printing("LOSS loss size {} ", var=(str(loss.size())), verbose=self.verbose, verbose_level=3)
-        #printing("TYPE  loss {} is cuda ", var=(loss.is_cuda), verbose=0, verbose_level=5)
-        # define loss_distance as --> Cross-entropy
         if self.opt is not None:
             self.opt.zero_grad()
             multi_task_loss.backward()
             loss_backwrd_time, start = get_timing(start)
-            #print(multi_task_loss.grad, multi_task_loss.is_leaf)
-
             if clipping is not None:
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), clipping)
 

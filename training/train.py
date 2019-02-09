@@ -57,7 +57,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           bucketing=True, policy=None, teacher_force=True,
           shared_context="all", clipping=None, extend_n_batch=1,
           stable_decoding_state=False, init_context_decoder=True,
-          word_decoding=False,
+          word_decoding=False, char_decoding=True,
           verbose=1):
 
     if not unrolling_word:
@@ -144,8 +144,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                           hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,
                           model_id_pref=model_id_pref, model_full_name=model_full_name,
                           hidden_size_sent_encoder=hidden_size_sent_encoder,shared_context=shared_context,
-                          unrolling_word=unrolling_word,char_src_attention=char_src_attention,
-                          word_decoding=word_decoding,
+                          unrolling_word=unrolling_word, char_src_attention=char_src_attention,
+                          word_decoding=word_decoding,  char_decoding=char_decoding,
                           stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
 
@@ -228,8 +228,10 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                                                            ponderation_normalize_loss=ponderation_normalize_loss,
                                                                            auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
                                                                            model=model,
-                                                                           writer=writer,use="train",
-                                                                           use_gpu=use_gpu,verbose=verbose,timing=timing),
+                                                                           writer=writer, use="train",
+                                                                           use_gpu=use_gpu, verbose=verbose,
+                                                                           char_decoding=char_decoding, word_decoding=word_decoding,
+                                                                           timing=timing),
                                                                verbose=verbose, i_epoch=epoch,
                                                                multi_task_mode=multi_task_mode,
                                                                n_epochs=n_epochs, timing=timing,
@@ -254,14 +256,15 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
         # TODO : should not evaluate for each epoch : should evalaute every x epoch : check if it decrease and checkpoint
         if (dev_report_loss and (epoch % freq_checkpointing == 0)) or (epoch + 1 == n_epochs):
             printing("EVALUATION : computing loss on dev epoch {}  ",var=epoch, verbose=verbose, verbose_level=1)
-            loss_obj = LossCompute(model.generator, use_gpu=use_gpu,verbose=verbose,
+            loss_obj = LossCompute(model.generator, use_gpu=use_gpu, verbose=verbose,
                                    weight_binary_loss=weight_binary_loss,
                                    ponderation_normalize_loss=ponderation_normalize_loss,
-                                   writer=writer,use="dev",
+                                   writer=writer, use="dev",
+                                   char_decoding=char_decoding, word_decoding=word_decoding,
                                    auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm)
             loss_dev, loss_details_dev, step_dev = run_epoch(batchIter_eval, model, loss_compute=loss_obj,
                                                              i_epoch=epoch, n_epochs=n_epochs,
-                                                             verbose=verbose, timing=timing,step=step_dev,
+                                                             verbose=verbose, timing=timing, step=step_dev,
                                                              log_every_x_batch=100, )
 
             loss_developing.append(loss_dev)
@@ -340,9 +343,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                    verbose_level=1, lr=lr, prefix=model.model_full_name, show=False)
 
             model, _loss_dev, counter_no_deacrease, saved_epoch = \
-                    checkpoint(loss_saved=_loss_dev, loss=loss_dev, model=model,
-                               counter_no_decrease=counter_no_deacrease, saved_epoch=saved_epoch,
-                               model_dir=model.dir_model,
+                    checkpoint(loss_saved=_loss_dev, loss=loss_dev, model=model, counter_no_decrease=counter_no_deacrease,
+                               saved_epoch=saved_epoch, model_dir=model.dir_model,
                                info_checkpoint={"n_epochs": epoch, "batch_size": batch_size,
                                                 "gradient_clipping": clipping,
                                                 "tasks_schedule_policy": policy,

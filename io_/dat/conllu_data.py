@@ -8,7 +8,7 @@ from env.project_variables import SEED_NP, SEED_TORCH
 from .conllu_reader import CoNLLReader
 from .dictionary import Dictionary
 import numpy as np
-
+from io_.dat.conllu_get_normalization import get_normalized_token
 
 np.random.seed(SEED_NP)
 import torch
@@ -37,7 +37,6 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None, word_em
     xpos_dictionary, type_dictionary = create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict, dry_run,
                                                    vocab_trim=False, add_start_char=add_start_char,
                                                    word_normalization=word_normalization)
-    pdb.set_trace()
   else:
     # ??
     assert train_path is None and dev_path is None and test_path is None and add_start_char is None
@@ -50,7 +49,6 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None, word_em
     type_dictionary = Dictionary('type', default_value=True)
     dic_to_load_names = ["word","character","pos","xpos","type"]
     dict_to_load = [word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary]
-    pdb.set_trace()
     if word_normalization:
       dic_to_load_names.append("word_norm")
       dict_to_load.append(word_norm_dictionary)
@@ -112,8 +110,10 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
       pos_dictionary.add(pos)
       xpos_dictionary.add(xpos)
       type_dictionary.add(typ)
-      #if word_normalization:
-      #  word_norm_dictionary.add()
+      if word_normalization:
+        token_norm, _ = get_normalized_token(tokens[9], 0, verbose=0)
+        word_norm_dictionary.add(token_norm)
+        # TODO : what bout expnd_vocab ? and
 
       if word in vocab:
         vocab[word] += 1
@@ -147,7 +147,6 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
             line = line.strip()
             if len(line) == 0 or line[0]=='#':
               continue
-
             tokens = line.split('\t')
             if '-' in tokens[0] or '.' in tokens[0]:
               continue
@@ -457,7 +456,6 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
     chars_norm = chars_norm[index]
     word_norm = word_norm[index]
     if word_norm_not_norm is not None:
-
       word_norm_not_norm = word_norm_not_norm[index]
 
   return words,word_norm ,chars[index], chars_norm, word_norm_not_norm, pos[index], xpos[index], heads[index], types[index], masks[index], lengths[index], order_inputs[index]
@@ -478,7 +476,8 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
     if bucket_size == 0:
       continue
 
-    words, word_norm,chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, single, lengths, order_ids,  raw_word_inputs, raw_lines = data_variable[bucket_id]
+    words, word_norm, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, single, lengths, order_ids,  \
+    raw_word_inputs, raw_lines = data_variable[bucket_id]
 
     if unk_replace:
       ones = Variable(single.data.new(bucket_size, bucket_length).fill_(1))
@@ -494,9 +493,9 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
           _word_norm_not_norm = word_norm_not_norm[excerpt]
         else:
             _word_norm_not_norm = None
-      if chars[excerpt].size(0) <= 1 or chars_norm_.size(0) <= 1:
+      if chars[excerpt].size(0) <= 1 or chars_norm_.size(0) <= 1 or word_norm.size(0)<=0:
         print("WARNING : We are skipping a batch because size is {}"
-              " char and {} for char_nor".format(chars[excerpt].size(), chars_norm_.size()))
+              " char and {} for char_nor or word_norm {} ".format(chars[excerpt].size(), chars_norm_.size(), word_norm.size()))
         continue
 
       yield words[excerpt], word_norm, chars[excerpt], chars_norm_, _word_norm_not_norm , \

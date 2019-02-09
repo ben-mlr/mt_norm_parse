@@ -19,6 +19,7 @@ import re
 import pdb
 from toolbox.checkpointing import get_args
 from collections import OrderedDict
+from model.decoder import WordDecoder
 
 #DEV = True
 #DEV_2 = True
@@ -50,7 +51,7 @@ class LexNormalizer(nn.Module):
                  dense_dim_auxilliary_2=None,
                  stable_decoding_state=False,
                  init_context_decoder=True,
-                 word_decoding=False,
+                 word_decoding=False, char_decoding=True,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
         character level Sequence to Sequence model for normalization
@@ -76,6 +77,7 @@ class LexNormalizer(nn.Module):
         :param use_gpu:
         """
         super(LexNormalizer, self).__init__()
+        assert (word_decoding or char_decoding) and not (word_decoding and char_decoding), "ERROR sttricly  one of word,char decoding should be True"
         if not auxilliary_task_norm_not_norm:
             assert dense_dim_auxilliary_2 is None or dense_dim_auxilliary_2 == 0, \
                 "ERROR dense_dim_auxilliary_2 shound be None or 0 when auxilliary_task_norm_not_norm is False"
@@ -168,19 +170,20 @@ class LexNormalizer(nn.Module):
                                                  },
                                   "decoder_arch": {"cell_word": word_recurrent_cell_decoder, "cell_sentence": "none",
                                                    "dir_word": "uni",
-                                                   "drop_out_bridge":drop_out_bridge,
-                                                   "drop_out_char_embedding_decoder": drop_out_char_embedding_decoder,
+                                                   "char_decoding": char_decoding, "word_decoding": word_decoding,
+                                                   "drop_out_bridge": drop_out_bridge, "drop_out_char_embedding_decoder": drop_out_char_embedding_decoder,
                                                    "drop_out_word_decoder_cell": drop_out_word_decoder_cell,
-                                                   "char_src_attention":char_src_attention,
+                                                   "char_src_attention": char_src_attention,
                                                    "unrolling_word": unrolling_word,
                                                    "teacher_force": teacher_force,
-                                                   "stable_decoding_state":stable_decoding_state,
-                                                   "init_context_decoder":init_context_decoder,
+                                                   "stable_decoding_state": stable_decoding_state,
+                                                   "init_context_decoder": init_context_decoder,
                                                  },
                                   "hidden_size_encoder": hidden_size_encoder,
                                   "hidden_size_sent_encoder": hidden_size_sent_encoder,
                                   "hidden_size_decoder": hidden_size_decoder,
-                                  "voc_size": voc_size, "output_dim": output_dim
+                                  "voc_size": voc_size, "output_dim": output_dim,
+                                  "word_voc_output_size": word_voc_output_size,
                                  }}
         # we load argument.json and define load weights
         else:
@@ -202,13 +205,14 @@ class LexNormalizer(nn.Module):
             assert args["voc_size"] == voc_size, "ERROR : voc_size loaded and voc_size " \
                                                  "redefined in dictionnaries do not " \
                                                  "match {} vs {} ".format(args["voc_size"], voc_size)
-
+            word_voc_output_size = args.get("word_voc_output_size", None)
             char_embedding_dim, output_dim, hidden_size_encoder, hidden_size_sent_encoder, drop_out_sent_encoder_cell,\
             drop_out_word_encoder_cell, drop_out_sent_encoder_out, drop_out_word_encoder_out,\
             n_layers_word_encoder, dir_sent_encoder, word_recurrent_cell_encoder, dir_word_encoder,\
             hidden_size_decoder,  word_recurrent_cell_decoder, drop_out_word_decoder_cell, drop_out_char_embedding_decoder, \
                     self.auxilliary_task_norm_not_norm, unrolling_word, char_src_attention, dense_dim_auxilliary, shared_context,\
-                teacher_force, dense_dim_auxilliary_2, stable_decoding_state, init_context_decoder = get_args(args, False)
+                teacher_force, dense_dim_auxilliary_2, stable_decoding_state, init_context_decoder, \
+            word_decoding, char_decoding = get_args(args, False)
 
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
@@ -261,9 +265,8 @@ class LexNormalizer(nn.Module):
                                    init_context_decoder=init_context_decoder,
                                    generator=self.generator if not teacher_force else None, shared_context=shared_context,
                                    stable_decoding_state=stable_decoding_state,
-                                   verbose=verbose)
-        from model.decoder import WordDecoder
-        print(word_voc_output_size, "word_voc_output_size")
+                                   verbose=verbose) if char_decoding else None
+        print("WORD DECODING", word_decoding)
         self.word_decoder = WordDecoder(voc_size=word_voc_output_size, input_dim=hidden_size_decoder) if word_decoding else None
         self.verbose = verbose
         # bridge between encoder hidden representation and decoder
@@ -309,17 +312,17 @@ class LexNormalizer(nn.Module):
                                                             word_src_sizes=word_src_sizes,
                                                             char_seq_hidden_encoder=char_seq_hidden_encoder,
                                                             proportion_pred_train=proportion_pred_train,
-                                                            sent_len_max_source=sent_len_max_source)
+                                                            sent_len_max_source=sent_len_max_source) if self.decoder is not None else None, None
         pdb.set_trace()
         word_pred_state = self.word_decoder.forward(context) if self.word_decoder is not None else None
         target_encoder, start = get_timing(start)
-        printing("TYPE  decoder {} is cuda ", var=output.is_cuda,
+        printing("TYPE  decoder {} is cuda ", var=output.is_cuda if output is not None else None,
                  verbose=0, verbose_level=4)
         # output_score = nn.ReLU()(self.output_predictor(h_out))
         # [batch, output_voc_size], one score per output character token
-        printing("DECODER full  output sequence encoded of size {} ", var=[output.size()], verbose=self.verbose,
+        printing("DECODER full  output sequence encoded of size {} ", var=[output.size()] if output is not None else None, verbose=self.verbose,
                  verbose_level=3)
-        printing("DECODER full  output sequence encoded of {}", var=[output], verbose=self.verbose, verbose_level=5)
+        printing("DECODER full  output sequence encoded of {}", var=[output] if output is not None else None, verbose=self.verbose, verbose_level=5)
         if timing:
             time_report = OrderedDict(
                 [("source_encoder", source_encoder), ("target_encoder", target_encoder), ("bridge", bridge)])
