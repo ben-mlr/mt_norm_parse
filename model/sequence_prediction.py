@@ -70,8 +70,6 @@ def _init_metric_report_2():
         dic[val1] = 0
         dic[val12] = 0
     dic["all-normalization-pred-count"] = 0
-
-
     return dic
 
 
@@ -202,17 +200,19 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                             assert np.abs(score_dic[metric + "-NEED_NORM"]+score_dic[metric + "-NORMED"] - score_dic[metric + "-all"]) < EPSILON, \
                             "ERROR : correct NEED_NORM {} , NORMED {} and all {} ".format(score_dic[metric + "-NEED_NORM"], score_dic[metric + "-NORMED"], score_dic[metric + "-all"])
                             print("TEST PASSED")
-            if gold_output :
+            if gold_output:
                 try:
                     assert total_count["src_word_count"] == total_count["target_word_count"], \
                         "ERROR src_word_count {} vs target_word_count {}".format(total_count["src_word_count"], total_count["target_word_count"])
                     assert total_count["src_word_count"] == total_count["pred_word_count"], \
                         "ERROR src_word_count {} vs pred_word_count {}".format(total_count["src_word_count"], total_count["pred_word_count"])
+                    printing("Assertion passed : there are as many words in the source side,"
+                             "the target side and"
+                             "the predicted side : {} ".format(total_count["src_word_count"]), verbose_level=2,
+                             verbose=verbose)
                 except Exception as e:
-                    print("EXCEPTION {} raised when checking src , pred and gold sequence".format(e))
-                printing("Assertion passed : there are as many words in the source side,"
-                         "the target side and"
-                         "the predicted side : {} ".format(total_count["src_word_count"]), verbose_level=2, verbose=verbose)
+                    print(e)
+
             if eval_new:
                 return counter_correct, score_formulas
             else:
@@ -360,6 +360,9 @@ def decode_word(model, src_seq, src_len,
     _, word_pred, norm_not_norm, _ = model.forward(input_seq=src_seq,
                                                    input_word_len=src_len)
     prediction = word_pred.argmax(dim=-1)
+    pdb.set_trace()
+    # we trust the predictor to do the padding !
+    src_seq = src_seq[:, :prediction.size(1)]
     prediction = prediction[:, :src_seq.size(1)]
 
     pred_norm_not_norm = norm_not_norm.argmax(dim=-1) if norm_not_norm is not None else None

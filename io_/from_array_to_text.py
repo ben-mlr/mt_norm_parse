@@ -67,11 +67,12 @@ def output_text_(one_code_prediction, char_dic=None, start_symbol=CHAR_START,
                     if not break_word_to_print:
                         word.append(char_decoded)
                     word_all_sequence.append(char_decoded)
+            empty_decoded_word = False
             if word_decode:
-                word_to_print = word_dic.get_instance(one_code_prediction[batch, word_i]) if one_code_prediction[batch, word_i]!= PAD_ID_WORD  else ""
-                # TODO : add way to remove padding
-                empty_decoded_word = True
-                word_all_sequence.append(word_to_print)
+                word_to_print = word_dic.get_instance(one_code_prediction[batch, word_i])\
+                    if one_code_prediction[batch, word_i]!= PAD_ID_WORD else ""
+                if len(word_to_print)>0:
+                    word_all_sequence.append(word_to_print)
                 word = word_to_print
             if len(word) > 0:
                 #print("WARNING : from_array_to_text.py --> adding filter !! ")

@@ -338,12 +338,12 @@ if __name__ == "__main__":
       for param, model_id_pref in zip(params, labels):
           i += 1
           printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 80 if not test_before_run else 2
+          epochs = 20 if not test_before_run else 2
           if warmup:
             param = {"hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10, "dropout_sent_encoder": 0., "drop_out_word_encoder": 0., "dropout_word_decoder": 0.,
                      "drop_out_sent_encoder_out": 0, "drop_out_word_encoder_out": 0,
                      "dir_word_encoder": 2, "n_layers_word_encoder": 1, "dir_sent_encoder": 1, "word_recurrent_cell_decoder": "LSTM",
-                     "word_recurrent_cell_encoder": "LSTM", "hidden_size_sent_encoder": 20, "hidden_size_decoder": 50, "batch_size": 10
+                     "word_recurrent_cell_encoder": "LSTM", "hidden_size_sent_encoder": 20, "hidden_size_decoder": 50, "batch_size": 2
                      }
             param["batch_size"] = 2
             param["auxilliary_task_norm_not_norm"] = True
@@ -376,8 +376,8 @@ if __name__ == "__main__":
                                                                        "norm_not_norm-Precision",
                                                                        "norm_not_norm-Recall",
                                                                        "norm_not_norm-accuracy"],
-                                                  warmup=warmup, args=param, use_gpu=None, n_epochs=epochs,
-                                                  debug=True)
+                                                  warmup=False, args=param, use_gpu=None, n_epochs=epochs,
+                                                  debug=False)
           run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("GRID : Log RUN is : {} to see model list ".format(run_dir))

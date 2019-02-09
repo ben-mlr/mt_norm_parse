@@ -165,7 +165,7 @@ def get_same_word_batch(output_seq_n_hot, src_seq):
     return pred_normed_need_norm_by_seq_pred
 
 
-def score_norm_not_norm(norm_not_norm_pred, norm_not_norm_gold, output_seq_n_hot=None, src_seq=None,target_seq_gold=None):
+def score_norm_not_norm(norm_not_norm_pred, norm_not_norm_gold, output_seq_n_hot=None, src_seq=None, target_seq_gold=None):
     # remove padding
     predicted_not_pad = norm_not_norm_pred[norm_not_norm_gold != 2]
     gold_not_pad = norm_not_norm_gold[norm_not_norm_gold != 2]
