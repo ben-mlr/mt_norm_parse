@@ -104,10 +104,10 @@ class MaskBatch(object):
             printing("BATCH : TARGET after packed true {} ", var=(self.output_seq_y), verbose=verbose, verbose_level=5)
             if timing:
                 print("Batch TIMING {}".format(OrderedDict([("reshape_output_seq_y",reshape_output_seq_y), ("reorder_output_y",reorder_output_y), ("pad_output_y",pad_output_y), ("zero_last_output_len",zero_last_output_len),
-                                                            ("reorder_output",reorder_output), ("reshape_output_seq_and_len",reshape_output_seq_and_len), ("get_n_token",get_n_token),
-                                                            ("get_len_output",get_len_output), ("zero_mask_output",zero_mask_output), ("get_mask_output",get_mask_output),
-                                                            ("zero_last_output",zero_last_output),  ("get_len_input",get_len_input), ("zero_last",zero_last),
-                                                             ("get_seq_mask", get_seq_mask)])))
+                                                            ("reorder_output", reorder_output), ("reshape_output_seq_and_len", reshape_output_seq_and_len), ("get_n_token", get_n_token),
+                                                            ("get_len_output", get_len_output), ("zero_mask_output", zero_mask_output), ("get_mask_output", get_mask_output),
+                                                            ("zero_last_output", zero_last_output),  ("get_len_input", get_len_input), ("zero_last", zero_last),
+                                                            ("get_seq_mask", get_seq_mask)])))
 
     @staticmethod
     def make_mask(output_seq, padding):

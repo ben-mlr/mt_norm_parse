@@ -28,8 +28,8 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
     hidden_size_decoder = args.get("hidden_size_decoder", 10)
     batch_size = args.get("batch_size", 2)
     dropout_sent_encoder, dropout_word_encoder, dropout_word_decoder = args.get("dropout_sent_encoder",0), \
-    args.get("dropout_word_encoder", 0), args.get("dropout_word_decoder",0)
-    n_layers_word_encoder = args.get("n_layers_word_encoder",1)
+    args.get("dropout_word_encoder", 0), args.get("dropout_word_decoder", 0)
+    n_layers_word_encoder = args.get("n_layers_word_encoder", 1)
     dir_sent_encoder = args.get("dir_sent_encoder", 1)
 
     drop_out_word_encoder_out = args.get("drop_out_word_encoder_out", 0)
@@ -353,7 +353,7 @@ if __name__ == "__main__":
             param["weight_binary_loss"] = 0.05
             param["unrolling_word"] = True
             param["char_src_attention"] = True
-            train_path, dev_path = DEV, DEV
+            train_path, dev_path = DEV, TEST
             param["shared_context"] = "all"
             param["dense_dim_auxilliary"] = 0
             param["clipping"] = None

@@ -68,9 +68,9 @@ def output_text_(one_code_prediction, char_dic=None, start_symbol=CHAR_START,
                         word.append(char_decoded)
                     word_all_sequence.append(char_decoded)
             empty_decoded_word = False
+
             if word_decode:
-                word_to_print = word_dic.get_instance(one_code_prediction[batch, word_i])\
-                    if one_code_prediction[batch, word_i]!= PAD_ID_WORD else ""
+                word_to_print = word_dic.get_instance(one_code_prediction[batch, word_i]) if one_code_prediction[batch, word_i] != PAD_ID_WORD or word_i == 0 else "" #shoule make that more general
                 if len(word_to_print)>0:
                     word_all_sequence.append(word_to_print)
                 word = word_to_print
