@@ -4,7 +4,7 @@ import os
 from evaluate.evaluate_epoch import evaluate
 import numpy as np
 import torch
-from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, CHECKPOINT_DIR, DEMO, DEMO2, REPO_DATASET, LIU, LEX_TRAIN, LEX_TEST, SEED_NP, SEED_TORCH, LEX_LIU_TRAIN
+from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, CHECKPOINT_DIR, DEMO, DEMO2, REPO_DATASET, LIU, LEX_TRAIN, LEX_TEST, SEED_NP, SEED_TORCH, LEX_LIU_TRAIN, LIU_DEV, LIU_TRAIN
 from uuid import uuid4
 import argparse
 from sys import platform
@@ -46,7 +46,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
 
     auxilliary_task_norm_not_norm = args.get("auxilliary_task_norm_not_norm",False)
     char_src_attention = args.get("char_src_attention",False)
-    weight_binary_loss = args.get("weight_binary_loss")
+    weight_binary_loss = args.get("weight_binary_loss", 1)
     dir_word_encoder = args.get("dir_word_encoder", 1)
     shared_context = args.get("shared_context", "all")
 
@@ -61,6 +61,10 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
 
     word_decoding = args.get("word_decoding", False)
     char_decoding = args.get("char_decoding",True)
+
+    auxilliary_task_pos = args.get("auxilliary_task_pos", False)
+    dense_dim_auxilliary_pos = args.get("dense_dim_auxilliary_pos", None)
+    dense_dim_auxilliary_pos_2 = args.get("dense_dim_auxilliary_pos_2", None)
 
     n_epochs = 1 if warmup else n_epochs
 
@@ -98,17 +102,25 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                             bucketing=bucketing_train, weight_binary_loss=weight_binary_loss,
                             teacher_force=teacher_force,
                             clipping=clipping,
+                            auxilliary_task_pos=auxilliary_task_pos, dense_dim_auxilliary_pos=dense_dim_auxilliary_pos,
+                            dense_dim_auxilliary_pos_2=dense_dim_auxilliary_pos_2,
                             word_decoding=word_decoding, char_decoding=char_decoding,
                             stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                             checkpointing=True)
 
     model_dir = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder")
     if test_path is not None :
+
       dict_path = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder", "dictionaries")
       printing("GRID : START EVALUATION FINAL ", verbose_level=0, verbose=verbose)
-      eval_data_paths = [train_path, dev_path, test_path]
+      eval_data_paths = [train_path, dev_path]
       if warmup:
-          eval_data_paths = [test_path]
+          eval_data_paths = test_path if isinstance(test_path, list) else [test_path]
+      else:
+          if isinstance(test_path, list):
+              eval_data_paths.extend(test_path)
+          else:
+              eval_data_paths.append(test_path)
       import time
       start_eval = time.time()
       for get_batch_mode_evaluate in [False]:
@@ -121,7 +133,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                          normalization=True, print_raw=print_raw,
                          model_specific_dictionary=True, get_batch_mode_evaluate=get_batch_mode_evaluate, bucket=True,
                          compute_mean_score_per_sent=compute_mean_score_per_sent,
-                         batch_size=50, debug=debug,
+                         batch_size=batch_size, debug=debug,
                          word_decoding=word_decoding, char_decoding=char_decoding,
                          dir_report=model_dir, verbose=1)
         print("GRID : END EVAL", time.time()-start_eval)
@@ -265,50 +277,52 @@ if __name__ == "__main__":
           params = []
           labels = []
           n_model = 0
-          for batch_size in [25]:
-            for scale in [3, 2]:
+          for batch_size in [2,25]:
+            for scale in [1,2]:
               for clipping in [1]:
                 for dir_word_encoder in [2]:
-                    for teacher_force in [False, True]:
-                      for char_src_attention in [True]:
+                    for teacher_force in [ True]:
+                      for char_src_attention in [False]:
                         for auxilliary_task_norm_not_norm in [False, True]:
                             for shared_context in ["all"]:
                               if auxilliary_task_norm_not_norm:
-                                dense_dim_auxilliary, dense_dim_auxilliary_2 = 200, 100
+                                dense_dim_auxilliary, dense_dim_auxilliary_2 = 200, 200
                               else:
                                 dense_dim_auxilliary, dense_dim_auxilliary_2  = 0,0
                               for stable_decoding_state in [False]:
-                                for word_decoding in [True, False]:
-                                  param = params_strong.copy()
-                                  param["char_src_attention"] = char_src_attention
-                                  param["hidden_size_encoder"] = int(param["hidden_size_encoder"]*scale)
-                                  param["hidden_size_sent_encoder"] = int(param["hidden_size_sent_encoder"]*scale)
-                                  param["hidden_size_decoder"] = int(param["hidden_size_sent_encoder"]*scale)
-                                  param["output_dim"] *= int(scale*0.5)+1
-                                  param["batch_size"] = batch_size
-                                  param["unrolling_word"] = True
-                                  param["auxilliary_task_norm_not_norm"] = auxilliary_task_norm_not_norm
-                                  param["dense_dim_auxilliary"] = dense_dim_auxilliary
-                                  param["dense_dim_auxilliary_2"] = dense_dim_auxilliary_2
-                                  param["drop_out_char_embedding_decoder"] = 0.2
-                                  param["dropout_bridge"] = 0.1
-                                  param["dir_word_encoder"] = dir_word_encoder
-                                  param["dir_sent_encoder"] = 1
-                                  param["clipping"] = clipping
-
-                                  param["teacher_force"] = teacher_force
-
-                                  param["shared_context"] = shared_context
-
-                                  param["stable_decoding_state"] = stable_decoding_state
-                                  param["init_context_decoder"] = not param["stable_decoding_state"]
-                                  param["word_decoding"] = word_decoding
-                                  param["char_decoding"] = not param["word_decoding"]
-
+                                for word_decoding in [False, True]:
+                                  for auxilliary_task_pos in [True,False]:
+                                      param = params_strong.copy()
+                                      param["char_src_attention"] = char_src_attention
+                                      param["hidden_size_encoder"] = int(param["hidden_size_encoder"]*scale)
+                                      param["hidden_size_sent_encoder"] = int(param["hidden_size_sent_encoder"]*scale)
+                                      param["hidden_size_decoder"] = int(param["hidden_size_sent_encoder"]*scale)
+                                      param["output_dim"] *= int(scale*0.5)+1
+                                      param["batch_size"] = batch_size
+                                      param["unrolling_word"] = True
+                                      param["auxilliary_task_norm_not_norm"] = auxilliary_task_norm_not_norm
+                                      param["dense_dim_auxilliary"] = dense_dim_auxilliary
+                                      param["dense_dim_auxilliary_2"] = dense_dim_auxilliary_2
+                                      param["drop_out_char_embedding_decoder"] = 0.2
+                                      param["dropout_bridge"] = 0.1
+                                      param["dir_word_encoder"] = dir_word_encoder
+                                      param["dir_sent_encoder"] = 1
+                                      param["clipping"] = clipping
+                                      param["teacher_force"] = teacher_force
+                                      param["shared_context"] = shared_context
+                                      param["stable_decoding_state"] = stable_decoding_state
+                                      param["init_context_decoder"] = not param["stable_decoding_state"]
+                                      param["word_decoding"] = word_decoding
+                                      param["char_decoding"] = not param["word_decoding"]
+                                      param["auxilliary_task_pos"] = auxilliary_task_pos
+                                      param["dense_dim_auxilliary_pos"] = None if not auxilliary_task_pos else 200
+                                      param["dense_dim_auxilliary_pos_2"] = None
                                   params.append(param)
-                                  labels.append("context_{}-stable_decod-init_con_{}-teacher_forceprop10_{}".format(shared_context,\
-                                                param["stable_decoding_state"],param["init_context_decoder"],teacher_force))
-          print("GRID_INFO= word_decoding auxilliary_task_norm_not_norm n_trainable_parameters")
+                                  #labels.append("word_char-level_contextxteacher_force-{}-stable_decod-init_con_{}-teachforce10_{}".format(shared_context,\
+                                  #              param["stable_decoding_state"],param["init_context_decoder"],teacher_force))
+                                  labels.append("posX-{}teach_{}aux".format(teacher_force, param["auxilliary_task_norm_not_norm"]))
+          #print("GRID_INFO= batch_size teacher_force auxilliary_task_norm_not_norm n_trainable_parameters shared_context stable_decoding_state")
+          print("GRID_INFO= batch_size auxilliary_task_pos auxilliary_task_norm_not_norm n_trainable_parameters word_decoding")
 
       # only for cloud run :
       warmup = True
@@ -323,7 +337,6 @@ if __name__ == "__main__":
       else:
           test_before_run = False
       
-      
       RUN_ID = str(uuid4())[0:5]
       LABEL_GRID = "ATT" if not warmup else "WARMUP-unrolling-False"
       LABEL_GRID = "test_before_run-"+LABEL_GRID if test_before_run else LABEL_GRID
@@ -337,23 +350,21 @@ if __name__ == "__main__":
       dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
       os.mkdir(dir_grid)
       printing("GRID RUN : Grid directory : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
-      train_path, dev_path = LIU, DEV
+      train_path, dev_path = LIU_TRAIN, LIU_DEV#LIU, DEV
       for param, model_id_pref in zip(params, labels):
           i += 1
           printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 1 if not test_before_run else 2
+          epochs = 50 if not test_before_run else 2
           if warmup:
-            param = {"hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10, "dropout_sent_encoder": 0., "drop_out_word_encoder": 0., "dropout_word_decoder": 0.,
-                     "drop_out_sent_encoder_out": 0, "drop_out_word_encoder_out": 0,
-                     "dir_word_encoder": 2, "n_layers_word_encoder": 1, "dir_sent_encoder": 1, "word_recurrent_cell_decoder": "LSTM",
-                     "word_recurrent_cell_encoder": "LSTM", "hidden_size_sent_encoder": 20, "hidden_size_decoder": 50, "batch_size": 2
-                     }
+            param = {"hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10, "dropout_sent_encoder": 0.,
+                     "drop_out_word_encoder": 0., "dropout_word_decoder": 0., "drop_out_sent_encoder_out": 0,
+                     "drop_out_word_encoder_out": 0, "dir_word_encoder": 2, "n_layers_word_encoder": 1, "dir_sent_encoder": 1, "word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder": "LSTM", "hidden_size_sent_encoder": 20, "hidden_size_decoder": 50, "batch_size": 2}
             param["batch_size"] = 2
             param["auxilliary_task_norm_not_norm"] = True
             param["weight_binary_loss"] = 0.05
             param["unrolling_word"] = True
-            param["char_src_attention"] = True
-            train_path, dev_path = DEV, TEST
+            param["char_src_attention"] = False
+            train_path, dev_path = DEMO, DEMO
             param["shared_context"] = "all"
             param["dense_dim_auxilliary"] = 0
             param["clipping"] = None
@@ -361,13 +372,15 @@ if __name__ == "__main__":
             param["dense_dim_auxilliary_2"] = 0
             param["stable_decoding_state"] = True
             param["init_context_decoder"] = False
-            param["word_decoding"] = True
-            param["char_decoding"] = False
-
+            param["word_decoding"] = False
+            param["char_decoding"] = True
+            param["auxilliary_task_pos"] = True
+            param["dense_dim_auxilliary_pos"] = 100
+            param["dense_dim_auxilliary_pos_2"] = None
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
-                                                  test_path=DEMO,
+                                                  test_path=[DEMO],
                                                   verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,
@@ -379,8 +392,9 @@ if __name__ == "__main__":
                                                                        "norm_not_norm-Precision",
                                                                        "norm_not_norm-Recall",
                                                                        "norm_not_norm-accuracy"],
-                                                  warmup=False, args=param, use_gpu=None, n_epochs=epochs,
+                                                  warmup=warmup, args=param, use_gpu=None, n_epochs=epochs,
                                                   debug=False)
+
           run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("GRID : Log RUN is : {} to see model list ".format(run_dir))

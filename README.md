@@ -52,4 +52,9 @@ verbose == 4 to see decoding
 
 - assumptions : 
     - should have word to word mapping between source and target sequence
+ - About word encoder : 
+    - in the mode it's coded properly
+    - in the data iterator its not really 
+        - normalization means only char decoder
+        - if you set word_decoding True it adds word in the output iterator   
 

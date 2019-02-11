@@ -28,7 +28,9 @@ class CoNLLReader(object):
   def close(self):
     self.__source_file.close()
 
-  def getNext(self, normalize_digits=True, symbolic_root=False, symbolic_end=False, normalization=False, verbose=0):
+  def getNext(self, normalize_digits=True, symbolic_root=False, symbolic_end=False,
+              normalization=False, word_decoder=False,
+              verbose=0):
     line = self.__source_file.readline()
 
     # skip multiple blank lines.
@@ -104,9 +106,13 @@ class CoNLLReader(object):
         # includes sequence level and word level
         normalized_token, n_exception = get_normalized_token(norm_field=tokens[9], n_exception=n_exception,verbose=verbose)
         # extracting normalized words as sequence of characters as string and ids, string and ids
-        normalized_token_id = self.__word_norm_dictionary.get_index(normalized_token)
+        if word_decoder:
+          normalized_token_id = self.__word_norm_dictionary.get_index(normalized_token)
+          norm_word_ids.append(normalized_token_id)
+        else:
+          normalized_token_id = None
+
         norm_words.append(normalized_token)
-        norm_word_ids.append(normalized_token_id)
         char_norm_ids = []
         char_norm_str = []
 

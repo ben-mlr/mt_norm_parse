@@ -269,7 +269,7 @@ def decode_sequence_beam(model, max_len, src_seq, src_mask, src_len, char_dictio
 
         for candidate_ind in range(beam_size):
             # we decode the sequence for each beam
-            decoding_states, word_pred, norm_not_norm, attention = model.forward(input_seq=src_seq, output_seq=output_seq[:, :, :, candidate_ind],
+            decoding_states, word_pred,pos_pred, norm_not_norm, attention = model.forward(input_seq=src_seq, output_seq=output_seq[:, :, :, candidate_ind],
                                                                       input_word_len=src_len, output_word_len=output_len)
             scores = model.generator.forward(x=decoding_states)
             # we get the log sores
@@ -363,7 +363,7 @@ def decode_word(model, src_seq, src_len,
                 pad=1, target_word_gold=None, use_gpu=False,
                 single_sequence=False, verbose=2):
 
-    _, word_pred, norm_not_norm, _ = model.forward(input_seq=src_seq,
+    _, word_pred, pos_pred, norm_not_norm, _ = model.forward(input_seq=src_seq,
                                                    input_word_len=src_len)
     prediction = word_pred.argmax(dim=-1)
 
@@ -427,7 +427,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
             src_len = src_len.cuda()
             output_len = output_len.cuda()
         pdb.set_trace()
-        decoding_states, word_pred, norm_not_norm, attention = model.forward(input_seq=src_seq,output_seq=output_seq,
+        decoding_states, word_pred, pos_pred, norm_not_norm, attention = model.forward(input_seq=src_seq,output_seq=output_seq,
                                                                              input_word_len=src_len,
                                                                              output_word_len=output_len)
         # [batch, seq_len, V]

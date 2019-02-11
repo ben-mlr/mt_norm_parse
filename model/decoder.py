@@ -48,12 +48,13 @@ class CharDecoder(nn.Module):
         if char_src_attention:
             assert hidden_size_src_word_encoder is not None, "ERROR : need hidden_size_src_word_encoder for attention "
             # we need to add dimension because of the context vector that is hidden_size encoder projected
-            input_dim += hidden_size_src_word_encoder
+            #input_dim += hidden_size_src_word_encoder : # NO NEED anymire as we project the all context : same size as currnt
             printing("WARNING : DECODER word_recurrent_cell hidden dim will be {} "
                      "(we added hidden_size_decoder) because of attention", verbose=verbose, verbose_level=0)
         # if stable_decoding_state : we add a projection of the attention context vector + the stable one
         # TODO : try to project the cat of those three vectors (char, attention context, stable context)
-        self.context_proj = nn.Linear(hidden_size_decoder+hidden_size_src_word_encoder, hidden_size_src_word_encoder) if stable_decoding_state else None
+        self.context_proj = nn.Linear(hidden_size_decoder*int(stable_decoding_state)+hidden_size_src_word_encoder*int(char_src_attention), char_embedding.embedding_dim) if stable_decoding_state or char_src_attention else None
+        input_dim = 2*input_dim if stable_decoding_state or char_src_attention else input_dim # because we concat with projected context
         self.seq_decoder = word_recurrent_cell(input_size=input_dim, hidden_size=hidden_size_decoder,
                                                num_layers=1,
                                                dropout=drop_out_word_cell,
@@ -89,6 +90,7 @@ class CharDecoder(nn.Module):
         # (char embedding + previous recurrent state of the decoder))
         # current_state  : dim batch x sentence max len , char embedding + hidden_dim decoder
         start_atten = time.time()
+
         if self.attn_layer is not None:
             attention_weights = self.attn_layer(char_state_decoder=state_hiden.squeeze(0),# current_state,
                                                 word_src_sizes=char_vecs_sizes,
@@ -101,16 +103,27 @@ class CharDecoder(nn.Module):
                 # don't know why we need to do that 
                 attention_weights = attention_weights.cuda()
             # TODO HOW IS MASKING TAKEN CARE OF IN THE TARGET ? WE PACKED AND PADDED SO SHORTED THE SEQUENCE
-            context = attention_weights.bmm(char_seq_hidden_encoder)
-
-            if self.stable_decoding_state:
-                word_stable_context = word_stable_context.transpose(1, 0)
-                context = torch.cat((word_stable_context, context), dim=2)
-                # proj the overall context (word stable, attention based)
-                context = self.context_proj(context)
-                char_vec_current_batch = torch.cat((context, char_vec_current_batch), dim=2)
+            attention_context = attention_weights.bmm(char_seq_hidden_encoder)
+            # was context
+        else:
+            attention_context = None
+            attention_weights = None
+        if self.stable_decoding_state:
+            word_stable_context = word_stable_context.transpose(1, 0)
+        else:
+            word_stable_context = None
+        if attention_context is not None or word_stable_context is not None:
+            if attention_context is None:
+                context = word_stable_context
+            elif word_stable_context is None:
+                context = attention_context
             else:
-                char_vec_current_batch = torch.cat((context, char_vec_current_batch), dim=2)
+                context = torch.cat((word_stable_context, attention_context), dim=2)
+            context = self.context_proj(context)
+            char_vec_current_batch = torch.cat((context, char_vec_current_batch), dim=2)
+        else:
+            # no word level context passed so --> char_vec_current is only the current character vector  
+            pass
 
             # compute product attention_weights with  char_seq_hidden_encoder (updated for each character)
             # this provide a new character context that we concatanate
@@ -118,8 +131,6 @@ class CharDecoder(nn.Module):
             #  as they do
             ##https://github.com/spro/practical-pytorch/blob/master/seq2seq-translation/seq2seq-translation-batched.ipynb
             # the context is goes as input as the character embedding : we add the tranditional conditioning_other
-        else:
-            attention_weights = None
         time_atten, start = get_timing(start_atten)
         output, state = self.seq_decoder(char_vec_current_batch, state_decoder_current)
         time_step_decoder, _ = get_timing(start)
@@ -201,17 +212,17 @@ class CharDecoder(nn.Module):
                         char_seq_hidden_encoder=char_seq_hidden_encoder)
                 else:
                     assert self.generator is not None, "Generator must be passed in decoder for decodibg if not teacher_force"
-
                     # TODO based on state_i compute as generator : get id : lookup character embedding and that's it
                     # TODO : not fir the first one that should be the STARTING_SYMBOL
-
                     # given the current emb_char, the states of the cell (inirialized with the conditoning source )
                     #  we compute the next states
                     # [batch x sent_max_len, len_words] ??
-                    decoding_states, state_i, attention_weights = self.word_encoder_target_step(
-                        char_vec_current_batch=emb_char, word_stable_context=stable_decoding_word_state,
-                        state_decoder_current=state_i, char_vecs_sizes=word_src_sizes,
-                        step_char=char_i, char_seq_hidden_encoder=char_seq_hidden_encoder)
+                    decoding_states, state_i, attention_weights = self.word_encoder_target_step(char_vec_current_batch=emb_char,
+                                                                                                word_stable_context=stable_decoding_word_state,
+                                                                                                state_decoder_current=state_i,
+                                                                                                char_vecs_sizes=word_src_sizes,
+                                                                                                step_char=char_i,
+                                                                                                char_seq_hidden_encoder=char_seq_hidden_encoder)
                     printing("DECODING in schedule sampling {} ", var=[state_i[0].size()], verbose=self.verbose,
                              verbose_level=3)
                     # we feed to generator to get the score and the prediction
@@ -341,6 +352,7 @@ class CharDecoder(nn.Module):
             print("SENT TARGET : {}".format(OrderedDict([("clone_len", clone_len), ("argmin_squeeze", argmin_squeeze),("sorting", sorting),
                                                          ("packed_sent", packed_sent), ("padd_sent",padd_sent), ("reshape_sent",reshape_sent),
                                                          ("reshape_len",reshape_len),("word_encoders", word_encoders), ("reshape_attention",reshape_attention)])))
+        pdb.set_trace()
         return output_w_decoder, attention_weight_all
 
 

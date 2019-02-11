@@ -27,7 +27,12 @@ DEV_LABEL, DEV = "owoputi", os.path.join(PROJECT_PATH, "../parsing/normpar/data/
 TEST_LABEL, TEST = "lexnorm", os.path.join(PROJECT_PATH, "../parsing/normpar/data/lexnorm.integrated")
 DEMO_LABEL, DEMO = "lexnorm-Demo", os.path.join(PROJECT_PATH, "../parsing/normpar/data/lexnorm.integrated.demo")
 DEMO2_LABEL, DEMO2 = "lexnorm-demo2", os.path.join(PROJECT_PATH, "../parsing/normpar/data/lexnorm.integrated.demo2")
+
 LIU_LABEL, LIU = "liu_data", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li.conll")
+LIU_DEV_LABEL, LIU_DEV = "liu_data", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-dev_500.conll")
+LIU_TRAIN_LABEL, LIU_TRAIN = "liu_data", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-train_2009.conll")
+
+
 LEX_TRAIN_LABEL, LEX_TRAIN = "lex_norm2015_train", os.path.join(PROJECT_PATH, "./data/lexnorm2015/train_data.conll")
 LEX_TEST_LABEL, LEX_TEST = "lex_norm2015_test", os.path.join(PROJECT_PATH, "./data/lexnorm2015/test_truth.conll")
 
@@ -37,7 +42,8 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 TEST: TEST_LABEL, LIU: LIU_LABEL,
                 LEX_TRAIN:LEX_TRAIN_LABEL,
                 LEX_TEST:LEX_TEST_LABEL,
-                LEX_LIU_TRAIN:LEX_LIU_LABEL }
+                LEX_LIU_TRAIN:LEX_LIU_LABEL,
+                LIU_DEV: LIU_DEV_LABEL, LIU_TRAIN:LIU_TRAIN_LABEL}
 
 
 # output dir for writing

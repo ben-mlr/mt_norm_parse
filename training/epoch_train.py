@@ -44,11 +44,11 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
         printing("Starting {} batch out of {} batches", var=(i+1, n_batches), verbose= verbose, verbose_level=2)
         if not empty_run:
             start = time.time() if timing else None
-            out, out_word, norm_not_norm_hidden, attention = model.forward(input_seq=batch.input_seq,
-                                                                           output_seq=batch.output_seq_x,
-                                                                           input_word_len=batch.input_seq_len,
-                                                                           output_word_len=batch.output_seq_len,
-                                                                           proportion_pred_train=proportion_pred_train)
+            out, out_word, pos_pred_state, norm_not_norm_hidden, attention = model.forward(input_seq=batch.input_seq,
+                                                                                           output_seq=batch.output_seq_x,
+                                                                                           input_word_len=batch.input_seq_len,
+                                                                                           output_word_len=batch.output_seq_len,
+                                                                                           proportion_pred_train=proportion_pred_train)
             forward_time, start = get_timing(start)
         else:
             out = 0, _
@@ -61,6 +61,7 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
                                                       clipping=clipping,
                                                       y_word=batch.output_word,
                                                       x_word_pred=out_word,
+                                                      y_pos=batch.pos,
                                                       step=i+step)#, batch.ntokens)
 
             loss_time, start = get_timing(start)

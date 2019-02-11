@@ -15,7 +15,7 @@ from toolbox.sanity_check import get_timing
 def data_gen_conllu(data, word_dictionary, char_dictionary,
                     batch_size,
                     get_batch_mode=True,
-                    padding=1, print_raw=False, normalization=False,
+                    padding=1, print_raw=False, normalization=False, pos_dictionary=None,
                     extend_n_batch=1,
                     timing=False,
                     verbose=0):
@@ -38,7 +38,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
 
             words, word_norm, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, lengths, order_ids, raw_word_inputs, raw_lines = batch
             yield MaskBatch(chars, chars_norm,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
-                            output_word=word_norm,
+                            output_word=word_norm, pos=pos,
                             verbose=verbose), order_ids
 
     # get_batch randomly (for training purpose)
@@ -46,7 +46,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
         for ibatch in tqdm(range(1, nbatch+1), disable=disable_tqdm_level(verbose, verbose_level=2)):
             # word, char, pos, xpos, heads, types, masks, lengths, morph
             printing("Data : getting {} out of {} batches", var=(ibatch, nbatch+1), verbose= verbose, verbose_level=2)
-            word, word_norm, char, chars_norm, word_norm_not_norm,_, _, _, _, _, lenght, order_ids = \
+            word, word_norm, char, chars_norm, word_norm_not_norm, pos, _, _, _, _, lenght, order_ids = \
                 conllu_data.get_batch_variable(data,
                                                batch_size=batch_size,
                                                normalization=normalization,
@@ -72,15 +72,22 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                      verbose_level=5)
             _verbose = 5 if print_raw else verbose
 
-            if _verbose >= 5:
-                character_display = [" ".join([char_dictionary.get_instance(char[sent, word_ind, char_i])
-                                               for char_i in range(word_len)]) + " | NORM : {} |SENT {} WORD {}| ".format(word_norm_not_norm[sent,word_ind],sent, word_ind)
-                                     for ind_sent,sent in enumerate(range(char.size(0)))
+            if _verbose >= 0:
+                character_display = [" ".join([char_dictionary.get_instance(char[sent, word_ind, char_i]) for char_i in range(word_len)]) + " | NORM : {} |SENT {} WORD {}| ".format(word_norm_not_norm[sent,word_ind],sent, word_ind) for ind_sent,sent in enumerate(range(char.size(0)))
                                      for ind_w, word_ind in enumerate(range(char.size(1)))]
+
                 word_display = [word_dictionary.get_instance(word[batch, __word_ind]) + " " for batch in range(char.size(0))]
+
+                if pos_dictionary is not None:
+                    pos_display = [pos_dictionary.get_instance(pos[batch, __word_ind]) + " " for batch in
+                                   range(char.size(0))]
+                else:
+                    pos_display = None
+
             else:
                 word_display = []
                 character_display = []
+                pos_display = []
             if not normalization:
                 chars_norm = char.clone()
                 printing("Normalisation is False : model is a autoencoder ", verbose=_verbose, verbose_level=5)
@@ -97,6 +104,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                      "(NB : the character vocabulary is the same at input and output)", var=(character_display, character_norm_display),
                      verbose=_verbose, verbose_level=5)
             printing("Feeding source words {} ", var=[word_display], verbose=_verbose, verbose_level=5)
+            printing("Feeding source pos {} ", var=[pos_display], verbose=_verbose, verbose_level=5)
             printing("TYPE {} char before batch chars_norm {} ", var=(char.is_cuda, chars_norm.is_cuda),
                      verbose=verbose, verbose_level=5)
 

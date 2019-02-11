@@ -79,12 +79,12 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                                                   symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,
                                                   normalization=normalization,
                                                   bucket=bucket,
-                                                  add_start_char=1, add_end_char=1,
+                                                  add_start_char=1, add_end_char=1, word_decoder=word_decoding,
                                                   word_norm_dictionary=model.word_nom_dictionary)
     batchIter = data_gen_conllu(data_read, model.word_dictionary, model.char_dictionary,
                                 batch_size=batch_size,
                                 get_batch_mode=get_batch_mode_evaluate,
-                                normalization=normalization,
+                                normalization=normalization, pos_dictionary=model.pos_dictionary,
                                 print_raw=print_raw,  verbose=verbose)
 
     model.eval()
@@ -138,7 +138,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
     batchIter_2 = data_gen_conllu(data_read, model.word_dictionary, model.char_dictionary,
                                 batch_size=batch_size,
                                 get_batch_mode=get_batch_mode_evaluate,
-                                normalization=normalization,
+                                normalization=normalization,pos_dictionary=model.pos_dictionary,
                                 print_raw=print_raw,  verbose=verbose)
 
     score_dic, _ = greedy_decode_batch(char_dictionary=model.char_dictionary, verbose=verbose, gold_output=True,
@@ -189,7 +189,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                                              score_val=score_value,
                                              n_sents=score_dic[score+"-"+mode_norm+"-n_sents"],
                                              avg_per_sent=score_dic[score+"-"+mode_norm+"-total_tokens"]/score_dic[score+"-"+mode_norm+"-n_sents"] if score_dic[score+"-"+mode_norm+"-n_sents"]>0 else None,
-                                             n_tokens_score=n_tokens_score ,
+                                             n_tokens_score=n_tokens_score,
                                              model_full_name_val=model.model_full_name,
                                              task="normalization",
                                              report_path_val=model.arguments["checkpoint_dir"],

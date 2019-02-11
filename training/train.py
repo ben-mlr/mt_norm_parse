@@ -57,6 +57,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           bucketing=True, policy=None, teacher_force=True,
           shared_context="all", clipping=None, extend_n_batch=1,
           stable_decoding_state=False, init_context_decoder=True,
+          auxilliary_task_pos=False, dense_dim_auxilliary_pos=None, dense_dim_auxilliary_pos_2=None,
           word_decoding=False, char_decoding=True,
           verbose=1):
 
@@ -125,8 +126,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
 
     model = LexNormalizer(generator=Generator,
                           auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
-                          dense_dim_auxilliary=dense_dim_auxilliary, dense_dim_auxilliary_2=dense_dim_auxilliary_2,
-                          weight_binary_loss=weight_binary_loss,
+                          dense_dim_auxilliary=dense_dim_auxilliary, dense_dim_auxilliary_2=dense_dim_auxilliary_2, weight_binary_loss=weight_binary_loss,
+                          auxilliary_task_pos=auxilliary_task_pos, dense_dim_auxilliary_pos=dense_dim_auxilliary_pos, dense_dim_auxilliary_pos_2=dense_dim_auxilliary_pos_2,
                           load=reload,
                           char_embedding_dim=char_embedding_dim, voc_size=voc_size,
                           dir_model=model_dir, use_gpu=use_gpu, dict_path=dict_path,
@@ -175,19 +176,23 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
     epoch_ls_dev = []
     epoch_ls_train = []
     x_axis_epochs_loss = []
+
     data_read_train = conllu_data.read_data_to_variable(train_path, model.word_dictionary, model.char_dictionary,
-                                                         model.pos_dictionary,
+                                                        model.pos_dictionary,
                                                         model.xpos_dictionary, model.type_dictionary,
                                                         use_gpu=use_gpu, symbolic_root=False,
                                                         norm_not_norm=auxilliary_task_norm_not_norm,
+                                                        word_decoder=word_decoding,
                                                         symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,
                                                         normalization=normalization, bucket=bucketing,
                                                         add_start_char=add_start_char, add_end_char=add_end_char,
                                                         word_norm_dictionary=model.word_nom_dictionary)
+
     data_read_dev = conllu_data.read_data_to_variable(dev_path, model.word_dictionary, model.char_dictionary,
                                                       model.pos_dictionary,
                                                       model.xpos_dictionary, model.type_dictionary,
                                                       use_gpu=use_gpu, symbolic_root=False,
+                                                      word_decoder=word_decoding,
                                                       norm_not_norm=auxilliary_task_norm_not_norm,
                                                       symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,
                                                       normalization=normalization, bucket=bucketing,
@@ -202,8 +207,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
         assert policy in AVAILABLE_SCHEDULING_POLICIES
         policy_dic = eval(policy)(epoch) if policy is not None else None
-        multi_task_mode, ponderation_normalize_loss, weight_binary_loss = \
-            scheduling_policy(epoch=epoch, phases_ls=policy_dic)
+        multi_task_mode, ponderation_normalize_loss, weight_binary_loss= scheduling_policy(epoch=epoch, phases_ls=policy_dic)
 
         printing("TRAINING Tasks scheduling : ponderation_normalize_loss is {} weight_binary_loss is {} ",
                  var=[ponderation_normalize_loss, weight_binary_loss], verbose=verbose, verbose_level=1)
@@ -215,7 +219,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                     normalization=normalization,
                                     get_batch_mode=get_batch_mode_all,
                                     batch_size=batch_size, extend_n_batch=extend_n_batch,
-                                    print_raw=print_raw,timing=timing,
+                                    print_raw=print_raw,timing=timing, pos_dictionary=model.pos_dictionary,
                                     verbose=verbose)
         start = time.time()
         proportion_pred_train = 10 if not teacher_force else None
@@ -248,12 +252,11 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
         _train_ep_time, start = get_timing(start)
         model.eval()
         # TODO : should be added in the freq_checkpointing orhterwise useless
-
         batchIter_eval = data_gen_conllu(data_read_dev,
                                          model.word_dictionary, model.char_dictionary,
                                          batch_size=batch_size, get_batch_mode=False,
                                          normalization=normalization, extend_n_batch=1,
-                                         verbose=verbose)
+                                         pos_dictionary=model.pos_dictionary, verbose=verbose)
         _create_iter_time, start = get_timing(start)
         # TODO : should be able o factorize this to have a single run_epoch() for train and dev (I think the computaiton would be same )
         # TODO : should not evaluate for each epoch : should evalaute every x epoch : check if it decrease and checkpoint
