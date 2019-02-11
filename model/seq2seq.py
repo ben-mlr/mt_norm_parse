@@ -39,7 +39,8 @@ class LexNormalizer(nn.Module):
                  hidden_size_sent_encoder=None,
                  weight_binary_loss=None,
                  n_layers_word_encoder=1,
-                 hidden_size_decoder=None, voc_size=None, model_id_pref="", model_name="",
+                 hidden_size_decoder=None, voc_size=None, word_voc_output_size=None,
+                 model_id_pref="", model_name="",
                  drop_out_sent_encoder_cell=0., drop_out_word_encoder_cell=0., drop_out_word_decoder_cell=0.,
                  dir_word_encoder=1,
                  drop_out_bridge=0, drop_out_sent_encoder_out=0, drop_out_word_encoder_out=0,
@@ -133,7 +134,6 @@ class LexNormalizer(nn.Module):
                                       test_path=None, word_embed_dict={}, dry_run=False, vocab_trim=True,
                                       word_normalization=word_decoding, add_start_char=add_start_char, verbose=1)
             voc_size = len(self.char_dictionary.instance2index) + 1
-
             if word_decoding:
                 assert self.word_nom_dictionary is not None, "ERROR self.word_nom_dictionary should not be None"
             word_voc_output_size = len(self.word_nom_dictionary.instance2index)+1 if self.word_nom_dictionary is not None else None
@@ -205,6 +205,7 @@ class LexNormalizer(nn.Module):
             assert args["voc_size"] == voc_size, "ERROR : voc_size loaded and voc_size " \
                                                  "redefined in dictionnaries do not " \
                                                  "match {} vs {} ".format(args["voc_size"], voc_size)
+            assert args["word_voc_output_size"] == word_voc_output_size, "ERROR mismatch of stored voc and passed voc"
             word_voc_output_size = args.get("word_voc_output_size", None)
             char_embedding_dim, output_dim, hidden_size_encoder, hidden_size_sent_encoder, drop_out_sent_encoder_cell,\
             drop_out_word_encoder_cell, drop_out_sent_encoder_out, drop_out_word_encoder_out,\
@@ -213,10 +214,8 @@ class LexNormalizer(nn.Module):
                     self.auxilliary_task_norm_not_norm, unrolling_word, char_src_attention, dense_dim_auxilliary, shared_context,\
                 teacher_force, dense_dim_auxilliary_2, stable_decoding_state, init_context_decoder, \
             word_decoding, char_decoding = get_args(args, False)
-
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
-
         # adjusting for directions : the hidden_size_sent_encoder provided and are the dir x hidden_dim dimensions
         hidden_size_sent_encoder = int(hidden_size_sent_encoder/(dir_sent_encoder))
         hidden_size_encoder = int(hidden_size_encoder/dir_word_encoder)
@@ -266,7 +265,8 @@ class LexNormalizer(nn.Module):
                                    generator=self.generator if not teacher_force else None, shared_context=shared_context,
                                    stable_decoding_state=stable_decoding_state,
                                    verbose=verbose) if char_decoding else None
-        print("WORD DECODING", word_decoding)
+        print("word_voc_output_size", word_voc_output_size)
+
         self.word_decoder = WordDecoder(voc_size=word_voc_output_size, input_dim=hidden_size_decoder) if word_decoding else None
         self.verbose = verbose
         # bridge between encoder hidden representation and decoder

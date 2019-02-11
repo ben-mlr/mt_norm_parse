@@ -104,7 +104,7 @@ class CoNLLReader(object):
         # includes sequence level and word level
         normalized_token, n_exception = get_normalized_token(norm_field=tokens[9], n_exception=n_exception,verbose=verbose)
         # extracting normalized words as sequence of characters as string and ids, string and ids
-        normalized_token_id = self.__word_norm_dictionary.get_index(normalized_token) if self.__word_norm_dictionary is not None else self.__word_dictionary.get_index(normalized_token)
+        normalized_token_id = self.__word_norm_dictionary.get_index(normalized_token)
         norm_words.append(normalized_token)
         norm_word_ids.append(normalized_token_id)
         char_norm_ids = []

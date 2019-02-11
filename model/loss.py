@@ -37,7 +37,8 @@ class LossCompute:
         self.weight_binary_loss = weight_binary_loss if self.loss_binary is not None else None
         if use_gpu:
             printing("Setting loss_distance to GPU mode", verbose=verbose, verbose_level=3)
-            self.loss_distance = self.loss_distance.cuda()
+            if self.loss_distance is not None:
+                self.loss_distance = self.loss_distance.cuda()
             if self.loss_binary is not None:
                 self.loss_binary = self.loss_binary.cuda()
             if self.loss_distance_word_level is not None:
@@ -85,7 +86,10 @@ class LossCompute:
         if y is not None:
             printing("TYPE  y {} is cuda ", var=(y.is_cuda), verbose=0, verbose_level=5)
         reshaping, start = get_timing(start)
-        loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1)) if self.loss_distance is not None else self.loss_distance_word_level(x_word_pred.contiguous().view(-1, x_word_pred.size(-1)), y_word.contiguous().view(-1))
+        if self.loss_distance is not None:
+            loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1)) 
+        elif self.loss_distance_word_level is not None:
+            loss = self.loss_distance_word_level(x_word_pred.contiguous().view(-1, x_word_pred.size(-1)), y_word.contiguous().view(-1))
         loss_distance_time, start = get_timing(start)
         loss_binary = self.loss_binary(x_norm_not_norm.contiguous().view(-1, x_norm_not_norm.size(-1)),
                                        y_norm_not_norm.contiguous().view(-1)) if self.loss_binary is not None else None

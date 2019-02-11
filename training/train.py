@@ -111,6 +111,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                               add_start_char=add_start_char, verbose=1)
 
         voc_size = len(char_dictionary.instance2index)+1
+
         printing("DICTIONARY ; character vocabulary is len {} : {} ", var=str(len(char_dictionary.instance2index)+1, char_dictionary.instance2index), verbose=verbose, verbose_level=0)
         _train_path, _dev_path, _add_start_char = None, None, None
     else:
@@ -140,10 +141,10 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                           drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
                           drop_out_word_encoder_out=drop_out_word_encoder_out,
                           drop_out_sent_encoder_out=drop_out_sent_encoder_out,
-                          n_layers_word_encoder=n_layers_word_encoder,dir_sent_encoder=dir_sent_encoder,
+                          n_layers_word_encoder=n_layers_word_encoder, dir_sent_encoder=dir_sent_encoder,
                           hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,
                           model_id_pref=model_id_pref, model_full_name=model_full_name,
-                          hidden_size_sent_encoder=hidden_size_sent_encoder,shared_context=shared_context,
+                          hidden_size_sent_encoder=hidden_size_sent_encoder, shared_context=shared_context,
                           unrolling_word=unrolling_word, char_src_attention=char_src_attention,
                           word_decoding=word_decoding,  char_decoding=char_decoding,
                           stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
@@ -181,7 +182,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                                         norm_not_norm=auxilliary_task_norm_not_norm,
                                                         symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,
                                                         normalization=normalization, bucket=bucketing,
-                                                        add_start_char=add_start_char, add_end_char=add_end_char)
+                                                        add_start_char=add_start_char, add_end_char=add_end_char,
+                                                        word_norm_dictionary=model.word_nom_dictionary)
     data_read_dev = conllu_data.read_data_to_variable(dev_path, model.word_dictionary, model.char_dictionary,
                                                       model.pos_dictionary,
                                                       model.xpos_dictionary, model.type_dictionary,
@@ -189,7 +191,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                                       norm_not_norm=auxilliary_task_norm_not_norm,
                                                       symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,
                                                       normalization=normalization, bucket=bucketing,
-                                                      add_start_char=add_start_char, add_end_char=add_end_char)
+                                                      add_start_char=add_start_char, add_end_char=add_end_char,
+                                                      word_norm_dictionary=model.word_nom_dictionary)
 
     dir_writer = os.path.join(overall_report_dir, "runs", "{}-model".format(model.model_full_name))
     writer = SummaryWriter(log_dir=dir_writer)

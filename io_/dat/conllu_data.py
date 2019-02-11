@@ -212,7 +212,6 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
   data = [[] for _ in _buckets]
   max_char_length = [0 for _ in _buckets]
   max_char_norm_length = [0 for _ in _buckets] if normalization else None
-
   if verbose >= 1:
     print('Reading data from %s' % source_path)
   counter = 0
