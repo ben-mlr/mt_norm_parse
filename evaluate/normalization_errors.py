@@ -77,6 +77,8 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
             except Exception as e:
                 print("Assertion failed")
                 print(e)
+                pdb.set_trace()
+
             sent_score = []
             for word_gold, word_pred in zip(gold_sent, pred_sent):
                 eval_func = METRIC_DIC["exact"]
@@ -90,9 +92,10 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
         score = np.sum(scores)
 
         n_mode_words_per_sent = np.sum([len(scores_sent) for scores_sent in sent_score_ls])
-        n_sents = len([a for a in sent_score_ls if len(a)>0])
+        n_sents = len([a for a in sent_score_ls if len(a) > 0])
 
-        normalized_sent_error_out_of_overall_sent_len = [np.sum(scores_sent)/len(scores_sent) if len(scores_sent) else 0  for scores_sent in sent_score_ls] # get_sent_lengths)]
+        normalized_sent_error_out_of_overall_sent_len = [np.sum(scores_sent)/len(scores_sent) if len(scores_sent) else 0  for scores_sent in sent_score_ls]
+        #get_sent_lengths)]
         mean_score_per_sent = np.sum(normalized_sent_error_out_of_overall_sent_len)
 
         if normalized_mode == "all":
@@ -123,6 +126,7 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
             assert score_binary["need_norm-norm_not_norm-gold-count"] == dic["NEED_NORM-normalization-gold-count"], \
                 "ERROR : inconsistency between score binary gold count on NEED_NORM and on sequence prediction"
         except Exception as e:
+            pdb.set_trace()
             print("Assertion failed : CONSISTENCY between two tasks in terms of tokens ", e)
 
         dic.update(score_binary)
