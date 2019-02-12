@@ -281,7 +281,7 @@ if __name__ == "__main__":
             for scale in [1,2]:
               for clipping in [1]:
                 for dir_word_encoder in [2]:
-                    for teacher_force in [ True]:
+                    for teacher_force in [True]:
                       for char_src_attention in [False]:
                         for auxilliary_task_norm_not_norm in [False, True]:
                             for shared_context in ["all"]:
@@ -291,7 +291,7 @@ if __name__ == "__main__":
                                 dense_dim_auxilliary, dense_dim_auxilliary_2  = 0,0
                               for stable_decoding_state in [False]:
                                 for word_decoding in [False, True]:
-                                  for auxilliary_task_pos in [True,False]:
+                                  for auxilliary_task_pos in [True, False]:
                                       param = params_strong.copy()
                                       param["char_src_attention"] = char_src_attention
                                       param["hidden_size_encoder"] = int(param["hidden_size_encoder"]*scale)
@@ -320,9 +320,9 @@ if __name__ == "__main__":
                                   params.append(param)
                                   #labels.append("word_char-level_contextxteacher_force-{}-stable_decod-init_con_{}-teachforce10_{}".format(shared_context,\
                                   #              param["stable_decoding_state"],param["init_context_decoder"],teacher_force))
-                                  labels.append("posX-{}teach_{}aux".format(teacher_force, param["auxilliary_task_norm_not_norm"]))
+                                  labels.append("posXdecode-{}teach_{}aux".format(teacher_force, param["auxilliary_task_norm_not_norm"]))
           #print("GRID_INFO= batch_size teacher_force auxilliary_task_norm_not_norm n_trainable_parameters shared_context stable_decoding_state")
-          print("GRID_INFO= batch_size auxilliary_task_pos auxilliary_task_norm_not_norm n_trainable_parameters word_decoding")
+          print("GRID_INFO= batch_size auxilliary_task_pos auxilliary_task_norm_not_norm n_trainable_parameters word_decoding ")
 
       # only for cloud run :
       warmup = True
@@ -350,7 +350,7 @@ if __name__ == "__main__":
       dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
       os.mkdir(dir_grid)
       printing("GRID RUN : Grid directory : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
-      train_path, dev_path = LIU_TRAIN, LIU_DEV#LIU, DEV
+      train_path, dev_path = DEMO, DEMO#LIU, DEV
       for param, model_id_pref in zip(params, labels):
           i += 1
           printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)

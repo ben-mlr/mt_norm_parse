@@ -80,9 +80,9 @@ class LexNormalizer(nn.Module):
         assert (word_decoding or char_decoding) and not (word_decoding and char_decoding), "ERROR sttricly  one of word,char decoding should be True"
         assert init_context_decoder or stable_decoding_state or char_src_attention, "ERROR : otherwise no information passes from the encoder to the decoder"
         if auxilliary_task_pos:
-            assert dense_dim_auxilliary_pos is not None and dense_dim_auxilliary_pos>0
+            assert dense_dim_auxilliary_pos is not None and dense_dim_auxilliary_pos > 0
         else:
-            assert dense_dim_auxilliary==0 or dense_dim_auxilliary is None and dense_dim_auxilliary_2 is None or dense_dim_auxilliary_2==0
+            assert dense_dim_auxilliary_pos == 0 or dense_dim_auxilliary is None and dense_dim_auxilliary_pos_2 is None or dense_dim_auxilliary_pos_2==0
         if not auxilliary_task_norm_not_norm:
             assert dense_dim_auxilliary_2 is None or dense_dim_auxilliary_2 == 0, \
                 "ERROR dense_dim_auxilliary_2 shound be None or 0 when auxilliary_task_norm_not_norm is False"

@@ -72,7 +72,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                      verbose_level=5)
             _verbose = 5 if print_raw else verbose
 
-            if _verbose >= 0:
+            if _verbose >= 5:
                 character_display = [" ".join([char_dictionary.get_instance(char[sent, word_ind, char_i]) for char_i in range(word_len)]) + " | NORM : {} |SENT {} WORD {}| ".format(word_norm_not_norm[sent,word_ind],sent, word_ind) for ind_sent,sent in enumerate(range(char.size(0)))
                                      for ind_w, word_ind in enumerate(range(char.size(1)))]
 
@@ -109,7 +109,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                      verbose=verbose, verbose_level=5)
 
             yield MaskBatch(char, chars_norm, output_word=word_norm, output_norm_not_norm=word_norm_not_norm,
-                            pad=padding, timing=timing, verbose=verbose), order_ids
+                            pos=pos, pad=padding, timing=timing, verbose=verbose), order_ids
 
 
 def data_gen_dummy(V, batch, nbatches, sent_len=9, word_len=5, verbose=0, seed=None):

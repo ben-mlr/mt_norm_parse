@@ -126,8 +126,10 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
 
     model = LexNormalizer(generator=Generator,
                           auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
-                          dense_dim_auxilliary=dense_dim_auxilliary, dense_dim_auxilliary_2=dense_dim_auxilliary_2, weight_binary_loss=weight_binary_loss,
-                          auxilliary_task_pos=auxilliary_task_pos, dense_dim_auxilliary_pos=dense_dim_auxilliary_pos, dense_dim_auxilliary_pos_2=dense_dim_auxilliary_pos_2,
+                          dense_dim_auxilliary=dense_dim_auxilliary, dense_dim_auxilliary_2=dense_dim_auxilliary_2,
+                          weight_binary_loss=weight_binary_loss,
+                          auxilliary_task_pos=auxilliary_task_pos, dense_dim_auxilliary_pos=dense_dim_auxilliary_pos,
+                          dense_dim_auxilliary_pos_2=dense_dim_auxilliary_pos_2,
                           load=reload,
                           char_embedding_dim=char_embedding_dim, voc_size=voc_size,
                           dir_model=model_dir, use_gpu=use_gpu, dict_path=dict_path,
@@ -136,12 +138,10 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                           train_path=_train_path, dev_path=_dev_path, add_start_char=_add_start_char,
                           model_specific_dictionary=model_specific_dictionary,
                           dir_word_encoder=dir_word_encoder,
-                          drop_out_sent_encoder_cell=dropout_sent_encoder_cell,
-                          drop_out_word_encoder_cell=dropout_word_encoder_cell,
+                          drop_out_sent_encoder_cell=dropout_sent_encoder_cell, drop_out_word_encoder_cell=dropout_word_encoder_cell,
                           drop_out_word_decoder_cell=dropout_word_decoder_cell, drop_out_bridge=dropout_bridge,
                           drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
-                          drop_out_word_encoder_out=drop_out_word_encoder_out,
-                          drop_out_sent_encoder_out=drop_out_sent_encoder_out,
+                          drop_out_word_encoder_out=drop_out_word_encoder_out, drop_out_sent_encoder_out=drop_out_sent_encoder_out,
                           n_layers_word_encoder=n_layers_word_encoder, dir_sent_encoder=dir_sent_encoder,
                           hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,
                           model_id_pref=model_id_pref, model_full_name=model_full_name,
@@ -150,7 +150,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                           word_decoding=word_decoding,  char_decoding=char_decoding,
                           stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
-
+    pos_batch = auxilliary_task_pos
     if use_gpu:
         model = model.cuda()
         printing("TYPE model is cuda : {} ", var=(next(model.parameters()).is_cuda), verbose=verbose, verbose_level=4)
@@ -189,15 +189,14 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                                         word_norm_dictionary=model.word_nom_dictionary)
 
     data_read_dev = conllu_data.read_data_to_variable(dev_path, model.word_dictionary, model.char_dictionary,
-                                                      model.pos_dictionary,
-                                                      model.xpos_dictionary, model.type_dictionary,
+                                                      model.pos_dictionary, model.xpos_dictionary, model.type_dictionary,
                                                       use_gpu=use_gpu, symbolic_root=False,
                                                       word_decoder=word_decoding,
                                                       norm_not_norm=auxilliary_task_norm_not_norm,
-                                                      symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,
+                                                      symbolic_end=False, dry_run=0, lattice=False,
                                                       normalization=normalization, bucket=bucketing,
                                                       add_start_char=add_start_char, add_end_char=add_end_char,
-                                                      word_norm_dictionary=model.word_nom_dictionary)
+                                                      word_norm_dictionary=model.word_nom_dictionary, verbose=verbose)
 
     dir_writer = os.path.join(overall_report_dir, "runs", "{}-model".format(model.model_full_name))
     writer = SummaryWriter(log_dir=dir_writer)
@@ -238,12 +237,14 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                                                            writer=writer, use="train",
                                                                            use_gpu=use_gpu, verbose=verbose,
                                                                            char_decoding=char_decoding, word_decoding=word_decoding,
+                                                                           pos_pred=auxilliary_task_pos,
                                                                            timing=timing),
                                                                verbose=verbose, i_epoch=epoch,
                                                                multi_task_mode=multi_task_mode,
                                                                n_epochs=n_epochs, timing=timing,
                                                                step=step_train,
                                                                clipping=clipping,
+                                                               pos_batch=pos_batch,
                                                                proportion_pred_train=proportion_pred_train,
                                                                log_every_x_batch=100)
 
@@ -266,6 +267,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                    weight_binary_loss=weight_binary_loss,
                                    ponderation_normalize_loss=ponderation_normalize_loss,
                                    writer=writer, use="dev",
+                                   pos_pred=auxilliary_task_pos,
                                    char_decoding=char_decoding, word_decoding=word_decoding,
                                    auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm)
             loss_dev, loss_details_dev, step_dev = run_epoch(batchIter_eval, model, loss_compute=loss_obj,

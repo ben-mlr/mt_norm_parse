@@ -28,6 +28,7 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
               n_epochs=None, n_batches=None, empty_run=False, timing=False,
               multi_task_mode="all", clipping=None,
               step=0, proportion_pred_train=None,
+              pos_batch=False,
               log_every_x_batch=VERBOSE_1_LOG_EVERY_x_BATCH):
     "Standard Training and Logging Function"
     assert multi_task_mode in ["all", "norm_not_norm","normalize"]
@@ -55,13 +56,11 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
             printing("DATA : \n input Sequence {} \n Target sequence {} ", var=(batch.input_seq, batch.output_seq),
                      verbose=verbose, verbose_level=1)
         if not empty_run:
-            loss, loss_details_current = loss_compute(out, batch.output_seq_y,
-                                                      x_norm_not_norm=norm_not_norm_hidden,
-                                                      y_norm_not_norm=batch.output_norm_not_norm,
+            loss, loss_details_current = loss_compute(x=out, y=batch.output_seq_y,
+                                                      x_norm_not_norm=norm_not_norm_hidden, y_norm_not_norm=batch.output_norm_not_norm,
+                                                      y_word=batch.output_word, x_word_pred=out_word,
+                                                      y_pos=batch.pos,  x_pos=pos_pred_state, pos_batch=pos_batch,
                                                       clipping=clipping,
-                                                      y_word=batch.output_word,
-                                                      x_word_pred=out_word,
-                                                      y_pos=batch.pos,
                                                       step=i+step)#, batch.ntokens)
 
             loss_time, start = get_timing(start)
