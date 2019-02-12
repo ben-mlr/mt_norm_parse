@@ -74,8 +74,9 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
             try:
                 assert len(gold_sent) == len(pred_sent), "len : pred {}, gold {} - pred {} gold {} " \
                                                          "(normalized_mode is {})".format(len(pred_sent), len(gold_sent), pred_sent, gold_sent, normalized_mode)
+                print("assertion succeeded")
             except Exception as e:
-                print("Assertion failed")
+                print("Assertion failed gold sent and pred sent have diffent length")
                 print(e)
                 pdb.set_trace()
 

@@ -239,12 +239,13 @@ if __name__ == "__main__":
     #for ablation_id in ["8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_1_33ca","8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_2_e437"]:
     #for ablation_id in ["21cc8-fixed_all_context-aux_dense1dir_word-200_aux-0do_char_dec-False_char_src-model_12_4d49"]:
     #for ablation_id in ["28aa3-schedule-policy_2"]:
+    for ablation_id in ["97440_rioc-64c34-ATTbatch-aux-scale-shared_contex-Falseteach_Falseaux-model_1_0023-folder"]:
       #for data in [DEMO,DEMO2]:
     for ablation_id in ["97440_rioc-64c34-ATTbatch-aux-scale-shared_contex-Falseteach_Falseaux-model_2_61d6-folder"]:
       for get_batch_mode_evaluate in [False]:
-        for batch_size in [50]:
+        for batch_size in [2]:
           #for data in [LIU, DEV, LEX_TEST]:
-          for data in [DEMO]:
+          for data in [LIU]:
             list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
             print("FOLDERS : ", list_)
             for folder_name in list_:
@@ -257,7 +258,7 @@ if __name__ == "__main__":
                        overall_label=ablation_id+"-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch",#"f2f2-iterate+new_data-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch-validation_True",
                        mode_norm_ls=None,#score_to_compute_ls=["norm_not_norm-Recall"],
                        normalization=True, model_specific_dictionary=True, batch_size=batch_size,
-                       debug=True,bucket=False,
+                       debug=False,bucket=False,
                        compute_mean_score_per_sent=False,
                        get_batch_mode_evaluate=get_batch_mode_evaluate, write_output=False,
                        dir_report=os.path.join(PROJECT_PATH, "checkpoints", folder_name), verbose=1)
