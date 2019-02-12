@@ -281,8 +281,8 @@ if __name__ == "__main__":
             for scale in [1,2]:
               for clipping in [1]:
                 for dir_word_encoder in [2]:
-                    for teacher_force in [True]:
-                      for char_src_attention in [False]:
+                    for teacher_force in [ False]:
+                      for char_src_attention in [True]:
                         for auxilliary_task_norm_not_norm in [False, True]:
                             for shared_context in ["all"]:
                               if auxilliary_task_norm_not_norm:
@@ -290,7 +290,7 @@ if __name__ == "__main__":
                               else:
                                 dense_dim_auxilliary, dense_dim_auxilliary_2  = 0,0
                               for stable_decoding_state in [False]:
-                                for word_decoding in [False, True]:
+                                for word_decoding in [False]:
                                   for auxilliary_task_pos in [True, False]:
                                       param = params_strong.copy()
                                       param["char_src_attention"] = char_src_attention
@@ -322,7 +322,8 @@ if __name__ == "__main__":
                                   #              param["stable_decoding_state"],param["init_context_decoder"],teacher_force))
                                   labels.append("posXdecode-{}teach_{}aux".format(teacher_force, param["auxilliary_task_norm_not_norm"]))
           #print("GRID_INFO= batch_size teacher_force auxilliary_task_norm_not_norm n_trainable_parameters shared_context stable_decoding_state")
-          print("GRID_INFO= batch_size auxilliary_task_pos auxilliary_task_norm_not_norm n_trainable_parameters word_decoding ")
+          #print("GRID_INFO= batch_size auxilliary_task_pos auxilliary_task_norm_not_norm n_trainable_parameters word_decoding ")
+          print("GRID_INFO= batch_size  auxilliary_task_norm_not_norm n_trainable_parameters auxilliary_task_pos ")
 
       # only for cloud run :
       warmup = True
@@ -350,26 +351,26 @@ if __name__ == "__main__":
       dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
       os.mkdir(dir_grid)
       printing("GRID RUN : Grid directory : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
-      train_path, dev_path = DEMO, DEMO#LIU, DEV
+      train_path, dev_path = LIU_TRAIN, LIU_DEV
       for param, model_id_pref in zip(params, labels):
           i += 1
           printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 10 if not test_before_run else 2
+          epochs = 1 if not test_before_run else 2
           if warmup:
             param = {"hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10, "dropout_sent_encoder": 0.,
                      "drop_out_word_encoder": 0., "dropout_word_decoder": 0., "drop_out_sent_encoder_out": 0,
                      "drop_out_word_encoder_out": 0, "dir_word_encoder": 2, "n_layers_word_encoder": 1, "dir_sent_encoder": 1, "word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder": "LSTM", "hidden_size_sent_encoder": 20, "hidden_size_decoder": 50, "batch_size": 2}
             param["batch_size"] = 20
-            param["auxilliary_task_norm_not_norm"] = True
+            param["auxilliary_task_norm_not_norm"] = False
             param["weight_binary_loss"] = 1
             param["unrolling_word"] = True
             param["char_src_attention"] = False
-            train_path, dev_path = DEMO, DEMO
+            train_path, dev_path = DEV, DEV
             param["shared_context"] = "all"
-            param["dense_dim_auxilliary"] = 100
+            param["dense_dim_auxilliary"] = None
             param["clipping"] = None
             param["teacher_force"] = True
-            param["dense_dim_auxilliary_2"] = 100
+            param["dense_dim_auxilliary_2"] = None
             param["stable_decoding_state"] = True
             param["init_context_decoder"] = False
             param["word_decoding"] = False
@@ -380,19 +381,16 @@ if __name__ == "__main__":
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
-                                                  test_path=[DEMO],
+                                                  test_path=[DEV],
                                                   verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,
                                                   get_batch_mode_all=True, compute_scoring_curve=False,
-                                                  freq_scoring=1, bucketing_train=True, freq_checkpointing=1,
+                                                  freq_scoring=10, bucketing_train=True, freq_checkpointing=15,
                                                   freq_writer=10 if not test_before_run else 1,
                                                   extend_n_batch=2,
-                                                  score_to_compute_ls=["exact", "norm_not_norm-F1",
-                                                                       "norm_not_norm-Precision",
-                                                                       "norm_not_norm-Recall",
-                                                                       "norm_not_norm-accuracy"],
-                                                  warmup=warmup, args=param, use_gpu=None,
+                                                  score_to_compute_ls=["exact", "norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recall", "norm_not_norm-accuracy"],
+                                                  warmup=False, args=param, use_gpu=None,
                                                   n_epochs=epochs,
                                                   debug=False)
 

@@ -76,6 +76,7 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
                                                          "(normalized_mode is {})".format(len(pred_sent), len(gold_sent), pred_sent, gold_sent, normalized_mode)
             except Exception as e:
                 print("Assertion failed")
+
                 print(e)
                 pdb.set_trace()
 
@@ -187,22 +188,18 @@ def score_norm_not_norm(norm_not_norm_pred, norm_not_norm_gold, output_seq_n_hot
         try:
             predicted_not_pad_need_norm = np.argwhere(predicted_not_pad == 1)[0,:]#.squeeze()
         except:
-            print("== 1 [0,:] failed on predicted_not_pad  {} ".format(predicted_not_pad))
+            print("WARNING : no need_norm predicted : == 1 [0,:] failed on predicted_not_pad  {} ".format(predicted_not_pad))
             predicted_not_pad_need_norm = torch.tensor([])
 
         try:
             predicted_not_pad_normed = np.argwhere(predicted_not_pad == 0)[0, :]#.squeeze()
         except:
-            print("==0 [0,:] failed on predicted_not_pad_normed {} ".format(predicted_not_pad))
+            print("WARNING : no normed predicted : ==0 [0,:] failed on predicted_not_pad_normed {} ".format(predicted_not_pad))
             predicted_not_pad_normed = torch.tensor([])
-        # gold_not_pad == 0 means need_norm else means normed
-        # get prediction normed : np.argwhere(predicted_not_pad==1)
         need_norm_norm_not_normUnormalization_pred_count = len(set(predicted_not_pad_need_norm))+len(set(predicted_not_pad_seq_need_norm))-len(list(set(predicted_not_pad_need_norm.tolist()) & set(predicted_not_pad_seq_need_norm.tolist())))
         normed_norm_not_normUnormalization_pred_count = len(set(predicted_not_pad_seq_normed))+len(set(predicted_not_pad_normed))-len(list(set(predicted_not_pad_seq_normed.tolist()) & set(predicted_not_pad_normed.tolist())))
         need_norm_norm_not_normXnormalization_pred_count = len(list(set(predicted_not_pad_need_norm.tolist())&set(predicted_not_pad_seq_need_norm.tolist())))
         normed_norm_not_normXnormalization_pred_count = len(list(set(predicted_not_pad_seq_normed.tolist())&set(predicted_not_pad_normed.tolist())))
-
-
     else:
         need_norm_norm_not_normUnormalization_pred_count = None
         normed_norm_not_normUnormalization_pred_count = None

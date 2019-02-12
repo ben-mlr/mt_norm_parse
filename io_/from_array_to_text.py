@@ -36,52 +36,66 @@ def output_text_(one_code_prediction, char_dic=None, start_symbol=CHAR_START,
     str_decoded = []
     words_count = 0
     decoding_all_sequences = []
+    # for each sentence
     for batch in range(one_code_prediction.size(0)):
         sent = []
         word_str_decoded = []
         sent_all_sequence = []
+        # for each word
         for word_i in range(one_code_prediction.size(1)):
             word = []
             word_to_print = ""
             word_all_sequence = []
+            word_as_list = []
             break_word_to_print = False
+            end_of_word = False
+            no_word = False
             if char_decode:
+                # for each character code
                 for i_char, char in enumerate(range(one_code_prediction.size(2))):
                     char_decoded = char_dic.get_instance(one_code_prediction[batch, word_i, char])
                     # if not char_decoded == stop_symbol and not char_decoded == start_symbol:
-                    empty_decoded_word = False
                     # We break decoding when we reach padding symbol or stop symnol
+                    if i_char == 0 and char_decoded == PAD_CHAR:
+                        no_word = True
+                    empty_decoded_word = False
                     if (char_decoded == stop_symbol) or (char_decoded == PAD_CHAR):
                         # WARNING : we assume always add_start = 1 ! we also :
-                        if i_char == 1 and (char_decoded == stop_symbol or char_decoded == PAD_CHAR):
+                        # if only second character is stop or pad we don't want to igore it
+                        if i_char == 1 and (char_decoded == stop_symbol or char_decoded == PAD_CHAR) and not no_word:
                             empty_decoded_word = True
-
                         # we break if only one padded symbol witout adding anything
                         # to word to print : only one PADDED symbol to the array
+                        end_of_word = True
                         break_word_to_print = True
                         #break
                     # we append word_to_print only starting the second decoding (we assume _START is here)
-                    if not (char_decoded == start_symbol and i_char == 0) and not break_word_to_print:
+                    if (not (char_decoded == start_symbol and i_char == 0) and not end_of_word) or empty_decoded_word: #and not break_word_to_print: useless I guess
                         word_to_print += char_decoded
-
-                    if not break_word_to_print:
+                        #if not break_word_to_print:
+                        # if empty_decoded_word will appen spcial character
                         word.append(char_decoded)
-                    word_all_sequence.append(char_decoded)
-            empty_decoded_word = False
-
+                    #if empty_decoded_word:
+                    #    word.append("")
+                        word_as_list.append(char_decoded)
+                    # why is it here
+                    #word_all_sequence.append(char_decoded)
             if word_decode:
+                #empty_decoded_word = False
                 word_to_print = word_dic.get_instance(one_code_prediction[batch, word_i]) if one_code_prediction[batch, word_i] != PAD_ID_WORD or word_i == 0 else "" #shoule make that more general
-                if len(word_to_print)>0:
-                    word_all_sequence.append(word_to_print)
+                if len(word_to_print) > 0 :# why needed ?
+                    word_as_list.append(word_to_print)
+                    #word_all_sequence.append(word_to_print)
                 word = word_to_print
-            if len(word) > 0:
+            if len(word) > 0 :
                 #print("WARNING : from_array_to_text.py --> adding filter !! ")
                 sent.append(word)
-                sent_all_sequence.append(word_all_sequence)
+                sent_all_sequence.append(word_as_list)#word_all_sequence)
                 words_count += 1
             # we want to remove gold empty words (coming from the sentence level padding)
             #print("Word to print empty ", len(word_to_print), word_to_print, empty_decoded_word)
-            if len(word_to_print) > 0 or empty_decoded_word:
+            if len(word_to_print) > 0 :
+                #word_str_decoded.append(word_to_print)
                 word_str_decoded.append(word_to_print)
         str_decoded.append(word_str_decoded)
         decoding.append(sent)

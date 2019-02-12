@@ -78,7 +78,7 @@ class LexNormalizer(nn.Module):
         if auxilliary_task_pos:
             assert dense_dim_auxilliary_pos is not None and dense_dim_auxilliary_pos > 0
         else:
-            assert dense_dim_auxilliary_pos == 0 or dense_dim_auxilliary is None and dense_dim_auxilliary_pos_2 is None or dense_dim_auxilliary_pos_2==0
+            assert dense_dim_auxilliary_pos == 0 or dense_dim_auxilliary_pos is None
         if not auxilliary_task_norm_not_norm:
             assert dense_dim_auxilliary_2 is None or dense_dim_auxilliary_2 == 0, \
                 "ERROR dense_dim_auxilliary_2 shound be None or 0 when auxilliary_task_norm_not_norm is False"

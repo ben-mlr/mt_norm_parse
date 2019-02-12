@@ -465,21 +465,21 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
 
         printing("Decoding step {} decoded target {} ", var=(step, sequence), verbose=verbose, verbose_level=5)
 
-        pred_word_count, text_decoded, decoded_ls = output_text_(output_seq,#predictions,
+        pred_word_count, text_decoded, decoded_ls = output_text_(output_seq,
                                                                  char_dictionary, single_sequence=single_sequence,
                                                                  output_str=output_str, last=char_decode==(max_len-1),
                                                                  debug=False)
-        printing("PREDICTION : array text {} ", var=[text_decoded],
-                 verbose=verbose,
-                 verbose_level=5)
+    printing("PREDICTION : array text {} ", var=[text_decoded], verbose=verbose, verbose_level=0)
 
     src_word_count, src_text, src_all_ls = output_text_(src_seq, char_dictionary, single_sequence=single_sequence,
                                                         output_str=output_str)
+    printing("SOURCE  : array text {} ", var=[src_text], verbose=verbose, verbose_level=0)
     src_text_ls.extend(src_text)
     if target_seq_gold is not None:
         target_word_count, target_text, _ = output_text_(target_seq_gold, char_dictionary,
                                                          single_sequence=single_sequence, output_str=output_str)
         target_seq_gold_ls.extend(target_text)
+        printing("GOLD : array text {} ", var=[target_text], verbose=verbose, verbose_level=0)
     else:
         target_word_count = None
     if single_sequence:
@@ -487,6 +487,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
             attention = attention[0]
         if pred_norm_not_norm is not None:
             pred_norm_not_norm = pred_norm_not_norm[0]
+
 
     return (text_decoded, src_text_ls, target_seq_gold_ls), \
            {
