@@ -45,9 +45,10 @@ def score_ls(ls_pred, ls_gold, score, stat="mean", verbose=0):
 
 
 def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None, gold_norm_not_norm=None,
-                        output_seq_n_hot=None,src_seq=None, target_seq_gold=None,
+                        output_seq_n_hot=None,src_seq=None, target_seq_gold=None,task="normalization",
                         verbose=0):
     # only exact score here !!
+    assert task in ["normalization","pos"]
     dic = OrderedDict()
     assert len(ls_gold) == len(ls_pred), "ERROR ls_gold is len {} vs {} : {} while ls_pred is {} ".format(len(ls_gold), len(ls_pred), ls_gold, ls_pred)
     assert len(ls_gold) == len(ls_original), "ERROR ls_gold is len {} vs {} : {} while src is {} ".format(len(ls_gold), len(ls_original), ls_gold, ls_original)
@@ -58,7 +59,8 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
     #normalization_prediction_by_seq_norm = len(normalization_prediction_by_seq[normalization_prediction_by_seq == True])
     #normalization_prediction_by_seq_need_norm = len(normalization_prediction_by_seq[normalization_prediction_by_seq == False])
     #assert len(normalization_prediction_by_seq) == len(normalization_ls)
-    for normalized_mode in ["all", "NEED_NORM", "NORMED"]:
+    normalized_mode_ls = ["all", "NEED_NORM", "NORMED"] if task == "normalization" else ["all"]
+    for normalized_mode in normalized_mode_ls:
         scores = []
         sent_score_ls = []
         assert ls_original is not None, "ERROR : need to provide original sequence to compute NORMED/NEED_NORM analysis"
@@ -76,7 +78,6 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
                                                          "(normalized_mode is {})".format(len(pred_sent), len(gold_sent), pred_sent, gold_sent, normalized_mode)
             except Exception as e:
                 print("Assertion failed")
-
                 print(e)
                 pdb.set_trace()
 
@@ -94,9 +95,7 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
 
         n_mode_words_per_sent = np.sum([len(scores_sent) for scores_sent in sent_score_ls])
         n_sents = len([a for a in sent_score_ls if len(a) > 0])
-
         normalized_sent_error_out_of_overall_sent_len = [np.sum(scores_sent)/len(scores_sent) if len(scores_sent) else 0  for scores_sent in sent_score_ls]
-        #get_sent_lengths)]
         mean_score_per_sent = np.sum(normalized_sent_error_out_of_overall_sent_len)
 
         if normalized_mode == "all":
@@ -107,19 +106,20 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
             count_pred_number = len(normalization_ls_flat[normalization_ls_flat == cond])
 
         return_dic = {
-                      normalized_mode+"-normalization-pred_correct-count": score,
-                      normalized_mode+"-normalization-pred-count": count_pred_number,
-                      normalized_mode+"-normalization-n_word_per_sent-count": n_mode_words_per_sent,
-                      normalized_mode+"-normalization-pred_correct_per_sent-count": mean_score_per_sent,
-                      normalized_mode+"-normalization-gold-count": len(scores),
-                      normalized_mode+"-n_sents": n_sents,
-                      }
+                      normalized_mode+"-"+task+"-pred_correct-count": score,
+
+                      normalized_mode+"-"+task+"-n_word_per_sent-count": n_mode_words_per_sent,
+                      normalized_mode+"-"+task+"-pred_correct_per_sent-count": mean_score_per_sent,
+                      normalized_mode+"-"+task+"-gold-count": len(scores),
+                      normalized_mode+"-"+task+"-n_sents": n_sents
+                     }
+        if task == "normalization":
+            return_dic[normalized_mode + "-" + task + "-pred-count"] = count_pred_number
         dic.update(return_dic)
 
-    if pred_norm_not_norm is not None and gold_norm_not_norm is not None:
-
-        score_binary, formulas_bin = score_norm_not_norm(pred_norm_not_norm, gold_norm_not_norm[:, :pred_norm_not_norm.size(1)],
-                                                            output_seq_n_hot, src_seq, target_seq_gold)
+    if pred_norm_not_norm is not None and gold_norm_not_norm is not None and task == "normalization":
+        pdb.set_trace()
+        score_binary, formulas_bin = score_norm_not_norm(pred_norm_not_norm, gold_norm_not_norm[:, :pred_norm_not_norm.size(1)], output_seq_n_hot, src_seq, target_seq_gold)
         # testing consistency in counting
         try:
             assert score_binary["all-norm_not_norm-gold-count"] == dic["all-normalization-gold-count"], \
@@ -139,22 +139,30 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
     # output raw performance counting and formulas associated
     # to a metric name:(numerator/denominator) for higher level score just as to sum
 
-    formulas = {"recall-normalization": ("NEED_NORM-normalization-pred_correct-count", "NEED_NORM-normalization-gold-count"),
-                "tnr-normalization": ("NORMED-normalization-pred_correct-count", "NORMED-normalization-gold-count"),
-                "precision-normalization": ("NEED_NORM-normalization-pred_correct-count", "NEED_NORM-normalization-pred-count"),
-                "npv-normalization": ("NORMED-normalization-pred_correct-count", "NORMED-normalization-pred-count"),
-                "accuracy-normalization": ("all-normalization-pred_correct-count", "all-normalization-gold-count"),
-                "accuracy-per_sent-normalization": ("all-normalization-pred_correct_per_sent-count", "all-n_sents"),
-                "info-all-per_sent": ("all-normalization-n_word_per_sent-count", "all-n_sents"),
-                "info-NORMED-per_sent": ("NORMED-normalization-n_word_per_sent-count", "NORMED-n_sents"),
-                "recall-per_sent-normalization": ("NEED_NORM-normalization-pred_correct_per_sent-count", "NEED_NORM-n_sents"),
-                "info-NEED_NORM-per_sent": ("NEED_NORM-normalization-n_word_per_sent-count", "NEED_NORM-n_sents"),
-                "tnr-per_sent-normalization": ("NORMED-normalization-pred_correct_per_sent-count", "NORMED-n_sents"),
-                "info-all_tokens-normalization": ("all-normalization-gold-count"),
-                "info-NEED_NORM_tokens-normalization": ("NEED_NORM-normalization-gold-count"),
-                "info-NORMED_tokens-normalization": ("NORMED-normalization-gold-count"),
-                "info-all-n_sents":("all-n_sents")
+    formulas = {
+                "accuracy-"+task+"": ("all-"+task+"-pred_correct-count", "all-"+task+"-gold-count"),
+                "accuracy-per_sent-"+task+"": ("all-"+task+"-pred_correct_per_sent-count", "all-"+task+"-n_sents"),
+                "info-all-per_sent": ("all-"+task+"-n_word_per_sent-count", "all-"+task+"-n_sents"),
+                "info-all_tokens-"+task+"": ("all-"+task+"-gold-count"),
+                "info-"+task+"-n_sents": ("all-"+task+"-n_sents")
                 }
+
+    if task == "normalization":
+        formulas_fine = {"recall-"+task+"": ("NEED_NORM-"+task+"-pred_correct-count", "NEED_NORM-"+task+"-gold-count"),
+                         "tnr-"+task+"": ("NORMED-"+task+"-pred_correct-count", "NORMED-"+task+"-gold-count"),
+                         "precision-"+task+"": ("NEED_NORM-"+task+"-pred_correct-count", "NEED_NORM-"+task+"-pred-count"),
+                         "npv-"+task+"": ("NORMED-"+task+"-pred_correct-count", "NORMED-"+task+"-pred-count"),
+                         "recall-per_sent-"+task+"": ("NEED_NORM-"+task+"-pred_correct_per_sent-count", "NEED_NORM-"+task+"-n_sents"),
+                         "tnr-per_sent-"+task+"": ("NORMED-"+task+"-pred_correct_per_sent-count", "NORMED-"+task+"-n_sents"),
+                         "info-NEED_NORM_tokens-"+task+"": ("NEED_NORM-"+task+"-gold-count"),
+                         "info-NORMED_tokens-"+task+"": ("NORMED-"+task+"-gold-count"),
+                         "info-NORMED-per_sent": (
+                         "NORMED-" + task + "-n_word_per_sent-count", "NORMED-" + task + "-n_sents"),
+                         "info-NEED_NORM-per_sent": ("NEED_NORM-" + task + "-n_word_per_sent-count", "NEED_NORM-" + task + "-n_sents"),
+
+                         }
+        formulas.update(formulas_fine)
+
     if formulas_bin is not None:
         formulas.update(formulas_bin)
 

@@ -42,12 +42,12 @@ def _init_metric_report_2():
                 "precision-normalization": ("NEED_NORM-normalization-pred_correct-count", "NEED_NORM-normalization-pred-count"),
                 "npv-normalization": ("NORMED-normalization-pred_correct-count", "NORMED-normalization-pred-count"),
                 "accuracy-normalization": ("all-normalization-pred_correct-count", "all-normalization-gold-count"),
-                "accuracy-per_sent-normalization": ("all-normalization-pred_correct_per_sent-count", "all-n_sents"),
-                "info-all-per_sent": ("all-normalization-n_word_per_sent-count", "all-n_sents"),
+                "accuracy-per_sent-normalization": ("all-normalization-pred_correct_per_sent-count", "all-normalization-n_sents"),
+                "info-all-per_sent": ("all-normalization-n_word_per_sent-count", "all-normalization-n_sents"),
                 "info-NORMED-per_sent": ("NORMED-normalization-n_word_per_sent-count", "NORMED-n_sents"),
                 "recall-per_sent-normalization": ("NEED_NORM-normalization-pred_correct_per_sent-count", "NEED_NORM-n_sents"),
-                "info-NEED_NORM-per_sent": ("NEED_NORM-normalization-n_word_per_sent-count", "NEED_NORM-n_sents"),
-                "tnr-per_sent-normalization": ("NORMED-normalization-pred_correct_per_sent-count", "NORMED-n_sents"),
+                "info-NEED_NORM-per_sent": ("NEED_NORM-normalization-n_word_per_sent-count", "NEED_NORM-normalization-n_sents"),
+                "tnr-per_sent-normalization": ("NORMED-normalization-pred_correct_per_sent-count", "NORMED-normalization-n_sents"),
                 "aa": ("n_sents","n_sents")
                 }
 
@@ -57,9 +57,16 @@ def _init_metric_report_2():
         "accuracy-norm_not_norm": ("all-norm_not_norm-pred_correct-count", "all-norm_not_norm-gold-count"),
         "IoU-pred-need_norm": (
         "need_norm-norm_not_normXnormalization-pred-count", "normed-norm_not_normUnormalization-pred-count"),
-        "IoU-pred-normed": (
-        "normed-norm_not_normXnormalization-pred-count", "need_norm-norm_not_normUnormalization-pred-count")
+        "IoU-pred-normed": ("normed-norm_not_normXnormalization-pred-count", "need_norm-norm_not_normUnormalization-pred-count")
     }
+    task = "pos"
+    formula_pos = {
+                "accuracy-"+task+"": ("all-"+task+"-pred_correct-count", "all-"+task+"-gold-count"),
+                "accuracy-per_sent-"+task+"": ("all-"+task+"-pred_correct_per_sent-count", "all-"+task+"-n_sents"),
+                "info-all-per_sent": ("all-"+task+"-n_word_per_sent-count", "all-"+task+"-n_sents"),
+                "info-all_tokens-"+task+"": ("all-"+task+"-gold-count"),
+                "info-"+task+"-n_sents": ("all-"+task+"-n_sents")
+                }
 
     dic = OrderedDict()
     for a, (val, val2) in formulas.items():
@@ -68,11 +75,17 @@ def _init_metric_report_2():
     for a, (val1, val12) in formulas_2.items():
         dic[val1] = 0
         dic[val12] = 0
+    for a, tupl in formula_pos.items():
+        if len(tupl) > 1:
+            dic[tupl[0]] = 0
+            dic[tupl[1]] = 0
+        elif len(tupl) == 1:
+            dic[tupl[0]] = 0
     dic["all-normalization-pred-count"] = 0
     return dic
 
 
-def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
+def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                         gold_output=False, score_to_compute_ls=None, stat=None,
                         use_gpu=False,
                         compute_mean_score_per_sent=False,
@@ -85,11 +98,9 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
         score_dic = _init_metric_report(score_to_compute_ls, mode_norm_score_ls)
 
         counter_correct = _init_metric_report_2()
-        total_count = {
-                       "src_word_count": 0,
+        total_count = {"src_word_count": 0,
                        "target_word_count": 0,
-                       "pred_word_count": 0
-                       }
+                       "pred_word_count": 0}
         if mode_norm_score_ls is None:
             mode_norm_score_ls = ["all"]
 
@@ -103,12 +114,15 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                 src_mask = batch.input_seq_mask
                 target_gold = batch.output_seq if gold_output else None
                 target_word_gold = batch.output_word if gold_output else None
+                target_pos_gold = batch.pos if gold_output else None
                 # do something with it : When do you stop decoding ?
                 max_len = src_seq.size(-1)
                 printing("WARNING : word max_len set to src_seq.size(-1) {} ", var=(max_len), verbose=verbose,
                          verbose_level=3)
                 # decoding one batch
                 if model.arguments["hyperparameters"]["decoder_arch"].get("char_decoding", True):
+                    assert not model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False), \
+                        "ERROR : only on type of decoding should be set (for now)"
                     (text_decoded_ls, src_text_ls, gold_text_seq_ls), counts, _, \
                     (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_sequence(model=model,
                                                                                               char_dictionary=char_dictionary,
@@ -121,9 +135,19 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                                                                                               src_len=src_len,
                                                                                               pad=pad, verbose=verbose)
 
-                if model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False):
+                elif model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False):
                     (text_decoded_ls, src_text_ls, gold_text_seq_ls), counts, _, \
-                    (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_word(model, src_seq, src_len, target_word_gold=target_word_gold)
+                    (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_word(model, src_seq, src_len,
+                                                                                          target_word_gold=target_word_gold)
+
+
+                if model.arguments["hyperparameters"].get("auxilliary_arch", {}).get("auxilliary_task_pos", False):
+                    # decode pos
+                    (pred_pos_ls, src_text_ls, gold_pos_seq_ls), counts_pos, _, \
+                    (_, _, src_seq_pos, target_seq_gold_pos) = decode_word(model, src_seq, src_len,
+                                                                                            mode="pos", target_pos_gold=target_pos_gold)
+                else:
+                    pred_pos_ls, src_text_ls, gold_pos_seq_ls = None, None, None
 
                 if write_output:
                     if dir_normalized is None:
@@ -151,14 +175,27 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                                                                                  pred_norm_not_norm=pred_norm,
                                                                                  gold_norm_not_norm=batch.output_norm_not_norm,
                                                                                  ls_original=src_text_ls)
+                    if pred_pos_ls is not None and src_text_ls is not None:
+                        counter_correct_batch_pos, score_formulas_pos = correct_pred_counter(ls_pred=pred_pos_ls,
+                                                                                         ls_gold=gold_pos_seq_ls,
+                                                                                         output_seq_n_hot=None,
+                                                                                         src_seq=src_seq,
+                                                                                         target_seq_gold=gold_pos_seq_ls,
+                                                                                         ls_original=src_text_ls, task="pos")
+                        pdb.set_trace()
+                        counter_correct_batch.update(counter_correct_batch_pos)
+                        score_formulas.update(score_formulas_pos)
 
+                    pdb.set_trace()
+                    #for key, val in zip(counter_correct.keys(), counter_correct_batch.value()):
                     for key, val in counter_correct_batch.items():
                         try:
                             counter_correct[key] += val
                         except Exception as e:
+                            print("key", key)
                             counter_correct[key] += 0
                             print(e)
-                            print("EXXCEPTION WHEN updating counter_correct {} and val {} is 0  ".format(key, val))
+                            print("EXXCEPTION WHEN updating counter_correct {} : val {} was therefore set to 0".format(key, val))
                     if score_to_compute_ls is not None and not eval_new:
                         for metric in score_to_compute_ls:
                             # TODO : DEPRECIATED : should be remove til
@@ -202,8 +239,7 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                         for metric in score_to_compute_ls:
                             assert score_dic[metric + "-NEED_NORM-total_tokens"]+score_dic[metric + "-NORMED-total_tokens"] == score_dic[metric + "-all-total_tokens"], \
                                 'ERROR all-total_tokens is {}  not equal to NEED NORMED {} +  NORMED {} '.format(score_dic[metric + "-all-total_tokens"], score_dic[metric + "-NEED_NORM-total_tokens"], score_dic[metric + "-NORMED-total_tokens"])
-                            assert np.abs(score_dic[metric + "-NEED_NORM"]+score_dic[metric + "-NORMED"] - score_dic[metric + "-all"]) < EPSILON, \
-                            "ERROR : correct NEED_NORM {} , NORMED {} and all {} ".format(score_dic[metric + "-NEED_NORM"], score_dic[metric + "-NORMED"], score_dic[metric + "-all"])
+                            assert np.abs(score_dic[metric + "-NEED_NORM"]+score_dic[metric + "-NORMED"] - score_dic[metric + "-all"]) < EPSILON, "ERROR : correct NEED_NORM {} , NORMED {} and all {} ".format(score_dic[metric + "-NEED_NORM"], score_dic[metric + "-NORMED"], score_dic[metric + "-all"])
                             print("TEST PASSED")
             if gold_output:
                 try:
@@ -216,7 +252,7 @@ def greedy_decode_batch(batchIter, model,char_dictionary, batch_size, pad=1,
                              "the predicted side : {} ".format(total_count["src_word_count"]), verbose_level=2,
                              verbose=verbose)
                 except Exception as e:
-                    print("Assertion failed count tokenns")
+                    print("Assertion failed count tokens")
                     print(e)
 
             if eval_new:
@@ -269,7 +305,7 @@ def decode_sequence_beam(model, max_len, src_seq, src_mask, src_len, char_dictio
 
         for candidate_ind in range(beam_size):
             # we decode the sequence for each beam
-            decoding_states, word_pred,pos_pred, norm_not_norm, attention = model.forward(input_seq=src_seq, output_seq=output_seq[:, :, :, candidate_ind],
+            decoding_states, word_pred, pos_pred, norm_not_norm, attention = model.forward(input_seq=src_seq, output_seq=output_seq[:, :, :, candidate_ind],
                                                                       input_word_len=src_len, output_word_len=output_len)
             scores = model.generator.forward(x=decoding_states)
             # we get the log sores
@@ -303,8 +339,7 @@ def decode_sequence_beam(model, max_len, src_seq, src_mask, src_len, char_dictio
         beam_id_cand, token_pred_id_cand = get_beam_ind_token_ind(index_pred_candidate, 109)
         # for each sent , each word , the current decoded step : we associate the prediction to its beam
         #output_seq[0, 0, char_decode - 1, beam_id_cand[0, 0, 0]] = token_pred_id_cand[0, 0, 0]
-        print(token_pred_id_cand)
-        pdb.set_trace()
+
 
         def update_output_seq(output_seq_, token_pred_id_cand, beam_id_cand,log_scores_ranked_former_all_seq, char_decode_step):
             output_seq_1 = output_seq_.clone()
@@ -360,38 +395,77 @@ def decode_sequence_beam(model, max_len, src_seq, src_mask, src_len, char_dictio
 
 
 def decode_word(model, src_seq, src_len,
-                pad=1, target_word_gold=None, use_gpu=False,
+                pad=1, target_word_gold=None, use_gpu=False, target_pos_gold=None,
+                mode = "word",
                 single_sequence=False, verbose=2):
-
+    """
+    NB : could be more factorized (its exactly the same prediction the only difference is the dictionary
+    """
     _, word_pred, pos_pred, norm_not_norm, _ = model.forward(input_seq=src_seq,
-                                                   input_word_len=src_len)
-    prediction = word_pred.argmax(dim=-1)
+                                                            input_word_len=src_len)
+    pred_norm_not_norm = None
+    if mode == "word":
+        assert target_pos_gold is None, "Only target_word_gold should be provided"
+        assert target_word_gold is not None
+        prediction = word_pred.argmax(dim=-1)
 
-    # we trust the predictor to do the padding !
-    src_seq = src_seq[:, :prediction.size(1)]
-    target_word_gold = target_word_gold[: , :prediction.size(1)]
+        # we trust the predictor to do the padding !
+        src_seq = src_seq[:, :prediction.size(1)]
+        # should not be mandatory right ?
+        target_word_gold = target_word_gold[: , :prediction.size(1)]
+        if norm_not_norm is not None:
+            pred_norm_not_norm = norm_not_norm.argmax(dim=-1)
+        if pred_norm_not_norm is not None:
+            pred_norm_not_norm = pred_norm_not_norm[:, :src_seq.size(1)]  # followign what's done above
 
-    pred_norm_not_norm = norm_not_norm.argmax(dim=-1) if norm_not_norm is not None else None
-    if pred_norm_not_norm is not None:
-        pred_norm_not_norm = pred_norm_not_norm[:, :src_seq.size(1)]  # followign what's done above
+        src_word_count, src_text, src_all_ls = output_text_(src_seq, model.char_dictionary,
+                                                            single_sequence=single_sequence,debug=False,
+                                                            output_str=True)
+        words_count_pred, text_decoded, _ = output_text_(prediction, word_decode=True, word_dic=model.word_nom_dictionary,
+                                                         single_sequence=single_sequence, char_decode=False,
+                                                         debug=False,
+                                                         output_str=True)
+        words_count_gold, target_word_gold_text, _ = output_text_(target_word_gold, word_decode=True,
+                                                                  word_dic=model.word_nom_dictionary,
+                                                                  debug=False,
+                                                                  single_sequence=single_sequence, char_decode=False,
+                                                                  output_str=True)
+        # fix by hand  # TODO : check if it is corret
+        # its based on src_text sequence length because we assumed word to word mapping and we want to predict without gold
+        text_decoded = [sent[:len(ls_gold)] for sent, ls_gold in zip(text_decoded, src_text)]
+        words_count_pred = sum([len(sent) for sent in text_decoded])
+        printing("GOLD : array text {} ", var=[target_word_gold_text], verbose=verbose, verbose_level=5)
+        printing("SRC : array text {} ", var=[src_text], verbose=verbose, verbose_level=5)
+        printing("PRED : array text {} ", var=[text_decoded], verbose=verbose, verbose_level=5)
 
-    src_word_count, src_text, src_all_ls = output_text_(src_seq, model.char_dictionary,
-                                                        single_sequence=single_sequence,debug=False,
-                                                        output_str=True)
-    words_count_pred, text_decoded, _ = output_text_(prediction, word_decode=True, word_dic=model.word_nom_dictionary,
-                                                     single_sequence=single_sequence, char_decode=False,
-                                                     debug=False,
-                                                     output_str=True)
-    words_count_gold, target_word_gold_text, _ = output_text_(target_word_gold, word_decode=True,
-                                                              word_dic=model.word_nom_dictionary,
-                                                              debug=False,
-                                                              single_sequence=single_sequence, char_decode=False,
-                                                              output_str=True)
-    # fix by hand  # TODO : check if it is corret
-    # its based on src_text sequence length because we assumed word to word mapping and we want to predict without gold
-    text_decoded = [sent[:len(ls_gold)] for sent, ls_gold in zip(text_decoded, src_text)]
-    words_count_pred = sum([len(sent) for sent in text_decoded])
+    elif mode == "pos":
+        assert target_word_gold is None, "Only target_pos_gold should be provided"
+        assert target_pos_gold is not None
+        prediction_pos = pos_pred.argmax(dim=-1)
+        src_seq = src_seq[:, :prediction_pos.size(1)]
+        if target_pos_gold is not None:
 
+            target_pos_gold = target_pos_gold[:, :prediction_pos.size(1)]
+
+        src_word_count, src_text, src_all_ls = output_text_(src_seq, model.char_dictionary,
+                                                            single_sequence=single_sequence,debug=False,
+                                                            output_str=True)
+        words_count_pred, text_decoded, _ = output_text_(prediction_pos, word_decode=True,
+                                                         word_dic=model.pos_dictionary,
+                                                         single_sequence=single_sequence, char_decode=False,
+                                                         debug=False,
+                                                         output_str=True)
+        if target_pos_gold is not None:
+
+            words_count_gold, target_word_gold_text, _ = output_text_(target_pos_gold, word_decode=True,
+                                                                      word_dic=model.pos_dictionary,
+                                                                      debug=False, single_sequence=single_sequence,
+                                                                      char_decode=False, output_str=True)
+            text_decoded = [sent[:len(ls_gold)] for sent, ls_gold in zip(text_decoded, src_text)]
+            words_count_pred = sum([len(sent) for sent in text_decoded])
+        else:
+            target_word_gold_text = None
+            words_count_gold = None
     if single_sequence:
         if pred_norm_not_norm is not None:
             pred_norm_not_norm = pred_norm_not_norm[0]
@@ -425,9 +499,10 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
             output_seq = output_seq.cuda()
             src_len = src_len.cuda()
             output_len = output_len.cuda()
-        decoding_states, word_pred, pos_pred, norm_not_norm, attention = model.forward(input_seq=src_seq,output_seq=output_seq,
-                                                                             input_word_len=src_len,
-                                                                             output_word_len=output_len)
+        decoding_states, word_pred, pos_pred, norm_not_norm, attention = model.forward(input_seq=src_seq,
+                                                                                       output_seq=output_seq,
+                                                                                       input_word_len=src_len,
+                                                                                       output_word_len=output_len)
         # [batch, seq_len, V]
         pred_norm_not_norm = norm_not_norm.argmax(dim=-1) if norm_not_norm is not None else None
         scores = model.generator.forward(x=decoding_states)
@@ -469,17 +544,17 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                                                                  char_dictionary, single_sequence=single_sequence,
                                                                  output_str=output_str, last=char_decode==(max_len-1),
                                                                  debug=False)
-    printing("PREDICTION : array text {} ", var=[text_decoded], verbose=verbose, verbose_level=0)
+    printing("PREDICTION : array text {} ", var=[text_decoded], verbose=verbose, verbose_level=5)
 
     src_word_count, src_text, src_all_ls = output_text_(src_seq, char_dictionary, single_sequence=single_sequence,
                                                         output_str=output_str)
-    printing("SOURCE  : array text {} ", var=[src_text], verbose=verbose, verbose_level=0)
+    printing("SOURCE  : array text {} ", var=[src_text], verbose=verbose, verbose_level=5)
     src_text_ls.extend(src_text)
     if target_seq_gold is not None:
         target_word_count, target_text, _ = output_text_(target_seq_gold, char_dictionary,
                                                          single_sequence=single_sequence, output_str=output_str)
         target_seq_gold_ls.extend(target_text)
-        printing("GOLD : array text {} ", var=[target_text], verbose=verbose, verbose_level=0)
+        printing("GOLD : array text {} ", var=[target_text], verbose=verbose, verbose_level=5)
     else:
         target_word_count = None
     if single_sequence:

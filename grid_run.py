@@ -361,7 +361,7 @@ if __name__ == "__main__":
                      "drop_out_word_encoder": 0., "dropout_word_decoder": 0., "drop_out_sent_encoder_out": 0,
                      "drop_out_word_encoder_out": 0, "dir_word_encoder": 2, "n_layers_word_encoder": 1, "dir_sent_encoder": 1, "word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder": "LSTM", "hidden_size_sent_encoder": 20, "hidden_size_decoder": 50, "batch_size": 2}
             param["batch_size"] = 20
-            param["auxilliary_task_norm_not_norm"] = False
+            param["auxilliary_task_norm_not_norm"] = True
             param["weight_binary_loss"] = 1
             param["unrolling_word"] = True
             param["char_src_attention"] = False
@@ -373,10 +373,10 @@ if __name__ == "__main__":
             param["dense_dim_auxilliary_2"] = None
             param["stable_decoding_state"] = True
             param["init_context_decoder"] = False
-            param["word_decoding"] = False
-            param["char_decoding"] = True
-            param["auxilliary_task_pos"] = False
-            param["dense_dim_auxilliary_pos"] = 0
+            param["word_decoding"] = True
+            param["char_decoding"] = not param["word_decoding"]
+            param["auxilliary_task_pos"] = True
+            param["dense_dim_auxilliary_pos"] = 100
             param["dense_dim_auxilliary_pos_2"] = None
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))

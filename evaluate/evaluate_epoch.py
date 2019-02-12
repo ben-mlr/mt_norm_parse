@@ -92,8 +92,10 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
     score_dic_new, formulas = greedy_decode_batch(char_dictionary=model.char_dictionary, verbose=verbose, gold_output=True,
                                                   score_to_compute_ls=score_to_compute_ls, use_gpu=use_gpu,
                                                   write_output=write_output, eval_new=True,
-                                                  stat="sum", mode_norm_score_ls=mode_norm_ls, label_data=REPO_DATASET[data_path],
-                                                  batchIter=batchIter, model=model, compute_mean_score_per_sent=compute_mean_score_per_sent,
+                                                  stat="sum", mode_norm_score_ls=mode_norm_ls,
+                                                  label_data=REPO_DATASET[data_path],
+                                                  batchIter=batchIter, model=model,
+                                                  compute_mean_score_per_sent=compute_mean_score_per_sent,
                                                   batch_size=batch_size)
 
     for score_name, formula in formulas.items():
@@ -114,9 +116,9 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                                      avg_per_sent=0,
                                      n_tokens_score=score_dic_new.get(mode_norm+"-"+task+"-gold-count",-1),
                                      model_full_name_val=model.model_full_name,
-                                     task="normalization",
+                                     task=task,
                                      report_path_val=model.arguments["checkpoint_dir"],
-                                     evaluation_script_val="normalization-exact",
+                                     evaluation_script_val="exact_match",
                                      model_args_dir=model.args_dir,
                                      data_val=REPO_DATASET[data_path])
             over_all_report_dir = os.path.join(dir_report, model.model_full_name + "NEW-report-" + label_report + ".json")
@@ -131,14 +133,15 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                     all_report = json.load(open(dir, "r"))
                     all_report.append(report)
                     json.dump(all_report, open(dir, "w"))
-
+    printing("NEW REPORT metric : {} ", var=[" ".join(list(formulas.keys()))], verbose=verbose, verbose_level=1)
     printing("NEW REPORT : model specific report saved {} ".format(over_all_report_dir), verbose=verbose, verbose_level=1)
     printing("NEW REPORT : overall report saved {} ".format(over_all_report_dir_all_models), verbose=verbose,verbose_level=1)
+
     batchIter_2 = data_gen_conllu(data_read, model.word_dictionary, model.char_dictionary,
-                                batch_size=batch_size,
-                                get_batch_mode=get_batch_mode_evaluate,
-                                normalization=normalization,pos_dictionary=model.pos_dictionary,
-                                print_raw=print_raw,  verbose=verbose)
+                                  batch_size=batch_size,
+                                  get_batch_mode=get_batch_mode_evaluate,
+                                  normalization=normalization, pos_dictionary=model.pos_dictionary,
+                                  print_raw=print_raw,  verbose=verbose)
 
     score_dic, _ = greedy_decode_batch(char_dictionary=model.char_dictionary, verbose=verbose, gold_output=True,
                                        score_to_compute_ls=score_to_compute_ls, use_gpu=use_gpu,

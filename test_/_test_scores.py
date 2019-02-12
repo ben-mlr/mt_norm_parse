@@ -159,9 +159,9 @@ def _test_correct_pred_counter():
     assert ret['NEED_NORM-normalization-pred_correct_per_sent-count'] == 1/2,  "NEED_NORM-normalization-pred_correct_per_sent-count"
     assert ret['NORMED-normalization-pred_correct_per_sent-count'] == 1/1+1/2,  "NORMED-normalization-pred_correct_per_sent-count"
 
-    assert ret["NEED_NORM-n_sents"] == 4
-    assert ret["all-n_sents"] == 4
-    assert ret["NORMED-n_sents"] == 3
+    assert ret["NEED_NORM-normalization-n_sents"] == 4
+    assert ret["all-normalization-n_sents"] == 4
+    assert ret["NORMED-normalization-n_sents"] == 3
     print("Test counter passed ")
 
 
