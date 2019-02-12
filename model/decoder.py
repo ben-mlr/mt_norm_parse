@@ -352,7 +352,6 @@ class CharDecoder(nn.Module):
             print("SENT TARGET : {}".format(OrderedDict([("clone_len", clone_len), ("argmin_squeeze", argmin_squeeze),("sorting", sorting),
                                                          ("packed_sent", packed_sent), ("padd_sent",padd_sent), ("reshape_sent",reshape_sent),
                                                          ("reshape_len",reshape_len),("word_encoders", word_encoders), ("reshape_attention",reshape_attention)])))
-        pdb.set_trace()
         return output_w_decoder, attention_weight_all
 
 

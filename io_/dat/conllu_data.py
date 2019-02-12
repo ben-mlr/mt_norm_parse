@@ -2,7 +2,7 @@ import sys
 import codecs
 import os
 import pdb
-from .constants import MAX_CHAR_LENGTH, NUM_CHAR_PAD, PAD_CHAR, PAD_POS, PAD_TYPE, ROOT_CHAR, ROOT_POS,\
+from .constants import MAX_CHAR_LENGTH, NUM_CHAR_PAD, PAD_CHAR, PAD_POS, PAD_TYPE, ROOT_CHAR, ROOT_POS, PAD, \
   ROOT_TYPE, END_CHAR, END_POS, END_TYPE, _START_VOCAB, ROOT, PAD_ID_WORD, PAD_ID_CHAR, PAD_ID_TAG, DIGIT_RE, CHAR_START_ID, CHAR_START, CHAR_END_ID, PAD_ID_CHAR, PAD_ID_NORM_NOT_NORM
 from env.project_variables import SEED_NP, SEED_TORCH
 from .conllu_reader import CoNLLReader
@@ -75,6 +75,8 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
   type_dictionary = Dictionary('type', default_value=True)
 
   char_dictionary.add(PAD_CHAR)
+  if word_normalization:
+    word_norm_dictionary.add(PAD)
   if add_start_char:
     char_dictionary.add(CHAR_START)
   pos_dictionary.add(PAD_POS)
@@ -178,6 +180,7 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
   word_dictionary.save(dict_path)
   if word_norm_dictionary is not None:
     word_norm_dictionary.save(dict_path)
+    word_norm_dictionary.close()
   char_dictionary.save(dict_path)
   pos_dictionary.save(dict_path)
   xpos_dictionary.save(dict_path)
@@ -192,7 +195,7 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
 
 def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary, max_size=None,
               word_norm_dictionary=None,
-              normalize_digits=True,
+              normalize_digits=True, word_decoder=False, 
               normalization=False, bucket=False,
               symbolic_root=False, symbolic_end=False, dry_run=False,
               verbose=0):
@@ -212,13 +215,13 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
   data = [[] for _ in _buckets]
   max_char_length = [0 for _ in _buckets]
   max_char_norm_length = [0 for _ in _buckets] if normalization else None
-
   if verbose >= 1:
     print('Reading data from %s' % source_path)
   counter = 0
   reader = CoNLLReader(source_path, word_dictionary, char_dictionary, pos_dictionary, type_dictionary, xpos_dictionary,
                        lemma_dictionary=None, word_norm_dictionary=word_norm_dictionary)
   inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end,
+                        word_decoder=word_decoder, 
                         normalization=normalization)
 
   while inst is not None and (not dry_run or counter < 100):
@@ -244,7 +247,8 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
           _buckets[last_bucket_id] = len(sent.word_ids)+2
         break
 
-    inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end,
+    inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end, 
+                          word_decoder=word_decoder, 
                           normalization=normalization)
     counter += 1
     if inst is None or not (not dry_run or counter < 100):
@@ -258,7 +262,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
 def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
                           type_dictionary, max_size=None, normalize_digits=True, symbolic_root=False,word_norm_dictionary=None,
                           symbolic_end=False, use_gpu=False, volatile=False, dry_run=False, lattice=None,
-                          verbose=0, normalization=False,bucket=True,norm_not_norm=False,
+                          verbose=0, normalization=False,bucket=True, norm_not_norm=False, word_decoder=False,
                           add_end_char=0, add_start_char=0):
   """
   Given data ovject form read_variable creates array-like  variables for character, word, pos, relation, heads ready to be fed to a network
@@ -269,6 +273,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
                                                   xpos_dictionary, type_dictionary, bucket=bucket,word_norm_dictionary=word_norm_dictionary,
                                                   verbose=verbose, max_size=max_size, normalization=normalization,
                                                   normalize_digits=normalize_digits, symbolic_root=symbolic_root,
+                                                  word_decoder=word_decoder,
                                                   symbolic_end=symbolic_end, dry_run=dry_run)
 
   max_char_length = max_char_length_dic["max_char_length"]
@@ -297,7 +302,8 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
     if normalization:
       char_norm_length = min(MAX_CHAR_LENGTH+NUM_CHAR_PAD, max_char_norm_length[bucket_id] + NUM_CHAR_PAD)
       cids_norm = np.empty([bucket_size, bucket_length, char_norm_length], dtype=np.int64)
-      wid_norm_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)
+      if word_decoder:
+        wid_norm_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)
       if norm_not_norm:
         word_norm_not_norm = np.empty([bucket_size, bucket_length], dtype=np.int64)
 
@@ -321,7 +327,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       wid_inputs[i, :inst_size] = wids
       wid_inputs[i, inst_size:] = PAD_ID_WORD
       # we assume word to word mapping for now
-      if normalization:
+      if normalization and word_decoder:
         wid_norm_inputs[i, :inst_size] = wids_norm
         wid_norm_inputs[i, inst_size:] = PAD_ID_WORD
 
@@ -391,7 +397,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
 
     words = Variable(torch.from_numpy(wid_inputs), requires_grad=False)
     chars = Variable(torch.from_numpy(cid_inputs), requires_grad=False)
-    word_norm = Variable(torch.from_numpy(wid_norm_inputs), requires_grad=False) if normalization else None
+    word_norm = Variable(torch.from_numpy(wid_norm_inputs), requires_grad=False) if normalization and word_decoder else None
     chars_norm = Variable(torch.from_numpy(cids_norm), requires_grad=False) if normalization else None
     word_norm_not_norm = Variable(torch.from_numpy(word_norm_not_norm), requires_grad=False) if norm_not_norm else None
 
@@ -406,7 +412,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       words = words.cuda()
       chars_norm = chars_norm.cuda() if normalization else None
       word_norm_not_norm = word_norm_not_norm.cuda() if norm_not_norm else None
-      word_norm = word_norm.cuda() if normalization else None
+      word_norm = word_norm.cuda() if normalization and word_decoder else None
       chars = chars.cuda()
       pos = pos.cuda()
       xpos = xpos.cuda()
@@ -415,7 +421,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       masks = masks.cuda()
       single = single.cuda()
       lengths = lengths.cuda()
-    data_variable.append((words,word_norm, chars, chars_norm, word_norm_not_norm,pos, xpos, heads, types,
+    data_variable.append((words, word_norm, chars, chars_norm, word_norm_not_norm,pos, xpos, heads, types,
                           masks, single, lengths, order_inputs, raw_word_inputs, raw_lines))
   return data_variable, bucket_sizes, _buckets, max_char_length_dic["n_sent"]
 
@@ -439,7 +445,6 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
 
   words, word_norm, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, single, lengths, order_inputs, raw, raw_lines = data_variable[bucket_id]
   bucket_size = bucket_sizes[bucket_id]
-
   batch_size = min(bucket_size, batch_size)
   index = torch.randperm(bucket_size).long()[:batch_size]
 
@@ -454,7 +459,8 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
     words = words * (ones - single[index] * noise)
   if normalization:
     chars_norm = chars_norm[index]
-    word_norm = word_norm[index]
+    if word_norm is not None:
+      word_norm = word_norm[index]
     if word_norm_not_norm is not None:
       word_norm_not_norm = word_norm_not_norm[index]
 
@@ -462,6 +468,7 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
 
 
 def iterate_batch_variable(data, batch_size, unk_replace=0.,
+                           word_decoding=False,
                            lattice=None, normalization=False):
   """
   Iterate over the dataset based on read_data_to_variable() object (used a evaluation)
@@ -475,7 +482,6 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
     bucket_length = _buckets[bucket_id]
     if bucket_size == 0:
       continue
-
     words, word_norm, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, single, lengths, order_ids,  \
     raw_word_inputs, raw_lines = data_variable[bucket_id]
 
@@ -488,7 +494,8 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
       excerpt = slice(start_idx, start_idx + batch_size)
       if normalization:
         chars_norm_ = chars_norm[excerpt] if normalization else None
-        word_norm = word_norm[excerpt] if normalization else None
+        if word_norm is not None:
+          word_norm = word_norm[excerpt]
         if word_norm_not_norm is not None:
           _word_norm_not_norm = word_norm_not_norm[excerpt]
         else:
@@ -497,10 +504,10 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
         print("WARNING : We are skipping a batch because size is {}"
               " char and {} for char_nor  ".format(chars[excerpt].size(), chars_norm_.size()))
         continue
-      if word_norm is not None :
+      if word_norm is not None:
         if word_norm.size(0)<=0:
           print("WARNING : We are skipping a batch because size is {}"
-                  " char and {} for char_nor or  {} ".format(chars[excerpt].size(), chars_norm_.size(),
+                  " char and {} for char_nor or word_norm {} ".format(chars[excerpt].size(), chars_norm_.size(),
                                                                       word_norm.size()))
           continue
 
