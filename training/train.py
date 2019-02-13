@@ -39,6 +39,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           dropout_sent_encoder_cell=0, dropout_word_encoder_cell=0, dropout_word_decoder_cell=0,
           dropout_bridge=0, drop_out_word_encoder_out=0, drop_out_sent_encoder_out=0,
           dir_word_encoder=1,
+          word_embed=False, word_embedding_dim=None,
           word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,drop_out_char_embedding_decoder=0,
           hidden_size_encoder=None, output_dim=None, char_embedding_dim=None,
           hidden_size_decoder=None, hidden_size_sent_encoder=None, freq_scoring=5,
@@ -114,11 +115,12 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                               add_start_char=add_start_char, verbose=1)
 
         voc_size = len(char_dictionary.instance2index)+1
-
+        word_voc_input_size = len(word_dictionary.instance2index)+1
         printing("DICTIONARY ; character vocabulary is len {} : {} ", var=str(len(char_dictionary.instance2index)+1, char_dictionary.instance2index), verbose=verbose, verbose_level=0)
         _train_path, _dev_path, _add_start_char = None, None, None
     else:
         voc_size = None
+        word_voc_input_size = 0
         if not reload:
             # we need to feed the model the data so that it computes the model_specific_dictionary
             _train_path, _dev_path, _add_start_char = train_path, dev_path, add_start_char
@@ -153,6 +155,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                           char_decoding=char_decoding,
                           stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                           symbolic_root=symbolic_root, symbolic_end=symbolic_end,
+                          word_embed=word_embed, word_embedding_dim=word_embedding_dim, word_voc_input_size=word_voc_input_size,
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
     pos_batch = auxilliary_task_pos
     if use_gpu:

@@ -284,7 +284,7 @@ class CharDecoder(nn.Module):
     def forward(self, output, conditioning, output_word_len,
                 char_seq_hidden_encoder=None,
                 word_src_sizes=None,proportion_pred_train=None,
-                sent_len_max_source=None,verbose=0):
+                sent_len_max_source=None, verbose=0):
         conditioning = conditioning.view(1, conditioning.size(0) * conditioning.size(1), -1)
         start = time.time() if self.timing else None
         _output_word_len = output_word_len.clone()

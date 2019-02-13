@@ -23,6 +23,10 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                verbose=0):
 
     hidden_size_encoder = args.get("hidden_size_encoder", 10)
+
+    word_embed = args.get("word_embed", False)
+    word_embedding_dim  = args.get("word_embedding_dim", None)
+
     output_dim = args.get("output_dim", 10)
     char_embedding_dim = args.get("char_embedding_dim", 10)
     hidden_size_sent_encoder = args.get("hidden_size_sent_encoder", 10)
@@ -92,6 +96,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                             label_train=REPO_DATASET[train_path], label_dev=REPO_DATASET[dev_path],
                             word_recurrent_cell_encoder=word_recurrent_cell_encoder, word_recurrent_cell_decoder=word_recurrent_cell_decoder,
                             drop_out_sent_encoder_out=drop_out_sent_encoder_out,drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
+                            word_embedding_dim=word_embedding_dim, word_embed=word_embed,
                             drop_out_word_encoder_out=drop_out_word_encoder_out, dropout_bridge=dropout_bridge,
                             freq_checkpointing=freq_checkpointing, reload=False, model_id_pref=model_id_pref,
                             score_to_compute_ls=score_to_compute_ls, mode_norm_ls=["all", "NEED_NORM", "NORMED"],
@@ -141,7 +146,6 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                          compute_mean_score_per_sent=compute_mean_score_per_sent,
                          batch_size=batch_size, debug=debug,
                          word_decoding=word_decoding, char_decoding=char_decoding,
-
                          dir_report=model_dir, verbose=1)
         print("GRID : END EVAL", time.time()-start_eval)
 
@@ -386,13 +390,16 @@ if __name__ == "__main__":
             param["dense_dim_auxilliary_2"] = None
             param["stable_decoding_state"] = True
             param["init_context_decoder"] = False
-            param["word_decoding"] = True
-            param["dense_dim_word_pred"] = 200
-            param["dense_dim_word_pred_2"] = 200
+            param["word_decoding"] = False
+            param["dense_dim_word_pred"] = 0
+            param["dense_dim_word_pred_2"] = 0
             param["char_decoding"] = not param["word_decoding"]
             param["auxilliary_task_pos"] = True
             param["dense_dim_auxilliary_pos"] = 100
             param["dense_dim_auxilliary_pos_2"] = None
+
+            param["word_embed"] = True
+            param["word_embedding_dim"] = 100
             print("GRID_INFO analy vars=  dense_dim_auxilliary_pos_2 dense_dim_auxilliary_pos")
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
@@ -409,7 +416,7 @@ if __name__ == "__main__":
                                                   score_to_compute_ls=["exact", "norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recall", "norm_not_norm-accuracy"],
                                                   warmup=warmup, args=param, use_gpu=None,
                                                   n_epochs=epochs,
-                                                  debug=False)
+                                                  debug=True)
 
           run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")

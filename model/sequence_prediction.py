@@ -133,17 +133,20 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                                                                                               src_seq=src_seq,
                                                                                               src_mask=src_mask,
                                                                                               src_len=src_len,
+                                                                                              input_word=batch.input_word,
                                                                                               pad=pad, verbose=verbose)
 
                 elif model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False):
                     (text_decoded_ls, src_text_ls, gold_text_seq_ls), counts, _, \
                     (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_word(model, src_seq, src_len,
+                                                                                          input_word=batch.input_word,
                                                                                           target_word_gold=target_word_gold)
                 if model.arguments["hyperparameters"].get("auxilliary_arch",{}).get("auxilliary_task_pos", False):
                     # decode pos
                     (pred_pos_ls, src_text_pos, gold_pos_seq_ls), counts_pos, _, \
                     (_, _, src_seq_pos, target_seq_gold_pos) = decode_word(model, src_seq, src_len,
-                                                                                            mode="pos", target_pos_gold=target_pos_gold)
+                                                                           input_word=batch.input_word,
+                                                                           mode="pos", target_pos_gold=target_pos_gold)
                 else:
                     pred_pos_ls, src_text_pos, gold_pos_seq_ls = None, None, None
 
@@ -305,7 +308,7 @@ def decode_sequence_beam(model, max_len, src_seq, src_mask, src_len, char_dictio
         for candidate_ind in range(beam_size):
             # we decode the sequence for each beam
             decoding_states, word_pred, pos_pred, norm_not_norm, attention = model.forward(input_seq=src_seq, output_seq=output_seq[:, :, :, candidate_ind],
-                                                                      input_word_len=src_len, output_word_len=output_len)
+                                                                                           input_word_len=src_len, output_word_len=output_len)
             scores = model.generator.forward(x=decoding_states)
             # we get the log sores
             output_len = (src_len[:, :, 0] != 0).unsqueeze(dim=2) * char_decode
@@ -395,13 +398,14 @@ def decode_sequence_beam(model, max_len, src_seq, src_mask, src_len, char_dictio
 
 def decode_word(model, src_seq, src_len,
                 pad=1, target_word_gold=None, use_gpu=False, target_pos_gold=None,
-                mode = "word",
+                mode = "word",input_word=None,
                 single_sequence=False, verbose=2):
     """
     NB : could be more factorized (its exactly the same prediction the only difference is the dictionary
     """
     _, word_pred, pos_pred, norm_not_norm, _ = model.forward(input_seq=src_seq,
                                                              input_word_len=src_len,
+                                                             word_embed_input=input_word,
                                                              word_level_predict=True)
     pred_norm_not_norm = None
     if mode == "word":
@@ -475,7 +479,7 @@ def decode_word(model, src_seq, src_len,
 
 
 def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
-                    pad=1, target_seq_gold=None,
+                    pad=1, target_seq_gold=None,input_word=None,
                     use_gpu=False,
                     single_sequence=False, verbose=2):
 
@@ -502,7 +506,8 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         decoding_states, word_pred, pos_pred, norm_not_norm, attention = model.forward(input_seq=src_seq,
                                                                                        output_seq=output_seq,
                                                                                        input_word_len=src_len,
-                                                                                       output_word_len=output_len)
+                                                                                       output_word_len=output_len,
+                                                                                       word_embed_input=input_word)
         # [batch, seq_len, V]
         pred_norm_not_norm = norm_not_norm.argmax(dim=-1) if norm_not_norm is not None else None
         scores = model.generator.forward(x=decoding_states)

@@ -38,7 +38,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
 
             words, word_norm, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, lengths, order_ids, raw_word_inputs, raw_lines = batch
             yield MaskBatch(chars, chars_norm,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
-                            output_word=word_norm, pos=pos,
+                            output_word=word_norm, pos=pos, input_word=words,
                             verbose=verbose), order_ids
 
     # get_batch randomly (for training purpose)
@@ -76,7 +76,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                 character_display = [" ".join([char_dictionary.get_instance(char[sent, word_ind, char_i]) for char_i in range(word_len)]) + " | NORM : {} |SENT {} WORD {}| ".format(word_norm_not_norm[sent,word_ind],sent, word_ind) for ind_sent,sent in enumerate(range(char.size(0)))
                                      for ind_w, word_ind in enumerate(range(char.size(1)))]
 
-                word_display = [word_dictionary.get_instance(word[batch, __word_ind]) + " " for batch in range(char.size(0))]
+                word_display = [word_dictionary.get_instance(word[batch, word_ind]) + " " for batch in range(char.size(0)) for word_ind in range(char.size(1))]
 
                 if pos_dictionary is not None:
                     pos_display = [pos_dictionary.get_instance(pos[batch, __word_ind]) + " " for batch in
@@ -109,7 +109,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                      verbose=verbose, verbose_level=5)
 
             yield MaskBatch(char, chars_norm, output_word=word_norm, output_norm_not_norm=word_norm_not_norm,
-                            pos=pos, pad=padding, timing=timing, verbose=verbose), order_ids
+                            pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose), order_ids
 
 
 def data_gen_dummy(V, batch, nbatches, sent_len=9, word_len=5, verbose=0, seed=None):

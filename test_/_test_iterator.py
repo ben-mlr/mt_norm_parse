@@ -40,7 +40,7 @@ def _test_iterator_get_batch_mode_False(batch_size,bucket, get_batch_mode, exten
                                              add_start_char=add_start_char, add_end_char=add_end_char)
     batchIter = data_gen_conllu(data, word_dictionary, char_dictionary,
                                 batch_size=batch_size, get_batch_mode=get_batch_mode, extend_n_batch=extend_n_batch,
-                                print_raw=False, normalization=normalization,
+                                print_raw=True, normalization=normalization,
                                 verbose=verbose)
     n_tokens = 0
     n_sents_outputed = 0

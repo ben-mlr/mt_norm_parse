@@ -37,12 +37,13 @@ class LexNormalizer(nn.Module):
                  hidden_size_sent_encoder=None,
                  weight_binary_loss=None,
                  n_layers_word_encoder=1,
-                 hidden_size_decoder=None, voc_size=None, word_voc_output_size=None,
+                 hidden_size_decoder=None, voc_size=None, word_voc_output_size=0, # set to 0 for fact checking
                  model_id_pref="", model_name="",
                  drop_out_sent_encoder_cell=0., drop_out_word_encoder_cell=0., drop_out_word_decoder_cell=0.,
                  dir_word_encoder=1,
                  drop_out_bridge=0, drop_out_sent_encoder_out=0, drop_out_word_encoder_out=0, drop_out_char_embedding_decoder=0,
                  dir_sent_encoder=1,word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,
+                 word_voc_input_size=0, word_embedding_dim=0, word_embed=False,
                  unrolling_word=False,
                  dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None,
                  char_src_attention=False, shared_context="all",teacher_force=False,
@@ -75,10 +76,13 @@ class LexNormalizer(nn.Module):
         :param use_gpu:
         """
         super(LexNormalizer, self).__init__()
-
         # TODO factorize as args_checking
         assert (word_decoding or char_decoding) and not (word_decoding and char_decoding), "ERROR sttricly  one of word,char decoding should be True"
         assert init_context_decoder or stable_decoding_state or char_src_attention, "ERROR : otherwise no information passes from the encoder to the decoder"
+        if word_embed:
+            assert  word_embedding_dim>0, "ERROR word_embedding_dim should be >0 as word_embed"
+        else:
+            assert word_embedding_dim == 0, "ERROR  it needs to be 0 if not word_embed "
         if char_decoding:
             assert dense_dim_word_pred is None or dense_dim_word_pred == 0, "ERROR dense_dim_word_pred should be None as not word_decoding"
         if auxilliary_task_pos:
@@ -132,7 +136,7 @@ class LexNormalizer(nn.Module):
                 # we make sure the dictionary dir exists and is located in dict_path
                 assert dict_path is not None, "ERROR dict_path should be specified"
                 assert os.path.isdir(dict_path), "ERROR : dict_path {} does not exist".format(dict_path)
-
+            # we are loading the dictionary now because we need it to define the model
             self.word_dictionary, self.word_nom_dictionary, self.char_dictionary, \
             self.pos_dictionary, self.xpos_dictionary, self.type_dictionary =\
                 conllu_data.load_dict(dict_path=dict_path,
@@ -143,7 +147,8 @@ class LexNormalizer(nn.Module):
             if word_decoding:
                 assert self.word_nom_dictionary is not None, "ERROR self.word_nom_dictionary should not be None"
 
-            word_voc_output_size = len(self.word_nom_dictionary.instance2index)+2 if self.word_nom_dictionary is not None else None
+            word_voc_input_size = len(self.word_dictionary.instance2index) + 1
+            word_voc_output_size = len(self.word_nom_dictionary.instance2index)+1 if self.word_nom_dictionary is not None else None
             printing("char_dictionary {} ", var=([self.char_dictionary.instance2index]), verbose=verbose, verbose_level=1)
             printing("Character vocabulary is {} length", var=(len(self.char_dictionary.instance2index) + 1),
                      verbose=verbose, verbose_level=0)
@@ -170,6 +175,7 @@ class LexNormalizer(nn.Module):
                                   "n_trainable_parameters": None,
                                   "char_embedding_dim": char_embedding_dim,
                                   "encoder_arch": {"cell_word": word_recurrent_cell_encoder, "cell_sentence": "LSTM",
+                                                   "word_embed": word_embed,  "word_embedding_dim": word_embedding_dim,
                                                    "n_layers_word_encoder": n_layers_word_encoder,
                                                    "dir_sent_encoder": dir_sent_encoder,
                                                    "dir_word_encoder": dir_word_encoder,
@@ -196,6 +202,7 @@ class LexNormalizer(nn.Module):
                                   "hidden_size_decoder": hidden_size_decoder,
                                   "voc_size": voc_size, "output_dim": output_dim,
                                   "word_voc_output_size": word_voc_output_size,
+                                  "word_voc_input_size": word_voc_input_size,
                                  }}
         # we load argument.json and define load weights
         else:
@@ -214,6 +221,7 @@ class LexNormalizer(nn.Module):
             args = args["hyperparameters"]
             # -1 because when is passed for checking it accounts for the unkwnown which is
             # actually not appear in the dictionary
+            assert args.get("word_voc_input_size", 0) == word_voc_input_size, "ERROR : voc_size word_voc_input_size and voc_size " "redefined in dictionnaries do not match {} vs {} ".format(args.get("word_voc_input_size",0), word_voc_input_size)
             assert args["voc_size"] == voc_size, "ERROR : voc_size loaded and voc_size " \
                                                  "redefined in dictionnaries do not " \
                                                  "match {} vs {} ".format(args["voc_size"], voc_size)
@@ -227,7 +235,7 @@ class LexNormalizer(nn.Module):
                 teacher_force, dense_dim_auxilliary_2, stable_decoding_state, init_context_decoder, \
             word_decoding, char_decoding, auxilliary_task_pos, dense_dim_auxilliary_pos, dense_dim_auxilliary_pos_2, \
                 dense_dim_word_pred, dense_dim_word_pred_2, \
-                symbolic_root, symbolic_end = get_args(args, False)
+                symbolic_root, symbolic_end, word_embedding_dim, word_embed = get_args(args, False)
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
         # adjusting for directions : the hidden_size_sent_encoder provided and are the dir x hidden_dim dimensions
@@ -240,6 +248,8 @@ class LexNormalizer(nn.Module):
         printing("Model : NB : defined drop outs are the reloaded one ", verbose, verbose_level=1)
         # 1 shared character embedding layer
         self.char_embedding = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
+        self.word_embedding = nn.Embedding(num_embeddings=word_voc_input_size, embedding_dim=word_embedding_dim) if word_embed else None
+
         self.encoder = CharEncoder(self.char_embedding, input_dim=char_embedding_dim,
                                    hidden_size_encoder=hidden_size_encoder, word_recurrent_cell=word_recurrent_cell_encoder,
                                    drop_out_sent_encoder_out=drop_out_sent_encoder_out,
@@ -249,6 +259,8 @@ class LexNormalizer(nn.Module):
                                    hidden_size_sent_encoder=hidden_size_sent_encoder, bidir_sent=dir_sent_encoder-1,
                                    n_layers_word_cell=n_layers_word_encoder, timing=timing,
                                    dir_word_encoder=dir_word_encoder,context_level=shared_context,
+                                   add_word_level=word_embed,
+                                   word_embedding_dim=word_embedding_dim,
                                    verbose=verbose)
 
         p_word = 1 if shared_context in ["word", "all", "none"] else 0
@@ -256,7 +268,7 @@ class LexNormalizer(nn.Module):
         self.shared_context = shared_context
 
         self.bridge = nn.Linear(
-            hidden_size_encoder * dir_word_encoder * n_layers_word_encoder*p_word + hidden_size_sent_encoder*dir_sent_encoder*p_sent,#*dir_sent_encoder : added diviion by 2 if dir 2
+            hidden_size_encoder * dir_word_encoder * n_layers_word_encoder*p_word + hidden_size_sent_encoder*dir_sent_encoder*p_sent+word_embedding_dim,#*dir_sent_encoder : added diviion by 2 if dir 2
             hidden_size_decoder)
         self.hidden_size_decoder = hidden_size_decoder
         #self.layer_norm = nn.LayerNorm(hidden_size_decoder, elementwise_affine=False) if True else None
@@ -279,7 +291,6 @@ class LexNormalizer(nn.Module):
                                    generator=self.generator if not teacher_force else None, shared_context=shared_context,
                                    stable_decoding_state=stable_decoding_state,
                                    verbose=verbose) if char_decoding else None
-        print("word_voc_output_size", word_voc_output_size)
 
         self.word_decoder = WordDecoder(voc_size=word_voc_output_size, input_dim=hidden_size_decoder,
                                         dense_dim=dense_dim_word_pred, dense_dim_2=dense_dim_word_pred_2) if word_decoding else None
@@ -296,8 +307,8 @@ class LexNormalizer(nn.Module):
             else:
                 self.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
 
-    def forward(self, input_seq, input_word_len,
-                output_word_len=None, output_seq=None,word_level_predict=False,
+    def forward(self, input_seq, input_word_len, word_embed_input=None,
+                output_word_len=None, output_seq=None, word_level_predict=False,
                 proportion_pred_train=None):
         # [batch, seq_len ] , batch of sequences of indexes (that corresponds to character 1-hot encoded)
         # char_vecs_input = self.char_embedding(input_seq)
@@ -311,8 +322,13 @@ class LexNormalizer(nn.Module):
                  verbose=0, verbose_level=4)
         # input_seq : [batch, max sentence length, max word length] : batch of sentences
         start = time.time() if timing else None
-        context, sent_len_max_source, char_seq_hidden_encoder, word_src_sizes = \
-            self.encoder.forward(input_seq, input_word_len)
+
+        if self.word_embedding is not None:
+            word_embed_input = self.word_embedding(word_embed_input)
+        context, sent_len_max_source, \
+        char_seq_hidden_encoder, word_src_sizes = self.encoder.forward(input_seq, input_word_len,
+                                                                       word_embed_input=word_embed_input)
+
         source_encoder, start = get_timing(start)
         # [] [batch, , hiden_size_decoder]
         printing("DECODER hidden state before bridge size {}", var=[context.size() if context is not None else 0],

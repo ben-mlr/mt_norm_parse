@@ -14,18 +14,21 @@ class CharEncoder(nn.Module):
                  word_recurrent_cell=None, dropout_sent_encoder_cell=0, dropout_word_encoder_cell=0,
                  n_layers_word_cell=1, timing=False, bidir_sent=True,context_level="all",
                  drop_out_word_encoder_out=0, drop_out_sent_encoder_out=0,
-                 dir_word_encoder=1,
+                 dir_word_encoder=1, add_word_level=False,
+                 word_embedding_dim=0,
                  verbose=2):
         super(CharEncoder, self).__init__()
         self.char_embedding_ = char_embedding
         self.timing = timing
+        self.add_word_level = add_word_level
+        word_embedding_dim = 0 if word_embedding_dim is None else word_embedding_dim
         # context level shared to the decoder (should prune a lot if context level word/or sent )
         self.context_level = context_level
         if dir_word_encoder == 2:
             assert hidden_size_encoder%2==0, "ERROR = it will be divided by two and remultipy so need even number for simplicity"
         if bidir_sent:
             assert hidden_size_sent_encoder%2==0, "ERROR = it will be divided by two and remultipy so need even number for simplicity"
-        self.sent_encoder = nn.LSTM(input_size=hidden_size_encoder*n_layers_word_cell*dir_word_encoder,
+        self.sent_encoder = nn.LSTM(input_size=hidden_size_encoder*n_layers_word_cell*dir_word_encoder+word_embedding_dim,
                                     hidden_size=hidden_size_sent_encoder,
                                     num_layers=1, bias=True, batch_first=True,
                                     dropout=dropout_word_encoder_cell,
@@ -68,10 +71,12 @@ class CharEncoder(nn.Module):
         # As the target sequence : if the word is empty we still encode the sentence (the first PAD symbol)
         #  WARNING : We will be cautious not to take it as input of our SENTENCE ENCODER !
         input_word_len[input_word_len == 0] = 1
+
         packed_char_vecs = pack_padded_sequence(char_vecs, input_word_len.squeeze().cpu().numpy(), batch_first=True)
         # packed_char_vecs.data : [dim batch x word lenghtS ] with .batch_sizes
         printing("SOURCE Packed data shape {} ", var=(packed_char_vecs.data.shape), verbose=self.verbose, verbose_level=4)
         # all sequence encoding [batch, max seq_len, n_dir x encoding dim] ,
+
         # last complete hidden state: [dir*n_layer, batch, dim encoding dim]
         output, h_n = self.seq_encoder(packed_char_vecs)
         # see if you really want that
@@ -92,7 +97,7 @@ class CharEncoder(nn.Module):
         # TODO: check that using packed sequence provides the last state of the sequence(not the end of the padded one!)
         return h_n, output, word_src_sizes
 
-    def forward(self, input, input_word_len=None, verbose=0):
+    def forward(self, input, input_word_len=None, word_embed_input=None, verbose=0):
         # input should be a batach of sentences
         # input : [batch, max sent len, max word len], input_word_len [batch, max_sent_len]
         context_level = self.context_level
@@ -146,7 +151,14 @@ class CharEncoder(nn.Module):
                  verbose=verbose, verbose_level=3)
         printing("SOURCE char_seq_hidden encoder reshaped dim sent : {} ", var=[char_seq_hidden.size()],
                  verbose=verbose, verbose_level=3)
+        if self.add_word_level:
+            assert word_embed_input is not None, "ERROR word_embed_input required as self.add_word_level"
+            # we trust h_w for padding
+            word_embed_input = word_embed_input[:, :h_w.size(1),:]
+            h_w = torch.cat((word_embed_input,h_w), dim=-1)
+        pdb.set_trace()
         sent_encoded, hidden = self.sent_encoder(h_w)
+
         # sent_encoded : [batch, max sent len ,hidden_size_sent_encoder]
         printing("SOURCE sentence encoder output dim sent : {} ", var=[sent_encoded.size()],
                  verbose=verbose, verbose_level=3)
