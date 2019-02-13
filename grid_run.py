@@ -19,6 +19,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                warmup=False, args={}, use_gpu=None, freq_checkpointing=1,debug=False,compute_scoring_curve=False,
                compute_mean_score_per_sent=False,print_raw=False,freq_scoring=5,bucketing_train=True,freq_writer=None,
                extend_n_batch=1, score_to_compute_ls=None,
+               symbolic_end=False, symbolic_root=False,
                verbose=0):
 
     hidden_size_encoder = args.get("hidden_size_encoder", 10)
@@ -109,6 +110,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                             dense_dim_auxilliary_pos_2=dense_dim_auxilliary_pos_2,
                             word_decoding=word_decoding,dense_dim_word_pred=dense_dim_word_pred, dense_dim_word_pred_2=dense_dim_word_pred_2,
                             char_decoding=char_decoding,
+                            symbolic_end=symbolic_end, symbolic_root=symbolic_root,
                             stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                             checkpointing=True)
 
@@ -139,6 +141,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                          compute_mean_score_per_sent=compute_mean_score_per_sent,
                          batch_size=batch_size, debug=debug,
                          word_decoding=word_decoding, char_decoding=char_decoding,
+
                          dir_report=model_dir, verbose=1)
         print("GRID : END EVAL", time.time()-start_eval)
 
@@ -281,19 +284,19 @@ if __name__ == "__main__":
           params = []
           labels = []
           n_model = 0
-          for batch_size in [2,25]:
+          for batch_size in [25]:
             for scale in [2]:
               for clipping in [1]:
                 for dir_word_encoder in [2]:
-                    for teacher_force in [ True, False]:
-                      for char_src_attention in [True]:
-                        for auxilliary_task_norm_not_norm in [False]:
+                    for teacher_force in [False]:
+                      for char_src_attention in [False]:
+                        for auxilliary_task_norm_not_norm in [False, True]:
                             for shared_context in ["all", "word"]:
                               if auxilliary_task_norm_not_norm:
-                                dense_dim_auxilliary, dense_dim_auxilliary_2 = 200, 200
+                                dense_dim_auxilliary, dense_dim_auxilliary_2 = 200, 50
                               else:
                                 dense_dim_auxilliary, dense_dim_auxilliary_2  = 0,0
-                              for stable_decoding_state in [False, True]:
+                              for stable_decoding_state in [False]:
                                 for word_decoding in [True, False]:
                                   for auxilliary_task_pos in [ False]:
                                       param = params_strong.copy()
@@ -316,18 +319,23 @@ if __name__ == "__main__":
                                       param["shared_context"] = shared_context
                                       param["stable_decoding_state"] = stable_decoding_state
                                       param["init_context_decoder"] = not param["stable_decoding_state"]
+
                                       param["word_decoding"] = word_decoding
                                       param["char_decoding"] = not param["word_decoding"]
+
+                                      param["dense_dim_word_pred"] = 200 if word_decoding else None
+                                      param["dense_dim_word_pred_2"] = 200 if word_decoding else None
+
                                       param["auxilliary_task_pos"] = auxilliary_task_pos
                                       param["dense_dim_auxilliary_pos"] = None if not auxilliary_task_pos else 200
                                       param["dense_dim_auxilliary_pos_2"] = None
                                   params.append(param)
                                   #labels.append("word_char-level_contextxteacher_force-{}-stable_decod-init_con_{}-teachforce10_{}".format(shared_context,\
                                   #              param["stable_decoding_state"],param["init_context_decoder"],teacher_force))
-                                  labels.append("uni-{}teach_{}aux".format(teacher_force, param["auxilliary_task_norm_not_norm"]))
-          #print("GRID_INFO= batch_size teacher_force auxilliary_task_norm_not_norm n_trainable_parameters shared_context stable_decoding_state")
-          #print("GRID_INFO= batch_size auxilliary_task_pos auxilliary_task_norm_not_norm n_trainable_parameters word_decoding ")
-          print("GRID_INFO=  shared_context n_trainable_parameters word_decoding stable_decoding_state teacher_force batch_size")
+                                  labels.append("word_vs_char-scale{}-sha_context_{}-auxnorm_not_norm_{}-word_de_{}".format(scale,shared_context,auxilliary_task_norm_not_norm, word_decoding))
+
+          print("GRID_INFO analy vars=  shared_context word_decoding auxilliary_task_norm_not_norm n_trainable_parameters")
+          print("GRID_INFO fixed vars=  batch_size n_trainable_parameters stable_decoding_state teacher_force char_src_attention")
 
       # only for cloud run :
       warmup = True
@@ -348,7 +356,8 @@ if __name__ == "__main__":
 
       OAR = os.environ.get('OAR_JOB_ID')+"_rioc-" if os.environ.get('OAR_JOB_ID', None) is not None else ""
       print("OAR=",OAR)
-      LABEL_GRID = OAR+RUN_ID+"-"+LABEL_GRID
+      OAR = RUN_ID if OAR == "" else OAR
+      LABEL_GRID = OAR+"-"+LABEL_GRID
 
       GRID_FOLDER_NAME = LABEL_GRID if len(LABEL_GRID) > 0 else RUN_ID
       GRID_FOLDER_NAME += "-summary"
@@ -359,7 +368,7 @@ if __name__ == "__main__":
       for param, model_id_pref in zip(params, labels):
           i += 1
           printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 80 if not test_before_run else 2
+          epochs = 50 if not test_before_run else 2
           if warmup:
             param = {"hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10, "dropout_sent_encoder": 0.,
                      "drop_out_word_encoder": 0., "dropout_word_decoder": 0., "drop_out_sent_encoder_out": 0,
@@ -384,16 +393,17 @@ if __name__ == "__main__":
             param["auxilliary_task_pos"] = True
             param["dense_dim_auxilliary_pos"] = 100
             param["dense_dim_auxilliary_pos_2"] = None
-
+            print("GRID_INFO analy vars=  dense_dim_auxilliary_pos_2 dense_dim_auxilliary_pos")
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
-                                                  test_path=[DEMO],
+                                                  test_path=[TEST, DEV] if not warmup else DEMO,
                                                   verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,
                                                   get_batch_mode_all=True, compute_scoring_curve=False,
-                                                  freq_scoring=10, bucketing_train=True, freq_checkpointing=15,
+                                                  freq_scoring=10, bucketing_train=True, freq_checkpointing=5,
+                                                  symbolic_root=True, symbolic_end=True,
                                                   freq_writer=10 if not test_before_run else 1,
                                                   extend_n_batch=2,
                                                   score_to_compute_ls=["exact", "norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recall", "norm_not_norm-accuracy"],

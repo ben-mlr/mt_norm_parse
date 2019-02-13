@@ -20,7 +20,8 @@ CHAR_START = u"_START"
 UNK_ID = 0
 # we add this for normalization (no change if add_char_start==0 in create_dict + read_data
 CHAR_START_ID = 2
-CHAR_END_ID = 4
+CHAR_END_ID = 4 # related to END_CHAR
+# END is both signal of sentence end for word vec and char vec
 PAD_ID_CHAR = 1
 
 PAD_ID_NORM_NOT_NORM = 2

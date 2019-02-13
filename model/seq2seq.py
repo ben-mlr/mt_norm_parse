@@ -49,6 +49,7 @@ class LexNormalizer(nn.Module):
                  stable_decoding_state=False, init_context_decoder=True,
                  word_decoding=False, dense_dim_word_pred=None, dense_dim_word_pred_2=None,
                  char_decoding=True,
+                 symbolic_end=False, symbolic_root=False,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
         character level Sequence to Sequence model for normalization
@@ -155,6 +156,7 @@ class LexNormalizer(nn.Module):
                                                   "git_id": git_commit_id},
                               "hyperparameters": {
                                   "shared_context": shared_context,
+                                  "symbolic_end": symbolic_end, "symbolic_root": symbolic_root,
                                   "gradient_clipping": None,
                                   "tasks_schedule_policy": None,
                                   "auxilliary_arch": {
@@ -224,13 +226,14 @@ class LexNormalizer(nn.Module):
                     self.auxilliary_task_norm_not_norm, unrolling_word, char_src_attention, dense_dim_auxilliary, shared_context,\
                 teacher_force, dense_dim_auxilliary_2, stable_decoding_state, init_context_decoder, \
             word_decoding, char_decoding, auxilliary_task_pos, dense_dim_auxilliary_pos, dense_dim_auxilliary_pos_2, \
-                dense_dim_word_pred, dense_dim_word_pred_2 = get_args(args, False)
+                dense_dim_word_pred, dense_dim_word_pred_2, \
+                symbolic_root, symbolic_end = get_args(args, False)
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
         # adjusting for directions : the hidden_size_sent_encoder provided and are the dir x hidden_dim dimensions
         hidden_size_sent_encoder = int(hidden_size_sent_encoder/(dir_sent_encoder))
         hidden_size_encoder = int(hidden_size_encoder/dir_word_encoder)
-
+        self.symbolic_end, self.symbolic_root = symbolic_end, symbolic_root
         self.dir_model = dir_model
         self.model_full_name = model_full_name
         printing("Model arguments are {} ".format(self.arguments), verbose, verbose_level=0)

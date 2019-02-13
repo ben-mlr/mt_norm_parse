@@ -3,7 +3,7 @@ import codecs
 import os
 import pdb
 from .constants import MAX_CHAR_LENGTH, NUM_CHAR_PAD, PAD_CHAR, PAD_POS, PAD_TYPE, ROOT_CHAR, ROOT_POS, PAD, \
-  ROOT_TYPE, END_CHAR, END_POS, END_TYPE, _START_VOCAB, ROOT, PAD_ID_WORD, PAD_ID_CHAR, PAD_ID_TAG, DIGIT_RE, CHAR_START_ID, CHAR_START, CHAR_END_ID, PAD_ID_CHAR, PAD_ID_NORM_NOT_NORM
+  ROOT_TYPE, END_CHAR, END_POS, END_TYPE, _START_VOCAB, ROOT, PAD_ID_WORD, PAD_ID_CHAR, PAD_ID_TAG, DIGIT_RE, CHAR_START_ID, CHAR_START, CHAR_END_ID, PAD_ID_CHAR, PAD_ID_NORM_NOT_NORM, END
 from env.project_variables import SEED_NP, SEED_TORCH
 from .conllu_reader import CoNLLReader
 from .dictionary import Dictionary
@@ -75,18 +75,30 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
   type_dictionary = Dictionary('type', default_value=True)
 
   char_dictionary.add(PAD_CHAR)
+  word_dictionary.add(PAD)
+
   if word_normalization:
     word_norm_dictionary.add(PAD)
   if add_start_char:
     char_dictionary.add(CHAR_START)
+
+  char_dictionary.add(ROOT_CHAR)
+  char_dictionary.add(END_CHAR)
+  char_dictionary.add(END)
+
   pos_dictionary.add(PAD_POS)
   xpos_dictionary.add(PAD_POS)
   type_dictionary.add(PAD_TYPE)
-  char_dictionary.add(ROOT_CHAR)
+  if word_normalization:
+    word_norm_dictionary.add(ROOT)
+  word_dictionary.add(ROOT)
   pos_dictionary.add(ROOT_POS)
   xpos_dictionary.add(ROOT_POS)
   type_dictionary.add(ROOT_TYPE)
-  char_dictionary.add(END_CHAR)
+
+  if word_normalization:
+    word_norm_dictionary.add(END)
+  word_dictionary.add(END)
   pos_dictionary.add(END_POS)
   xpos_dictionary.add(END_POS)
   type_dictionary.add(END_TYPE)
@@ -269,6 +281,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
   """
   if norm_not_norm:
     assert normalization, "norm_not_norm can't be set without normalisation info"
+  printing("WARNING symbolic root {} is and symbolic end is {} ", var=[symbolic_root, symbolic_end], verbose=verbose, verbose_level=1)
   data, max_char_length_dic, _buckets = read_data(source_path, word_dictionary, char_dictionary, pos_dictionary,
                                                   xpos_dictionary, type_dictionary, bucket=bucket,word_norm_dictionary=word_norm_dictionary,
                                                   verbose=verbose, max_size=max_size, normalization=normalization,
@@ -278,6 +291,8 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
 
   max_char_length = max_char_length_dic["max_char_length"]
   max_char_norm_length = max_char_length_dic["max_char_norm_length"]
+
+
   bucket_sizes = [len(data[b]) for b in range(len(_buckets))]
 
   data_variable = []
@@ -291,6 +306,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       data_variable.append((1, 1))
       continue
     bucket_length = _buckets[bucket_id]
+    print("bucket_length", bucket_length)
     char_length = min(MAX_CHAR_LENGTH+NUM_CHAR_PAD, max_char_length[bucket_id] + NUM_CHAR_PAD)
     wid_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)
     cid_inputs = np.empty([bucket_size, bucket_length, char_length], dtype=np.int64)
@@ -450,7 +466,6 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
 
   if words.is_cuda:
     index = index.cuda()
-
   words = words[index]
   # discarding singleton
   if unk_replace:
@@ -464,7 +479,8 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
     if word_norm_not_norm is not None:
       word_norm_not_norm = word_norm_not_norm[index]
 
-  return words,word_norm ,chars[index], chars_norm, word_norm_not_norm, pos[index], xpos[index], heads[index], types[index], masks[index], lengths[index], order_inputs[index]
+  return words, word_norm , chars[index], chars_norm, word_norm_not_norm, pos[index], xpos[index], heads[index], \
+         types[index], masks[index], lengths[index], order_inputs[index]
 
 
 def iterate_batch_variable(data, batch_size, unk_replace=0.,

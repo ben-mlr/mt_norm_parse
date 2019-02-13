@@ -35,6 +35,7 @@ class CoNLLReader(object):
 
     # skip multiple blank lines.
     raw_text = []
+
     while len(line) > 0 and (len(line.strip()) == 0 or line.strip()[0] == '#'):
       if line.strip()[0] == '#':
         raw_text.append(line)
@@ -78,11 +79,16 @@ class CoNLLReader(object):
     if symbolic_root:
       words.append(ROOT)
       word_ids.append(self.__word_dictionary.get_index(ROOT))
+      norm_words.append(ROOT)
+      if self.__word_norm_dictionary is not None:
+        norm_word_ids.append(self.__word_norm_dictionary.get_index(ROOT))
       char_seqs.append([ROOT_CHAR, ])
       char_id_seqs.append([self.__char_dictionary.get_index(ROOT_CHAR), ])
       lemmas.append(ROOT)
-      #lemma_ids.append(self.__lemma_dictionary.get_index(ROOT))
 
+      char_norm_id_seqs.append([self.__char_dictionary.get_index(ROOT_CHAR), ])
+      char_norm_str_seq.append(([ROOT_CHAR, ]))
+      #lemma_ids.append(self.__lemma_dictionary.get_index(ROOT))
       postags.append(ROOT_POS)
       pos_ids.append(self.__pos_dictionary.get_index(ROOT_POS))
       xpostags.append(ROOT_POS)
@@ -166,10 +172,21 @@ class CoNLLReader(object):
     if symbolic_end:
       words.append(END)
       word_ids.append(self.__word_dictionary.get_index(END))
-      char_seqs.append([END_CHAR, ])
-      char_id_seqs.append([self.__char_dictionary.get_index(END_CHAR), ])
+
+      norm_words.append(END)
+      if self.__word_norm_dictionary is not None:
+        norm_word_ids.append(self.__word_norm_dictionary.get_index(END))
+
+      char_seqs.append([END, ])
+      char_id_seqs.append([self.__char_dictionary.get_index(END), ])
+
+      char_norm_id_seqs.append([self.__char_dictionary.get_index(END), ])
+      char_norm_str_seq.append(([END, ]))
+
       postags.append(END_POS)
+      xpostags.append(END_POS)
       pos_ids.append(self.__pos_dictionary.get_index(END_POS))
+      xpos_ids.append(self.__xpos_dictionary.get_index(END_POS))
       types.append(END_TYPE)
       type_ids.append(self.__type_dictionary.get_index(END_TYPE))
       heads.append(0)

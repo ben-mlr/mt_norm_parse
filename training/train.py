@@ -60,6 +60,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           auxilliary_task_pos=False, dense_dim_auxilliary_pos=None, dense_dim_auxilliary_pos_2=None,
           word_decoding=False, char_decoding=True,
           dense_dim_word_pred=None, dense_dim_word_pred_2=None,
+          symbolic_root=False, symbolic_end=False,
           verbose=1):
 
     if not unrolling_word:
@@ -151,6 +152,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                           word_decoding=word_decoding,  dense_dim_word_pred=dense_dim_word_pred, dense_dim_word_pred_2=dense_dim_word_pred_2,
                           char_decoding=char_decoding,
                           stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
+                          symbolic_root=symbolic_root, symbolic_end=symbolic_end,
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
     pos_batch = auxilliary_task_pos
     if use_gpu:
@@ -182,20 +184,22 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
     data_read_train = conllu_data.read_data_to_variable(train_path, model.word_dictionary, model.char_dictionary,
                                                         model.pos_dictionary,
                                                         model.xpos_dictionary, model.type_dictionary,
-                                                        use_gpu=use_gpu, symbolic_root=False,
+                                                        use_gpu=use_gpu,
                                                         norm_not_norm=auxilliary_task_norm_not_norm,
                                                         word_decoder=word_decoding,
-                                                        symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,
+                                                        symbolic_end=symbolic_end, symbolic_root=symbolic_root,
+                                                        dry_run=0, lattice=False, verbose=verbose,
                                                         normalization=normalization, bucket=bucketing,
                                                         add_start_char=add_start_char, add_end_char=add_end_char,
                                                         word_norm_dictionary=model.word_nom_dictionary)
 
     data_read_dev = conllu_data.read_data_to_variable(dev_path, model.word_dictionary, model.char_dictionary,
                                                       model.pos_dictionary, model.xpos_dictionary, model.type_dictionary,
-                                                      use_gpu=use_gpu, symbolic_root=False,
+                                                      use_gpu=use_gpu,
                                                       word_decoder=word_decoding,
+                                                      symbolic_end=symbolic_end, symbolic_root=symbolic_root,
                                                       norm_not_norm=auxilliary_task_norm_not_norm,
-                                                      symbolic_end=False, dry_run=0, lattice=False,
+                                                      dry_run=0, lattice=False,
                                                       normalization=normalization, bucket=bucketing,
                                                       add_start_char=add_start_char, add_end_char=add_end_char,
                                                       word_norm_dictionary=model.word_nom_dictionary, verbose=verbose)

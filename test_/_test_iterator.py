@@ -7,7 +7,7 @@ import torch
 from env.project_variables import LIU, DEV
 
 
-def _test_iterator_get_batch_mode_False(batch_size,bucket, get_batch_mode, extend_n_batch=1, verbose = 2):
+def _test_iterator_get_batch_mode_False(batch_size,bucket, get_batch_mode, extend_n_batch=1, verbose = 3):
     path = "/Users/bemuller/Documents/Work/INRIA/dev/parsing/normpar/data/en-ud-dev.integrated"
     path = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/data/LiLiu/2577_tweets-li.conll"
     path = DEV
@@ -31,10 +31,12 @@ def _test_iterator_get_batch_mode_False(batch_size,bucket, get_batch_mode, exten
                                              pos_dictionary,
                                              xpos_dictionary,type_dictionary,
                                              word_norm_dictionary=word_norm_dictionary,
-                                             use_gpu=None, symbolic_root=False,
+                                             use_gpu=None,
                                              bucket=bucket,
-                                             symbolic_end=False, dry_run=0, lattice=False, verbose=verbose,
-                                             normalization=normalization,
+                                             symbolic_end=True, symbolic_root=True,
+                                             dry_run=0, lattice=False, verbose=verbose,
+                                             norm_not_norm=True,
+                                             normalization=normalization, word_decoder=True,
                                              add_start_char=add_start_char, add_end_char=add_end_char)
     batchIter = data_gen_conllu(data, word_dictionary, char_dictionary,
                                 batch_size=batch_size, get_batch_mode=get_batch_mode, extend_n_batch=extend_n_batch,
@@ -49,11 +51,26 @@ def _test_iterator_get_batch_mode_False(batch_size,bucket, get_batch_mode, exten
         n_tokens += batch.ntokens.data
         n_sents_outputed += batch.input_seq.size(0)
         # we check that each batch is composed of non empty sentence
-        for label, _batch in zip(["input", "output"],[batch.input_seq, batch.output_seq]):
-            for sent_i in range(_batch.size(0)):
-                check = (_batch[sent_i, 0, :] == torch.tensor([1 for _ in range(_batch.size(2))]))
-                test = (check == 1).all()
-                assert test.data == 0, "ERROR : for {} sentence {} of batch {} is empty ".format(label, sent_i, _batch)
+        sent_i = 0
+        print("sent {}  word 0 input seq {} output seq {}  , word tokens {} ntokens batch {} output_norm_not_norm : word pred {} ".format(
+            sent_i, batch.input_seq[sent_i, 1, :], batch.output_seq[sent_i, 1, :], batch.output_norm_not_norm[sent_i, 1], batch.ntokens, batch.output_word[sent_i, 0]))
+        print(
+            "sent {}  word 3 input seq {} output seq {}  , word tokens {} ntokens batch {} output_norm_not_norm : word pred {} ".format(
+                sent_i, batch.input_seq[sent_i, 3, :], batch.output_seq[sent_i, 3, :],
+                batch.output_norm_not_norm[sent_i, 3], batch.ntokens, batch.output_word[sent_i, 3]))
+        print("sent {}  word -1 input seq {} output seq {}  , word tokens {} ntokens batch {} output_norm_not_norm : word pred {} ".format(
+                sent_i,batch.input_seq[sent_i, -1, :], batch.output_seq[sent_i, -1, :], batch.output_norm_not_norm[sent_i, -1], batch.ntokens, batch.output_word[sent_i, -1]))
+        if False:
+            for label, _batch in zip(["input", "output"],
+                                     [batch.input_seq, batch.output_seq]):
+                for sent_i in range(_batch.size(0)):
+                    if verbose >= 3:
+                        print("sent {}  word 0  ".format(sent_i), _batch[sent_i, 0, :], )
+                        print("sent {}  word 1 ".format(sent_i), _batch[sent_i, 1, :])
+                        print("sent {}  word last ".format(sent_i), _batch[sent_i, -1, :])
+                    check = (_batch[sent_i, 0, :] == torch.tensor([1 for _ in range(_batch.size(2))]))
+                    test = (check == 1).all()
+                    assert test.data == 0, "ERROR : for {} sentence {} of batch {} is empty ".format(label, sent_i, _batch)
     n_batch = data[-1]//batch_size
     #if data[-1]-batch_size*n_batch != 1:
     try:
@@ -105,14 +122,14 @@ if __name__=="__main__":
     torch.manual_seed(11)
     np.random.seed(11)
     #for batch_size in [2, 3, 4, 10, 100]:
-    test_get_batch = False
-    test_iterator = True
+    test_get_batch = True
+    test_iterator = False
     for batch_size in [10]:
         if test_iterator:
             _test_iterator_get_batch_mode_False_no_bucket(batch_size)
             _test_iterator_get_batch_mode_False_bucket(batch_size)
             print("Test passed for batch_size both bucketted and not bucktete", batch_size)
-        if test_get_batch :
-            _info_iterator_get_batch_mode_True_no_bucket(batch_size, verbose=1)
+        if test_get_batch:
+            _info_iterator_get_batch_mode_True_no_bucket(batch_size, verbose=3)
 
 
