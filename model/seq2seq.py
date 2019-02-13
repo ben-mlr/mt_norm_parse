@@ -47,7 +47,8 @@ class LexNormalizer(nn.Module):
                  dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None,
                  char_src_attention=False, shared_context="all",teacher_force=False,
                  stable_decoding_state=False, init_context_decoder=True,
-                 word_decoding=False, char_decoding=True,
+                 word_decoding=False, dense_dim_word_pred=None, dense_dim_word_pred_2=None,
+                 char_decoding=True,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
         character level Sequence to Sequence model for normalization
@@ -73,8 +74,12 @@ class LexNormalizer(nn.Module):
         :param use_gpu:
         """
         super(LexNormalizer, self).__init__()
+
+        # TODO factorize as args_checking
         assert (word_decoding or char_decoding) and not (word_decoding and char_decoding), "ERROR sttricly  one of word,char decoding should be True"
         assert init_context_decoder or stable_decoding_state or char_src_attention, "ERROR : otherwise no information passes from the encoder to the decoder"
+        if char_decoding:
+            assert dense_dim_word_pred is None or dense_dim_word_pred == 0, "ERROR dense_dim_word_pred should be None as not word_decoding"
         if auxilliary_task_pos:
             assert dense_dim_auxilliary_pos is not None and dense_dim_auxilliary_pos > 0
         else:
@@ -173,7 +178,9 @@ class LexNormalizer(nn.Module):
                                                  },
                                   "decoder_arch": {"cell_word": word_recurrent_cell_decoder, "cell_sentence": "none",
                                                    "dir_word": "uni",
-                                                   "char_decoding": char_decoding, "word_decoding": word_decoding,
+                                                   "char_decoding": char_decoding,
+                                                   "word_decoding": word_decoding,
+                                                   "dense_dim_word_pred":dense_dim_word_pred, "dense_dim_word_pred_2":dense_dim_word_pred_2,
                                                    "drop_out_bridge": drop_out_bridge, "drop_out_char_embedding_decoder": drop_out_char_embedding_decoder,
                                                    "drop_out_word_decoder_cell": drop_out_word_decoder_cell,
                                                    "char_src_attention": char_src_attention,
@@ -216,7 +223,8 @@ class LexNormalizer(nn.Module):
             hidden_size_decoder,  word_recurrent_cell_decoder, drop_out_word_decoder_cell, drop_out_char_embedding_decoder, \
                     self.auxilliary_task_norm_not_norm, unrolling_word, char_src_attention, dense_dim_auxilliary, shared_context,\
                 teacher_force, dense_dim_auxilliary_2, stable_decoding_state, init_context_decoder, \
-            word_decoding, char_decoding, auxilliary_task_pos, dense_dim_auxilliary_pos, dense_dim_auxilliary_pos_2 = get_args(args, False)
+            word_decoding, char_decoding, auxilliary_task_pos, dense_dim_auxilliary_pos, dense_dim_auxilliary_pos_2, \
+                dense_dim_word_pred, dense_dim_word_pred_2 = get_args(args, False)
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
         # adjusting for directions : the hidden_size_sent_encoder provided and are the dir x hidden_dim dimensions
@@ -270,7 +278,8 @@ class LexNormalizer(nn.Module):
                                    verbose=verbose) if char_decoding else None
         print("word_voc_output_size", word_voc_output_size)
 
-        self.word_decoder = WordDecoder(voc_size=word_voc_output_size, input_dim=hidden_size_decoder) if word_decoding else None
+        self.word_decoder = WordDecoder(voc_size=word_voc_output_size, input_dim=hidden_size_decoder,
+                                        dense_dim=dense_dim_word_pred, dense_dim_2=dense_dim_word_pred_2) if word_decoding else None
         voc_pos_size = len(self.pos_dictionary.instance2index)+1
         print(voc_pos_size, hidden_size_decoder, dense_dim_auxilliary)
         self.pos_predictor = PosPredictor(voc_pos_size=voc_pos_size, input_dim=hidden_size_decoder, dense_dim=dense_dim_auxilliary_pos) if auxilliary_task_pos else None

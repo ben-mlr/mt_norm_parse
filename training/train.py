@@ -59,6 +59,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           stable_decoding_state=False, init_context_decoder=True,
           auxilliary_task_pos=False, dense_dim_auxilliary_pos=None, dense_dim_auxilliary_pos_2=None,
           word_decoding=False, char_decoding=True,
+          dense_dim_word_pred=None, dense_dim_word_pred_2=None,
           verbose=1):
 
     if not unrolling_word:
@@ -147,7 +148,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                           model_id_pref=model_id_pref, model_full_name=model_full_name,
                           hidden_size_sent_encoder=hidden_size_sent_encoder, shared_context=shared_context,
                           unrolling_word=unrolling_word, char_src_attention=char_src_attention,
-                          word_decoding=word_decoding,  char_decoding=char_decoding,
+                          word_decoding=word_decoding,  dense_dim_word_pred=dense_dim_word_pred, dense_dim_word_pred_2=dense_dim_word_pred_2,
+                          char_decoding=char_decoding,
                           stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
     pos_batch = auxilliary_task_pos

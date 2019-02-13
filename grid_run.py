@@ -60,6 +60,9 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
     init_context_decoder = args.get("init_context_decoder", True)
 
     word_decoding = args.get("word_decoding", False)
+    dense_dim_word_pred = args.get("dense_dim_word_pred", None)
+    dense_dim_word_pred_2 = args.get("dense_dim_word_pred_2", None)
+
     char_decoding = args.get("char_decoding",True)
 
     auxilliary_task_pos = args.get("auxilliary_task_pos", False)
@@ -104,7 +107,8 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None,
                             clipping=clipping,
                             auxilliary_task_pos=auxilliary_task_pos, dense_dim_auxilliary_pos=dense_dim_auxilliary_pos,
                             dense_dim_auxilliary_pos_2=dense_dim_auxilliary_pos_2,
-                            word_decoding=word_decoding, char_decoding=char_decoding,
+                            word_decoding=word_decoding,dense_dim_word_pred=dense_dim_word_pred, dense_dim_word_pred_2=dense_dim_word_pred_2,
+                            char_decoding=char_decoding,
                             stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                             checkpointing=True)
 
@@ -365,7 +369,7 @@ if __name__ == "__main__":
             param["weight_binary_loss"] = 1
             param["unrolling_word"] = True
             param["char_src_attention"] = False
-            train_path, dev_path = DEV, DEV
+            train_path, dev_path = DEMO, DEMO
             param["shared_context"] = "all"
             param["dense_dim_auxilliary"] = None
             param["clipping"] = None
@@ -374,14 +378,17 @@ if __name__ == "__main__":
             param["stable_decoding_state"] = True
             param["init_context_decoder"] = False
             param["word_decoding"] = True
+            param["dense_dim_word_pred"] = 200
+            param["dense_dim_word_pred_2"] = 200
             param["char_decoding"] = not param["word_decoding"]
             param["auxilliary_task_pos"] = True
             param["dense_dim_auxilliary_pos"] = 100
             param["dense_dim_auxilliary_pos_2"] = None
+
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
-                                                  test_path=[DEV, TEST],
+                                                  test_path=[DEMO],
                                                   verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,
@@ -390,7 +397,7 @@ if __name__ == "__main__":
                                                   freq_writer=10 if not test_before_run else 1,
                                                   extend_n_batch=2,
                                                   score_to_compute_ls=["exact", "norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recall", "norm_not_norm-accuracy"],
-                                                  warmup=False, args=param, use_gpu=None,
+                                                  warmup=warmup, args=param, use_gpu=None,
                                                   n_epochs=epochs,
                                                   debug=False)
 

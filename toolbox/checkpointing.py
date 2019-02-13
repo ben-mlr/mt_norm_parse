@@ -50,5 +50,6 @@ def get_args(args, dropout_loading_strict=True, verbose=0):
            args.get("auxilliary_arch", {}).get("auxilliary_task_norm_not_norm-dense_dim_2"), args["decoder_arch"].get("stable_decoding_state", False), args["decoder_arch"].get("init_context_decoder",True),\
            args["decoder_arch"].get("word_decoding", False), args["decoder_arch"].get("char_decoding", True), \
            args.get("auxilliary_arch", {}).get("auxilliary_task_pos", False), \
-           args.get("auxilliary_arch", {}).get("dense_dim_auxilliary_pos", None), args.get("auxilliary_arch", {}).get("dense_dim_auxilliary_pos_2", None)
+           args.get("auxilliary_arch", {}).get("dense_dim_auxilliary_pos", None), args.get("auxilliary_arch", {}).get("dense_dim_auxilliary_pos_2", None), \
+            args["decoder_arch"].get("dense_dim_word_pred",0), args["decoder_arch"].get("dense_dim_word_pred_2",0)
 

@@ -139,15 +139,13 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                     (text_decoded_ls, src_text_ls, gold_text_seq_ls), counts, _, \
                     (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_word(model, src_seq, src_len,
                                                                                           target_word_gold=target_word_gold)
-
-
                 if model.arguments["hyperparameters"].get("auxilliary_arch",{}).get("auxilliary_task_pos", False):
                     # decode pos
                     (pred_pos_ls, src_text_pos, gold_pos_seq_ls), counts_pos, _, \
                     (_, _, src_seq_pos, target_seq_gold_pos) = decode_word(model, src_seq, src_len,
                                                                                             mode="pos", target_pos_gold=target_pos_gold)
                 else:
-                    pred_pos_ls, src_pos_ls, gold_pos_seq_ls = None, None, None
+                    pred_pos_ls, src_text_pos, gold_pos_seq_ls = None, None, None
 
                 if write_output:
                     if dir_normalized is None:
@@ -175,14 +173,14 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                                                                                  pred_norm_not_norm=pred_norm,
                                                                                  gold_norm_not_norm=batch.output_norm_not_norm,
                                                                                  ls_original=src_text_ls)
-                    if pred_pos_ls is not None and src_pos_ls is not None and gold_pos_seq_ls is not None:
+                    if pred_pos_ls is not None and src_text_pos is not None and gold_pos_seq_ls is not None:
 
                         counter_correct_batch_pos, score_formulas_pos = correct_pred_counter(ls_pred=pred_pos_ls,
                                                                                              ls_gold=gold_pos_seq_ls,
-                                                                                              output_seq_n_hot=None,
-                                                                                              src_seq=src_seq,
-                                                                                              target_seq_gold=gold_pos_seq_ls,
-                                                                                               ls_original=src_pos_ls, task="pos")
+                                                                                             output_seq_n_hot=None,
+                                                                                             src_seq=src_seq,
+                                                                                             target_seq_gold=gold_pos_seq_ls,
+                                                                                             ls_original=src_text_pos, task="pos")
                         pdb.set_trace()
                         counter_correct_batch.update(counter_correct_batch_pos)
                         score_formulas.update(score_formulas_pos)
