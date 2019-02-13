@@ -278,20 +278,20 @@ if __name__ == "__main__":
           labels = []
           n_model = 0
           for batch_size in [2,25]:
-            for scale in [1,2]:
+            for scale in [2]:
               for clipping in [1]:
                 for dir_word_encoder in [2]:
-                    for teacher_force in [ False]:
+                    for teacher_force in [ True, False]:
                       for char_src_attention in [True]:
-                        for auxilliary_task_norm_not_norm in [False, True]:
-                            for shared_context in ["all"]:
+                        for auxilliary_task_norm_not_norm in [False]:
+                            for shared_context in ["all", "word"]:
                               if auxilliary_task_norm_not_norm:
                                 dense_dim_auxilliary, dense_dim_auxilliary_2 = 200, 200
                               else:
                                 dense_dim_auxilliary, dense_dim_auxilliary_2  = 0,0
-                              for stable_decoding_state in [False]:
-                                for word_decoding in [False]:
-                                  for auxilliary_task_pos in [True, False]:
+                              for stable_decoding_state in [False, True]:
+                                for word_decoding in [True, False]:
+                                  for auxilliary_task_pos in [ False]:
                                       param = params_strong.copy()
                                       param["char_src_attention"] = char_src_attention
                                       param["hidden_size_encoder"] = int(param["hidden_size_encoder"]*scale)
@@ -320,10 +320,10 @@ if __name__ == "__main__":
                                   params.append(param)
                                   #labels.append("word_char-level_contextxteacher_force-{}-stable_decod-init_con_{}-teachforce10_{}".format(shared_context,\
                                   #              param["stable_decoding_state"],param["init_context_decoder"],teacher_force))
-                                  labels.append("posXdecode-{}teach_{}aux".format(teacher_force, param["auxilliary_task_norm_not_norm"]))
+                                  labels.append("uni-{}teach_{}aux".format(teacher_force, param["auxilliary_task_norm_not_norm"]))
           #print("GRID_INFO= batch_size teacher_force auxilliary_task_norm_not_norm n_trainable_parameters shared_context stable_decoding_state")
           #print("GRID_INFO= batch_size auxilliary_task_pos auxilliary_task_norm_not_norm n_trainable_parameters word_decoding ")
-          print("GRID_INFO= batch_size  auxilliary_task_norm_not_norm n_trainable_parameters auxilliary_task_pos ")
+          print("GRID_INFO=  shared_context n_trainable_parameters word_decoding stable_decoding_state teacher_force batch_size")
 
       # only for cloud run :
       warmup = True
@@ -355,7 +355,7 @@ if __name__ == "__main__":
       for param, model_id_pref in zip(params, labels):
           i += 1
           printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 1 if not test_before_run else 2
+          epochs = 80 if not test_before_run else 2
           if warmup:
             param = {"hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10, "dropout_sent_encoder": 0.,
                      "drop_out_word_encoder": 0., "dropout_word_decoder": 0., "drop_out_sent_encoder_out": 0,
@@ -381,7 +381,7 @@ if __name__ == "__main__":
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
-                                                  test_path=[DEV],
+                                                  test_path=[DEV, TEST],
                                                   verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,

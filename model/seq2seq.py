@@ -208,7 +208,7 @@ class LexNormalizer(nn.Module):
             assert args["voc_size"] == voc_size, "ERROR : voc_size loaded and voc_size " \
                                                  "redefined in dictionnaries do not " \
                                                  "match {} vs {} ".format(args["voc_size"], voc_size)
-            assert args["word_voc_output_size"] == word_voc_output_size, "ERROR mismatch of stored voc and passed voc"
+            assert args["word_voc_output_size"] == word_voc_output_size, "ERROR mismatch of stored voc and passed voc {} and passed {} ".format(args["word_voc_output_size"], word_voc_output_size)
             word_voc_output_size = args.get("word_voc_output_size", None)
             char_embedding_dim, output_dim, hidden_size_encoder, hidden_size_sent_encoder, drop_out_sent_encoder_cell,\
             drop_out_word_encoder_cell, drop_out_sent_encoder_out, drop_out_word_encoder_out,\
@@ -284,13 +284,16 @@ class LexNormalizer(nn.Module):
             else:
                 self.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
 
-    def forward(self, input_seq, input_word_len, output_word_len=None, output_seq=None,proportion_pred_train=None):
+    def forward(self, input_seq, input_word_len,
+                output_word_len=None, output_seq=None,word_level_predict=False,
+                proportion_pred_train=None):
         # [batch, seq_len ] , batch of sequences of indexes (that corresponds to character 1-hot encoded)
         # char_vecs_input = self.char_embedding(input_seq)
         # [batch, seq_len, input_dim] n batch of sequences of embedded character
         timing = self.timing
-        if self.decoder:
-            assert output_seq is not None and output_word_len is not None, "ERROR : output_seq is None"
+        if self.decoder and not word_level_predict:
+            assert output_seq is not None and output_word_len is not None, \
+                "ERROR : output_seq is {} and output_word le, {}".format(output_seq, output_word_len)
 
         printing("TYPE  input_seq {} input_word_len ", var=(input_seq.is_cuda, input_word_len.is_cuda),
                  verbose=0, verbose_level=4)
@@ -315,7 +318,7 @@ class LexNormalizer(nn.Module):
         if self.auxilliary_task_norm_not_norm:
             printing("DECODER hidden state after norm_not_norm_hidden size {}", var=[norm_not_norm_hidden.size()],
                      verbose=0, verbose_level=4)
-        if self.decoder is not None:
+        if self.decoder is not None and not word_level_predict:
             output, attention_weight_all = self.decoder.forward(output_seq, context, output_word_len,
                                                                 word_src_sizes=word_src_sizes,
                                                                 char_seq_hidden_encoder=char_seq_hidden_encoder,

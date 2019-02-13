@@ -141,13 +141,13 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                                                                                           target_word_gold=target_word_gold)
 
 
-                if model.arguments["hyperparameters"].get("auxilliary_arch", {}).get("auxilliary_task_pos", False):
+                if model.arguments["hyperparameters"].get("auxilliary_arch",{}).get("auxilliary_task_pos", False):
                     # decode pos
-                    (pred_pos_ls, src_text_ls, gold_pos_seq_ls), counts_pos, _, \
+                    (pred_pos_ls, src_text_pos, gold_pos_seq_ls), counts_pos, _, \
                     (_, _, src_seq_pos, target_seq_gold_pos) = decode_word(model, src_seq, src_len,
                                                                                             mode="pos", target_pos_gold=target_pos_gold)
                 else:
-                    pred_pos_ls, src_text_ls, gold_pos_seq_ls = None, None, None
+                    pred_pos_ls, src_pos_ls, gold_pos_seq_ls = None, None, None
 
                 if write_output:
                     if dir_normalized is None:
@@ -175,13 +175,14 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                                                                                  pred_norm_not_norm=pred_norm,
                                                                                  gold_norm_not_norm=batch.output_norm_not_norm,
                                                                                  ls_original=src_text_ls)
-                    if pred_pos_ls is not None and src_text_ls is not None:
+                    if pred_pos_ls is not None and src_pos_ls is not None and gold_pos_seq_ls is not None:
+
                         counter_correct_batch_pos, score_formulas_pos = correct_pred_counter(ls_pred=pred_pos_ls,
-                                                                                         ls_gold=gold_pos_seq_ls,
-                                                                                         output_seq_n_hot=None,
-                                                                                         src_seq=src_seq,
-                                                                                         target_seq_gold=gold_pos_seq_ls,
-                                                                                         ls_original=src_text_ls, task="pos")
+                                                                                             ls_gold=gold_pos_seq_ls,
+                                                                                              output_seq_n_hot=None,
+                                                                                              src_seq=src_seq,
+                                                                                              target_seq_gold=gold_pos_seq_ls,
+                                                                                               ls_original=src_pos_ls, task="pos")
                         pdb.set_trace()
                         counter_correct_batch.update(counter_correct_batch_pos)
                         score_formulas.update(score_formulas_pos)
@@ -402,7 +403,8 @@ def decode_word(model, src_seq, src_len,
     NB : could be more factorized (its exactly the same prediction the only difference is the dictionary
     """
     _, word_pred, pos_pred, norm_not_norm, _ = model.forward(input_seq=src_seq,
-                                                            input_word_len=src_len)
+                                                             input_word_len=src_len,
+                                                             word_level_predict=True)
     pred_norm_not_norm = None
     if mode == "word":
         assert target_pos_gold is None, "Only target_word_gold should be provided"

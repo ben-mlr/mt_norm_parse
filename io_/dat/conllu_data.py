@@ -500,19 +500,17 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
           _word_norm_not_norm = word_norm_not_norm[excerpt]
         else:
             _word_norm_not_norm = None
-      if chars[excerpt].size(0) <= 1 or chars_norm_.size(0) <= 1 :
+      if chars[excerpt].size(0) <= 1 or chars_norm_.size(0) <= 1:
         print("WARNING : We are skipping a batch because size is {}"
               " char and {} for char_nor  ".format(chars[excerpt].size(), chars_norm_.size()))
         continue
       if word_norm is not None:
-        if word_norm.size(0)<=0:
-          print("WARNING : We are skipping a batch because size is {}"
-                  " char and {} for char_nor or word_norm {} ".format(chars[excerpt].size(), chars_norm_.size(),
-                                                                      word_norm.size()))
+        if word_norm.size(0) <= 0:
+          print("WARNING : We are skipping a batch because word_norm {} ".format(word_norm.size()))
           continue
 
-      yield words[excerpt], word_norm, chars[excerpt], chars_norm_, _word_norm_not_norm , \
+      yield words[excerpt], word_norm, chars[excerpt], chars_norm_, _word_norm_not_norm, \
             pos[excerpt], xpos[excerpt], heads[excerpt], \
-            types[excerpt],\
+            types[excerpt],  \
             masks[excerpt], lengths[excerpt], order_ids[excerpt], \
             raw_word_inputs[excerpt], raw_lines[excerpt]

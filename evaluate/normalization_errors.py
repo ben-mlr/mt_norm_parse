@@ -45,15 +45,21 @@ def score_ls(ls_pred, ls_gold, score, stat="mean", verbose=0):
 
 
 def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None, gold_norm_not_norm=None,
-                        output_seq_n_hot=None,src_seq=None, target_seq_gold=None,task="normalization",
+                        output_seq_n_hot=None, src_seq=None, target_seq_gold=None, task="normalization",
                         verbose=0):
     # only exact score here !!
     assert task in ["normalization","pos"]
     dic = OrderedDict()
-    assert len(ls_gold) == len(ls_pred), "ERROR ls_gold is len {} vs {} : {} while ls_pred is {} ".format(len(ls_gold), len(ls_pred), ls_gold, ls_pred)
-    assert len(ls_gold) == len(ls_original), "ERROR ls_gold is len {} vs {} : {} while src is {} ".format(len(ls_gold), len(ls_original), ls_gold, ls_original)
-    normalization_ls = [[src_token == gold_token for src_token, gold_token in zip(batch_src, batch_gold)] for
-                        batch_src, batch_gold in zip(ls_original, ls_gold)]
+    pdb.set_trace()
+    assert len(ls_gold) == len(ls_pred), "ERROR ls_gold is len {} vs {} : {} while ls_pred is {} ".format(len(ls_gold),
+                                                                                                          len(ls_pred),
+                                                                                                          ls_gold,
+                                                                                                          ls_pred)
+    assert len(ls_gold) == len(ls_original), "ERROR ls_gold is len {} vs {} : {} while src is {} ".format(len(ls_gold),
+                                                                                                          len(ls_original),
+                                                                                                          ls_gold,
+                                                                                                          ls_original)
+    normalization_ls = [[src_token == gold_token for src_token, gold_token in zip(batch_src, batch_gold)] for batch_src, batch_gold in zip(ls_original, ls_gold)]
     # if False : sequence predictor predicts NEED_NORM otherwise NORMED
     normalization_prediction_by_seq = [[src_token == pred_token for src_token, pred_token in zip(batch_src, batch_pred)] for batch_src, batch_pred in zip(ls_original, ls_pred)]
     #normalization_prediction_by_seq_norm = len(normalization_prediction_by_seq[normalization_prediction_by_seq == True])
@@ -63,8 +69,12 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
     for normalized_mode in normalized_mode_ls:
         scores = []
         sent_score_ls = []
-        assert ls_original is not None, "ERROR : need to provide original sequence to compute NORMED/NEED_NORM analysis"
-        assert len(ls_original) == len(ls_gold), "ERROR ls_original sizes provided does not fit pred and gold"
+        try:
+            assert ls_original is not None, "ERROR : need to provide original sequence to compute NORMED/NEED_NORM analysis"
+            assert len(ls_original) == len(ls_gold), "ERROR ls_original sizes provided does not fit pred and gold"
+        except Exception as e:
+            print(e)
+            print("ERROR len(ls_original) != len(ls_gold) ", len(ls_original) , len(ls_gold))
         if normalized_mode in ["NEED_NORM", "NORMED"]:
             norm_mode = 1 if normalized_mode == "NORMED" else 0
             _ls_gold = [[token for token, normed in zip(batch, batch_norm) if normed == norm_mode] for batch, batch_norm in zip(ls_gold, normalization_ls)]

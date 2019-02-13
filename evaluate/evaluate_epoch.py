@@ -18,7 +18,7 @@ import torch
 import re
 
 from scipy.stats import hmean
-from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, DEMO, DEMO2, LIU, LEX_TEST, REPO_DATASET, CHECKPOINT_DIR, SEED_TORCH, SEED_NP, LEX_TRAIN
+from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, DEMO, DEMO2, LIU, LEX_TEST, REPO_DATASET, CHECKPOINT_DIR, SEED_TORCH, SEED_NP, LEX_TRAIN, LIU_TRAIN, LIU_DEV
 from toolbox.gpu_related import use_gpu_
 sys.path.insert(0, os.path.join(PROJECT_PATH, "..", "experimental_pipe"))
 from reporting.write_to_performance_repo import report_template, write_dic
@@ -242,11 +242,12 @@ if __name__ == "__main__":
     #for ablation_id in ["21cc8-fixed_all_context-aux_dense1dir_word-200_aux-0do_char_dec-False_char_src-model_12_4d49"]:
     #for ablation_id in ["28aa3-schedule-policy_2"]:
       #for data in [DEMO,DEMO2]:
-    for ablation_id in ["97440_rioc-64c34-ATTbatch-aux-scale-shared_contex-Falseteach_Falseaux-model_2_61d6-folder"]:
+    #for ablation_id in ["97440_rioc-64c34-ATTbatch-aux-scale-shared_contex-Falseteach_Falseaux-model_2_61d6-folder"]:
+    for ablation_id in ["97512_rioc-f86f4-ATTuni-Trueteach_Falseaux-model_1_1169-folder"]:
       for get_batch_mode_evaluate in [False]:
         for batch_size in [50]:
           #for data in [LIU, DEV, LEX_TEST]:
-          for data in [DEMO]:
+          for data in [LIU_TRAIN]:
             list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
             print("FOLDERS : ", list_)
             for folder_name in list_:
@@ -259,8 +260,9 @@ if __name__ == "__main__":
                        overall_label=ablation_id+"-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch",#"f2f2-iterate+new_data-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch-validation_True",
                        mode_norm_ls=None,#score_to_compute_ls=["norm_not_norm-Recall"],
                        normalization=True, model_specific_dictionary=True, batch_size=batch_size,
-                       debug=True,bucket=False,
+                       debug=False, bucket=False,
                        compute_mean_score_per_sent=False,
+                       word_decoding=True, char_decoding=False,
                        get_batch_mode_evaluate=get_batch_mode_evaluate, write_output=False,
                        dir_report=os.path.join(PROJECT_PATH, "checkpoints", folder_name), verbose=1)
 
