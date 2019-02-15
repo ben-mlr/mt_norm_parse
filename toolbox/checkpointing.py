@@ -23,7 +23,10 @@ def checkpoint(loss_saved , loss, model, model_dir, epoch, epochs, info_checkpoi
     return model, loss_saved , counter_no_decrease, saved_epoch
 
 
-def update_curve_dic(score_to_compute_ls, mode_norm_ls, eval_data, scores, former_curve_scores):
+def update_curve_dic(score_to_compute_ls, mode_norm_ls, eval_data, scores, former_curve_scores, exact_only=True):
+    if exact_only:
+        score_to_compute_ls = ["exact"]
+        mode_norm_ls = ["all", "NORMED", "NEED_NORM"]
     for mode in mode_norm_ls:
         for score in score_to_compute_ls:
             # adding count

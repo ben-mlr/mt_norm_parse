@@ -28,7 +28,7 @@ from env.project_variables import AVAILABLE_TASKS
 from model.schedule_training_policy import policy_1, policy_2
 np.random.seed(SEED_NP)
 torch.manual_seed(SEED_TORCH)
-
+ADAPTABLE_SCORING = True
   
 def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           batch_size=10,
@@ -63,7 +63,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           dense_dim_word_pred=None, dense_dim_word_pred_2=None,
           symbolic_root=False, symbolic_end=False,
           verbose=1):
-
     if not unrolling_word:
         assert not char_src_attention, "ERROR attention requires step by step unrolling  "
     printing("WARNING bucketing is {} ", var=bucketing, verbose=verbose, verbose_level=1)
@@ -212,6 +211,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
     printing("REPORT : summary writer will be located {}", var=[dir_writer], verbose_level=1, verbose=verbose)
     step_train = 0
     step_dev = 0
+    if ADAPTABLE_SCORING:
+        freq_scoring=1
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
         assert policy in AVAILABLE_SCHEDULING_POLICIES
         policy_dic = eval(policy)(epoch) if policy is not None else None
@@ -303,7 +304,14 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
         starting_time = time.time()
 
         # computing exact/edit score
+        exact_only = False
         if compute_scoring_curve and ((epoch % freq_scoring == 0) or (epoch+1 == n_epochs)):
+            if epoch<1 and ADAPTABLE_SCORING:
+                freq_scoring*=5
+            if epoch>4 and epoch<6 and ADAPTABLE_SCORING:
+                freq_scoring*=3
+            if epoch > 14 and epoch < 15 and ADAPTABLE_SCORING:
+                freq_scoring*=2
             if (epoch+1 == n_epochs):
               printing("EVALUATION : final scoring ", verbose, verbose_level=0)
             x_axis_epochs.append(epoch)
@@ -326,14 +334,24 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                   dir_report=model.dir_model,
                                   debug=debug,
                                   verbose=1)
+
+                # dirty but do the job
+                exact_only = True
                 curve_scores = update_curve_dic(score_to_compute_ls=score_to_compute_ls, mode_norm_ls=mode_norm_ls,
                                                 eval_data=eval_label,
-                                                former_curve_scores=curve_scores, scores=scores)
-                curve_ls_tuple = [(loss_ls, label) for label, loss_ls in curve_scores.items() if isinstance(loss_ls, list) ]
+                                                former_curve_scores=curve_scores, scores=scores, exact_only=exact_only)
+                curve_ls_tuple = [(loss_ls, label) for label, loss_ls in curve_scores.items() if isinstance(loss_ls, list)]
                 curves = [tupl[0] for tupl in curve_ls_tuple]
                 val_ls = [tupl[1]+"({}tok)".format(info_token) for tupl in curve_ls_tuple for data, info_token in curve_scores.items() if not isinstance(info_token, list) if tupl[1].endswith(data)]
-
+            score_to_compute_ls = ["exact"] if exact_only else score_to_compute_ls
             for score_plot in score_to_compute_ls:
+                # dirty but do the job
+                print(val_ls)
+                if exact_only:
+                    val_ls = [val for val in val_ls if val.startswith("exact-all") or val.startswith("exact-NORMED") or val.startswith("exact-NEED_NORM") ]
+                    #val_ls = ["{}-all-{}".format(metric,REPO_DATASET[eval]) for eval in evaluation_set_reporting for metric in ["exact", "edit"]]
+                    curves = [curve for curve in curves if len(curve)>0]
+
                 simple_plot_ls(losses_ls=curves, labels=val_ls, final_loss="", save=True, filter_by_label=score_plot,  x_axis=x_axis_epochs,
                                dir=model.dir_model, prefix=model.model_full_name,epochs=str(epoch)+reloading, verbose=verbose, lr=lr,
                                label_color_0=REPO_DATASET[evaluation_set_reporting[0]], label_color_1=REPO_DATASET[evaluation_set_reporting[1]])
@@ -371,6 +389,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                                                           "weight_binary_loss": weight_binary_loss,
                                                           "data": "dev", "seed(np/torch)": (SEED_TORCH, SEED_TORCH),
                                                           "extend_n_batch": extend_n_batch,
+                                                          "lr": lr, "optim_strategy":"lr_constant",
                                                           "time_training(min)": "{0:.2f}".format(total_time/60),
                                                           "average_per_epoch(min)": "{0:.2f}".format((total_time/n_epochs)/60)}},
                              epoch=epoch, epochs=n_epochs,

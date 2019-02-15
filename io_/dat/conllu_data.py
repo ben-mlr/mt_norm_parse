@@ -306,7 +306,6 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       data_variable.append((1, 1))
       continue
     bucket_length = _buckets[bucket_id]
-    print("bucket_length", bucket_length)
     char_length = min(MAX_CHAR_LENGTH+NUM_CHAR_PAD, max_char_length[bucket_id] + NUM_CHAR_PAD)
     wid_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)
     cid_inputs = np.empty([bucket_size, bucket_length, char_length], dtype=np.int64)

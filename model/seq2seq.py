@@ -160,6 +160,7 @@ class LexNormalizer(nn.Module):
                                                   "dev_data_path": None, "other": None,
                                                   "git_id": git_commit_id},
                               "hyperparameters": {
+                                  "lr": None, "lr_policy": None,
                                   "shared_context": shared_context,
                                   "symbolic_end": symbolic_end, "symbolic_root": symbolic_root,
                                   "gradient_clipping": None,
@@ -247,6 +248,7 @@ class LexNormalizer(nn.Module):
         printing("Model arguments are {} ".format(self.arguments), verbose, verbose_level=0)
         printing("Model : NB : defined drop outs are the reloaded one ", verbose, verbose_level=1)
         # 1 shared character embedding layer
+        print("word_embed", word_embed)
         self.char_embedding = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
         self.word_embedding = nn.Embedding(num_embeddings=word_voc_input_size, embedding_dim=word_embedding_dim) if word_embed else None
 
@@ -394,6 +396,8 @@ class LexNormalizer(nn.Module):
         model.arguments["hyperparameters"]["batch_size"] = info_checkpoint["batch_size"]
         model.arguments["hyperparameters"]["gradient_clipping"] = info_checkpoint["gradient_clipping"]
         model.arguments["hyperparameters"]["tasks_schedule_policy"] = info_checkpoint["tasks_schedule_policy"]
+        model.arguments["hyperparameters"]["lr"] = info_checkpoint["other"]["lr"]
+        model.arguments["hyperparameters"]["lr_policy"] = info_checkpoint["other"]["optim_strategy"]
         model.arguments["info_checkpoint"] = info_checkpoint
         model.arguments["info_checkpoint"]["git_id"] = get_commit_id()
         model.arguments["checkpoint_dir"] = checkpoint_dir
