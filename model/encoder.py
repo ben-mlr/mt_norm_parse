@@ -155,8 +155,9 @@ class CharEncoder(nn.Module):
             assert word_embed_input is not None, "ERROR word_embed_input required as self.add_word_level"
             # we trust h_w for padding
             word_embed_input = word_embed_input[:, :h_w.size(1),:]
-            h_w = torch.cat((word_embed_input,h_w), dim=-1)
-        pdb.set_trace()
+            pdb.set_trace()
+            h_w = torch.cat((word_embed_input.float(),
+                             h_w), dim=-1)
         sent_encoded, hidden = self.sent_encoder(h_w)
 
         # sent_encoded : [batch, max sent len ,hidden_size_sent_encoder]

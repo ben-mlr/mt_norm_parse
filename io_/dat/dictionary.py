@@ -20,10 +20,12 @@ class Dictionary(object):
     self.next_index = self.offset
   
   def add(self, instance):
-    if instance not in self.instance2index:
+    not_in_dic_already = instance not in self.instance2index
+    if not_in_dic_already :
       self.instances.append(instance)
       self.instance2index[instance] = self.next_index
       self.next_index += 1
+    return not_in_dic_already
 
   def add_singleton(self, id):
     if self.singletons is None:

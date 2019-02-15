@@ -3,8 +3,9 @@ import codecs
 import os
 import pdb
 from .constants import MAX_CHAR_LENGTH, NUM_CHAR_PAD, PAD_CHAR, PAD_POS, PAD_TYPE, ROOT_CHAR, ROOT_POS, PAD, \
-  ROOT_TYPE, END_CHAR, END_POS, END_TYPE, _START_VOCAB, ROOT, PAD_ID_WORD, PAD_ID_CHAR, PAD_ID_TAG, DIGIT_RE, CHAR_START_ID, CHAR_START, CHAR_END_ID, PAD_ID_CHAR, PAD_ID_NORM_NOT_NORM, END
-from env.project_variables import SEED_NP, SEED_TORCH
+  ROOT_TYPE, END_CHAR, END_POS, END_TYPE, _START_VOCAB, ROOT, PAD_ID_WORD, PAD_ID_CHAR, PAD_ID_TAG, DIGIT_RE, CHAR_START_ID, CHAR_START, CHAR_END_ID, PAD_ID_CHAR, PAD_ID_NORM_NOT_NORM, END,\
+  MEAN_RAND_W2V, SCALE_RAND_W2V
+from env.project_variables import SEED_NP, SEED_TORCH, W2V_LOADED_DIM
 from .conllu_reader import CoNLLReader
 from .dictionary import Dictionary
 import numpy as np
@@ -33,13 +34,14 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None, word_em
   if to_create:
     assert train_path is not None and dev_path is not None and add_start_char is not None
     printing("Creating dictionary in {} ".format(dict_path), verbose=verbose, verbose_level=1)
-    word_dictionary, word_norm_dictionary, char_dictionary, pos_dictionary, \
+    word_dictionary, word_norm_dictionary, embed_np, char_dictionary, pos_dictionary, \
     xpos_dictionary, type_dictionary = create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict, dry_run,
-                                                   vocab_trim=False, add_start_char=add_start_char,
+                                                   vocab_trim=False, add_start_char=add_start_char, word2vec_dic=word_embed_dict,
                                                    word_normalization=word_normalization)
   else:
     # ??
     assert train_path is None and dev_path is None and test_path is None and add_start_char is None
+    embed_np = None
     printing("Loading dictionary from {} ".format(dict_path), verbose=verbose, verbose_level=1)
     word_dictionary = Dictionary('word', default_value=True, singleton=True)
     word_norm_dictionary = Dictionary('word_norm', default_value=True, singleton=True) if word_normalization else None
@@ -55,11 +57,11 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None, word_em
     for name, dic in zip(dic_to_load_names, dict_to_load):
       dic.load(input_directory=dict_path, name=name)
 
-  return word_dictionary, word_norm_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary
+  return word_dictionary, word_norm_dictionary,embed_np, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary
 
 
 def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
-                dry_run, word_normalization=False, vocab_trim=False, add_start_char=0):
+                dry_run, word_normalization=False, vocab_trim=False, add_start_char=0,word2vec_dic=None,):
   """
   Given train, dev, test treebanks and a word embedding matrix :
   - basic mode : create key_value instanes for each CHAR, WORD, U|X-POS , Relation with special cases for Roots, Padding and End symbols
@@ -67,18 +69,25 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
   - if vocab_trim == False : we also perform expansion on test set
   check TODOs
   """
-  word_dictionary = Dictionary('word', default_value=True, singleton=True)
-  word_norm_dictionary = Dictionary('word_norm', default_value=True, singleton=True) if word_normalization else None
-  char_dictionary = Dictionary('character', default_value=True)
-  pos_dictionary = Dictionary('pos', default_value=True)
-  xpos_dictionary = Dictionary('xpos', default_value=True)
-  type_dictionary = Dictionary('type', default_value=True)
-
+  default_value = True
+  word_dictionary = Dictionary('word', default_value=default_value, singleton=True)
+  word_norm_dictionary = Dictionary('word_norm', default_value=default_value, singleton=True) if word_normalization else None
+  char_dictionary = Dictionary('character', default_value=default_value)
+  pos_dictionary = Dictionary('pos', default_value=default_value)
+  xpos_dictionary = Dictionary('xpos', default_value=default_value)
+  type_dictionary = Dictionary('type', default_value=default_value)
+  external_embedding = []
+  counter_match_train = 0
   char_dictionary.add(PAD_CHAR)
   word_dictionary.add(PAD)
-
+  if default_value:
+      # the index 0 is the default value UNK token
+      external_embedding.append(np.random.normal(loc=MEAN_RAND_W2V,scale=SCALE_RAND_W2V,size=W2V_LOADED_DIM))
   if word_normalization:
     word_norm_dictionary.add(PAD)
+    if word2vec_dic is not None:
+      external_embedding.append(np.random.normal(loc=MEAN_RAND_W2V,scale=SCALE_RAND_W2V,size=W2V_LOADED_DIM))
+
   if add_start_char:
     char_dictionary.add(CHAR_START)
 
@@ -90,6 +99,8 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
   xpos_dictionary.add(PAD_POS)
   type_dictionary.add(PAD_TYPE)
   if word_normalization:
+    if word2vec_dic is not None:
+      external_embedding.append(np.random.normal(loc=MEAN_RAND_W2V,scale=SCALE_RAND_W2V,size=W2V_LOADED_DIM))
     word_norm_dictionary.add(ROOT)
   word_dictionary.add(ROOT)
   pos_dictionary.add(ROOT_POS)
@@ -98,6 +109,8 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
 
   if word_normalization:
     word_norm_dictionary.add(END)
+    if word2vec_dic is not None:
+      external_embedding.append(np.random.normal(loc=MEAN_RAND_W2V,scale=SCALE_RAND_W2V,size=W2V_LOADED_DIM))
   word_dictionary.add(END)
   pos_dictionary.add(END_POS)
   xpos_dictionary.add(END_POS)
@@ -126,9 +139,14 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
       type_dictionary.add(typ)
       if word_normalization:
         token_norm, _ = get_normalized_token(tokens[9], 0, verbose=0)
-        word_norm_dictionary.add(token_norm)
+        not_in_dic = word_norm_dictionary.add(token_norm)
+        if word2vec_dic is not None and not_in_dic:
+          if token_norm in word2vec_dic:
+            counter_match_train += 1
+            external_embedding.append(word2vec_dic[token_norm])
+          else:
+            external_embedding.append(np.random.normal(loc=MEAN_RAND_W2V,scale=SCALE_RAND_W2V,size=W2V_LOADED_DIM))
         # TODO : what bout expnd_vocab ? and
-
       if word in vocab:
         vocab[word] += 1
       else:
@@ -150,8 +168,8 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
   max_vocabulary_size = 50000
   if len(vocab_list) > max_vocabulary_size:
     vocab_list = vocab_list[:max_vocabulary_size]
-
   def expand_vocab(data_paths):
+    counter_match_dev = 0
     vocab_set = set(vocab_list)
     for data_path in data_paths:
       if os.path.exists(data_path):
@@ -170,7 +188,14 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
             pos = tokens[3] # if tokens[4]=='_' else tokens[3]+'$$$'+tokens[4]
             xpos = tokens[4]
             typ = tokens[7]
-
+            token_norm, _ = get_normalized_token(tokens[9], 0, verbose=0)
+            word_norm_dictionary.add(token_norm)
+            if word2vec_dic is not None and not_in_dic:
+              if token_norm in word2vec_dic:
+                counter_match_dev += 1
+                external_embedding.append(word2vec_dic[token_norm])
+              else:
+                external_embedding.append(np.random.normal(loc=MEAN_RAND_W2V,scale=SCALE_RAND_W2V,size=W2V_LOADED_DIM))
             pos_dictionary.add(pos)
             xpos_dictionary.add(xpos)
             type_dictionary.add(typ)
@@ -181,12 +206,17 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
             li = li + 1
             if dry_run and li == 100:
               break
+    printing("W2V {} match dev ".format(counter_match_dev), verbose=1, verbose_level=1)
   expand_vocab([dev_path])
   if not vocab_trim and test_path is not None:
     expand_vocab([test_path])
-
   for word in vocab_list:
     word_dictionary.add(word)
+    if word in word2vec_dic:
+      counter_match_train += 1
+      external_embedding.append(word2vec_dic[token_norm])
+    else:
+      external_embedding.append(np.random.normal(loc=MEAN_RAND_W2V, scale=SCALE_RAND_W2V, size=W2V_LOADED_DIM))
     if word in singletons:
       word_dictionary.add_singleton(word_dictionary.get_index(word))
   word_dictionary.save(dict_path)
@@ -202,7 +232,8 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
   pos_dictionary.close()
   xpos_dictionary.close()
   type_dictionary.close()
-  return word_dictionary, word_norm_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary
+  printing("W2V : {} match  train ".format(counter_match_train), verbose=1, verbose_level=1)
+  return word_dictionary, word_norm_dictionary, np.array(external_embedding), char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary
 
 
 def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary, max_size=None,

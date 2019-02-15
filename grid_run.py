@@ -4,7 +4,8 @@ import os
 from evaluate.evaluate_epoch import evaluate
 import numpy as np
 import torch
-from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, CHECKPOINT_DIR, DEMO, DEMO2, REPO_DATASET, LIU, LEX_TRAIN, LEX_TEST, SEED_NP, SEED_TORCH, LEX_LIU_TRAIN, LIU_DEV, LIU_TRAIN
+from env.project_variables import PROJECT_PATH, TRAINING, DEV, DIR_TWEET_W2V, \
+    TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, REPO_DATASET, LIU, LEX_TRAIN, LEX_TEST, SEED_NP, SEED_TORCH, LEX_LIU_TRAIN, LIU_DEV, LIU_TRAIN
 from uuid import uuid4
 import argparse
 from sys import platform
@@ -66,8 +67,9 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None, 
     dense_dim_word_pred = args.get("dense_dim_word_pred", None)
     dense_dim_word_pred_2 = args.get("dense_dim_word_pred_2", None)
     dense_dim_word_pred_3 = args.get("dense_dim_word_pred_3", 0)
+    extern_emb_dir = args.get("extern_emb_dir", None)
 
-    char_decoding = args.get("char_decoding",True)
+    char_decoding = args.get("char_decoding", True)
 
     auxilliary_task_pos = args.get("auxilliary_task_pos", False)
     dense_dim_auxilliary_pos = args.get("dense_dim_auxilliary_pos", None)
@@ -100,7 +102,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None, 
                             freq_checkpointing=freq_checkpointing, reload=False, model_id_pref=model_id_pref,
                             score_to_compute_ls=score_to_compute_ls, mode_norm_ls=["all", "NEED_NORM", "NORMED"],
                             hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,
-                            char_embedding_dim=char_embedding_dim,
+                            char_embedding_dim=char_embedding_dim,extern_emb_dir=extern_emb_dir,
                             hidden_size_sent_encoder=hidden_size_sent_encoder, hidden_size_decoder=hidden_size_decoder,
                             n_layers_word_encoder=n_layers_word_encoder, compute_scoring_curve=compute_scoring_curve,
                             verbose=verbose,
@@ -288,20 +290,20 @@ if __name__ == "__main__":
           params = []
           labels = []
           n_model = 0
-          for batch_size in [25,80]:
+          for batch_size in [80]:
             for scale in [2]:
               for clipping in [1]:
                 for dir_word_encoder in [2]:
                     for teacher_force in [False]:
                       for char_src_attention in [True]:
                         for auxilliary_task_norm_not_norm in [True]:
-                            for shared_context in ["all", "sent", "word"]:
+                            for shared_context in ["all", "sent"]:
                               if auxilliary_task_norm_not_norm:
                                 dense_dim_auxilliary, dense_dim_auxilliary_2 = 200, 50
                               else:
                                 dense_dim_auxilliary, dense_dim_auxilliary_2  = 0,0
                               for stable_decoding_state in [False]:
-                                for word_decoding in [False, True]:
+                                for word_decoding in [False]:
                                   for auxilliary_task_pos in [False]:
                                     for word_embed in [True, False]:
                                       for learning_rate in [0.004,0.001, 0.00025]:
@@ -336,6 +338,7 @@ if __name__ == "__main__":
 
                                           param["dense_dim_word_pred"] = 200 if word_decoding else None
                                           param["dense_dim_word_pred_2"] = 200 if word_decoding else None
+                                          param["dense_dim_word_pred_3"] = 100 if word_decoding else None
 
                                           param["auxilliary_task_pos"] = auxilliary_task_pos
                                           param["dense_dim_auxilliary_pos"] = None if not auxilliary_task_pos else 200
@@ -349,10 +352,11 @@ if __name__ == "__main__":
                                           params.append(param)
                                   #labels.append("word_char-level_contextxteacher_force-{}-stable_decod-init_con_{}-teachforce10_{}".format(shared_context,\
                                   #              param["stable_decoding_state"],param["init_context_decoder"],teacher_force))
-                                          labels.append("AGAIN0encoder-word_vs_char-scale{}-sha_context_{}-auxnorm_not_norm_{}-word_de_{}".format(scale,shared_context,auxilliary_task_norm_not_norm, word_decoding))
+                                          labels.append("batch80-scale{}-sha_context_{}-auxnorm_not_norm_{}-word_de_{}".format(scale,shared_context,auxilliary_task_norm_not_norm, word_decoding))
 
-          print("GRID_INFO analy vars=  word_decoding auxilliary_task_pos n_trainable_parameters word_embed")
-          print("GRID_INFO fixed vars=   word_decoding auxilliary_task_norm_not_norm batch_size n_trainable_parameters stable_decoding_state teacher_force char_src_attention")
+          print("GRID_INFO analy vars=  learning_rate word_decoding word_decoding shared_context batch_size n_trainable_parameters word_embed")
+          print("GRID_INFO fixed vars=  auxilliary_task_pos,False auxilliary_task_norm_not_norm,True stable_decoding_state,False teacher_force,True char_src_attention,True ")
+          print("GRID_INFO fixed vals=  auxilliary_task_pos  auxilliary_task_norm_not_norm stable_decoding_state teacher_force char_src_attention ")
 
       # only for cloud run :
       warmup = True
@@ -412,20 +416,23 @@ if __name__ == "__main__":
             param["auxilliary_task_pos"] = True
             param["dense_dim_auxilliary_pos"] = 100
             param["dense_dim_auxilliary_pos_2"] = None
-
-            param["word_embed"] = False
-            param["word_embedding_dim"] = 0
+            param["extern_emb_dir"] = DIR_TWEET_W2V
+            param["word_embed"] = True
+            param["word_embedding_dim"] = 400
             param["learning_rate"] = 0.05
-            print("GRID_INFO analy vars=  dense_dim_auxilliary_pos_2 dense_dim_auxilliary_pos")
+            
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
           print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
+          print("GRID_INFO analy vars=    dense_dim_auxilliary_pos_2 dense_dim_auxilliary_pos")
+          print("GRID_INFO fixed vars=  word_embed ")
+          print("GRID_INFO fixed vals=  word_embed,False ")
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
                                                   test_path=[TEST] if not warmup else DEMO,
                                                   verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,
                                                   get_batch_mode_all=True, compute_scoring_curve=True,
-                                                  freq_scoring=10, bucketing_train=True, freq_checkpointing=2,
+                                                  freq_scoring=10, bucketing_train=True, freq_checkpointing=3,
                                                   symbolic_root=True, symbolic_end=True,
                                                   freq_writer=10 if not test_before_run else 1,
                                                   extend_n_batch=2,

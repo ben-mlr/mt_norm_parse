@@ -15,6 +15,7 @@ from io_.info_print import disable_tqdm_level, printing
 from env.project_variables import PROJECT_PATH, REPO_DATASET, SEED_TORCH, BREAKING_NO_DECREASE, CHECKPOINT_DIR, LOSS_DETAIL_TEMPLATE_LS
 from env.project_variables import SEED_NP, SEED_TORCH
 import time
+from toolbox.load_w2v import load_emb
 from toolbox.gpu_related import use_gpu_
 from toolbox.sanity_check import get_timing
 from collections import OrderedDict
@@ -29,7 +30,8 @@ from model.schedule_training_policy import policy_1, policy_2
 np.random.seed(SEED_NP)
 torch.manual_seed(SEED_TORCH)
 ADAPTABLE_SCORING = True
-  
+
+
 def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           batch_size=10,
           label_train="", label_dev="",
@@ -61,7 +63,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           auxilliary_task_pos=False, dense_dim_auxilliary_pos=None, dense_dim_auxilliary_pos_2=None,
           word_decoding=False, char_decoding=True,
           dense_dim_word_pred=None, dense_dim_word_pred_2=None,dense_dim_word_pred_3=None,
-          symbolic_root=False, symbolic_end=False,
+          symbolic_root=False, symbolic_end=False, extern_emb_dir=None,
           verbose=1):
     if not unrolling_word:
         assert not char_src_attention, "ERROR attention requires step by step unrolling  "
@@ -88,6 +90,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
 
     if not debug:
         pdb.set_trace = lambda: 1
+
 
     loss_training = []
     loss_developing = []
@@ -154,7 +157,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                           char_decoding=char_decoding,
                           stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                           symbolic_root=symbolic_root, symbolic_end=symbolic_end,
-                          word_embed=word_embed, word_embedding_dim=word_embedding_dim, word_voc_input_size=word_voc_input_size,
+                          word_embed=word_embed, word_embedding_dim=word_embedding_dim, word_voc_input_size=word_voc_input_size, word_embed_dir=extern_emb_dir,
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
     pos_batch = auxilliary_task_pos
     if use_gpu:
@@ -212,6 +215,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
     step_train = 0
     step_dev = 0
     if ADAPTABLE_SCORING:
+        printing("WARNING : scoring epochs not regualr (more at the begining ", verbose_level=1, verbose=verbose)
         freq_scoring=1
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
         assert policy in AVAILABLE_SCHEDULING_POLICIES

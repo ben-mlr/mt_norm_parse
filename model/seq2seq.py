@@ -2,13 +2,17 @@ import torch.nn as nn
 import os
 import json
 from uuid import uuid4
+import numpy as np
 from model.encoder import CharEncoder
 from model.decoder import CharDecoder
 from model.pos_predictor import PosPredictor
 from model.normalize_not import BinaryPredictor
 from env.project_variables import CHECKPOINT_DIR
 import torch
+from torch.autograd import Variable
+
 from io_.info_print import printing
+from toolbox.load_w2v import load_emb
 from toolbox.git_related import get_commit_id
 from toolbox.sanity_check import sanity_check_info_checkpoint
 from env.project_variables import PROJECT_PATH
@@ -43,7 +47,7 @@ class LexNormalizer(nn.Module):
                  dir_word_encoder=1,
                  drop_out_bridge=0, drop_out_sent_encoder_out=0, drop_out_word_encoder_out=0, drop_out_char_embedding_decoder=0,
                  dir_sent_encoder=1,word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,
-                 word_voc_input_size=0, word_embedding_dim=0, word_embed=False,
+                 word_voc_input_size=0, word_embedding_dim=0, word_embed=False, word_embed_dir=None,
                  unrolling_word=False,
                  dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None,
                  char_src_attention=False, shared_context="all",teacher_force=False,
@@ -131,17 +135,23 @@ class LexNormalizer(nn.Module):
                 os.mkdir(dict_path)
                 self.dict_path = dict_path
                 print("INFO making dict_path {} ".format(dict_path))
+                if word_embed_dir is not None:
+                    word_embed_dic = load_emb(word_embed_dir, verbose)
+                    pdb.set_trace()
+                else:
+                    word_embed_dic = None
             else:
                 assert train_path is None and dev_path is None and add_start_char is None
                 # we make sure the dictionary dir exists and is located in dict_path
                 assert dict_path is not None, "ERROR dict_path should be specified"
                 assert os.path.isdir(dict_path), "ERROR : dict_path {} does not exist".format(dict_path)
+                word_embed_dic = {}
             # we are loading the dictionary now because we need it to define the model
-            self.word_dictionary, self.word_nom_dictionary, self.char_dictionary, \
+            self.word_dictionary, self.word_nom_dictionary, word_embed_np, self.char_dictionary, \
             self.pos_dictionary, self.xpos_dictionary, self.type_dictionary =\
                 conllu_data.load_dict(dict_path=dict_path,
                                       train_path=train_path, dev_path=dev_path,
-                                      test_path=None, word_embed_dict={}, dry_run=False, vocab_trim=True,
+                                      test_path=None, word_embed_dict=word_embed_dic, dry_run=False, vocab_trim=True,
                                       word_normalization=word_decoding, add_start_char=add_start_char, verbose=1)
             voc_size = len(self.char_dictionary.instance2index) + 1
             if word_decoding:
@@ -250,7 +260,12 @@ class LexNormalizer(nn.Module):
         # 1 shared character embedding layer
         print("word_embed", word_embed)
         self.char_embedding = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
-        self.word_embedding = nn.Embedding(num_embeddings=word_voc_input_size, embedding_dim=word_embedding_dim) if word_embed else None
+        self.word_embedding = nn.Embedding(num_embeddings=word_voc_input_size+1,# TODO : WHY IS IT NEEDED
+                                           embedding_dim=word_embedding_dim) if word_embed else None
+        if word_embed_np is not None:
+            printing("W2V INFO : loaded embedding {} and {} ", var=[np.mean(word_embed_np), np.mean(np.std(word_embed_np, axis=1))], verbose=verbose, verbose_level=1)
+            emb = torch.from_numpy(word_embed_np)
+            self.word_embedding.weight = nn.Parameter(Variable(emb, requires_grad=True))
 
         self.encoder = CharEncoder(self.char_embedding, input_dim=char_embedding_dim,
                                    hidden_size_encoder=hidden_size_encoder, word_recurrent_cell=word_recurrent_cell_encoder,
