@@ -383,14 +383,15 @@ if __name__ == "__main__":
           if warmup:
             param = {"hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10, "dropout_sent_encoder": 0.,
                      "drop_out_word_encoder": 0., "dropout_word_decoder": 0., "drop_out_sent_encoder_out": 0,
-                     "drop_out_word_encoder_out": 0, "dir_word_encoder": 2, "n_layers_word_encoder": 1, "dir_sent_encoder": 1, "word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder": "LSTM", "hidden_size_sent_encoder": 20, "hidden_size_decoder": 50, "batch_size": 2}
+                     "drop_out_word_encoder_out": 0, "dir_word_encoder": 2, "n_layers_word_encoder": 1, "dir_sent_encoder": 1,
+                     "word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder": "LSTM", "hidden_size_sent_encoder": 20, "hidden_size_decoder": 50, "batch_size": 2}
             param["batch_size"] = 20
             param["auxilliary_task_norm_not_norm"] = True
             param["weight_binary_loss"] = 1
             param["unrolling_word"] = True
             param["char_src_attention"] = False
             train_path, dev_path = DEMO, DEMO2
-            param["shared_context"] = "all"
+            param["shared_context"] = "sent"
             param["dense_dim_auxilliary"] = None
             param["clipping"] = None
             param["teacher_force"] = True
@@ -405,8 +406,8 @@ if __name__ == "__main__":
             param["dense_dim_auxilliary_pos"] = 100
             param["dense_dim_auxilliary_pos_2"] = None
 
-            param["word_embed"] = True
-            param["word_embedding_dim"] = 100
+            param["word_embed"] = False
+            param["word_embedding_dim"] = 0
             param["learning_rate"] = 0.05
             print("GRID_INFO analy vars=  dense_dim_auxilliary_pos_2 dense_dim_auxilliary_pos")
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
@@ -422,7 +423,7 @@ if __name__ == "__main__":
                                                   freq_writer=10 if not test_before_run else 1,
                                                   extend_n_batch=2,
                                                   score_to_compute_ls=["exact", "norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recall", "norm_not_norm-accuracy"],
-                                                  warmup=False, args=param, use_gpu=None,
+                                                  warmup=warmup, args=param, use_gpu=None,
                                                   n_epochs=epochs,
                                                   debug=False)
 

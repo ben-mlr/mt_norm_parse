@@ -267,10 +267,12 @@ class LexNormalizer(nn.Module):
 
         p_word = 1 if shared_context in ["word", "all", "none"] else 0
         p_sent = 1 if shared_context in ["sent", "all"] else 0
+        # in sent case : the word embedding only ges int to the word encoder so no need of larger bridge
+        p_word_emb = 1 if shared_context != "sent" else 0
         self.shared_context = shared_context
 
         self.bridge = nn.Linear(
-            hidden_size_encoder * dir_word_encoder * n_layers_word_encoder*p_word + hidden_size_sent_encoder*dir_sent_encoder*p_sent+word_embedding_dim,#*dir_sent_encoder : added diviion by 2 if dir 2
+            hidden_size_encoder * dir_word_encoder * n_layers_word_encoder*p_word + hidden_size_sent_encoder*dir_sent_encoder*p_sent+word_embedding_dim*p_word_emb,#*dir_sent_encoder : added diviion by 2 if dir 2
             hidden_size_decoder)
         self.hidden_size_decoder = hidden_size_decoder
         #self.layer_norm = nn.LayerNorm(hidden_size_decoder, elementwise_affine=False) if True else None
@@ -335,6 +337,7 @@ class LexNormalizer(nn.Module):
         # [] [batch, , hiden_size_decoder]
         printing("DECODER hidden state before bridge size {}", var=[context.size() if context is not None else 0],
                  verbose=0, verbose_level=3)
+        pdb.set_trace()
         context = torch.tanh(self.bridge(context))
         #h = self.layer_norm(h) if self.layer_norm is not None else h
         context = self.dropout_bridge(context)
