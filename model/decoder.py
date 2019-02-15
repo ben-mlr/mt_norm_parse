@@ -357,25 +357,32 @@ class CharDecoder(nn.Module):
 
 class WordDecoder(nn.Module):
     def __init__(self,  input_dim,
-                 voc_size, dense_dim, dense_dim_2,
+                 voc_size, dense_dim, dense_dim_2, dense_dim_3=0,
                  verbose=2):
         super(WordDecoder, self).__init__()
         assert dense_dim is not None and dense_dim > 0, "ERROR dense_dim should be 0"
         n_layers = 1
         if dense_dim_2 is not None and dense_dim_2 > 0:
             n_layers += 1
+            if dense_dim_3 > 0 and dense_dim_3 is not None:
+                n_layers+=1
+            else:
+                dense_dim_3 = dense_dim_2
         else:
-            dense_dim_2 = dense_dim
+            dense_dim_3 = dense_dim
         self.dense_output_1 = nn.Linear(input_dim, dense_dim)
         self.dense_output_2 = nn.Linear(dense_dim, dense_dim_2) if n_layers > 1 else None
-        self.dense_output_3 = nn.Linear(dense_dim_2, voc_size)
+        self.dense_output_3 = nn.Linear(dense_dim_2, dense_dim_3) if n_layers>2 else None
+        self.dense_output_4 = nn.Linear(dense_dim_3, voc_size)
         printing("MODEL WordDecoder set with {} dense layers + softmax ", var=n_layers, verbose=verbose, verbose_level=1)
 
     def forward(self, context):
-        if self.dense_output_2 is not None:
-            prediction_state = nn.ReLU()(self.dense_output_3(nn.ReLU()(self.dense_output_2(nn.ReLU()(self.dense_output_1(context))))))
+        if self.dense_output_3 is not None:
+            prediction_state = nn.ReLU()(self.dense_output_4(nn.ReLU()(self.dense_output_3(nn.ReLU()(self.dense_output_2(nn.ReLU()(self.dense_output_1(context))))))))
+        elif self.dense_output_2 is not None:
+            prediction_state = nn.ReLU()(self.dense_output_4(nn.ReLU()(self.dense_output_2(nn.ReLU()(self.dense_output_1(context))))))
         else:
-            prediction_state = nn.ReLU()(self.dense_output_3(nn.ReLU()(self.dense_output_1(context))))
+            prediction_state = nn.ReLU()(self.dense_output_4(nn.ReLU()(self.dense_output_1(context))))
 
         return prediction_state
         # TODO :

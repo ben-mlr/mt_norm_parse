@@ -65,6 +65,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None, 
     word_decoding = args.get("word_decoding", False)
     dense_dim_word_pred = args.get("dense_dim_word_pred", None)
     dense_dim_word_pred_2 = args.get("dense_dim_word_pred_2", None)
+    dense_dim_word_pred_3 = args.get("dense_dim_word_pred_3", 0)
 
     char_decoding = args.get("char_decoding",True)
 
@@ -111,7 +112,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None, 
                             clipping=clipping,
                             auxilliary_task_pos=auxilliary_task_pos, dense_dim_auxilliary_pos=dense_dim_auxilliary_pos,
                             dense_dim_auxilliary_pos_2=dense_dim_auxilliary_pos_2,
-                            word_decoding=word_decoding,dense_dim_word_pred=dense_dim_word_pred, dense_dim_word_pred_2=dense_dim_word_pred_2,
+                            word_decoding=word_decoding,dense_dim_word_pred=dense_dim_word_pred, dense_dim_word_pred_2=dense_dim_word_pred_2, dense_dim_word_pred_3=dense_dim_word_pred_3,
                             char_decoding=char_decoding,
                             symbolic_end=symbolic_end, symbolic_root=symbolic_root,
                             stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
@@ -179,8 +180,8 @@ if __name__ == "__main__":
       params_strong = {"hidden_size_encoder": 100, "output_dim": 100, "char_embedding_dim": 50,
                          "dropout_sent_encoder": 0, "drop_out_word_encoder": 0, "dropout_word_decoder": 0.,
                          "drop_out_word_encoder_out": 0.3, "drop_out_sent_encoder_out": 0.3, "drop_out_char_embedding_decoder":0.3, "dropout_bridge":0.01,
-                         "n_layers_word_encoder": 1, "dir_sent_encoder": 1,"word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder":"LSTM",
-                         "hidden_size_sent_encoder": 100, "hidden_size_decoder": 200, "batch_size": 10}
+                         "n_layers_word_encoder": 1, "dir_sent_encoder": 2,"word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder":"LSTM",
+                         "hidden_size_sent_encoder": 100, "hidden_size_decoder": 150, "batch_size": 10}
 
       label_0 = "origin_small-batch10-LSTM_sent_bi_dir-word_uni_LSTM"
 
@@ -287,28 +288,33 @@ if __name__ == "__main__":
           params = []
           labels = []
           n_model = 0
-          for batch_size in [25]:
+          for batch_size in [25,80]:
             for scale in [2]:
               for clipping in [1]:
                 for dir_word_encoder in [2]:
                     for teacher_force in [False]:
                       for char_src_attention in [True]:
-                        for auxilliary_task_norm_not_norm in [False]:
-                            for shared_context in ["all"]:
+                        for auxilliary_task_norm_not_norm in [True]:
+                            for shared_context in ["all", "sent", "word"]:
                               if auxilliary_task_norm_not_norm:
                                 dense_dim_auxilliary, dense_dim_auxilliary_2 = 200, 50
                               else:
                                 dense_dim_auxilliary, dense_dim_auxilliary_2  = 0,0
                               for stable_decoding_state in [False]:
                                 for word_decoding in [False, True]:
-                                  for auxilliary_task_pos in [True, False]:
+                                  for auxilliary_task_pos in [False]:
                                     for word_embed in [True, False]:
                                       for learning_rate in [0.004,0.001, 0.00025]:
+                                          if shared_context == "sent":
+                                            scale_sent_context = 1.5
+                                            scale_word = 0.5
+                                          else:
+                                            scale_sent_context, scale_word = 1, 1 
                                           param = params_strong.copy()
                                           param["char_src_attention"] = char_src_attention
-                                          param["hidden_size_encoder"] = int(param["hidden_size_encoder"]*scale)
-                                          param["hidden_size_sent_encoder"] = int(param["hidden_size_sent_encoder"]*scale)
-                                          param["hidden_size_decoder"] = int(param["hidden_size_sent_encoder"]*scale)
+                                          param["hidden_size_encoder"] = int(param["hidden_size_encoder"]*scale*scale_word)
+                                          param["hidden_size_sent_encoder"] = int(param["hidden_size_sent_encoder"]*scale*scale_sent_context)
+                                          param["hidden_size_decoder"] = int(param["hidden_size_decoder"]*scale)
                                           param["output_dim"] *= int(scale*0.5)+1
                                           param["batch_size"] = batch_size
                                           param["unrolling_word"] = True
@@ -379,11 +385,11 @@ if __name__ == "__main__":
       for param, model_id_pref in zip(params, labels):
           i += 1
           printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 20 if not test_before_run else 2
+          epochs = 50 if not test_before_run else 2
           if warmup:
             param = {"hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10, "dropout_sent_encoder": 0.,
                      "drop_out_word_encoder": 0., "dropout_word_decoder": 0., "drop_out_sent_encoder_out": 0,
-                     "drop_out_word_encoder_out": 0, "dir_word_encoder": 2, "n_layers_word_encoder": 1, "dir_sent_encoder": 1,
+                     "drop_out_word_encoder_out": 0, "dir_word_encoder": 2, "n_layers_word_encoder": 1, "dir_sent_encoder": 2,
                      "word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder": "LSTM", "hidden_size_sent_encoder": 20, "hidden_size_decoder": 50, "batch_size": 2}
             param["batch_size"] = 20
             param["auxilliary_task_norm_not_norm"] = True
@@ -398,9 +404,10 @@ if __name__ == "__main__":
             param["dense_dim_auxilliary_2"] = None
             param["stable_decoding_state"] = True
             param["init_context_decoder"] = False
-            param["word_decoding"] = False
-            param["dense_dim_word_pred"] = 0
-            param["dense_dim_word_pred_2"] = 0
+            param["word_decoding"] = True
+            param["dense_dim_word_pred"] = 100
+            param["dense_dim_word_pred_2"] = 200
+            param["dense_dim_word_pred_3"] = 10
             param["char_decoding"] = not param["word_decoding"]
             param["auxilliary_task_pos"] = True
             param["dense_dim_auxilliary_pos"] = 100

@@ -48,7 +48,7 @@ class LexNormalizer(nn.Module):
                  dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None,
                  char_src_attention=False, shared_context="all",teacher_force=False,
                  stable_decoding_state=False, init_context_decoder=True,
-                 word_decoding=False, dense_dim_word_pred=None, dense_dim_word_pred_2=None,
+                 word_decoding=False, dense_dim_word_pred=None, dense_dim_word_pred_2=None, dense_dim_word_pred_3=None,
                  char_decoding=True,
                  symbolic_end=False, symbolic_root=False,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
@@ -189,7 +189,7 @@ class LexNormalizer(nn.Module):
                                                    "dir_word": "uni",
                                                    "char_decoding": char_decoding,
                                                    "word_decoding": word_decoding,
-                                                   "dense_dim_word_pred":dense_dim_word_pred, "dense_dim_word_pred_2":dense_dim_word_pred_2,
+                                                   "dense_dim_word_pred":dense_dim_word_pred, "dense_dim_word_pred_2":dense_dim_word_pred_2,"dense_dim_word_pred_3":dense_dim_word_pred_3,
                                                    "drop_out_bridge": drop_out_bridge, "drop_out_char_embedding_decoder": drop_out_char_embedding_decoder,
                                                    "drop_out_word_decoder_cell": drop_out_word_decoder_cell,
                                                    "char_src_attention": char_src_attention,
@@ -235,7 +235,7 @@ class LexNormalizer(nn.Module):
                     self.auxilliary_task_norm_not_norm, unrolling_word, char_src_attention, dense_dim_auxilliary, shared_context,\
                 teacher_force, dense_dim_auxilliary_2, stable_decoding_state, init_context_decoder, \
             word_decoding, char_decoding, auxilliary_task_pos, dense_dim_auxilliary_pos, dense_dim_auxilliary_pos_2, \
-                dense_dim_word_pred, dense_dim_word_pred_2, \
+                dense_dim_word_pred, dense_dim_word_pred_2,dense_dim_word_pred_3, \
                 symbolic_root, symbolic_end, word_embedding_dim, word_embed = get_args(args, False)
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
@@ -297,7 +297,8 @@ class LexNormalizer(nn.Module):
                                    verbose=verbose) if char_decoding else None
 
         self.word_decoder = WordDecoder(voc_size=word_voc_output_size, input_dim=hidden_size_decoder,
-                                        dense_dim=dense_dim_word_pred, dense_dim_2=dense_dim_word_pred_2) if word_decoding else None
+                                        dense_dim=dense_dim_word_pred, dense_dim_2=dense_dim_word_pred_2,
+                                        dense_dim_3=dense_dim_word_pred_3) if word_decoding else None
         voc_pos_size = len(self.pos_dictionary.instance2index)+1
         print(voc_pos_size, hidden_size_decoder, dense_dim_auxilliary)
         self.pos_predictor = PosPredictor(voc_pos_size=voc_pos_size, input_dim=hidden_size_decoder, dense_dim=dense_dim_auxilliary_pos) if auxilliary_task_pos else None
