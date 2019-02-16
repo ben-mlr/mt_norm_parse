@@ -283,9 +283,7 @@ if __name__ == "__main__":
                                       params.append(param)
                                       #labels.append("model_"+str(n_model))
                                       labels.append(label)
-
       FROM_BEST = True
-
       if FROM_BEST:
           params = []
           labels = []
@@ -301,53 +299,55 @@ if __name__ == "__main__":
                               if auxilliary_task_norm_not_norm:
                                 dense_dim_auxilliary, dense_dim_auxilliary_2 = 200, 50
                               else:
-                                dense_dim_auxilliary, dense_dim_auxilliary_2  = 0,0
+                                dense_dim_auxilliary, dense_dim_auxilliary_2 = 0,0
                               for stable_decoding_state in [False]:
                                 for word_decoding in [False]:
                                   for auxilliary_task_pos in [False]:
                                     for word_embed in [True, False]:
-                                      for learning_rate in [0.004,0.001, 0.00025]:
+                                      for learning_rate in [0.004, 0.001, 0.00025]:
                                           if shared_context == "sent":
                                             scale_sent_context = 1.5
                                             scale_word = 0.5
                                           else:
-                                            scale_sent_context, scale_word = 1, 1 
-                                          param = params_strong.copy()
-                                          param["char_src_attention"] = char_src_attention
-                                          param["hidden_size_encoder"] = int(param["hidden_size_encoder"]*scale*scale_word)
-                                          param["hidden_size_sent_encoder"] = int(param["hidden_size_sent_encoder"]*scale*scale_sent_context)
-                                          param["hidden_size_decoder"] = int(param["hidden_size_decoder"]*scale)
-                                          param["output_dim"] *= int(scale*0.5)+1
-                                          param["batch_size"] = batch_size
-                                          param["unrolling_word"] = True
-                                          param["auxilliary_task_norm_not_norm"] = auxilliary_task_norm_not_norm
-                                          param["dense_dim_auxilliary"] = dense_dim_auxilliary
-                                          param["dense_dim_auxilliary_2"] = dense_dim_auxilliary_2
-                                          param["drop_out_char_embedding_decoder"] = 0.2
-                                          param["dropout_bridge"] = 0.1
-                                          param["dir_word_encoder"] = dir_word_encoder
-                                          param["dir_sent_encoder"] = 1
-                                          param["clipping"] = clipping
-                                          param["teacher_force"] = teacher_force
-                                          param["shared_context"] = shared_context
-                                          param["stable_decoding_state"] = stable_decoding_state
-                                          param["init_context_decoder"] = not param["stable_decoding_state"]
+                                            scale_sent_context, scale_word = 1, 1
+                                          for extern_emb_dir in [DIR_TWEET_W2V, None]:
+                                              param = params_strong.copy()
+                                              param["char_src_attention"] = char_src_attention
+                                              param["hidden_size_encoder"] = int(param["hidden_size_encoder"]*scale*scale_word)
+                                              param["hidden_size_sent_encoder"] = int(param["hidden_size_sent_encoder"]*scale*scale_sent_context)
+                                              param["hidden_size_decoder"] = int(param["hidden_size_decoder"]*scale)
+                                              param["output_dim"] *= int(scale*0.5)+1
+                                              param["batch_size"] = batch_size
+                                              param["unrolling_word"] = True
+                                              param["auxilliary_task_norm_not_norm"] = auxilliary_task_norm_not_norm
+                                              param["dense_dim_auxilliary"] = dense_dim_auxilliary
+                                              param["dense_dim_auxilliary_2"] = dense_dim_auxilliary_2
+                                              param["drop_out_char_embedding_decoder"] = 0.2
+                                              param["dropout_bridge"] = 0.1
+                                              param["dir_word_encoder"] = dir_word_encoder
+                                              param["dir_sent_encoder"] = 1
+                                              param["clipping"] = clipping
+                                              param["teacher_force"] = teacher_force
+                                              param["shared_context"] = shared_context
+                                              param["stable_decoding_state"] = stable_decoding_state
+                                              param["init_context_decoder"] = not param["stable_decoding_state"]
 
-                                          param["word_decoding"] = word_decoding
-                                          param["char_decoding"] = not param["word_decoding"]
+                                              param["word_decoding"] = word_decoding
+                                              param["char_decoding"] = not param["word_decoding"]
 
-                                          param["dense_dim_word_pred"] = 200 if word_decoding else None
-                                          param["dense_dim_word_pred_2"] = 200 if word_decoding else None
-                                          param["dense_dim_word_pred_3"] = 100 if word_decoding else None
+                                              param["dense_dim_word_pred"] = 200 if word_decoding else None
+                                              param["dense_dim_word_pred_2"] = 200 if word_decoding else None
+                                              param["dense_dim_word_pred_3"] = 100 if word_decoding else None
 
-                                          param["auxilliary_task_pos"] = auxilliary_task_pos
-                                          param["dense_dim_auxilliary_pos"] = None if not auxilliary_task_pos else 200
-                                          param["dense_dim_auxilliary_pos_2"] = None
+                                              param["auxilliary_task_pos"] = auxilliary_task_pos
+                                              param["dense_dim_auxilliary_pos"] = None if not auxilliary_task_pos else 200
+                                              param["dense_dim_auxilliary_pos_2"] = None
 
-                                          param["word_embed"] = word_embed
-                                          param["word_embedding_dim"] = 50 if word_embed else 0
+                                              param["word_embed"] = word_embed
+                                              param["word_embedding_dim"] = 50 if word_embed else 0
 
-                                          param["learning_rate"] = learning_rate
+                                              param["learning_rate"] = learning_rate
+                                              param["extern_emb_dir"] = extern_emb_dir
 
                                           params.append(param)
                                   #labels.append("word_char-level_contextxteacher_force-{}-stable_decod-init_con_{}-teachforce10_{}".format(shared_context,\
@@ -367,7 +367,7 @@ if __name__ == "__main__":
           args = parser.parse_args()
           test_before_run = args.test_before_run
           print("GRID : test_before_run set to {} ".format(test_before_run))
-          warmup = False
+          warmup = True
       else:
           test_before_run = False
       
@@ -427,7 +427,7 @@ if __name__ == "__main__":
           print("GRID_INFO fixed vars=  word_embed ")
           print("GRID_INFO fixed vals=  word_embed,False ")
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
-                                                  test_path=[TEST] if not warmup else TEST,
+                                                  test_path=[TEST] if not warmup else DEMO,
                                                   verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,

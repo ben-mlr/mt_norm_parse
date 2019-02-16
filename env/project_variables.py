@@ -38,8 +38,7 @@ LEX_TEST_LABEL, LEX_TEST = "lex_norm2015_test", os.path.join(PROJECT_PATH, "./da
 
 LEX_LIU_LABEL,LEX_LIU_TRAIN = "lex_train+liu", os.path.join(PROJECT_PATH, "./data/lexnorm2015/lex_norm_train+liu_2577.conll")
 
-
-DIR_TWEET_W2V = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/w2v/tweets.en.w2v.txt"
+DIR_TWEET_W2V = os.path.join(PROJECT_PATH, "w2v", "tweets.en.w2v.txt")
 W2V_LOADED_DIM = 400
 MAX_VOCABULARY_SIZE_WORD_DIC = 50000
 

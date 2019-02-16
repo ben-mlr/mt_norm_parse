@@ -46,11 +46,11 @@ class LexNormalizer(nn.Module):
                  drop_out_sent_encoder_cell=0., drop_out_word_encoder_cell=0., drop_out_word_decoder_cell=0.,
                  dir_word_encoder=1,
                  drop_out_bridge=0, drop_out_sent_encoder_out=0, drop_out_word_encoder_out=0, drop_out_char_embedding_decoder=0,
-                 dir_sent_encoder=1,word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,
+                 dir_sent_encoder=1, word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,
                  word_voc_input_size=0, word_embedding_dim=0, word_embed=False, word_embed_dir=None,
                  unrolling_word=False,
                  dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None,
-                 char_src_attention=False, shared_context="all",teacher_force=False,
+                 char_src_attention=False, shared_context="all", teacher_force=False,
                  stable_decoding_state=False, init_context_decoder=True,
                  word_decoding=False, dense_dim_word_pred=None, dense_dim_word_pred_2=None, dense_dim_word_pred_3=None,
                  char_decoding=True,
@@ -138,7 +138,6 @@ class LexNormalizer(nn.Module):
                 print("INFO making dict_path {} ".format(dict_path))
                 if word_embed_dir is not None:
                     word_embed_dic = load_emb(word_embed_dir, verbose)
-                    pdb.set_trace()
                 else:
                     word_embed_dic = None
             else:
@@ -153,7 +152,7 @@ class LexNormalizer(nn.Module):
                 conllu_data.load_dict(dict_path=dict_path,
                                       train_path=train_path, dev_path=dev_path,
                                       word_embed_dict=word_embed_dic, dry_run=False,
-                                      vocab_trim=not extend_vocab_with_test,test_path=test_path,
+                                      vocab_trim=not extend_vocab_with_test, test_path=test_path,
                                       word_normalization=word_decoding, add_start_char=add_start_char, verbose=1)
             voc_size = len(self.char_dictionary.instance2index) + 1
             if word_decoding:
@@ -171,7 +170,7 @@ class LexNormalizer(nn.Module):
                                                   "dev_data_path": None, "other": None,
                                                   "git_id": git_commit_id},
                               "hyperparameters": {
-                                  "lr": None, "lr_policy": None,
+                                  "lr": None, "lr_policy": None, "extend_vocab_with_test": extend_vocab_with_test,
                                   "shared_context": shared_context,
                                   "symbolic_end": symbolic_end, "symbolic_root": symbolic_root,
                                   "gradient_clipping": None,
@@ -189,6 +188,7 @@ class LexNormalizer(nn.Module):
                                   "encoder_arch": {"cell_word": word_recurrent_cell_encoder, "cell_sentence": "LSTM",
                                                    "word_embed": word_embed,  "word_embedding_dim": word_embedding_dim,
                                                    "n_layers_word_encoder": n_layers_word_encoder,
+                                                   "word_embed_init": word_embed_dir,
                                                    "dir_sent_encoder": dir_sent_encoder,
                                                    "dir_word_encoder": dir_word_encoder,
                                                    "drop_out_sent_encoder_out": drop_out_sent_encoder_out,
@@ -259,12 +259,13 @@ class LexNormalizer(nn.Module):
         printing("Model arguments are {} ".format(self.arguments), verbose, verbose_level=0)
         printing("Model : NB : defined drop outs are the reloaded one ", verbose, verbose_level=1)
         # 1 shared character embedding layer
-        print("word_embed", word_embed)
         self.char_embedding = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
         self.word_embedding = nn.Embedding(num_embeddings=word_voc_input_size,
                                            embedding_dim=word_embedding_dim) if word_embed else None
         if word_embed_np is not None:
-            printing("W2V INFO : loaded embedding shape is {} : {} and {} ", var=[word_embed_np.shape, np.mean(word_embed_np), np.mean(np.std(word_embed_np, axis=1))], verbose=verbose, verbose_level=1)
+            printing("W2V INFO : loaded embedding shape is {} : {} and {} ", var=[word_embed_np.shape, np.mean(word_embed_np),
+                                                                                  np.mean(np.std(word_embed_np, axis=1))],
+                     verbose=verbose, verbose_level=1)
             self.word_embedding.weight.data.copy_(torch.from_numpy(word_embed_np))
 
             #self.word_embedding.weight = nn.Parameter(Variable(emb, requires_grad=True))

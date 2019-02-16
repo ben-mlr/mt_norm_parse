@@ -15,7 +15,6 @@ from io_.info_print import disable_tqdm_level, printing
 from env.project_variables import PROJECT_PATH, REPO_DATASET, SEED_TORCH, BREAKING_NO_DECREASE, CHECKPOINT_DIR, LOSS_DETAIL_TEMPLATE_LS
 from env.project_variables import SEED_NP, SEED_TORCH
 import time
-from toolbox.load_w2v import load_emb
 from toolbox.gpu_related import use_gpu_
 from toolbox.sanity_check import get_timing
 from collections import OrderedDict
@@ -157,7 +156,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                           char_decoding=char_decoding,
                           stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                           symbolic_root=symbolic_root, symbolic_end=symbolic_end,
-                          word_embed=word_embed, word_embedding_dim=word_embedding_dim, word_voc_input_size=word_voc_input_size, word_embed_dir=extern_emb_dir,
+                          word_embed=word_embed, word_embedding_dim=word_embedding_dim,
+                          word_embed_dir=extern_emb_dir, word_voc_input_size=word_voc_input_size,
                           test_path=test_path, extend_vocab_with_test=test_path is not None, # if test is padded we extend
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
     pos_batch = auxilliary_task_pos
