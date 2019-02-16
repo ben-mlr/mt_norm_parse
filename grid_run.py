@@ -5,17 +5,18 @@ from evaluate.evaluate_epoch import evaluate
 import numpy as np
 import torch
 from env.project_variables import PROJECT_PATH, TRAINING, DEV, DIR_TWEET_W2V, \
-    TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, REPO_DATASET, LIU, LEX_TRAIN, LEX_TEST, SEED_NP, SEED_TORCH, LEX_LIU_TRAIN, LIU_DEV, LIU_TRAIN
+    TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, REPO_DATASET, LIU, LEX_TRAIN, LEX_TEST, SEED_NP, SEED_TORCH, LEX_LIU_TRAIN, LIU_DEV, LIU_TRAIN, EWT_DEV
 from uuid import uuid4
 import argparse
 from sys import platform
-
+import time
 
 np.random.seed(SEED_NP+1)
 torch.manual_seed(SEED_TORCH)
 
 
-def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None, args=None,
+def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
+               n_epochs=11,test_path=None, args=None,
                overall_report_dir=CHECKPOINT_DIR, overall_label="DEFAULT",get_batch_mode_all=True,
                warmup=False, use_gpu=None, freq_checkpointing=1,debug=False,compute_scoring_curve=False,
                compute_mean_score_per_sent=False,print_raw=False,freq_scoring=5,bucketing_train=True,freq_writer=None,
@@ -80,7 +81,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None, 
     if warmup:
         printing("Warm up : running 1 epoch ", verbose=verbose, verbose_level=0)
     printing("GRID : START TRAINING ", verbose_level=0, verbose=verbose)
-    model_full_name = train(train_path, dev_path,
+    model_full_name = train(train_path, dev_path, pos_specific_path=pos_specific_path,
                             auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
                             dense_dim_auxilliary=dense_dim_auxilliary, dense_dim_auxilliary_2=dense_dim_auxilliary_2,
                             lr=learning_rate,extend_n_batch=extend_n_batch,
@@ -133,7 +134,7 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None, 
               eval_data_paths.extend(test_path)
           else:
               eval_data_paths.append(test_path)
-      import time
+      eval_data_paths = list(set(eval_data_paths))
       start_eval = time.time()
       for get_batch_mode_evaluate in [False]:
         for eval_data in eval_data_paths:
@@ -288,29 +289,29 @@ if __name__ == "__main__":
           params = []
           labels = []
           n_model = 0
-          for batch_size in [80]:
+          for batch_size in [25]:
             for scale in [2]:
               for clipping in [1]:
                 for dir_word_encoder in [2]:
                     for teacher_force in [False]:
                       for char_src_attention in [True]:
-                        for auxilliary_task_norm_not_norm in [True]:
-                            for shared_context in ["all", "sent"]:
+                        for auxilliary_task_norm_not_norm in [False]:
+                            for shared_context in ["all","word"]:
                               if auxilliary_task_norm_not_norm:
                                 dense_dim_auxilliary, dense_dim_auxilliary_2 = 200, 50
                               else:
                                 dense_dim_auxilliary, dense_dim_auxilliary_2 = 0,0
                               for stable_decoding_state in [False]:
-                                for word_decoding in [False]:
+                                for word_decoding in [ True, False]:
                                   for auxilliary_task_pos in [False]:
-                                    for word_embed in [True, False]:
-                                      for learning_rate in [0.004, 0.001, 0.00025]:
+                                    for word_embed in [True]:
+                                      for learning_rate in [0.001]:
                                           if shared_context == "sent":
                                             scale_sent_context = 1.5
                                             scale_word = 0.5
                                           else:
                                             scale_sent_context, scale_word = 1, 1
-                                          for extern_emb_dir in [DIR_TWEET_W2V, None]:
+                                          for extern_emb_dir in [None, DIR_TWEET_W2V]:
                                               param = params_strong.copy()
                                               param["char_src_attention"] = char_src_attention
                                               param["hidden_size_encoder"] = int(param["hidden_size_encoder"]*scale*scale_word)
@@ -344,19 +345,19 @@ if __name__ == "__main__":
                                               param["dense_dim_auxilliary_pos_2"] = None
 
                                               param["word_embed"] = word_embed
-                                              param["word_embedding_dim"] = 50 if word_embed else 0
+                                              param["word_embedding_dim"] = 400 if word_embed else 0
 
                                               param["learning_rate"] = learning_rate
                                               param["extern_emb_dir"] = extern_emb_dir
 
-                                          params.append(param)
+                                              params.append(param)
                                   #labels.append("word_char-level_contextxteacher_force-{}-stable_decod-init_con_{}-teachforce10_{}".format(shared_context,\
                                   #              param["stable_decoding_state"],param["init_context_decoder"],teacher_force))
-                                          labels.append("batch80-scale{}-sha_context_{}-auxnorm_not_norm_{}-word_de_{}".format(scale,shared_context,auxilliary_task_norm_not_norm, word_decoding))
+                                              labels.append("extern-auxFalse-scale{}-sha_context_{}-auxnorm_not_norm_{}-word_de_{}".format(scale,shared_context,auxilliary_task_norm_not_norm, word_decoding))
 
-          print("GRID_INFO analy vars=  learning_rate word_decoding word_decoding shared_context batch_size n_trainable_parameters word_embed")
-          print("GRID_INFO fixed vars=  auxilliary_task_pos,False auxilliary_task_norm_not_norm,True stable_decoding_state,False teacher_force,True char_src_attention,True ")
-          print("GRID_INFO fixed vals=  auxilliary_task_pos  auxilliary_task_norm_not_norm stable_decoding_state teacher_force char_src_attention ")
+          print("GRID_INFO analy vars=  extern_emb_dir shared_context word_decoding   n_trainable_parameters ")
+          print("GRID_INFO fixed vars=  word_embed,True auxilliary_task_norm_not_norm,False auxilliary_task_pos,False learning_rate,0.001  batch_size,25 stable_decoding_state,False teacher_force,True char_src_attention,True ")
+          print("GRID_INFO fixed vals=  word_embed batch_size auxilliary_task_pos auxilliary_task_norm_not_norm stable_decoding_state teacher_force char_src_attention ")
 
       # only for cloud run :
       warmup = True
@@ -367,7 +368,7 @@ if __name__ == "__main__":
           args = parser.parse_args()
           test_before_run = args.test_before_run
           print("GRID : test_before_run set to {} ".format(test_before_run))
-          warmup = True
+          warmup = False
       else:
           test_before_run = False
       
@@ -385,7 +386,7 @@ if __name__ == "__main__":
       dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
       os.mkdir(dir_grid)
       printing("GRID RUN : Grid directory : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
-      train_path, dev_path = LIU_TRAIN, LIU_DEV
+      train_path, dev_path = DEV, TEST
       for param, model_id_pref in zip(params, labels):
           i += 1
           printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
@@ -420,18 +421,20 @@ if __name__ == "__main__":
             param["word_embed"] = True
             param["word_embedding_dim"] = 400
             param["learning_rate"] = 0.05
-            
+
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
-          print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
-          print("GRID_INFO analy vars=    dense_dim_auxilliary_pos_2 dense_dim_auxilliary_pos")
-          print("GRID_INFO fixed vars=  word_embed ")
-          print("GRID_INFO fixed vals=  word_embed,False ")
+          if warmup:
+              print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
+              print("GRID_INFO analy vars=    dense_dim_auxilliary_pos_2 dense_dim_auxilliary_pos")
+              print("GRID_INFO fixed vars=  word_embed ")
+              print("GRID_INFO fixed vals=  word_embed,False ")
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
-                                                  test_path=[TEST] if not warmup else DEMO,
+                                                  pos_specific_path=DEV,
+                                                  test_path=None,#[TEST] if not warmup else DEMO,
                                                   verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,
-                                                  get_batch_mode_all=True, compute_scoring_curve=True,
+                                                  get_batch_mode_all=True, compute_scoring_curve=False,
                                                   freq_scoring=10, bucketing_train=True, freq_checkpointing=3,
                                                   symbolic_root=True, symbolic_end=True,
                                                   freq_writer=10 if not test_before_run else 1,
@@ -447,4 +450,5 @@ if __name__ == "__main__":
           print("GRID RUN : DONE MODEL {} with param {} ".format(model_id_pref, param))
           if warmup:
             break
+
 #oarsub -q gpu -l /core=2,walltime=48:00:00  -p "host='gpu004'" -O ./logs/%jobid%-job.stdout -E ./logs/%jobid%-job.stderr ./train/train_mt_norm.sh 

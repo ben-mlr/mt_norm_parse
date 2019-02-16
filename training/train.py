@@ -31,7 +31,7 @@ torch.manual_seed(SEED_TORCH)
 ADAPTABLE_SCORING = True
 
 
-def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
+def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_specific_path=None,
           batch_size=10, test_path=None,
           label_train="", label_dev="",
           use_gpu=None,
@@ -64,6 +64,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
           dense_dim_word_pred=None, dense_dim_word_pred_2=None,dense_dim_word_pred_3=None,
           symbolic_root=False, symbolic_end=False, extern_emb_dir=None,
           verbose=1):
+
     if not unrolling_word:
         assert not char_src_attention, "ERROR attention requires step by step unrolling  "
     printing("WARNING bucketing is {} ", var=bucketing, verbose=verbose, verbose_level=1)
@@ -140,7 +141,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                           dir_model=model_dir, use_gpu=use_gpu, dict_path=dict_path,
                           word_recurrent_cell_decoder=word_recurrent_cell_decoder,
                           word_recurrent_cell_encoder=word_recurrent_cell_encoder,
-                          train_path=_train_path, dev_path=_dev_path, add_start_char=_add_start_char,
+                          train_path=_train_path, dev_path=_dev_path, pos_specific_path=pos_specific_path,
+                          add_start_char=_add_start_char,
                           model_specific_dictionary=model_specific_dictionary,
                           dir_word_encoder=dir_word_encoder,
                           drop_out_sent_encoder_cell=dropout_sent_encoder_cell, drop_out_word_encoder_cell=dropout_word_encoder_cell,

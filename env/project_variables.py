@@ -23,8 +23,11 @@ AVAILABLE_TASKS = ["all","normalize","norm_not_norm"]
 
 # DATASETS
 TRAINING_LABEL, TRAINING = "en-ud-train", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-train.conllu")
+
+EWT_DEV_LABEL, EWT_DEV = "ewt_dev", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-dev.integrated-po_as_norm")
 DEV_LABEL, DEV = "owoputi", os.path.join(PROJECT_PATH, "../parsing/normpar/data/owoputi.integrated_fixed")
 TEST_LABEL, TEST = "lexnorm", os.path.join(PROJECT_PATH, "../parsing/normpar/data/lexnorm.integrated")
+
 DEMO_LABEL, DEMO = "lexnorm-Demo", os.path.join(PROJECT_PATH, "../parsing/normpar/data/lexnorm.integrated.demo")
 DEMO2_LABEL, DEMO2 = "lexnorm-demo2", os.path.join(PROJECT_PATH, "../parsing/normpar/data/lexnorm.integrated.demo2")
 
@@ -47,7 +50,8 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 LEX_TRAIN:LEX_TRAIN_LABEL,
                 LEX_TEST:LEX_TEST_LABEL,
                 LEX_LIU_TRAIN:LEX_LIU_LABEL,
-                LIU_DEV: LIU_DEV_LABEL, LIU_TRAIN:LIU_TRAIN_LABEL}
+                LIU_DEV: LIU_DEV_LABEL, LIU_TRAIN:LIU_TRAIN_LABEL,
+                EWT_DEV:EWT_DEV_LABEL}
 
 
 # output dir for writing

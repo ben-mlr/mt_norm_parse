@@ -49,7 +49,7 @@ class LexNormalizer(nn.Module):
                  dir_sent_encoder=1, word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,
                  word_voc_input_size=0, word_embedding_dim=0, word_embed=False, word_embed_dir=None,
                  unrolling_word=False,
-                 dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None,
+                 dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None, pos_specific_path=None,
                  char_src_attention=False, shared_context="all", teacher_force=False,
                  stable_decoding_state=False, init_context_decoder=True,
                  word_decoding=False, dense_dim_word_pred=None, dense_dim_word_pred_2=None, dense_dim_word_pred_3=None,
@@ -147,12 +147,14 @@ class LexNormalizer(nn.Module):
                 assert os.path.isdir(dict_path), "ERROR : dict_path {} does not exist".format(dict_path)
                 word_embed_dic = {}
             # we are loading the dictionary now because we need it to define the model
+
             self.word_dictionary, self.word_nom_dictionary, word_embed_np, self.char_dictionary, \
             self.pos_dictionary, self.xpos_dictionary, self.type_dictionary =\
                 conllu_data.load_dict(dict_path=dict_path,
                                       train_path=train_path, dev_path=dev_path,
                                       word_embed_dict=word_embed_dic, dry_run=False,
                                       vocab_trim=not extend_vocab_with_test, test_path=test_path,
+                                      pos_specific_data_set=pos_specific_path,
                                       word_normalization=word_decoding, add_start_char=add_start_char, verbose=1)
             voc_size = len(self.char_dictionary.instance2index) + 1
             if word_decoding:

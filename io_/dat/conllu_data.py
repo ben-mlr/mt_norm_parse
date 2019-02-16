@@ -20,8 +20,9 @@ from io_.info_print import printing
 
 
 def load_dict(dict_path, train_path=None, dev_path=None, test_path=None, word_embed_dict=None,
-                word_normalization=False,
-                dry_run=0, vocab_trim=False, add_start_char=None, verbose=1, force_new_dic=False):
+              word_normalization=False,pos_specific_data_set=None,
+              dry_run=0, vocab_trim=False, add_start_char=None,
+              verbose=1, force_new_dic=False):
 
   to_create = False
 
@@ -36,7 +37,7 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None, word_em
     printing("Creating dictionary in {} ".format(dict_path), verbose=verbose, verbose_level=1)
     word_dictionary, word_norm_dictionary, embed_np, char_dictionary, pos_dictionary, \
     xpos_dictionary, type_dictionary = create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict, dry_run,
-                                                   vocab_trim=vocab_trim, add_start_char=add_start_char,
+                                                   vocab_trim=vocab_trim, add_start_char=add_start_char,pos_specific_data_set=pos_specific_data_set,
                                                    word_normalization=word_normalization)
   else:
     # ??
@@ -60,9 +61,31 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None, word_em
   return word_dictionary, word_norm_dictionary,embed_np, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary
 
 
+def pos_specific_dic_builder(pos_specific_data_set,pos_dictionary):
+  if pos_specific_data_set is not None:
+    assert os.path.exists(pos_specific_data_set), "{} does not exist".format(pos_specific_data_set)
+    with codecs.open(pos_specific_data_set, 'r', 'utf-8', errors='ignore') as file:
+      li = 0
+      for line in file:
+        line = line.strip()
+        if len(line) == 0 or line[0] == '#':
+          continue
+        tokens = line.split('\t')
+        if '-' in tokens[0] or '.' in tokens[0]:
+          continue
+        pos = tokens[3]  # if tokens[4]=='_' else tokens[3]+'$$$'+tokens[4]
+        #xpos = tokens[4]
+        pos_dictionary.add(pos)
+        #xpos_dictionary.add(xpos)
+    printing("POS Vocabulary : pos dictionary built on {} ".format(pos_specific_data_set), verbose_level=1, verbose=1)
+    return pos_dictionary
+  printing("POS Vocabulary : pos dictionary untouched", verbose_level=1, verbose=1)
+  return pos_dictionary
+
+
 def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
                 dry_run, word_normalization=False, vocab_trim=False, add_start_char=0,
-                min_occurence=0,
+                min_occurence=0, pos_specific_data_set=None,
                ):
   """
   Given train, dev, test treebanks and a word embedding matrix :
@@ -71,11 +94,17 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
   - min_occurence : if <= considered as singleton otherwise ad
   - if vocab_trim == False : we also perform expansion on test set
   - based on word_embed_dict a new numpy matrix is created that will be used to th
+  - if pos_specific_data_set not None  :
+      - build pos_dictionary from it
+      - expand word dictionaries with it
   #WARNING singleton as been removed in a hardcoded way cause it was not clear what it was doing/done for
+
   TODO : to be tested : test based on a given conll --> vocab word is correct
       in regard to min_occurence and that the created matrix is correct also   (index --> vetor correct
   """
   default_value = True
+  if word_embed_dict is None:   
+    word_embed_dict = {}
   word_dictionary = Dictionary('word', default_value=default_value, singleton=True)
   word_norm_dictionary = Dictionary('word_norm', default_value=default_value, singleton=True) if word_normalization else None
   char_dictionary = Dictionary('character', default_value=default_value)
@@ -136,7 +165,9 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
       xpos = tokens[4]
       typ = tokens[7]
       #word_dictionary.add(word) # removed done afterward
-      pos_dictionary.add(pos)
+      if pos_specific_data_set is None:
+        # otherwise : pos-dictionary will be build with pos_specific_data_set
+        pos_dictionary.add(pos)
       xpos_dictionary.add(xpos)
       type_dictionary.add(typ)
       if word_normalization:
@@ -154,7 +185,7 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
   # if a singleton is in pretrained embedding dict, set the count to min_occur + c
 
   for word in vocab.keys():
-    if word in word_embed_dict or word.lower() in word_embed_dict and False:
+    if word in word_embed_dict or word.lower() in word_embed_dict:
       # if words are in word_embed_dict we want them even they appear less then min_occurence
       vocab[word] += min_occurence
   vocab_list = _START_VOCAB + sorted(vocab, key=vocab.get, reverse=True)
@@ -163,6 +194,8 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
   max_vocabulary_size = MAX_VOCABULARY_SIZE_WORD_DIC
   if len(vocab_list) > max_vocabulary_size:
     vocab_list = vocab_list[:max_vocabulary_size]
+
+  pos_dictionary = pos_specific_dic_builder(pos_specific_data_set, pos_dictionary)
 
   def expand_vocab(data_paths):
     counter_match_dev = 0
@@ -185,8 +218,10 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
             xpos = tokens[4]
             typ = tokens[7]
             token_norm, _ = get_normalized_token(tokens[9], 0, verbose=0)
-            word_norm_dictionary.add(token_norm) # TODO : should be handle as word_dictionary with frequency threshold
-            pos_dictionary.add(pos)
+            if word_normalization:
+              word_norm_dictionary.add(token_norm) # TODO : should be handle as word_dictionary with frequency threshold
+            if pos_specific_data_set is None:
+              pos_dictionary.add(pos)
             xpos_dictionary.add(xpos)
             type_dictionary.add(typ)
             # if word not already in vocab_set (loaded as trained and each time expand_vocab was called :
