@@ -5,7 +5,7 @@ import pdb
 from .constants import MAX_CHAR_LENGTH, NUM_CHAR_PAD, PAD_CHAR, PAD_POS, PAD_TYPE, ROOT_CHAR, ROOT_POS, PAD, \
   ROOT_TYPE, END_CHAR, END_POS, END_TYPE, _START_VOCAB, ROOT, PAD_ID_WORD, PAD_ID_CHAR, PAD_ID_TAG, DIGIT_RE, CHAR_START_ID, CHAR_START, CHAR_END_ID, PAD_ID_CHAR, PAD_ID_NORM_NOT_NORM, END,\
   MEAN_RAND_W2V, SCALE_RAND_W2V
-from env.project_variables import SEED_NP, SEED_TORCH, W2V_LOADED_DIM
+from env.project_variables import SEED_NP, SEED_TORCH, W2V_LOADED_DIM, MAX_VOCABULARY_SIZE_WORD_DIC
 from .conllu_reader import CoNLLReader
 from .dictionary import Dictionary
 import numpy as np
@@ -36,7 +36,7 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None, word_em
     printing("Creating dictionary in {} ".format(dict_path), verbose=verbose, verbose_level=1)
     word_dictionary, word_norm_dictionary, embed_np, char_dictionary, pos_dictionary, \
     xpos_dictionary, type_dictionary = create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict, dry_run,
-                                                   vocab_trim=False, add_start_char=add_start_char, word2vec_dic=word_embed_dict,
+                                                   vocab_trim=vocab_trim, add_start_char=add_start_char,
                                                    word_normalization=word_normalization)
   else:
     # ??
@@ -61,13 +61,19 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None, word_em
 
 
 def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
-                dry_run, word_normalization=False, vocab_trim=False, add_start_char=0,word2vec_dic=None,):
+                dry_run, word_normalization=False, vocab_trim=False, add_start_char=0,
+                min_occurence=0,
+               ):
   """
   Given train, dev, test treebanks and a word embedding matrix :
   - basic mode : create key_value instanes for each CHAR, WORD, U|X-POS , Relation with special cases for Roots, Padding and End symbols
   - expanding is done on dev set (we assume that dev set is accessible)
+  - min_occurence : if <= considered as singleton otherwise ad
   - if vocab_trim == False : we also perform expansion on test set
-  check TODOs
+  - based on word_embed_dict a new numpy matrix is created that will be used to th
+  #WARNING singleton as been removed in a hardcoded way cause it was not clear what it was doing/done for
+  TODO : to be tested : test based on a given conll --> vocab word is correct
+      in regard to min_occurence and that the created matrix is correct also   (index --> vetor correct
   """
   default_value = True
   word_dictionary = Dictionary('word', default_value=default_value, singleton=True)
@@ -78,16 +84,15 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
   type_dictionary = Dictionary('type', default_value=default_value)
   external_embedding = []
   counter_match_train = 0
+  counter_other_train = 0
   char_dictionary.add(PAD_CHAR)
   word_dictionary.add(PAD)
   if default_value:
       # the index 0 is the default value UNK token
+      counter_other_train+=1
       external_embedding.append(np.random.normal(loc=MEAN_RAND_W2V,scale=SCALE_RAND_W2V,size=W2V_LOADED_DIM))
   if word_normalization:
     word_norm_dictionary.add(PAD)
-    if word2vec_dic is not None:
-      external_embedding.append(np.random.normal(loc=MEAN_RAND_W2V,scale=SCALE_RAND_W2V,size=W2V_LOADED_DIM))
-
   if add_start_char:
     char_dictionary.add(CHAR_START)
 
@@ -98,10 +103,7 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
   pos_dictionary.add(PAD_POS)
   xpos_dictionary.add(PAD_POS)
   type_dictionary.add(PAD_TYPE)
-  if word_normalization:
-    if word2vec_dic is not None:
-      external_embedding.append(np.random.normal(loc=MEAN_RAND_W2V,scale=SCALE_RAND_W2V,size=W2V_LOADED_DIM))
-    word_norm_dictionary.add(ROOT)
+
   word_dictionary.add(ROOT)
   pos_dictionary.add(ROOT_POS)
   xpos_dictionary.add(ROOT_POS)
@@ -109,14 +111,14 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
 
   if word_normalization:
     word_norm_dictionary.add(END)
-    if word2vec_dic is not None:
-      external_embedding.append(np.random.normal(loc=MEAN_RAND_W2V,scale=SCALE_RAND_W2V,size=W2V_LOADED_DIM))
   word_dictionary.add(END)
   pos_dictionary.add(END_POS)
   xpos_dictionary.add(END_POS)
   type_dictionary.add(END_TYPE)
 
-  vocab = dict() # what is it for ? TODO : cleaning
+  vocab = dict()
+  # read training file add to Vocab directly except for words (not word_norm)
+  # ## for which we need filtering so we add them to vocab()
   with codecs.open(train_path, 'r', 'utf-8', errors='ignore') as file:
     li = 0
     for line in file:
@@ -133,41 +135,35 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
       pos = tokens[3]  #if tokens[4]=='_' else tokens[3]+'$$$'+tokens[4]
       xpos = tokens[4]
       typ = tokens[7]
-      word_dictionary.add(word)
+      #word_dictionary.add(word) # removed done afterward
       pos_dictionary.add(pos)
       xpos_dictionary.add(xpos)
       type_dictionary.add(typ)
       if word_normalization:
         token_norm, _ = get_normalized_token(tokens[9], 0, verbose=0)
-        not_in_dic = word_norm_dictionary.add(token_norm)
-        if word2vec_dic is not None and not_in_dic:
-          if token_norm in word2vec_dic:
-            counter_match_train += 1
-            external_embedding.append(word2vec_dic[token_norm])
-          else:
-            external_embedding.append(np.random.normal(loc=MEAN_RAND_W2V,scale=SCALE_RAND_W2V,size=W2V_LOADED_DIM))
-        # TODO : what bout expnd_vocab ? and
+        word_norm_dictionary.add(token_norm)
       if word in vocab:
         vocab[word] += 1
       else:
         vocab[word] = 1
-
       li = li + 1
       if dry_run and li == 100:
         break
   # collect singletons
-  min_occurence = 1
   singletons = set([word for word, count in vocab.items() if count <= min_occurence])
   # if a singleton is in pretrained embedding dict, set the count to min_occur + c
-  for word in vocab.keys():
-    if word in word_embed_dict or word.lower() in word_embed_dict:
-      vocab[word] += 1 # TODO : are you sure ? Why not + min_occurence ??
 
+  for word in vocab.keys():
+    if word in word_embed_dict or word.lower() in word_embed_dict and False:
+      # if words are in word_embed_dict we want them even they appear less then min_occurence
+      vocab[word] += min_occurence
   vocab_list = _START_VOCAB + sorted(vocab, key=vocab.get, reverse=True)
+  # filter strictly above min_occurence
   vocab_list = [word for word in vocab_list if word in _START_VOCAB or vocab[word] > min_occurence]
-  max_vocabulary_size = 50000
+  max_vocabulary_size = MAX_VOCABULARY_SIZE_WORD_DIC
   if len(vocab_list) > max_vocabulary_size:
     vocab_list = vocab_list[:max_vocabulary_size]
+
   def expand_vocab(data_paths):
     counter_match_dev = 0
     vocab_set = set(vocab_list)
@@ -189,35 +185,33 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
             xpos = tokens[4]
             typ = tokens[7]
             token_norm, _ = get_normalized_token(tokens[9], 0, verbose=0)
-            word_norm_dictionary.add(token_norm)
-            if word2vec_dic is not None and not_in_dic:
-              if token_norm in word2vec_dic:
-                counter_match_dev += 1
-                external_embedding.append(word2vec_dic[token_norm])
-              else:
-                external_embedding.append(np.random.normal(loc=MEAN_RAND_W2V,scale=SCALE_RAND_W2V,size=W2V_LOADED_DIM))
+            word_norm_dictionary.add(token_norm) # TODO : should be handle as word_dictionary with frequency threshold
             pos_dictionary.add(pos)
             xpos_dictionary.add(xpos)
             type_dictionary.add(typ)
-
+            # if word not already in vocab_set (loaded as trained and each time expand_vocab was called :
+            # but found in new dataset and appear in word_embed_dict then we add it to vocab # otherwise not need to load them to vocab (they won't have any representation)
             if word not in vocab_set and (word in word_embed_dict or word.lower() in word_embed_dict):
               vocab_set.add(word)
               vocab_list.append(word)
             li = li + 1
             if dry_run and li == 100:
               break
-    printing("W2V {} match dev ".format(counter_match_dev), verbose=1, verbose_level=1)
   expand_vocab([dev_path])
   if not vocab_trim and test_path is not None:
-    expand_vocab([test_path])
+    expand_vocab([test_path]) # TODO : word_norm should be handle spcecifically
+    printing("VOCAB INFO : expanding vocabulary with {} ", var=[test_path], verbose_level=1, verbose=1)
+  # TODO : what is singletons for ?
+  singletons = []
   for word in vocab_list:
     word_dictionary.add(word)
-    if word in word2vec_dic:
+    if word in word_embed_dict:
       counter_match_train += 1
-      external_embedding.append(word2vec_dic[token_norm])
+      external_embedding.append(word_embed_dict[word])
     else:
+      counter_other_train +=1
       external_embedding.append(np.random.normal(loc=MEAN_RAND_W2V, scale=SCALE_RAND_W2V, size=W2V_LOADED_DIM))
-    if word in singletons:
+    if word in singletons :
       word_dictionary.add_singleton(word_dictionary.get_index(word))
   word_dictionary.save(dict_path)
   if word_norm_dictionary is not None:
@@ -232,7 +226,11 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
   pos_dictionary.close()
   xpos_dictionary.close()
   type_dictionary.close()
-  printing("W2V : {} match  train ".format(counter_match_train), verbose=1, verbose_level=1)
+  printing("W2V INFO : {} match  train and dev, {} no match tokens : list of vectors is {} len ".format(counter_match_train,
+                                                                                                       counter_other_train,
+                                                                                                       len(external_embedding)),
+           verbose=1, verbose_level=1)
+
   return word_dictionary, word_norm_dictionary, np.array(external_embedding), char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary
 
 

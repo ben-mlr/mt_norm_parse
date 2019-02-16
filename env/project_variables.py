@@ -41,6 +41,7 @@ LEX_LIU_LABEL,LEX_LIU_TRAIN = "lex_train+liu", os.path.join(PROJECT_PATH, "./dat
 
 DIR_TWEET_W2V = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/w2v/tweets.en.w2v.txt"
 W2V_LOADED_DIM = 400
+MAX_VOCABULARY_SIZE_WORD_DIC = 50000
 
 REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO2: DEMO2_LABEL,
                 TEST: TEST_LABEL, LIU: LIU_LABEL,

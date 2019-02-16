@@ -1,3 +1,4 @@
+sftp-config.json
 model/__pycache__*
 __pycache__*
 test/test_logs/
@@ -6,3 +7,16 @@ test/test_models/
 .data
 .DS_Store*
 .ipynb_checkpoints
+	all_scalars.json
+checkpoints/
+data/
+dictionaries/
+predictions/
+reports
+runs/
+test_/runs/
+test_/test_logs/
+test_/test_models/
+test_/test_plot_attention/
+
+w2v/

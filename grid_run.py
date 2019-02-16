@@ -118,11 +118,11 @@ def train_eval(train_path, dev_path, model_id_pref, n_epochs=11,test_path=None, 
                             char_decoding=char_decoding,
                             symbolic_end=symbolic_end, symbolic_root=symbolic_root,
                             stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
+                            test_path=test_path[0] if isinstance(test_path,list) else test_path,
                             checkpointing=True)
 
     model_dir = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder")
     if test_path is not None :
-
       dict_path = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder", "dictionaries")
       printing("GRID : START EVALUATION FINAL ", verbose_level=0, verbose=verbose)
       eval_data_paths = [train_path, dev_path]
@@ -400,7 +400,7 @@ if __name__ == "__main__":
             param["weight_binary_loss"] = 1
             param["unrolling_word"] = True
             param["char_src_attention"] = False
-            train_path, dev_path = DEMO, DEMO2
+            train_path, dev_path = LIU_TRAIN, LIU_DEV
             param["shared_context"] = "sent"
             param["dense_dim_auxilliary"] = None
             param["clipping"] = None
@@ -427,7 +427,7 @@ if __name__ == "__main__":
           print("GRID_INFO fixed vars=  word_embed ")
           print("GRID_INFO fixed vals=  word_embed,False ")
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
-                                                  test_path=[TEST] if not warmup else DEMO,
+                                                  test_path=[TEST] if not warmup else TEST,
                                                   verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,

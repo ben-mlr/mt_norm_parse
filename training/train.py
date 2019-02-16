@@ -33,7 +33,7 @@ ADAPTABLE_SCORING = True
 
 
 def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
-          batch_size=10,
+          batch_size=10, test_path=None,
           label_train="", label_dev="",
           use_gpu=None,
           lr=0.001,
@@ -109,7 +109,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
         conllu_data.load_dict(dict_path=dict_path,
                               train_path=train_path,
                               dev_path=dev_path,
-                              test_path=None,
+                              test_path=test_path,
                               word_embed_dict={},
                               dry_run=False,
                               vocab_trim=True,
@@ -158,6 +158,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path =None,
                           stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                           symbolic_root=symbolic_root, symbolic_end=symbolic_end,
                           word_embed=word_embed, word_embedding_dim=word_embedding_dim, word_voc_input_size=word_voc_input_size, word_embed_dir=extern_emb_dir,
+                          test_path=test_path, extend_vocab_with_test=test_path is not None, # if test is padded we extend
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
     pos_batch = auxilliary_task_pos
     if use_gpu:

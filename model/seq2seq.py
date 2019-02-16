@@ -55,6 +55,7 @@ class LexNormalizer(nn.Module):
                  word_decoding=False, dense_dim_word_pred=None, dense_dim_word_pred_2=None, dense_dim_word_pred_3=None,
                  char_decoding=True,
                  symbolic_end=False, symbolic_root=False,
+                 extend_vocab_with_test=False, test_path=None,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
         character level Sequence to Sequence model for normalization
@@ -151,12 +152,12 @@ class LexNormalizer(nn.Module):
             self.pos_dictionary, self.xpos_dictionary, self.type_dictionary =\
                 conllu_data.load_dict(dict_path=dict_path,
                                       train_path=train_path, dev_path=dev_path,
-                                      test_path=None, word_embed_dict=word_embed_dic, dry_run=False, vocab_trim=True,
+                                      word_embed_dict=word_embed_dic, dry_run=False,
+                                      vocab_trim=not extend_vocab_with_test,test_path=test_path,
                                       word_normalization=word_decoding, add_start_char=add_start_char, verbose=1)
             voc_size = len(self.char_dictionary.instance2index) + 1
             if word_decoding:
                 assert self.word_nom_dictionary is not None, "ERROR self.word_nom_dictionary should not be None"
-
             word_voc_input_size = len(self.word_dictionary.instance2index) + 1
             word_voc_output_size = len(self.word_nom_dictionary.instance2index)+1 if self.word_nom_dictionary is not None else None
             printing("char_dictionary {} ", var=([self.char_dictionary.instance2index]), verbose=verbose, verbose_level=1)
@@ -260,12 +261,13 @@ class LexNormalizer(nn.Module):
         # 1 shared character embedding layer
         print("word_embed", word_embed)
         self.char_embedding = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
-        self.word_embedding = nn.Embedding(num_embeddings=word_voc_input_size+1,# TODO : WHY IS IT NEEDED
+        self.word_embedding = nn.Embedding(num_embeddings=word_voc_input_size,
                                            embedding_dim=word_embedding_dim) if word_embed else None
         if word_embed_np is not None:
-            printing("W2V INFO : loaded embedding {} and {} ", var=[np.mean(word_embed_np), np.mean(np.std(word_embed_np, axis=1))], verbose=verbose, verbose_level=1)
-            emb = torch.from_numpy(word_embed_np)
-            self.word_embedding.weight = nn.Parameter(Variable(emb, requires_grad=True))
+            printing("W2V INFO : loaded embedding shape is {} : {} and {} ", var=[word_embed_np.shape, np.mean(word_embed_np), np.mean(np.std(word_embed_np, axis=1))], verbose=verbose, verbose_level=1)
+            self.word_embedding.weight.data.copy_(torch.from_numpy(word_embed_np))
+
+            #self.word_embedding.weight = nn.Parameter(Variable(emb, requires_grad=True))
 
         self.encoder = CharEncoder(self.char_embedding, input_dim=char_embedding_dim,
                                    hidden_size_encoder=hidden_size_encoder, word_recurrent_cell=word_recurrent_cell_encoder,
@@ -315,7 +317,6 @@ class LexNormalizer(nn.Module):
                                         dense_dim=dense_dim_word_pred, dense_dim_2=dense_dim_word_pred_2,
                                         dense_dim_3=dense_dim_word_pred_3) if word_decoding else None
         voc_pos_size = len(self.pos_dictionary.instance2index)+1
-        print(voc_pos_size, hidden_size_decoder, dense_dim_auxilliary)
         self.pos_predictor = PosPredictor(voc_pos_size=voc_pos_size, input_dim=hidden_size_decoder, dense_dim=dense_dim_auxilliary_pos) if auxilliary_task_pos else None
         self.verbose = verbose
         # bridge between encoder hidden representation and decoder
@@ -344,6 +345,7 @@ class LexNormalizer(nn.Module):
         start = time.time() if timing else None
 
         if self.word_embedding is not None:
+            pdb.set_trace()
             word_embed_input = self.word_embedding(word_embed_input)
         context, sent_len_max_source, \
         char_seq_hidden_encoder, word_src_sizes = self.encoder.forward(input_seq, input_word_len,
@@ -376,7 +378,6 @@ class LexNormalizer(nn.Module):
         else:
             output = None
             attention_weight_all = None
-
 
         word_pred_state = self.word_decoder.forward(context) if self.word_decoder is not None else None
 
