@@ -268,9 +268,7 @@ class LexNormalizer(nn.Module):
             printing("W2V INFO : loaded embedding shape is {} : {} and {} ", var=[word_embed_np.shape, np.mean(word_embed_np),
                                                                                   np.mean(np.std(word_embed_np, axis=1))],
                      verbose=verbose, verbose_level=1)
-            self.word_embedding.weight.data.copy_(torch.from_numpy(word_embed_np))
-
-            #self.word_embedding.weight = nn.Parameter(Variable(emb, requires_grad=True))
+            self.word_embedding.weight.data = self.word_embedding.weight.data.copy_(torch.from_numpy(word_embed_np))
 
         self.encoder = CharEncoder(self.char_embedding, input_dim=char_embedding_dim,
                                    hidden_size_encoder=hidden_size_encoder, word_recurrent_cell=word_recurrent_cell_encoder,

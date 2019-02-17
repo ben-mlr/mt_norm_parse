@@ -4,6 +4,8 @@ import os
 from evaluate.evaluate_epoch import evaluate
 import numpy as np
 import torch
+from toolbox.grid_tool import grid_param_label_generate
+
 from env.project_variables import PROJECT_PATH, TRAINING, DEV, DIR_TWEET_W2V, \
     TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, REPO_DATASET, LIU, LEX_TRAIN, LEX_TEST, SEED_NP, SEED_TORCH, LEX_LIU_TRAIN, LIU_DEV, LIU_TRAIN, EWT_DEV
 from uuid import uuid4
@@ -56,8 +58,8 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
     shared_context = args.get("shared_context", "all")
 
     schedule_training_policy = args.get("policy", None)
-    learning_rate = args.get("learning_rate", 0.001)
-    clipping = args.get("clipping", None)
+    lr = args.get("lr", 0.001)
+    gradient_clipping = args.get("gradient_clipping", None)
 
     teacher_force = args.get("teacher_force", True)
 
@@ -68,7 +70,7 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
     dense_dim_word_pred = args.get("dense_dim_word_pred", None)
     dense_dim_word_pred_2 = args.get("dense_dim_word_pred_2", None)
     dense_dim_word_pred_3 = args.get("dense_dim_word_pred_3", 0)
-    extern_emb_dir = args.get("extern_emb_dir", None)
+    word_embed_init = args.get("word_embed_init", None)
 
     char_decoding = args.get("char_decoding", True)
 
@@ -84,7 +86,7 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
     model_full_name = train(train_path, dev_path, pos_specific_path=pos_specific_path,
                             auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
                             dense_dim_auxilliary=dense_dim_auxilliary, dense_dim_auxilliary_2=dense_dim_auxilliary_2,
-                            lr=learning_rate,extend_n_batch=extend_n_batch,
+                            lr=lr,extend_n_batch=extend_n_batch,
                             n_epochs=n_epochs, normalization=True,get_batch_mode_all=get_batch_mode_all,
                             batch_size=batch_size, model_specific_dictionary=True,freq_writer=freq_writer,
                             dict_path=None, model_dir=None, add_start_char=1, freq_scoring=freq_scoring,
@@ -103,7 +105,7 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
                             freq_checkpointing=freq_checkpointing, reload=False, model_id_pref=model_id_pref,
                             score_to_compute_ls=score_to_compute_ls, mode_norm_ls=["all", "NEED_NORM", "NORMED"],
                             hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,
-                            char_embedding_dim=char_embedding_dim,extern_emb_dir=extern_emb_dir,
+                            char_embedding_dim=char_embedding_dim,extern_emb_dir=word_embed_init,
                             hidden_size_sent_encoder=hidden_size_sent_encoder, hidden_size_decoder=hidden_size_decoder,
                             n_layers_word_encoder=n_layers_word_encoder, compute_scoring_curve=compute_scoring_curve,
                             verbose=verbose,
@@ -112,7 +114,7 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
                             shared_context=shared_context,
                             bucketing=bucketing_train, weight_binary_loss=weight_binary_loss,
                             teacher_force=teacher_force,
-                            clipping=clipping,
+                            clipping=gradient_clipping,
                             auxilliary_task_pos=auxilliary_task_pos, dense_dim_auxilliary_pos=dense_dim_auxilliary_pos,
                             dense_dim_auxilliary_pos_2=dense_dim_auxilliary_pos_2,
                             word_decoding=word_decoding,dense_dim_word_pred=dense_dim_word_pred, dense_dim_word_pred_2=dense_dim_word_pred_2, dense_dim_word_pred_3=dense_dim_word_pred_3,
@@ -275,7 +277,7 @@ if __name__ == "__main__":
                                       param["shared_context"] = "all"
                                       #param["weight_binary_loss"] = weight_binary_loss
                                       param["policy"] = policy
-                                      param["clipping"] = 1
+                                      param["gradient_clipping"] = 1
                                       #label = str(dense_dim_auxilliary)+"-dense_dim_auxilliary"
                                       label = "REP_-"+replicate+"-"+str(dir_word_encoder)+"dir-scale_"+str(scale)#+str(dense_dim_auxilliary)+"_aux"
                                               #"dense_bin"+str(param["drop_out_word_encoder_out"])+"-do_char-" +\
@@ -284,18 +286,18 @@ if __name__ == "__main__":
                                       params.append(param)
                                       #labels.append("model_"+str(n_model))
                                       labels.append(label)
-      FROM_BEST = True
+      FROM_BEST = False
       if FROM_BEST:
           params = []
           labels = []
           n_model = 0
           for batch_size in [25]:
             for scale in [2]:
-              for clipping in [1]:
+              for gradient_clipping in [1]:
                 for dir_word_encoder in [2]:
                     for teacher_force in [False]:
                       for char_src_attention in [True]:
-                        for auxilliary_task_norm_not_norm in [False]:
+                        for auxilliary_task_norm_not_norm in [True,False]:
                             for shared_context in ["all","word"]:
                               if auxilliary_task_norm_not_norm:
                                 dense_dim_auxilliary, dense_dim_auxilliary_2 = 200, 50
@@ -305,13 +307,13 @@ if __name__ == "__main__":
                                 for word_decoding in [ True, False]:
                                   for auxilliary_task_pos in [False]:
                                     for word_embed in [True]:
-                                      for learning_rate in [0.001]:
+                                      for lr in [0.001]:
                                           if shared_context == "sent":
                                             scale_sent_context = 1.5
                                             scale_word = 0.5
                                           else:
                                             scale_sent_context, scale_word = 1, 1
-                                          for extern_emb_dir in [None, DIR_TWEET_W2V]:
+                                          for word_embed_init in [DIR_TWEET_W2V]:
                                               param = params_strong.copy()
                                               param["char_src_attention"] = char_src_attention
                                               param["hidden_size_encoder"] = int(param["hidden_size_encoder"]*scale*scale_word)
@@ -327,7 +329,7 @@ if __name__ == "__main__":
                                               param["dropout_bridge"] = 0.1
                                               param["dir_word_encoder"] = dir_word_encoder
                                               param["dir_sent_encoder"] = 1
-                                              param["clipping"] = clipping
+                                              param["gradient_clipping"] = gradient_clipping
                                               param["teacher_force"] = teacher_force
                                               param["shared_context"] = shared_context
                                               param["stable_decoding_state"] = stable_decoding_state
@@ -347,17 +349,31 @@ if __name__ == "__main__":
                                               param["word_embed"] = word_embed
                                               param["word_embedding_dim"] = 400 if word_embed else 0
 
-                                              param["learning_rate"] = learning_rate
-                                              param["extern_emb_dir"] = extern_emb_dir
+                                              param["lr"] = lr
+                                              param["word_embed_init"] = word_embed_init
 
                                               params.append(param)
                                   #labels.append("word_char-level_contextxteacher_force-{}-stable_decod-init_con_{}-teachforce10_{}".format(shared_context,\
-                                  #              param["stable_decoding_state"],param["init_context_decoder"],teacher_force))
-                                              labels.append("extern-auxFalse-scale{}-sha_context_{}-auxnorm_not_norm_{}-word_de_{}".format(scale,shared_context,auxilliary_task_norm_not_norm, word_decoding))
+                                  #              param["sx@table_decoding_state"],param["init_context_decoder"],teacher_force))
+                                              labels.append("externTrue-auxFalse-scale{}-sha_context_{}-auxnorm_not_norm_{}-word_de_{}".format(scale,shared_context,auxilliary_task_norm_not_norm, word_decoding))
 
-          print("GRID_INFO analy vars=  extern_emb_dir shared_context word_decoding   n_trainable_parameters ")
-          print("GRID_INFO fixed vars=  word_embed,True auxilliary_task_norm_not_norm,False auxilliary_task_pos,False learning_rate,0.001  batch_size,25 stable_decoding_state,False teacher_force,True char_src_attention,True ")
-          print("GRID_INFO fixed vals=  word_embed batch_size auxilliary_task_pos auxilliary_task_norm_not_norm stable_decoding_state teacher_force char_src_attention ")
+          print("vword_embed_init shared_context word_decoding  n_trainable_parameters ")
+          print("GRID_INFO fixed vals=  word_embed,True auxilliary_task_norm_not_norm,True auxilliary_task_pos,False lr,0.001  batch_size,25 stable_decoding_state,False teacher_force,True char_src_attention,True ")
+          print("GRID_INFO fixed vars=  word_embed batch_size auxilliary_task_pos auxilliary_task_norm_not_norm stable_decoding_state teacher_force char_src_attention ")
+
+      params,labels, default_all, analysed , fixed = grid_param_label_generate(params_strong,warmup=False, 
+                                                                        word_decoding_ls=[True, False],
+                                                                        auxilliary_task_pos_ls=[False, True],
+                                                                        auxilliary_task_norm_not_norm_ls=[False, True],
+                                                                        dir_sent_encoder_ls=[2],
+                                                                        shared_context_ls=["all", "sent"],
+                                                                        unrolling_word_ls=[True])
+
+      to_enrich = " ".join([a for a, _ in default_all])+" "+" ".join(analysed)
+      to_keep_only = " ".join([a+","+str(b) for a,b in default_all])
+
+      print("GRID_INFO analy vars=  ", to_enrich)
+      print("GRID_INFO fixed vals=   ", to_keep_only)
 
       # only for cloud run :
       warmup = True
@@ -386,7 +402,7 @@ if __name__ == "__main__":
       dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
       os.mkdir(dir_grid)
       printing("GRID RUN : Grid directory : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
-      train_path, dev_path = DEV, TEST
+      train_path, dev_path = LIU_TRAIN , LIU_DEV#EWT_DEV, DEV
       for param, model_id_pref in zip(params, labels):
           i += 1
           printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
@@ -404,7 +420,7 @@ if __name__ == "__main__":
             train_path, dev_path = LIU_TRAIN, LIU_DEV
             param["shared_context"] = "sent"
             param["dense_dim_auxilliary"] = None
-            param["clipping"] = None
+            param["gradient_clipping"] = None
             param["teacher_force"] = True
             param["dense_dim_auxilliary_2"] = None
             param["stable_decoding_state"] = True
@@ -417,10 +433,10 @@ if __name__ == "__main__":
             param["auxilliary_task_pos"] = True
             param["dense_dim_auxilliary_pos"] = 100
             param["dense_dim_auxilliary_pos_2"] = None
-            param["extern_emb_dir"] = DIR_TWEET_W2V
+            param["word_embed_init"] = DIR_TWEET_W2V
             param["word_embed"] = True
             param["word_embedding_dim"] = 400
-            param["learning_rate"] = 0.05
+            param["lr"] = 0.05
 
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
           if warmup:
@@ -429,13 +445,13 @@ if __name__ == "__main__":
               print("GRID_INFO fixed vars=  word_embed ")
               print("GRID_INFO fixed vals=  word_embed,False ")
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
-                                                  pos_specific_path=DEV,
-                                                  test_path=None,#[TEST] if not warmup else DEMO,
+                                                  #pos_specific_path=DEV,
+                                                  test_path=[DEMO] if not warmup else DEMO,
                                                   verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,
                                                   get_batch_mode_all=True, compute_scoring_curve=False,
-                                                  freq_scoring=10, bucketing_train=True, freq_checkpointing=3,
+                                                  freq_scoring=10, bucketing_train=True, freq_checkpointing=1,
                                                   symbolic_root=True, symbolic_end=True,
                                                   freq_writer=10 if not test_before_run else 1,
                                                   extend_n_batch=2,
@@ -448,6 +464,7 @@ if __name__ == "__main__":
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("GRID : Log RUN is : {} to see model list ".format(run_dir))
           print("GRID RUN : DONE MODEL {} with param {} ".format(model_id_pref, param))
+          break 
           if warmup:
             break
 

@@ -1,0 +1,137 @@
+from io_.info_print import printing
+
+DEFAULT_BATCH_SIZE = 25
+DEFAULT_SCALE = 2
+DEFAULT_AUX_NORM_NOT_NORM = False
+
+
+def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =None,
+                              auxilliary_task_norm_not_norm_ls=None, shared_context_ls=None,
+                              word_embed_init_ls=None, dir_word_encoder_ls=None, char_src_attention_ls=None, dir_sent_encoder_ls=None,
+                              clipping_ls=None, unrolling_word_ls=None, teacher_force_ls=None,
+                              word_decoding_ls=None, auxilliary_task_pos_ls=None, stable_decoding_state_ls=None, warmup=False):
+
+  params = []
+  labels = []
+  default = []
+  info_default = []
+
+  if batch_size_ls is None:
+    batch_size_ls = [DEFAULT_BATCH_SIZE]
+    default.append(("batch_size",batch_size_ls[0]))
+  if lr_ls is None:
+    lr_ls = [0.001]
+  if scale_ls is None:
+    scale_ls = [DEFAULT_SCALE]
+    #default.append(scale_ls[0])
+  if auxilliary_task_norm_not_norm_ls is None:
+    auxilliary_task_norm_not_norm_ls = [DEFAULT_AUX_NORM_NOT_NORM]
+    default.append(("auxilliary_task_norm_not_norm",auxilliary_task_norm_not_norm_ls[0]))
+  if shared_context_ls is None:
+    shared_context_ls = ["all"]
+    default.append(("shared_context",shared_context_ls[0]))
+  if word_embed_init_ls is None:
+    word_embed_init_ls = [None]
+  if dir_word_encoder_ls is None:
+    dir_word_encoder_ls = [2]
+    default.append(("dir_word_encoder",dir_word_encoder_ls[0]))
+  if char_src_attention_ls is None:
+    char_src_attention_ls = [True]
+    default.append(("char_src_attention",char_src_attention_ls[0]))
+  if dir_sent_encoder_ls is None:
+    dir_sent_encoder_ls = [2]
+    default.append(("dir_sent_encoder",dir_sent_encoder_ls[0]))
+  if clipping_ls is None:
+    clipping_ls = [1]
+    default.append(("gradient_clipping",clipping_ls[0]))
+  if unrolling_word_ls is None:
+    unrolling_word_ls = [True]
+    default.append(("unrolling_word",unrolling_word_ls[0]))
+  if teacher_force_ls is None:
+    teacher_force_ls = [True]
+    default.append(("teacher_force",teacher_force_ls[0]))
+  if word_decoding_ls is None:
+    word_decoding_ls = [False]
+    default.append(("word_decoding",word_decoding_ls[0]))
+  if auxilliary_task_pos_ls is None:
+    auxilliary_task_pos_ls = [False]
+    default.append(("auxilliary_task_pos",auxilliary_task_pos_ls[0]))
+  if stable_decoding_state_ls is None:
+    stable_decoding_state_ls = [False]
+    default.append(("stable_decoding_state",stable_decoding_state_ls[0]))
+  for def_ in default:
+    info_default.append((def_[0],def_[1])) #" "+str(def_[0])+","+str(def_[0])
+    printing("GRID : {} argument defaulted to {} ", var=[str(def_)[:-6], def_], verbose=0, verbose_level=0)
+
+  dic_grid = {"batch_size":batch_size_ls, "auxilliary_task_norm_not_norm": auxilliary_task_norm_not_norm_ls,"shared_context":shared_context_ls,
+             "lr":lr_ls, "word_embed_init":word_embed_init_ls, "dir_word_encoder":dir_word_encoder_ls,"char_src_attention":char_src_attention_ls,
+              "dir_sent_encoder":dir_sent_encoder_ls, "gradient_clipping":clipping_ls, "unrolling_word":unrolling_word_ls, "word_decoding":word_decoding_ls,
+              "auxilliary_task_pos":auxilliary_task_pos_ls,"stable_decoding_state":stable_decoding_state_ls}
+  ind_model = 0
+  for batch in batch_size_ls:
+    for aux in auxilliary_task_norm_not_norm_ls:
+      for shared_context in shared_context_ls:
+        for lr in lr_ls:
+          for word_embed_init in word_embed_init_ls:
+            for scale in scale_ls:
+              if shared_context == "sent":
+                scale_sent_context = 1.5
+                scale_word = 0.5
+              else:
+                scale_sent_context, scale_word = 1, 1
+              for dir_word_encoder in dir_word_encoder_ls:
+                for char_src_attention in char_src_attention_ls:
+                  for dir_sent_encoder in dir_sent_encoder_ls:
+                    for clipping in clipping_ls :
+                      for unrolling_word in unrolling_word_ls:
+                        for word_decoding in word_decoding_ls:
+                          for auxilliary_task_pos in auxilliary_task_pos_ls:
+                            for stable_decoding_state in stable_decoding_state_ls:
+                              param0 = param.copy()
+                              ind_model+=1
+                              param0["batch_size"] = batch
+                              param0["auxilliary_task_norm_not_norm"] = aux
+                              param0["shared_context"] = shared_context
+                              param0["lr"] = lr
+                              param0["word_embed_init"] = word_embed_init
+                              param0["hidden_size_encoder"] = int(param0["hidden_size_encoder"] * scale * scale_word)
+                              param0["hidden_size_sent_encoder"] = int(param0["hidden_size_sent_encoder"] * scale * scale_sent_context)
+                              param0["hidden_size_decoder"] = int(param0["hidden_size_decoder"] * scale)
+                              param0["output_dim"] *= int(scale * 0.5) + 1
+                              param0["dir_word_encoder"] = dir_word_encoder
+                              param0["char_src_attention"] = char_src_attention
+                              param0["unrolling_word"] = unrolling_word
+                              param0["dir_sent_encoder"] = dir_sent_encoder
+                              param0["gradient_clipping"] = clipping
+                              param0["teacher_force"] = teacher_force_ls
+                              param0["word_decoding"] = word_decoding
+                              param0["char_decoding"] = not word_decoding
+
+                              param0["auxilliary_task_pos"] = auxilliary_task_pos
+                              param0["dense_dim_auxilliary_pos"] = None if not auxilliary_task_pos else 200
+                              param0["dense_dim_auxilliary_pos_2"] = None
+
+                              param["stable_decoding_state"] = stable_decoding_state
+                              param["init_context_decoder"] = not param["stable_decoding_state"]
+
+                              # default
+                              param["dropout_bridge"] = 0.1
+                              param0["word_embed"] = True
+                              param0["word_embedding_dim"] = 400
+                              param0["dense_dim_word_pred"] = 200 if word_decoding else None
+                              param0["dense_dim_word_pred_2"] = 200 if word_decoding else None
+                              param0["dense_dim_word_pred_3"] = 100 if word_decoding else None
+                              params.append(param0)
+                              labels.append("model_{}".format(ind_model))
+                              
+
+  studied_vars = []
+  fixed_vars = []
+  for var, vals in dic_grid.items():
+    if len(vals)>1:
+      studied_vars.append(var)
+    else:
+      fixed_vars.append(var)
+
+
+  return params,labels, info_default, studied_vars, fixed_vars
