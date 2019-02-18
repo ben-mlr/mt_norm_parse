@@ -56,5 +56,6 @@ def get_args(args, dropout_loading_strict=True, verbose=0):
            args.get("auxilliary_arch", {}).get("dense_dim_auxilliary_pos", None), args.get("auxilliary_arch", {}).get("dense_dim_auxilliary_pos_2", None), \
             args["decoder_arch"].get("dense_dim_word_pred",0), args["decoder_arch"].get("dense_dim_word_pred_2",0), args["decoder_arch"].get("dense_dim_word_pred_3",0), \
            args.get("symbolic_root", False), args.get("symbolic_end", False), \
-           args["encoder_arch"].get("word_embedding_dim", 0), args["encoder_arch"].get("word_embed", False)
+           args["encoder_arch"].get("word_embedding_dim", 0), args["encoder_arch"].get("word_embed", False), \
+           args["encoder_arch"].get("word_embedding_projected_dim", None)
 

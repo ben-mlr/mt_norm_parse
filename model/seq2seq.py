@@ -45,9 +45,10 @@ class LexNormalizer(nn.Module):
                  model_id_pref="", model_name="",
                  drop_out_sent_encoder_cell=0., drop_out_word_encoder_cell=0., drop_out_word_decoder_cell=0.,
                  dir_word_encoder=1,
-                 drop_out_bridge=0, drop_out_sent_encoder_out=0, drop_out_word_encoder_out=0, drop_out_char_embedding_decoder=0,
+                 drop_out_bridge=0, drop_out_sent_encoder_out=0, drop_out_word_encoder_out=0,
+                 drop_out_char_embedding_decoder=0,
                  dir_sent_encoder=1, word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,
-                 word_voc_input_size=0, word_embedding_dim=0, word_embed=False, word_embed_dir=None,
+                 word_voc_input_size=0, word_embedding_dim=0, word_embed=False, word_embed_dir=None, word_embedding_projected_dim= None,
                  unrolling_word=False,
                  dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None, pos_specific_path=None,
                  char_src_attention=False, shared_context="all", teacher_force=False,
@@ -85,9 +86,10 @@ class LexNormalizer(nn.Module):
         assert (word_decoding or char_decoding) and not (word_decoding and char_decoding), "ERROR sttricly  one of word,char decoding should be True"
         assert init_context_decoder or stable_decoding_state or char_src_attention, "ERROR : otherwise no information passes from the encoder to the decoder"
         if word_embed:
-            assert  word_embedding_dim>0, "ERROR word_embedding_dim should be >0 as word_embed"
+            assert word_embedding_dim>0, "ERROR word_embedding_dim should be >0 as word_embed"
         else:
-            assert word_embedding_dim == 0, "ERROR  it needs to be 0 if not word_embed "
+            assert word_embedding_dim == 0 and word_embedding_projected_dim is None, "ERROR  word_embedding_dim needs to be 0 " \
+                                                                                     "and word_embedding_projected_dim None if not word_embed "
         if char_decoding:
             assert dense_dim_word_pred is None or dense_dim_word_pred == 0, "ERROR dense_dim_word_pred should be None as not word_decoding"
         if auxilliary_task_pos:
@@ -188,7 +190,7 @@ class LexNormalizer(nn.Module):
                                   "n_trainable_parameters": None,
                                   "char_embedding_dim": char_embedding_dim,
                                   "encoder_arch": {"cell_word": word_recurrent_cell_encoder, "cell_sentence": "LSTM",
-                                                   "word_embed": word_embed,  "word_embedding_dim": word_embedding_dim,
+                                                   "word_embed": word_embed,  "word_embedding_dim": word_embedding_dim,"word_embedding_projected_dim":word_embedding_projected_dim,
                                                    "n_layers_word_encoder": n_layers_word_encoder,
                                                    "word_embed_init": word_embed_dir,
                                                    "dir_sent_encoder": dir_sent_encoder,
@@ -249,7 +251,7 @@ class LexNormalizer(nn.Module):
                 teacher_force, dense_dim_auxilliary_2, stable_decoding_state, init_context_decoder, \
             word_decoding, char_decoding, auxilliary_task_pos, dense_dim_auxilliary_pos, dense_dim_auxilliary_pos_2, \
                 dense_dim_word_pred, dense_dim_word_pred_2,dense_dim_word_pred_3, \
-                symbolic_root, symbolic_end, word_embedding_dim, word_embed = get_args(args, False)
+                symbolic_root, symbolic_end, word_embedding_dim, word_embed, word_embedding_projected_dim = get_args(args, False)
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
         # adjusting for directions : the hidden_size_sent_encoder provided and are the dir x hidden_dim dimensions
@@ -264,6 +266,8 @@ class LexNormalizer(nn.Module):
         self.char_embedding = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
         self.word_embedding = nn.Embedding(num_embeddings=word_voc_input_size,
                                            embedding_dim=word_embedding_dim) if word_embed else None
+        self.word_embedding_project = nn.Linear(word_embedding_dim, word_embedding_projected_dim) if word_embed and word_embedding_projected_dim is not None else None
+
         if word_embed_np is not None:
             printing("W2V INFO : loaded embedding shape is {} : {} and {} ", var=[word_embed_np.shape, np.mean(word_embed_np),
                                                                                   np.mean(np.std(word_embed_np, axis=1))],
@@ -271,7 +275,8 @@ class LexNormalizer(nn.Module):
             self.word_embedding.weight.data = self.word_embedding.weight.data.copy_(torch.from_numpy(word_embed_np))
 
         self.encoder = CharEncoder(self.char_embedding, input_dim=char_embedding_dim,
-                                   hidden_size_encoder=hidden_size_encoder, word_recurrent_cell=word_recurrent_cell_encoder,
+                                   hidden_size_encoder=hidden_size_encoder,
+                                   word_recurrent_cell=word_recurrent_cell_encoder,
                                    drop_out_sent_encoder_out=drop_out_sent_encoder_out,
                                    drop_out_word_encoder_out=drop_out_word_encoder_out,
                                    dropout_sent_encoder_cell=drop_out_sent_encoder_cell,
@@ -280,7 +285,7 @@ class LexNormalizer(nn.Module):
                                    n_layers_word_cell=n_layers_word_encoder, timing=timing,
                                    dir_word_encoder=dir_word_encoder,context_level=shared_context,
                                    add_word_level=word_embed,
-                                   word_embedding_dim=word_embedding_dim,
+                                   word_embedding_dim_inputed=word_embedding_projected_dim if word_embedding_projected_dim is not None else word_embedding_dim,
                                    verbose=verbose)
 
         p_word = 1 if shared_context in ["word", "all", "none"] else 0
@@ -348,6 +353,8 @@ class LexNormalizer(nn.Module):
         if self.word_embedding is not None:
             pdb.set_trace()
             word_embed_input = self.word_embedding(word_embed_input)
+            if self.word_embedding_project is not None:
+                word_embed_input = self.word_embedding_project(word_embed_input)
         context, sent_len_max_source, \
         char_seq_hidden_encoder, word_src_sizes = self.encoder.forward(input_seq, input_word_len,
                                                                        word_embed_input=word_embed_input)
@@ -419,6 +426,9 @@ class LexNormalizer(nn.Module):
         model.arguments["hyperparameters"]["tasks_schedule_policy"] = info_checkpoint["tasks_schedule_policy"]
         model.arguments["hyperparameters"]["lr"] = info_checkpoint["other"]["lr"]
         model.arguments["hyperparameters"]["lr_policy"] = info_checkpoint["other"]["optim_strategy"]
+        model.arguments["hyperparameters"]["weight_binary_loss"] = info_checkpoint["other"]["weight_binary_loss"]
+        model.arguments["hyperparameters"]["weight_pos_loss"] = info_checkpoint["other"]["weight_pos_loss"]
+        model.arguments["hyperparameters"]["ponderation_normalize_loss"] = info_checkpoint["other"]["ponderation_normalize_loss"]
         model.arguments["info_checkpoint"] = info_checkpoint
         model.arguments["info_checkpoint"]["git_id"] = get_commit_id()
         model.arguments["checkpoint_dir"] = checkpoint_dir

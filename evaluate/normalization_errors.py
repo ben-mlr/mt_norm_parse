@@ -117,7 +117,6 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
 
         return_dic = {
                       normalized_mode+"-"+task+"-pred_correct-count": score,
-
                       normalized_mode+"-"+task+"-n_word_per_sent-count": n_mode_words_per_sent,
                       normalized_mode+"-"+task+"-pred_correct_per_sent-count": mean_score_per_sent,
                       normalized_mode+"-"+task+"-gold-count": len(scores),

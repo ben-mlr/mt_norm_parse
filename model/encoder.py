@@ -15,20 +15,20 @@ class CharEncoder(nn.Module):
                  n_layers_word_cell=1, timing=False, bidir_sent=True,context_level="all",
                  drop_out_word_encoder_out=0, drop_out_sent_encoder_out=0,
                  dir_word_encoder=1, add_word_level=False,
-                 word_embedding_dim=0,
+                 word_embedding_dim_inputed=0,
                  verbose=2):
         super(CharEncoder, self).__init__()
         self.char_embedding_ = char_embedding
         self.timing = timing
         self.add_word_level = add_word_level
-        word_embedding_dim = 0 if word_embedding_dim is None else word_embedding_dim
+        word_embedding_dim_inputed = 0 if word_embedding_dim_inputed is None else word_embedding_dim_inputed
         # context level shared to the decoder (should prune a lot if context level word/or sent )
         self.context_level = context_level
         if dir_word_encoder == 2:
             assert hidden_size_encoder%2==0, "ERROR = it will be divided by two and remultipy so need even number for simplicity"
         if bidir_sent:
             assert hidden_size_sent_encoder%2==0, "ERROR = it will be divided by two and remultipy so need even number for simplicity"
-        self.sent_encoder = nn.LSTM(input_size=hidden_size_encoder*n_layers_word_cell*dir_word_encoder+word_embedding_dim,
+        self.sent_encoder = nn.LSTM(input_size=hidden_size_encoder*n_layers_word_cell*dir_word_encoder+word_embedding_dim_inputed,
                                     hidden_size=hidden_size_sent_encoder,
                                     num_layers=1, bias=True, batch_first=True,
                                     dropout=dropout_word_encoder_cell,

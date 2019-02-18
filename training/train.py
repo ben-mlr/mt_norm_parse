@@ -40,7 +40,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
           dropout_sent_encoder_cell=0, dropout_word_encoder_cell=0, dropout_word_decoder_cell=0,
           dropout_bridge=0, drop_out_word_encoder_out=0, drop_out_sent_encoder_out=0,
           dir_word_encoder=1,
-          word_embed=False, word_embedding_dim=None,
+          word_embed=False, word_embedding_dim=None, word_embedding_projected_dim=None,
           word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,drop_out_char_embedding_decoder=0,
           hidden_size_encoder=None, output_dim=None, char_embedding_dim=None,
           hidden_size_decoder=None, hidden_size_sent_encoder=None, freq_scoring=5,
@@ -158,7 +158,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                           char_decoding=char_decoding,
                           stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                           symbolic_root=symbolic_root, symbolic_end=symbolic_end,
-                          word_embed=word_embed, word_embedding_dim=word_embedding_dim,
+                          word_embed=word_embed, word_embedding_dim=word_embedding_dim, word_embedding_projected_dim=word_embedding_projected_dim,
                           word_embed_dir=extern_emb_dir, word_voc_input_size=word_voc_input_size,
                           test_path=test_path, extend_vocab_with_test=test_path is not None, # if test is padded we extend
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
@@ -223,7 +223,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
         assert policy in AVAILABLE_SCHEDULING_POLICIES
         policy_dic = eval(policy)(epoch) if policy is not None else None
-        multi_task_mode, ponderation_normalize_loss, weight_binary_loss= scheduling_policy(epoch=epoch, phases_ls=policy_dic)
+        multi_task_mode, ponderation_normalize_loss, weight_binary_loss, weight_pos_loss = scheduling_policy(epoch=epoch, phases_ls=policy_dic)
 
         printing("TRAINING Tasks scheduling : ponderation_normalize_loss is {} weight_binary_loss is {} ",
                  var=[ponderation_normalize_loss, weight_binary_loss], verbose=verbose, verbose_level=1)
@@ -247,8 +247,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                  verbose=verbose, verbose_level=1)
         loss_train, loss_details_train, step_train = run_epoch(batchIter, model,
                                                                LossCompute(model.generator, opt=adam,
-                                                                           weight_binary_loss=weight_binary_loss,
-                                                                           ponderation_normalize_loss=ponderation_normalize_loss,
+
                                                                            auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
                                                                            model=model,
                                                                            writer=writer, use="train",
@@ -259,6 +258,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                                verbose=verbose, i_epoch=epoch,
                                                                multi_task_mode=multi_task_mode,
                                                                n_epochs=n_epochs, timing=timing,
+                                                               weight_binary_loss=weight_binary_loss,
+                                                               weight_pos_loss=weight_pos_loss,
+                                                               ponderation_normalize_loss=ponderation_normalize_loss,
                                                                step=step_train,
                                                                clipping=clipping,
                                                                pos_batch=pos_batch,
@@ -281,8 +283,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
         if (dev_report_loss and (epoch % freq_checkpointing == 0)) or (epoch + 1 == n_epochs):
             printing("EVALUATION : computing loss on dev epoch {}  ",var=epoch, verbose=verbose, verbose_level=1)
             loss_obj = LossCompute(model.generator, use_gpu=use_gpu, verbose=verbose,
-                                   weight_binary_loss=weight_binary_loss,
-                                   ponderation_normalize_loss=ponderation_normalize_loss,
                                    writer=writer, use="dev",
                                    pos_pred=auxilliary_task_pos,
                                    char_decoding=char_decoding, word_decoding=word_decoding,
@@ -290,6 +290,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
             loss_dev, loss_details_dev, step_dev = run_epoch(batchIter_eval, model, loss_compute=loss_obj,
                                                              i_epoch=epoch, n_epochs=n_epochs,
                                                              verbose=verbose, timing=timing, step=step_dev,
+                                                             weight_binary_loss=weight_binary_loss,
+                                                             ponderation_normalize_loss=ponderation_normalize_loss,
+                                                             weight_pos_loss=weight_pos_loss,
                                                              log_every_x_batch=100, )
 
             loss_developing.append(loss_dev)
@@ -394,7 +397,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                 "teacher_force": teacher_force,
                                                 "train_data_path": train_path, "dev_data_path": dev_path,
                                                 "other": {"error_curves": dir_plot, "loss": _loss_dev, "error_curves_details":dir_plot_detailed,
-                                                          "weight_binary_loss": weight_binary_loss,
+                                                          "weight_binary_loss": weight_binary_loss*int(auxilliary_task_norm_not_norm),
+                                                          "weight_pos_loss": weight_pos_loss*int(auxilliary_task_pos),
+                                                          "ponderation_normalize_loss": ponderation_normalize_loss,
                                                           "data": "dev", "seed(np/torch)": (SEED_TORCH, SEED_TORCH),
                                                           "extend_n_batch": extend_n_batch,
                                                           "lr": lr, "optim_strategy":"lr_constant",

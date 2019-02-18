@@ -21,22 +21,20 @@ class LossCompute:
                  word_decoding=False,
                  char_decoding=True,
                  pos_pred=False,
-                 weight_binary_loss=1, opt=None, pad=1, use_gpu=False, timing=False,
-                 multi_task_mode="all", writer=None, ponderation_normalize_loss=1, model=None,
+                 opt=None, pad=1, use_gpu=False, timing=False,
+                 multi_task_mode="all", writer=None, model=None,
                  use="", verbose=0):
 
         assert (word_decoding or char_decoding) and not (word_decoding and char_decoding), \
             "ERROR : strictly one of the two (word,char) decoding should be True "
         self.generator = generator
         self.multi_task_mode = multi_task_mode
-        self.ponderation_normalize_loss = ponderation_normalize_loss
         self.writer = writer
         self.loss_distance = nn.CrossEntropyLoss(reduce=True, ignore_index=pad) if char_decoding else None
-        printing("LOSS : weight_binary_loss is set to {}", var=(weight_binary_loss), verbose=verbose, verbose_level=2)
+
         self.loss_binary = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_NORM_NOT_NORM) if auxilliary_task_norm_not_norm else None
         self.loss_distance_word_level = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_WORD) if word_decoding else None
         self.loss_distance_pos = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_TAG) if pos_pred else None
-        self.weight_binary_loss = weight_binary_loss if self.loss_binary is not None else None
         if use_gpu:
             printing("Setting loss_distance to GPU mode", verbose=verbose, verbose_level=3)
             if self.loss_distance is not None:
@@ -60,7 +58,11 @@ class LossCompute:
                  y_pos=None, x_pos=None,
                  y_word=None, x_word_pred=None,
                  pos_batch=False,
+                 weight_binary_loss=1,
+                 weight_pos_loss=0,
+                 ponderation_normalize_loss=0,
                  clipping=None, step=None):
+        printing("LOSS : weight_binary_loss is set to {} ponderation_normalize_loss {} and weight_pos_loss {} ", var=(weight_binary_loss,ponderation_normalize_loss,weight_pos_loss), verbose=2, verbose_level=2)
         if clipping is not None:
             assert self.model is not None, "Using clipping requires passing the model in the loss"
         loss_details = self.loss_details_template.copy()
@@ -97,7 +99,7 @@ class LossCompute:
             loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1)) 
         elif self.loss_distance_word_level is not None:
             loss = self.loss_distance_word_level(x_word_pred.contiguous().view(-1, x_word_pred.size(-1)), y_word.contiguous().view(-1))
-            assert self.ponderation_normalize_loss is not None
+            assert ponderation_normalize_loss is not None
             assert scheduling_normalize is not None 
         else:
             print("no loss were set up for normalization")
@@ -105,7 +107,7 @@ class LossCompute:
         loss_distance_time, start = get_timing(start)
         if self.loss_binary is not None:
             loss_binary = self.loss_binary(x_norm_not_norm.contiguous().view(-1, x_norm_not_norm.size(-1)), y_norm_not_norm.contiguous().view(-1))
-            assert self.weight_binary_loss is not None
+            assert weight_binary_loss is not None
             assert scheduling_norm_not_norm is not None
         else:
             loss_binary = None
@@ -116,8 +118,8 @@ class LossCompute:
         else:
             loss_pos = 0
 
-        multi_task_loss = self.ponderation_normalize_loss*scheduling_normalize*loss+\
-                          self.weight_binary_loss*loss_binary*scheduling_norm_not_norm + schedule_pos*loss_pos if loss_binary is not None else loss
+        multi_task_loss = ponderation_normalize_loss*scheduling_normalize*loss+\
+                          weight_binary_loss*loss_binary*scheduling_norm_not_norm + schedule_pos*loss_pos*weight_pos_loss if loss_binary is not None else loss
 
         loss_details["overall_loss"] = multi_task_loss
         loss_details["loss_seq_prediction"] = loss
@@ -126,13 +128,15 @@ class LossCompute:
             printing("LOSS BINARY loss size {} ", var=(str(loss_binary.size())), verbose=self.verbose, verbose_level=3)
             printing("TYPE  loss_binary {} is cuda ", var=(loss_binary.is_cuda), verbose=0, verbose_level=5)
 
-        if self.writer is not None and False:
+        if self.writer is not None :
             self.writer.add_scalars("loss-"+self.use,
                                     {"loss-{}-seq_pred".format(self.use): loss.clone().cpu().data.numpy(),
-                                     "loss-{}-seq_pred-ponderation_normalize_loss".format(self.use): loss.clone().cpu().data.numpy()*self.ponderation_normalize_loss,
+                                     "loss-{}-seq_pred-ponderation_normalize_loss".format(self.use): loss.clone().cpu().data.numpy()*ponderation_normalize_loss,
                                      "loss-{}-multitask".format(self.use): multi_task_loss.clone().cpu().data.numpy(),
                                      "loss-{}-loss_binary".format(self.use): loss_binary.clone().cpu().data.numpy() if loss_binary is not None else 0,
-                                     "loss-{}-loss_binary-weight_binary_loss".format(self.use): loss_binary.clone().cpu().data.numpy()*self.weight_binary_loss if loss_binary is not None else 0,},
+                                     "loss-{}-loss_pos-schedule_pos".format(self.use): loss_pos.clone().cpu().data.numpy()*schedule_pos*weight_pos_loss if not isinstance(loss_pos,int) else 0,
+                                     "loss-{}-loss_pos".format(self.use): loss_pos.clone().cpu().data.numpy() if not isinstance(loss_pos,int) else 0,
+                                     },
                                     step)
 
         if self.opt is not None:

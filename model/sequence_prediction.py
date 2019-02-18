@@ -61,6 +61,10 @@ def _init_metric_report_2():
     }
     task = "pos"
     formula_pos = {
+                #"recall-" + task + "": ("NEED_NORM-" + task + "-pred_correct-count", "NEED_NORM-" + task + "-gold-count"),
+                #"recall-per_sent-" + task + "": ("NEED_NORM-" + task + "-pred_correct_per_sent-count", "NEED_NORM-"+task+"-n_sents"),
+                #"tnr-" + task + "": ("NORMED-" + task + "-pred_correct-count", "NORMED-" + task + "-gold-count"),
+                #"tnr-per_sent-" + task + "": ("NORMED-" + task + "-pred_correct_per_sent-count", "NORMED-"+task+"-n_sents"),
                 "accuracy-"+task+"": ("all-"+task+"-pred_correct-count", "all-"+task+"-gold-count"),
                 "accuracy-per_sent-"+task+"": ("all-"+task+"-pred_correct_per_sent-count", "all-"+task+"-n_sents"),
                 "info-all-per_sent": ("all-"+task+"-n_word_per_sent-count", "all-"+task+"-n_sents"),

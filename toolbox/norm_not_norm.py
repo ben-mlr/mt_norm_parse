@@ -11,7 +11,7 @@ def get_label_norm(norm):
 def schedule_training(multi_task_mode):
     assert multi_task_mode in AVAILABLE_TASKS
     if multi_task_mode == "all":
-        return 1, 1, 0.01
+        return 1, 1, 1
     elif multi_task_mode == "normalize":
         return 0, 1, None
     elif multi_task_mode == "norm_not_norm":
@@ -23,11 +23,11 @@ def scheduling_policy(phases_ls, epoch, verbose=1):
     if phases_ls is None:
         ponderation = 1
         weight_binary_loss = 0.01
-        weight_pos_loss = 0.01
+        weight_pos_loss = 0.5
         printing("WARNING : default policy scheduling (no scheduling {} ponderation_normalize_loss and {}"
                  " weight_binary_loss ", var=[ponderation, weight_binary_loss],
                  verbose_level=1, verbose=verbose)
-        return "all", ponderation, weight_binary_loss
+        return "all", ponderation, weight_binary_loss, weight_pos_loss
     for phase in phases_ls:
         assert phase.get("epoch_start") is not None
         assert phase.get("epoch_stop") is not None

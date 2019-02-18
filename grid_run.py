@@ -28,6 +28,7 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
 
     hidden_size_encoder = args.get("hidden_size_encoder", 10)
     word_embed = args.get("word_embed", False)
+    word_embedding_projected_dim = args.get("word_embedding_projected_dim",None)
     word_embedding_dim  = args.get("word_embedding_dim", 0)
     output_dim = args.get("output_dim", 10)
     char_embedding_dim = args.get("char_embedding_dim", 10)
@@ -88,19 +89,19 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
                             dense_dim_auxilliary=dense_dim_auxilliary, dense_dim_auxilliary_2=dense_dim_auxilliary_2,
                             lr=lr,extend_n_batch=extend_n_batch,
                             n_epochs=n_epochs, normalization=True,get_batch_mode_all=get_batch_mode_all,
-                            batch_size=batch_size, model_specific_dictionary=True,freq_writer=freq_writer,
+                            batch_size=batch_size, model_specific_dictionary=True, freq_writer=freq_writer,
                             dict_path=None, model_dir=None, add_start_char=1, freq_scoring=freq_scoring,
                             add_end_char=1, use_gpu=use_gpu, dir_sent_encoder=dir_sent_encoder,
                             dropout_sent_encoder_cell=dropout_sent_encoder,
                             dropout_word_encoder_cell=dropout_word_encoder,
                             dropout_word_decoder_cell=dropout_word_decoder,
                             policy=schedule_training_policy,
-                            dir_word_encoder=dir_word_encoder,compute_mean_score_per_sent=compute_mean_score_per_sent,
-                            overall_label=overall_label,overall_report_dir=overall_report_dir,
+                            dir_word_encoder=dir_word_encoder, compute_mean_score_per_sent=compute_mean_score_per_sent,
+                            overall_label=overall_label, overall_report_dir=overall_report_dir,
                             label_train=REPO_DATASET[train_path], label_dev=REPO_DATASET[dev_path],
                             word_recurrent_cell_encoder=word_recurrent_cell_encoder, word_recurrent_cell_decoder=word_recurrent_cell_decoder,
-                            drop_out_sent_encoder_out=drop_out_sent_encoder_out,drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
-                            word_embedding_dim=word_embedding_dim, word_embed=word_embed,
+                            drop_out_sent_encoder_out=drop_out_sent_encoder_out, drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
+                            word_embedding_dim=word_embedding_dim, word_embed=word_embed, word_embedding_projected_dim=word_embedding_projected_dim,
                             drop_out_word_encoder_out=drop_out_word_encoder_out, dropout_bridge=dropout_bridge,
                             freq_checkpointing=freq_checkpointing, reload=False, model_id_pref=model_id_pref,
                             score_to_compute_ls=score_to_compute_ls, mode_norm_ls=["all", "NEED_NORM", "NORMED"],
@@ -187,6 +188,14 @@ if __name__ == "__main__":
                          "drop_out_word_encoder_out": 0.3, "drop_out_sent_encoder_out": 0.3, "drop_out_char_embedding_decoder":0.3, "dropout_bridge":0.01,
                          "n_layers_word_encoder": 1, "dir_sent_encoder": 2,"word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder":"LSTM",
                          "hidden_size_sent_encoder": 100, "hidden_size_decoder": 150, "batch_size": 10}
+
+      params_strong_tryal = {"hidden_size_encoder": 50, "output_dim": 100, "char_embedding_dim": 50,
+                            "dropout_sent_encoder": 0, "drop_out_word_encoder": 0, "dropout_word_decoder": 0.,
+                            "drop_out_word_encoder_out": 0.3, "drop_out_sent_encoder_out": 0.3,
+                            "drop_out_char_embedding_decoder": 0.3, "dropout_bridge": 0.01,
+                            "n_layers_word_encoder": 1, "dir_sent_encoder": 2, "word_recurrent_cell_decoder": "LSTM",
+                            "word_recurrent_cell_encoder": "LSTM",
+                            "hidden_size_sent_encoder": 100, "hidden_size_decoder": 150, "batch_size": 10}
 
       label_0 = "origin_small-batch10-LSTM_sent_bi_dir-word_uni_LSTM"
 
@@ -360,17 +369,19 @@ if __name__ == "__main__":
           print("vword_embed_init shared_context word_decoding  n_trainable_parameters ")
           print("GRID_INFO fixed vals=  word_embed,True auxilliary_task_norm_not_norm,True auxilliary_task_pos,False lr,0.001  batch_size,25 stable_decoding_state,False teacher_force,True char_src_attention,True ")
           print("GRID_INFO fixed vars=  word_embed batch_size auxilliary_task_pos auxilliary_task_norm_not_norm stable_decoding_state teacher_force char_src_attention ")
-
-      params,labels, default_all, analysed , fixed = grid_param_label_generate(params_strong,warmup=False, 
-                                                                        word_decoding_ls=[True, False],
-                                                                        auxilliary_task_pos_ls=[False, True],
-                                                                        auxilliary_task_norm_not_norm_ls=[False, True],
-                                                                        dir_sent_encoder_ls=[2],
-                                                                        shared_context_ls=["all", "sent"],
-                                                                        unrolling_word_ls=[True])
+      grid_label = "word_proj+smaller_word_cell"
+      params,labels, default_all, analysed , fixed = grid_param_label_generate(params_strong_tryal, warmup=False, grid_label="0",
+                                                                               word_decoding_ls=[True, False],
+                                                                               auxilliary_task_pos_ls=[True],
+                                                                               auxilliary_task_norm_not_norm_ls=[True],
+                                                                               dir_sent_encoder_ls=[2], lr_ls=[0.001],
+                                                                               word_embed_init_ls=[DIR_TWEET_W2V, None],
+                                                                               shared_context_ls=["all", "sent"],
+                                                                               word_embedding_projected_dim_ls=[100],
+                                                                               unrolling_word_ls=[True])
 
       to_enrich = " ".join([a for a, _ in default_all])+" "+" ".join(analysed)
-      to_keep_only = " ".join([a+","+str(b) for a,b in default_all])
+      to_keep_only = " ".join([a+","+str(b) for a, b in default_all])
 
       print("GRID_INFO analy vars=  ", to_enrich)
       print("GRID_INFO fixed vals=   ", to_keep_only)
@@ -389,7 +400,7 @@ if __name__ == "__main__":
           test_before_run = False
       
       RUN_ID = str(uuid4())[0:5]
-      LABEL_GRID = "ATT" if not warmup else "WARMUP-unrolling-False"
+      LABEL_GRID = grid_label if not warmup else "WARMUP-unrolling-False"
       LABEL_GRID = "test_before_run-"+LABEL_GRID if test_before_run else LABEL_GRID
 
       OAR = os.environ.get('OAR_JOB_ID')+"_rioc-" if os.environ.get('OAR_JOB_ID', None) is not None else ""
@@ -402,22 +413,25 @@ if __name__ == "__main__":
       dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
       os.mkdir(dir_grid)
       printing("GRID RUN : Grid directory : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
-      train_path, dev_path = LIU_TRAIN , LIU_DEV#EWT_DEV, DEV
+      train_path, dev_path = EWT_DEV, DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
       for param, model_id_pref in zip(params, labels):
           i += 1
           printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
           epochs = 50 if not test_before_run else 2
           if warmup:
-            param = {"hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10, "dropout_sent_encoder": 0.,
+            param = {
+                     "hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10, "dropout_sent_encoder": 0.,
                      "drop_out_word_encoder": 0., "dropout_word_decoder": 0., "drop_out_sent_encoder_out": 0,
                      "drop_out_word_encoder_out": 0, "dir_word_encoder": 2, "n_layers_word_encoder": 1, "dir_sent_encoder": 2,
-                     "word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder": "LSTM", "hidden_size_sent_encoder": 20, "hidden_size_decoder": 50, "batch_size": 2}
+                     "word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder": "LSTM", "hidden_size_sent_encoder": 20,
+                     "hidden_size_decoder": 50, "batch_size": 2
+                     }
             param["batch_size"] = 20
             param["auxilliary_task_norm_not_norm"] = True
             param["weight_binary_loss"] = 1
             param["unrolling_word"] = True
             param["char_src_attention"] = False
-            train_path, dev_path = LIU_TRAIN, LIU_DEV
+            train_path, dev_path = DEMO, DEMO2
             param["shared_context"] = "sent"
             param["dense_dim_auxilliary"] = None
             param["gradient_clipping"] = None
@@ -430,23 +444,25 @@ if __name__ == "__main__":
             param["dense_dim_word_pred_2"] = 200
             param["dense_dim_word_pred_3"] = 10
             param["char_decoding"] = not param["word_decoding"]
-            param["auxilliary_task_pos"] = True
-            param["dense_dim_auxilliary_pos"] = 100
+            param["auxilliary_task_pos"] = False
+            param["dense_dim_auxilliary_pos"] = 0
             param["dense_dim_auxilliary_pos_2"] = None
-            param["word_embed_init"] = DIR_TWEET_W2V
+            param["word_embed_init"] =DIR_TWEET_W2V
             param["word_embed"] = True
             param["word_embedding_dim"] = 400
+            param["word_embedding_projected_dim"] = 50
             param["lr"] = 0.05
 
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
           if warmup:
+              epochs = 1
               print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
               print("GRID_INFO analy vars=    dense_dim_auxilliary_pos_2 dense_dim_auxilliary_pos")
               print("GRID_INFO fixed vars=  word_embed ")
               print("GRID_INFO fixed vals=  word_embed,False ")
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
                                                   #pos_specific_path=DEV,
-                                                  test_path=[DEMO] if not warmup else DEMO,
+                                                  test_path=[TEST] if not warmup else DEMO,
                                                   verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,
@@ -455,8 +471,11 @@ if __name__ == "__main__":
                                                   symbolic_root=True, symbolic_end=True,
                                                   freq_writer=10 if not test_before_run else 1,
                                                   extend_n_batch=2,
-                                                  score_to_compute_ls=["exact", "norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recall", "norm_not_norm-accuracy"],
-                                                  warmup=warmup, args=param, use_gpu=None,
+                                                  score_to_compute_ls=["exact", "norm_not_norm-F1",
+                                                                       "norm_not_norm-Precision",
+                                                                       "norm_not_norm-Recall",
+                                                                       "norm_not_norm-accuracy"],
+                                                  warmup=False, args=param, use_gpu=None,
                                                   n_epochs=epochs,
                                                   debug=False)
 
@@ -464,7 +483,6 @@ if __name__ == "__main__":
           open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
           print("GRID : Log RUN is : {} to see model list ".format(run_dir))
           print("GRID RUN : DONE MODEL {} with param {} ".format(model_id_pref, param))
-          break 
           if warmup:
             break
 

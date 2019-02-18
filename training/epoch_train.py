@@ -24,11 +24,17 @@ def divide_loss_details_n_tokens(total_loss_details_dic, n_tokens):
     return total_loss_details_dic
 
 
-def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
+def run_epoch(data_iter, model, loss_compute,
+              weight_binary_loss,
+              weight_pos_loss,
+              ponderation_normalize_loss,
+              verbose=0, i_epoch=None,
               n_epochs=None, n_batches=None, empty_run=False, timing=False,
               multi_task_mode="all", clipping=None,
               step=0, proportion_pred_train=None,
               pos_batch=False,
+              # should be added in policy
+
               log_every_x_batch=VERBOSE_1_LOG_EVERY_x_BATCH):
     "Standard Training and Logging Function"
     assert multi_task_mode in ["all", "norm_not_norm","normalize"]
@@ -62,6 +68,9 @@ def run_epoch(data_iter, model, loss_compute, verbose=0, i_epoch=None,
                                                       y_word=batch.output_word, x_word_pred=out_word,
                                                       y_pos=batch.pos,  x_pos=pos_pred_state, pos_batch=pos_batch,
                                                       clipping=clipping,
+                                                      weight_binary_loss=weight_binary_loss,
+                                                      weight_pos_loss=weight_pos_loss,
+                                                      ponderation_normalize_loss=ponderation_normalize_loss,
                                                       step=i+step)#, batch.ntokens)
 
             loss_time, start = get_timing(start)
