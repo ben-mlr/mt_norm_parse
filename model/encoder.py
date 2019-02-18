@@ -14,6 +14,7 @@ class CharEncoder(nn.Module):
                  word_recurrent_cell=None, dropout_sent_encoder_cell=0, dropout_word_encoder_cell=0,
                  n_layers_word_cell=1, timing=False, bidir_sent=True,context_level="all",
                  drop_out_word_encoder_out=0, drop_out_sent_encoder_out=0,
+                 n_layers_sent_cell=1,
                  dir_word_encoder=1, add_word_level=False,
                  word_embedding_dim_inputed=0,
                  verbose=2):
@@ -25,12 +26,12 @@ class CharEncoder(nn.Module):
         # context level shared to the decoder (should prune a lot if context level word/or sent )
         self.context_level = context_level
         if dir_word_encoder == 2:
-            assert hidden_size_encoder%2==0, "ERROR = it will be divided by two and remultipy so need even number for simplicity"
+            assert hidden_size_encoder % 2 == 0, "ERROR = it will be divided by two and remultipy so need even number for simplicity"
         if bidir_sent:
-            assert hidden_size_sent_encoder%2==0, "ERROR = it will be divided by two and remultipy so need even number for simplicity"
+            assert hidden_size_sent_encoder % 2 == 0, "ERROR = it will be divided by two and remultipy so need even number for simplicity"
         self.sent_encoder = nn.LSTM(input_size=hidden_size_encoder*n_layers_word_cell*dir_word_encoder+word_embedding_dim_inputed,
                                     hidden_size=hidden_size_sent_encoder,
-                                    num_layers=1, bias=True, batch_first=True,
+                                    num_layers=n_layers_sent_cell, bias=True, batch_first=True,
                                     dropout=dropout_word_encoder_cell,
                                     bidirectional=bidir_sent)
         self.drop_out_word_encoder_out = nn.Dropout(drop_out_word_encoder_out)
@@ -155,11 +156,11 @@ class CharEncoder(nn.Module):
             assert word_embed_input is not None, "ERROR word_embed_input required as self.add_word_level"
             # we trust h_w for padding
             word_embed_input = word_embed_input[:, :h_w.size(1),:]
-            pdb.set_trace()
             h_w = torch.cat((word_embed_input.float(),
                              h_w), dim=-1)
         sent_encoded, hidden = self.sent_encoder(h_w)
-
+        # sent_encoded : upper layer only but all time step, to get all the layers states of the last state get hidden
+        pdb.set_trace()
         # sent_encoded : [batch, max sent len ,hidden_size_sent_encoder]
         printing("SOURCE sentence encoder output dim sent : {} ", var=[sent_encoded.size()],
                  verbose=verbose, verbose_level=3)
@@ -173,7 +174,6 @@ class CharEncoder(nn.Module):
             source_context_word_vector = sent_encoded
         elif context_level == "word":
             source_context_word_vector = h_w
-
         printing("SOURCE contextual for decoding: {} ", var=[source_context_word_vector.size() if source_context_word_vector is not None else 0],
                  verbose=verbose, verbose_level=3)
         return source_context_word_vector, sent_len_max_source, char_seq_hidden, word_src_sizes

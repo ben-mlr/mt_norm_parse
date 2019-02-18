@@ -38,6 +38,7 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
     dropout_sent_encoder, dropout_word_encoder, dropout_word_decoder = args.get("dropout_sent_encoder",0), \
     args.get("dropout_word_encoder", 0), args.get("dropout_word_decoder", 0)
     n_layers_word_encoder = args.get("n_layers_word_encoder", 1)
+    n_layers_sent_cell = args.get("n_layers_sent_cell", 1)
     dir_sent_encoder = args.get("dir_sent_encoder", 1)
 
     drop_out_word_encoder_out = args.get("drop_out_word_encoder_out", 0)
@@ -108,8 +109,8 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
                             hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,
                             char_embedding_dim=char_embedding_dim,extern_emb_dir=word_embed_init,
                             hidden_size_sent_encoder=hidden_size_sent_encoder, hidden_size_decoder=hidden_size_decoder,
-                            n_layers_word_encoder=n_layers_word_encoder, compute_scoring_curve=compute_scoring_curve,
-                            verbose=verbose,
+                            n_layers_word_encoder=n_layers_word_encoder, n_layers_sent_cell=n_layers_sent_cell,
+                            compute_scoring_curve=compute_scoring_curve,
                             unrolling_word=unrolling_word, char_src_attention=char_src_attention,
                             print_raw=print_raw, debug=debug,
                             shared_context=shared_context,
@@ -118,12 +119,13 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
                             clipping=gradient_clipping,
                             auxilliary_task_pos=auxilliary_task_pos, dense_dim_auxilliary_pos=dense_dim_auxilliary_pos,
                             dense_dim_auxilliary_pos_2=dense_dim_auxilliary_pos_2,
-                            word_decoding=word_decoding,dense_dim_word_pred=dense_dim_word_pred, dense_dim_word_pred_2=dense_dim_word_pred_2, dense_dim_word_pred_3=dense_dim_word_pred_3,
+                            word_decoding=word_decoding, dense_dim_word_pred=dense_dim_word_pred,
+                            dense_dim_word_pred_2=dense_dim_word_pred_2, dense_dim_word_pred_3=dense_dim_word_pred_3,
                             char_decoding=char_decoding,
                             symbolic_end=symbolic_end, symbolic_root=symbolic_root,
                             stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                             test_path=test_path[0] if isinstance(test_path,list) else test_path,
-                            checkpointing=True)
+                            checkpointing=True, verbose=verbose)
 
     model_dir = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder")
     if test_path is not None :
@@ -369,16 +371,20 @@ if __name__ == "__main__":
           print("vword_embed_init shared_context word_decoding  n_trainable_parameters ")
           print("GRID_INFO fixed vals=  word_embed,True auxilliary_task_norm_not_norm,True auxilliary_task_pos,False lr,0.001  batch_size,25 stable_decoding_state,False teacher_force,True char_src_attention,True ")
           print("GRID_INFO fixed vars=  word_embed batch_size auxilliary_task_pos auxilliary_task_norm_not_norm stable_decoding_state teacher_force char_src_attention ")
-      grid_label = "word_proj+smaller_word_cell"
-      params,labels, default_all, analysed , fixed = grid_param_label_generate(params_strong_tryal, warmup=False, grid_label="0",
+      grid_label = "more_sent_layers"
+      params,labels, default_all, analysed , fixed = grid_param_label_generate(
+                                                                               params_strong_tryal, warmup=False,
+                                                                               grid_label="0",
                                                                                word_decoding_ls=[True, False],
-                                                                               auxilliary_task_pos_ls=[True],
+                                                                               auxilliary_task_pos_ls=[False],
                                                                                auxilliary_task_norm_not_norm_ls=[True],
                                                                                dir_sent_encoder_ls=[2], lr_ls=[0.001],
-                                                                               word_embed_init_ls=[DIR_TWEET_W2V, None],
+                                                                               word_embed_init_ls=[None],
                                                                                shared_context_ls=["all", "sent"],
-                                                                               word_embedding_projected_dim_ls=[100],
-                                                                               unrolling_word_ls=[True])
+                                                                               word_embedding_projected_dim_ls=[50],
+                                                                               n_layers_sent_cell_ls=[1, 2],
+                                                                               unrolling_word_ls=[True]
+                                                                               )
 
       to_enrich = " ".join([a for a, _ in default_all])+" "+" ".join(analysed)
       to_keep_only = " ".join([a+","+str(b) for a, b in default_all])
@@ -432,7 +438,7 @@ if __name__ == "__main__":
             param["unrolling_word"] = True
             param["char_src_attention"] = False
             train_path, dev_path = DEMO, DEMO2
-            param["shared_context"] = "sent"
+            param["shared_context"] = "all"
             param["dense_dim_auxilliary"] = None
             param["gradient_clipping"] = None
             param["teacher_force"] = True
@@ -442,15 +448,17 @@ if __name__ == "__main__":
             param["word_decoding"] = True
             param["dense_dim_word_pred"] = 100
             param["dense_dim_word_pred_2"] = 200
-            param["dense_dim_word_pred_3"] = 10
+            param["dense_dim_word_pred_3"] = 500
+
             param["char_decoding"] = not param["word_decoding"]
             param["auxilliary_task_pos"] = False
             param["dense_dim_auxilliary_pos"] = 0
             param["dense_dim_auxilliary_pos_2"] = None
-            param["word_embed_init"] =DIR_TWEET_W2V
+            param["word_embed_init"] = None
             param["word_embed"] = True
             param["word_embedding_dim"] = 400
             param["word_embedding_projected_dim"] = 50
+            param["n_layers_sent_cell"] = 2
             param["lr"] = 0.05
 
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
@@ -460,6 +468,7 @@ if __name__ == "__main__":
               print("GRID_INFO analy vars=    dense_dim_auxilliary_pos_2 dense_dim_auxilliary_pos")
               print("GRID_INFO fixed vars=  word_embed ")
               print("GRID_INFO fixed vals=  word_embed,False ")
+
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
                                                   #pos_specific_path=DEV,
                                                   test_path=[TEST] if not warmup else DEMO,

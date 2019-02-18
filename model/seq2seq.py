@@ -55,6 +55,7 @@ class LexNormalizer(nn.Module):
                  stable_decoding_state=False, init_context_decoder=True,
                  word_decoding=False, dense_dim_word_pred=None, dense_dim_word_pred_2=None, dense_dim_word_pred_3=None,
                  char_decoding=True,
+                 n_layers_sent_cell=1,
                  symbolic_end=False, symbolic_root=False,
                  extend_vocab_with_test=False, test_path=None,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
@@ -189,7 +190,8 @@ class LexNormalizer(nn.Module):
                                                       },
                                   "n_trainable_parameters": None,
                                   "char_embedding_dim": char_embedding_dim,
-                                  "encoder_arch": {"cell_word": word_recurrent_cell_encoder, "cell_sentence": "LSTM",
+                                  "encoder_arch": {"cell_word": word_recurrent_cell_encoder,
+                                                   "cell_sentence": "LSTM","n_layers_sent_cell":n_layers_sent_cell,
                                                    "word_embed": word_embed,  "word_embedding_dim": word_embedding_dim,"word_embedding_projected_dim":word_embedding_projected_dim,
                                                    "n_layers_word_encoder": n_layers_word_encoder,
                                                    "word_embed_init": word_embed_dir,
@@ -243,20 +245,24 @@ class LexNormalizer(nn.Module):
                                                  "match {} vs {} ".format(args["voc_size"], voc_size)
             assert args["word_voc_output_size"] == word_voc_output_size, "ERROR mismatch of stored voc and passed voc {} and passed {} ".format(args["word_voc_output_size"], word_voc_output_size)
             word_voc_output_size = args.get("word_voc_output_size", None)
+
             char_embedding_dim, output_dim, hidden_size_encoder, hidden_size_sent_encoder, drop_out_sent_encoder_cell,\
             drop_out_word_encoder_cell, drop_out_sent_encoder_out, drop_out_word_encoder_out,\
-            n_layers_word_encoder, dir_sent_encoder, word_recurrent_cell_encoder, dir_word_encoder,\
+            n_layers_word_encoder, n_layers_sent_cell, dir_sent_encoder, word_recurrent_cell_encoder, dir_word_encoder,\
             hidden_size_decoder,  word_recurrent_cell_decoder, drop_out_word_decoder_cell, drop_out_char_embedding_decoder, \
                     self.auxilliary_task_norm_not_norm, unrolling_word, char_src_attention, dense_dim_auxilliary, shared_context,\
                 teacher_force, dense_dim_auxilliary_2, stable_decoding_state, init_context_decoder, \
             word_decoding, char_decoding, auxilliary_task_pos, dense_dim_auxilliary_pos, dense_dim_auxilliary_pos_2, \
                 dense_dim_word_pred, dense_dim_word_pred_2,dense_dim_word_pred_3, \
                 symbolic_root, symbolic_end, word_embedding_dim, word_embed, word_embedding_projected_dim = get_args(args, False)
+
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
         # adjusting for directions : the hidden_size_sent_encoder provided and are the dir x hidden_dim dimensions
-        hidden_size_sent_encoder = int(hidden_size_sent_encoder/(dir_sent_encoder))
+        hidden_size_sent_encoder = int(hidden_size_sent_encoder/(n_layers_sent_cell))
         hidden_size_encoder = int(hidden_size_encoder/dir_word_encoder)
+        printing("WARNING : Model : hidden dim of word level and sentence leve encoders are divided by the number of directions",
+                 verbose_level=1, verbose=verbose)
         self.symbolic_end, self.symbolic_root = symbolic_end, symbolic_root
         self.dir_model = dir_model
         self.model_full_name = model_full_name
@@ -283,6 +289,7 @@ class LexNormalizer(nn.Module):
                                    dropout_word_encoder_cell=drop_out_word_encoder_cell,
                                    hidden_size_sent_encoder=hidden_size_sent_encoder, bidir_sent=dir_sent_encoder-1,
                                    n_layers_word_cell=n_layers_word_encoder, timing=timing,
+                                   n_layers_sent_cell=n_layers_sent_cell,
                                    dir_word_encoder=dir_word_encoder,context_level=shared_context,
                                    add_word_level=word_embed,
                                    word_embedding_dim_inputed=word_embedding_projected_dim if word_embedding_projected_dim is not None else word_embedding_dim,
@@ -295,7 +302,8 @@ class LexNormalizer(nn.Module):
         self.shared_context = shared_context
 
         self.bridge = nn.Linear(
-            hidden_size_encoder * dir_word_encoder * n_layers_word_encoder*p_word + hidden_size_sent_encoder*dir_sent_encoder*p_sent+word_embedding_dim*p_word_emb,#*dir_sent_encoder : added diviion by 2 if dir 2
+            hidden_size_encoder * dir_word_encoder * n_layers_word_encoder*p_word + hidden_size_sent_encoder*dir_sent_encoder*p_sent
+            +(word_embedding_projected_dim if word_embedding_projected_dim is not None else word_embedding_dim )*p_word_emb,#*dir_sent_encoder : added diviion by 2 if dir 2
             hidden_size_decoder)
         self.hidden_size_decoder = hidden_size_decoder
         #self.layer_norm = nn.LayerNorm(hidden_size_decoder, elementwise_affine=False) if True else None
@@ -351,7 +359,6 @@ class LexNormalizer(nn.Module):
         start = time.time() if timing else None
 
         if self.word_embedding is not None:
-            pdb.set_trace()
             word_embed_input = self.word_embedding(word_embed_input)
             if self.word_embedding_project is not None:
                 word_embed_input = self.word_embedding_project(word_embed_input)
