@@ -586,6 +586,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
 def decode_seq_str(seq_string, model, char_dictionary, pad=1,
                    dir_attention=None, save_attention=False,
                    show_att=False, beam_decode=False,beam_size=None,
+                   word_dictionary=None,
                    max_len=20, verbose=2, sent_mode=False):
     assert sent_mode
     sent = seq_string.copy()
@@ -595,9 +596,12 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
         sent_character = []
         sent_words_mask = []
         sent_words_lens = []
-        print("sent",sent)
+        word_ls = [] if word_dictionary is not None else None # word_norm_dictionary is the signal for using word at input
+        print("sent", sent)
         for seq_string in sent:
             if len(seq_string) > 0:
+                #TODO add start symbol for word and character !!
+                word_string = seq_string[:]
                 _seq_string = ["_START"]
                 printing("WARNING : we added _START symbol and _END_CHAR ! ", verbose=verbose, verbose_level=2)
                 _seq_string.extend(list(seq_string))
@@ -605,18 +609,22 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
             if len(seq_string) > max_len:
                 # cutting to respect dim requirements
                 seq_string = seq_string[:max_len-1]+["_PAD_CHAR"]
-            if len(seq_string)>0:
+            if len(seq_string) > 0:
                 printing("INPUT SEQ is {} ", var=[seq_string], verbose=verbose, verbose_level=2)
+
+            word_id = word_dictionary.get_index(word_string) if word_dictionary is not None else None
             sequence_characters = [char_dictionary.get_index(letter) for letter in seq_string]+[pad for _ in range(max_len-len(seq_string))]
             sent_character.append(sequence_characters)
+            if word_ls is not None:
+                word_ls.append(word_id)
             masks = [1 for _ in seq_string]+[0 for _ in range(max_len-len(seq_string))]
             sent_words_mask.append(masks)
             words_lens = min(max_len, len(seq_string))
             sent_words_lens.append(words_lens)
             # we have to create batch_size == 2 because of bug
 
-        batch = Variable(torch.from_numpy(np.array([sent_character, sent_character])),
-                                       requires_grad=False)
+        batch = Variable(torch.from_numpy(np.array([sent_character, sent_character])), requires_grad=False)
+        input_word = Variable(torch.from_numpy(np.array([word_ls,word_ls])), requires_grad=False) if word_ls is not None else None
         batch_masks = Variable(torch.from_numpy(np.array([sent_words_mask, sent_words_mask])), requires_grad=False)
         batch_lens = Variable(torch.from_numpy(np.array([sent_words_lens, sent_words_lens])), requires_grad=False)
         batch_lens = batch_lens.unsqueeze(dim=2)
@@ -625,10 +633,13 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
                                   max_len=max_len, src_seq=batch, src_len=batch_lens,beam_size=beam_size,
                                   src_mask=batch_masks, pad=pad, verbose=verbose)
         else:
+            pdb.set_trace()
             (text_decoded, src_text, target), _, (attention, src_seq), (pred_norm,_, _, _)  \
                 = decode_sequence(model=model, char_dictionary=char_dictionary,
-                                  max_len=max_len, src_seq=batch, src_len=batch_lens,
+                                  max_len=max_len, src_seq=batch, src_len=batch_lens, input_word=input_word,
                                   src_mask=batch_masks, single_sequence=True, pad=pad, verbose=verbose)
+
+
         if attention is not None:
             print("Attention", attention, src_seq, text_decoded)
             for pred_word, src_word, attention_word in zip(text_decoded, src_seq, attention):
@@ -651,6 +662,10 @@ def decode_interacively(model, char_dictionary,  max_len, pad=1, sent_mode=False
         printing("INFO : dictionary is None so setting char_dictionary to model.char_dictionary",
                  verbose=verbose, verbose_level=0)
         char_dictionary = model.char_dictionary
+    if model.arguments["hyperparameters"]["encoder_arch"].get("word_embed",False):
+        word_dictionary = model.word_dictionary
+    else:
+        word_dictionary = None
     sentence = []
     while True:
         seq_string = input("Please type what you want to normalize word by word and "
@@ -664,6 +679,7 @@ def decode_interacively(model, char_dictionary,  max_len, pad=1, sent_mode=False
             else:
                 decode_seq_str(seq_string=sentence, model=model, char_dictionary=char_dictionary, pad=pad, max_len= max_len,
                                show_att=show_attention, beam_decode=beam_decode,beam_size=beam_size,
+                               word_dictionary=word_dictionary,
                                verbose=verbose, sent_mode=True, dir_attention=dir_attention, save_attention=save_attention)
                 sentence = []
         elif seq_string == "END":

@@ -3,7 +3,6 @@ import pdb
 from model.loss import LossCompute
 import os
 from io_.info_print import printing
-from model.seq2seq import LexNormalizer
 from model.generator import Generator
 MAX_LEN = 20
 
@@ -13,6 +12,7 @@ def interact(dic_path, model_full_name,
              beam_size=2,
              save_attention=False, show_attention=False, beam_decode=False,
              verbose=2):
+    from model.seq2seq import LexNormalizer
 
     assert model_specific_dictionary
     char_dictionary = None
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     #ablation_id = "42a20"
     ablation_id = "a5c77"
     #ablation_id = "8ce6b-extend_ep-get_True-attention_simplifiedXauxXdropout0.1_scale_aux-True_aux-0.1do_char_dec-True_char_src_atten-model_14_ad6c"
-    ablation_id = "97147_rioc-6ed16-ATTCONTEXT-with_att-dir_2-X-dropout_bridge0.1-context_word-model_4_76a1"
+    ablation_id = "4e128-WARMUP-unrolling-False0-model_1-model_1_1660-folder"
     #for data in [LIU, DEV]:
     list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith("summary")]
     print("FOLDERS : ", list_)
@@ -93,7 +93,7 @@ if __name__ == "__main__":
         dic_path = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder", "dictionaries")
         model_dir = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder")
         interact(dic_path=dic_path, dir_model=model_dir, model_full_name=model_full_name, debug=False,
-                 verbose=1, beam_decode=True, beam_size=1,
+                 verbose=1, beam_decode=False, beam_size=1,
                  save_attention=False, show_attention=False)
         #break
     #show_attention("[lekfezlfkh efj ", ["se", "mjfsemkfj"], torch.tensor([[0,.4], [1,0.6]]))

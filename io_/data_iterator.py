@@ -37,7 +37,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                           disable=disable_tqdm_level(verbose, verbose_level=2)):
 
             words, word_norm, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, lengths, order_ids, raw_word_inputs, raw_lines = batch
-            yield MaskBatch(chars, chars_norm,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
+            yield MaskBatch(chars, chars,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
                             output_word=word_norm, pos=pos, input_word=words,
                             verbose=verbose), order_ids
 
@@ -108,7 +108,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             printing("TYPE {} char before batch chars_norm {} ", var=(char.is_cuda, chars_norm.is_cuda),
                      verbose=verbose, verbose_level=5)
 
-            yield MaskBatch(char, chars_norm, output_word=word_norm, output_norm_not_norm=word_norm_not_norm,
+            yield MaskBatch(char, char, output_word=word_norm, output_norm_not_norm=word_norm_not_norm,
                             pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose), order_ids
 
 
