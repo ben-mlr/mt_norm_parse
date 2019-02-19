@@ -44,8 +44,6 @@ class CharEncoder(nn.Module):
         self.word_recurrent_cell = word_recurrent_cell
         printing("MODEL Encoder : word_recurrent_cell has been set to {} ", var=([str(word_recurrent_cell)]),
                  verbose=verbose, verbose_level=1)
-        printing("WARNING : hidden_size of word_recurrent_cell has been divided by {} "
-                 "dir_word_encoder".format(dir_word_encoder), verbose=verbose, verbose_level=0)
         self.seq_encoder = word_recurrent_cell(input_size=input_dim, hidden_size=hidden_size_encoder,
                                                dropout=dropout_sent_encoder_cell,
                                                num_layers=n_layers_word_cell,#nonlinearity='tanh',

@@ -82,7 +82,7 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
           for word_embed_init in word_embed_init_ls:
             for scale in scale_ls:
               if shared_context == "sent":
-                scale_sent_context = 2
+                scale_sent_context = 1
                 scale_word = 1
               else:
                 scale_sent_context, scale_word = 1, 1
@@ -122,7 +122,7 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
 
                                   param0["auxilliary_task_pos"] = auxilliary_task_pos
                                   param0["dense_dim_auxilliary_pos"] = None if not auxilliary_task_pos else 200
-                                  param0["dense_dim_auxilliary_pos_2"] = None
+                                  param0["dense_dim_auxilliary_pos_2"] = None if not auxilliary_task_pos else 100
 
                                   param["stable_decoding_state"] = stable_decoding_state
                                   param["init_context_decoder"] = not param["stable_decoding_state"]
@@ -131,9 +131,9 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                                   param["dropout_bridge"] = 0.1
                                   param0["word_embed"] = True
                                   param0["word_embedding_dim"] = 400 if word_embed_init is not None else 50
-                                  param0["dense_dim_word_pred"] = 200 if word_decoding else None
-                                  param0["dense_dim_word_pred_2"] = 200 if word_decoding else None
-                                  param0["dense_dim_word_pred_3"] = 0 if word_decoding else None
+                                  param0["dense_dim_word_pred"] = 300 if word_decoding else None
+                                  param0["dense_dim_word_pred_2"] = 300 if word_decoding else None
+                                  param0["dense_dim_word_pred_3"] = 100 if word_decoding else None
                                   param0["word_embedding_projected_dim"] = word_embedding_projected_dim if param0["word_embed"] else None
 
                                   params.append(param0)

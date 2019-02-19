@@ -142,13 +142,13 @@ class LexNormalizer(nn.Module):
                 if word_embed_dir is not None:
                     word_embed_dic = load_emb(word_embed_dir, verbose)
                 else:
-                    word_embed_dic = None
+                    word_embed_dic = {}
             else:
                 assert train_path is None and dev_path is None and add_start_char is None
                 # we make sure the dictionary dir exists and is located in dict_path
                 assert dict_path is not None, "ERROR dict_path should be specified"
                 assert os.path.isdir(dict_path), "ERROR : dict_path {} does not exist".format(dict_path)
-                word_embed_dic = {}
+                word_embed_dic = None
             # we are loading the dictionary now because we need it to define the model
 
             self.word_dictionary, self.word_nom_dictionary, word_embed_np, self.char_dictionary, \

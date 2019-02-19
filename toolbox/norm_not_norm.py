@@ -23,7 +23,7 @@ def scheduling_policy(phases_ls, epoch, verbose=1):
     if phases_ls is None:
         ponderation = 1
         weight_binary_loss = 0.01
-        weight_pos_loss = 0.5
+        weight_pos_loss = 1
         printing("WARNING : default policy scheduling (no scheduling {} ponderation_normalize_loss and {}"
                  " weight_binary_loss ", var=[ponderation, weight_binary_loss],
                  verbose_level=1, verbose=verbose)

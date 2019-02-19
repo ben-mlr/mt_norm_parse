@@ -20,7 +20,7 @@ from io_.info_print import printing
 
 
 def load_dict(dict_path, train_path=None, dev_path=None, test_path=None, word_embed_dict=None,
-              word_normalization=False,pos_specific_data_set=None,
+              word_normalization=False, pos_specific_data_set=None,
               dry_run=0, vocab_trim=False, add_start_char=None,
               verbose=1, force_new_dic=False):
 
@@ -57,8 +57,10 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None, word_em
       dict_to_load.append(word_norm_dictionary)
     for name, dic in zip(dic_to_load_names, dict_to_load):
       dic.load(input_directory=dict_path, name=name)
-
-  return word_dictionary, word_norm_dictionary,embed_np, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary
+  if word_embed_dict == {}:
+    #TODO  should be done updward !!
+    embed_np = None
+  return word_dictionary, word_norm_dictionary, embed_np, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary
 
 
 def pos_specific_dic_builder(pos_specific_data_set,pos_dictionary):
@@ -263,8 +265,8 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
   type_dictionary.close()
   printing("W2V INFO : {} match  train and dev, {} no match tokens : list of vectors is {} len ".format(counter_match_train,
                                                                                                        counter_other_train,
-                                                                                                       len(external_embedding)),
-           verbose=1, verbose_level=1)
+                                                                                                       len(external_embedding)),verbose=1, verbose_level=1)
+
 
   return word_dictionary, word_norm_dictionary, np.array(external_embedding), char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary
 

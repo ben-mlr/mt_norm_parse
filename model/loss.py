@@ -62,7 +62,7 @@ class LossCompute:
                  weight_pos_loss=0,
                  ponderation_normalize_loss=0,
                  clipping=None, step=None):
-        printing("LOSS : weight_binary_loss is set to {} ponderation_normalize_loss {} and weight_pos_loss {} ", var=(weight_binary_loss,ponderation_normalize_loss,weight_pos_loss), verbose=2, verbose_level=2)
+
         if clipping is not None:
             assert self.model is not None, "Using clipping requires passing the model in the loss"
         loss_details = self.loss_details_template.copy()
@@ -117,9 +117,11 @@ class LossCompute:
             loss_pos = self.loss_distance_pos(x_pos.contiguous().view(-1, x_pos.size(-1)), y_pos.contiguous().view(-1))
         else:
             loss_pos = 0
-
-        multi_task_loss = ponderation_normalize_loss*scheduling_normalize*loss+\
-                          weight_binary_loss*loss_binary*scheduling_norm_not_norm + schedule_pos*loss_pos*weight_pos_loss if loss_binary is not None else loss
+        if loss_binary is not None or (pos_batch and self.loss_distance_pos):
+            multi_task_loss = ponderation_normalize_loss*scheduling_normalize*loss+\
+                          weight_binary_loss*loss_binary*scheduling_norm_not_norm + schedule_pos*loss_pos*weight_pos_loss
+        else:
+            multi_task_loss = loss
 
         loss_details["overall_loss"] = multi_task_loss
         loss_details["loss_seq_prediction"] = loss
@@ -155,9 +157,9 @@ class LossCompute:
             printing("WARNING no optimization : is backward required here ? (loss.py) ", verbose=self.verbose, verbose_level=3)
         if self.timing:
             print("run loss timing : {} ".format(OrderedDict([("loss_distance_time", loss_distance_time),
-                                                              ("reshaping",reshaping), ("generate_time", generate_time),
+                                                              ("reshaping", reshaping), ("generate_time", generate_time),
                                                               ("loss_backwrd_time", loss_backwrd_time),
-                                                              ("gradient_clipping",gradient_clipping),
+                                                              ("gradient_clipping", gradient_clipping),
                                                               ("step_opt_time", step_opt_time),
                                                               ("zerp_gradtime", zero_gradtime)])))
         return multi_task_loss, loss_details

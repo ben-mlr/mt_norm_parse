@@ -186,18 +186,18 @@ if __name__ == "__main__":
                           "hidden_size_sent_encoder": 15, "hidden_size_decoder": 40, "batch_size": 10
                          }
       params_strong = {"hidden_size_encoder": 100, "output_dim": 100, "char_embedding_dim": 50,
-                         "dropout_sent_encoder": 0, "drop_out_word_encoder": 0, "dropout_word_decoder": 0.,
+                         "dropout_sent_encoder": 0.3, "drop_out_word_encoder": 0.3, "dropout_word_decoder": 0.,
                          "drop_out_word_encoder_out": 0.3, "drop_out_sent_encoder_out": 0.3, "drop_out_char_embedding_decoder":0.3, "dropout_bridge":0.01,
                          "n_layers_word_encoder": 1, "dir_sent_encoder": 2,"word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder":"LSTM",
-                         "hidden_size_sent_encoder": 100, "hidden_size_decoder": 150, "batch_size": 10}
+                         "hidden_size_sent_encoder": 100, "hidden_size_decoder": 200, "batch_size": 10}
 
-      params_strong_tryal = {"hidden_size_encoder": 50, "output_dim": 100, "char_embedding_dim": 50,
+      params_strong_tryal = {"hidden_size_encoder": 26, "output_dim": 100, "char_embedding_dim": 20,
                             "dropout_sent_encoder": 0, "drop_out_word_encoder": 0, "dropout_word_decoder": 0.,
-                            "drop_out_word_encoder_out": 0.3, "drop_out_sent_encoder_out": 0.3,
-                            "drop_out_char_embedding_decoder": 0.3, "dropout_bridge": 0.01,
+                            "drop_out_word_encoder_out": 0., "drop_out_sent_encoder_out": 0.,
+                            "drop_out_char_embedding_decoder": 0., "dropout_bridge": 0.0,
                             "n_layers_word_encoder": 1, "dir_sent_encoder": 2, "word_recurrent_cell_decoder": "LSTM",
                             "word_recurrent_cell_encoder": "LSTM",
-                            "hidden_size_sent_encoder": 100, "hidden_size_decoder": 150, "batch_size": 10}
+                            "hidden_size_sent_encoder": 100, "hidden_size_decoder": 100, "batch_size": 10}
 
       label_0 = "origin_small-batch10-LSTM_sent_bi_dir-word_uni_LSTM"
 
@@ -371,18 +371,22 @@ if __name__ == "__main__":
           print("vword_embed_init shared_context word_decoding  n_trainable_parameters ")
           print("GRID_INFO fixed vals=  word_embed,True auxilliary_task_norm_not_norm,True auxilliary_task_pos,False lr,0.001  batch_size,25 stable_decoding_state,False teacher_force,True char_src_attention,True ")
           print("GRID_INFO fixed vars=  word_embed batch_size auxilliary_task_pos auxilliary_task_norm_not_norm stable_decoding_state teacher_force char_src_attention ")
-      grid_label = "more_sent_layers"
+      grid_label = "Big-word_decode"#"POS-2LSMT-2dense+no_aux_task-sent_only-EWT_DEV-PONDERATION-1pos-0_norm"
       params,labels, default_all, analysed , fixed = grid_param_label_generate(
-                                                                               params_strong_tryal, warmup=False,
+                                                                               params_strong, warmup=False,
                                                                                grid_label="0",
-                                                                               word_decoding_ls=[True, False],
+
+                                                                               word_decoding_ls=[True],
+                                                                               
                                                                                auxilliary_task_pos_ls=[False],
-                                                                               auxilliary_task_norm_not_norm_ls=[True],
+                                                                               
                                                                                dir_sent_encoder_ls=[2], lr_ls=[0.001],
-                                                                               word_embed_init_ls=[None],
-                                                                               shared_context_ls=["all", "sent"],
-                                                                               word_embedding_projected_dim_ls=[50],
-                                                                               n_layers_sent_cell_ls=[1, 2],
+                                                                               word_embed_init_ls=[None, DIR_TWEET_W2V],
+                                                                               shared_context_ls=["sent", "word","all"],
+                                                                               word_embedding_projected_dim_ls=[100],                                                                               
+                                                                               auxilliary_task_norm_not_norm_ls=[True],
+                                                                               char_src_attention_ls=[False],
+                                                                               n_layers_sent_cell_ls=[2],
                                                                                unrolling_word_ls=[True]
                                                                                )
 
@@ -419,7 +423,7 @@ if __name__ == "__main__":
       dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
       os.mkdir(dir_grid)
       printing("GRID RUN : Grid directory : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
-      train_path, dev_path = EWT_DEV, DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+      train_path, dev_path = LIU_TRAIN, LIU_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
       for param, model_id_pref in zip(params, labels):
           i += 1
           printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
@@ -451,8 +455,8 @@ if __name__ == "__main__":
             param["dense_dim_word_pred_3"] = 500
 
             param["char_decoding"] = not param["word_decoding"]
-            param["auxilliary_task_pos"] = False
-            param["dense_dim_auxilliary_pos"] = 0
+            param["auxilliary_task_pos"] = True
+            param["dense_dim_auxilliary_pos"] = 100
             param["dense_dim_auxilliary_pos_2"] = None
             param["word_embed_init"] = None
             param["word_embed"] = True
@@ -478,7 +482,7 @@ if __name__ == "__main__":
                                                   get_batch_mode_all=True, compute_scoring_curve=False,
                                                   freq_scoring=10, bucketing_train=True, freq_checkpointing=1,
                                                   symbolic_root=True, symbolic_end=True,
-                                                  freq_writer=10 if not test_before_run else 1,
+                                                  freq_writer=1 if not test_before_run else 1,
                                                   extend_n_batch=2,
                                                   score_to_compute_ls=["exact", "norm_not_norm-F1",
                                                                        "norm_not_norm-Precision",

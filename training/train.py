@@ -220,7 +220,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
     step_dev = 0
     if ADAPTABLE_SCORING:
         printing("WARNING : scoring epochs not regualr (more at the begining ", verbose_level=1, verbose=verbose)
-        freq_scoring=1
+        freq_scoring = 1
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
         assert policy in AVAILABLE_SCHEDULING_POLICIES
         policy_dic = eval(policy)(epoch) if policy is not None else None
