@@ -80,6 +80,9 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
     dense_dim_auxilliary_pos = args.get("dense_dim_auxilliary_pos", None)
     dense_dim_auxilliary_pos_2 = args.get("dense_dim_auxilliary_pos_2", None)
 
+    activation_char_decoder =  args.get("activation_char_decoder", None)
+    activation_word_decoder = args.get("activation_word_decoder", None)
+
     n_epochs = 1 if warmup else n_epochs
 
     if warmup:
@@ -122,6 +125,7 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
                             word_decoding=word_decoding, dense_dim_word_pred=dense_dim_word_pred,
                             dense_dim_word_pred_2=dense_dim_word_pred_2, dense_dim_word_pred_3=dense_dim_word_pred_3,
                             char_decoding=char_decoding,
+                            activation_char_decoder=activation_char_decoder, activation_word_decoder=activation_word_decoder,
                             symbolic_end=symbolic_end, symbolic_root=symbolic_root,
                             stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                             test_path=test_path[0] if isinstance(test_path,list) else test_path,
@@ -200,7 +204,7 @@ if __name__ == "__main__":
                             "hidden_size_sent_encoder": 250, "hidden_size_decoder": 100, "batch_size": 10}
 
       label_0 = "origin_small-batch10-LSTM_sent_bi_dir-word_uni_LSTM"
-
+    
       ABLATION_NETWORK_SIZE = False
 
       if ABLATION_NETWORK_SIZE:
@@ -371,26 +375,27 @@ if __name__ == "__main__":
           print("vword_embed_init shared_context word_decoding  n_trainable_parameters ")
           print("GRID_INFO fixed vals=  word_embed,True auxilliary_task_norm_not_norm,True auxilliary_task_pos,False lr,0.001  batch_size,25 stable_decoding_state,False teacher_force,True char_src_attention,True ")
           print("GRID_INFO fixed vars=  word_embed batch_size auxilliary_task_pos auxilliary_task_norm_not_norm stable_decoding_state teacher_force char_src_attention ")
-      grid_label = "DEBUG-2LSMT-2dense"#"POS-2LSMT-2dense+no_aux_task-sent_only-EWT_DEV-PONDERATION-1pos-0_norm"
+      grid_label = "DEBUG_NO_LOSS_PADDING-2LSMT-2dense-5DROPOUT"#"POS-2LSMT-2dense+no_aux_task-sent_only-EWT_DEV-PONDERATION-1pos-0_norm"
       params,labels, default_all, analysed , fixed = grid_param_label_generate(
                                                                                params_strong, warmup=False,
                                                                                grid_label="0",
-
-                                                                               word_decoding_ls=[False],
-                                                                               
-                                                                               auxilliary_task_pos_ls=[True],
-                                                                               
+                                                                               stable_decoding_state_ls=[False, True],
+                                                                               word_decoding_ls=[True],
+                                                                               auxilliary_task_pos_ls=[False],
+                                                                               word_embed_ls=[False, True],
                                                                                dir_sent_encoder_ls=[2], lr_ls=[0.001],
                                                                                word_embed_init_ls=[None],
-                                                                               shared_context_ls=["word","sent"],
+                                                                               shared_context_ls=["word", "sent", "all"],
                                                                                word_embedding_projected_dim_ls=[100],                                                                               
                                                                                auxilliary_task_norm_not_norm_ls=[False],
-                                                                               char_src_attention_ls=[False,True],
-                                                                               n_layers_sent_cell_ls=[2],
-                                                                               unrolling_word_ls=[True]
+                                                                               char_src_attention_ls=[False],
+                                                                               n_layers_sent_cell_ls=[1],
+                                                                               unrolling_word_ls=[True],
+                                                                               scale_ls=[1],
                                                                                )
 
       to_enrich = " ".join([a for a, _ in default_all])+" "+" ".join(analysed)
+      to_analysed = " ".join(analysed)
       to_keep_only = " ".join([a+","+str(b) for a, b in default_all])
       metric_add = ""
       if "auxilliary_task_norm_not_norm " in default_all:
@@ -399,7 +404,8 @@ if __name__ == "__main__":
           metric_add += " accuracy-pos"
       print("GRID_INFO metric    =  ", metric_add)
 
-      print("GRID_INFO analy vars=  ", to_enrich)
+      print("GRID_INFO enrch vars=  ", to_enrich)
+      print("GRID_INFO analy vars=  ", to_analysed)
       print("GRID_INFO fixed vals=   ", to_keep_only)
 
       # only for cloud run :
@@ -446,7 +452,7 @@ if __name__ == "__main__":
             param["auxilliary_task_norm_not_norm"] = True
             param["weight_binary_loss"] = 1
             param["unrolling_word"] = True
-            param["char_src_attention"] = False
+            param["char_src_attention"] = True
             train_path, dev_path = DEMO, DEMO2
             param["shared_context"] = "all"
             param["dense_dim_auxilliary"] = None
@@ -455,10 +461,10 @@ if __name__ == "__main__":
             param["dense_dim_auxilliary_2"] = None
             param["stable_decoding_state"] = True
             param["init_context_decoder"] = False
-            param["word_decoding"] = False
-            param["dense_dim_word_pred"] = None
-            param["dense_dim_word_pred_2"] = None
-            param["dense_dim_word_pred_3"] = None
+            param["word_decoding"] = True
+            param["dense_dim_word_pred"] = 300
+            param["dense_dim_word_pred_2"] = 300
+            param["dense_dim_word_pred_3"] = 100
 
             param["char_decoding"] = not param["word_decoding"]
             param["auxilliary_task_pos"] = True
@@ -469,6 +475,9 @@ if __name__ == "__main__":
             param["word_embedding_dim"] = 100
             param["word_embedding_projected_dim"] = 50
             param["n_layers_sent_cell"] = 2
+            import torch.nn as nn
+            param["activation_char_decoder"] = "nn.LeakyReLU"
+            param["activation_word_decoder"] = "nn.LeakyReLU"
             param["lr"] = 0.05
 
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)

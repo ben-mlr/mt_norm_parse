@@ -31,6 +31,7 @@ class CharDecoder(nn.Module):
         self.unrolling_word = unrolling_word
         self.stable_decoding_state = stable_decoding_state
         self.init_context_decoder = init_context_decoder
+
         printing("WARNING : stable_decoding_state is {}", var=[stable_decoding_state], verbose_level=0, verbose=verbose)
         printing("WARNING : init_context_decoder is {}", var=[init_context_decoder], verbose_level=0, verbose=verbose)
         printing("WARNING : DECODER unrolling_word is {}", var=[unrolling_word], verbose_level=0, verbose=verbose)
@@ -62,7 +63,7 @@ class CharDecoder(nn.Module):
         printing("MODEL Decoder : word_recurrent_cell has been set to {} ".format(str(word_recurrent_cell)),
                  verbose=verbose, verbose_level=1)
         #self.attn_param = nn.Linear(hidden_size_decoder*1) if char_src_attention else None
-
+        self.dropout_char_in = nn.Dropout(0.3)
         self.attn_layer = Attention(hidden_size_word_decoder=hidden_size_decoder,
                                     char_embedding_dim=self.char_embedding_decoder.embedding_dim,
                                     time=self.timing,
@@ -358,6 +359,7 @@ class CharDecoder(nn.Module):
 class WordDecoder(nn.Module):
     def __init__(self,  input_dim,
                  voc_size, dense_dim, dense_dim_2, dense_dim_3=0,
+                 activation=None,
                  verbose=2):
         super(WordDecoder, self).__init__()
         assert dense_dim is not None and dense_dim > 0, "ERROR dense_dim should be 0"
@@ -370,6 +372,7 @@ class WordDecoder(nn.Module):
                 dense_dim_3 = dense_dim_2
         else:
             dense_dim_3 = dense_dim
+        self.activation_decoder = str(nn.Relu) if activation is None else activation
         self.dense_output_1 = nn.Linear(input_dim, dense_dim)
         self.dense_output_2 = nn.Linear(dense_dim, dense_dim_2) if n_layers > 1 else None
         self.dense_output_3 = nn.Linear(dense_dim_2, dense_dim_3) if n_layers>2 else None
@@ -377,12 +380,13 @@ class WordDecoder(nn.Module):
         printing("MODEL WordDecoder set with {} dense layers + softmax ", var=n_layers, verbose=verbose, verbose_level=1)
 
     def forward(self, context):
+        activation = eval(self.activation_decoder)
         if self.dense_output_3 is not None:
-            prediction_state = nn.ReLU()(self.dense_output_4(nn.ReLU()(self.dense_output_3(nn.ReLU()(self.dense_output_2(nn.ReLU()(self.dense_output_1(context))))))))
+            prediction_state = activation()(self.dense_output_4(activation()(self.dense_output_3(activation()(self.dense_output_2(activation()(self.dense_output_1(context))))))))
         elif self.dense_output_2 is not None:
-            prediction_state = nn.ReLU()(self.dense_output_4(nn.ReLU()(self.dense_output_2(nn.ReLU()(self.dense_output_1(context))))))
+            prediction_state = activation()(self.dense_output_4(activation()(self.dense_output_2(activation()(self.dense_output_1(context))))))
         else:
-            prediction_state = nn.ReLU()(self.dense_output_4(nn.ReLU()(self.dense_output_1(context))))
+            prediction_state = activation()(self.dense_output_4(activation()(self.dense_output_1(context))))
 
         return prediction_state
         # TODO :

@@ -427,14 +427,15 @@ def decode_word(model, src_seq, src_len,
             pred_norm_not_norm = pred_norm_not_norm[:, :src_seq.size(1)]  # followign what's done above
 
         src_word_count, src_text, src_all_ls = output_text_(src_seq, model.char_dictionary,
-                                                            single_sequence=single_sequence,debug=False,
+                                                            single_sequence=single_sequence, debug=False,
                                                             output_str=True)
-        words_count_pred, text_decoded, _ = output_text_(prediction, word_decode=True, word_dic=model.word_nom_dictionary,
+        words_count_pred, text_decoded, _ = output_text_(prediction, word_decode=True, word_dic=model.word_dictionary,#word_nom_dictionary,
                                                          single_sequence=single_sequence, char_decode=False,
                                                          debug=False,
                                                          output_str=True)
-        words_count_gold, target_word_gold_text, _ = output_text_(target_word_gold, word_decode=True,
-                                                                  word_dic=model.word_nom_dictionary,
+        words_count_gold, target_word_gold_text, _ = output_text_(input_word,#target_word_gold,
+                                                                  word_decode=True,
+                                                                  word_dic=model.word_dictionary,#model.word_nom_dictionary,
                                                                   debug=False,
                                                                   single_sequence=single_sequence, char_decode=False,
                                                                   output_str=True)
@@ -629,9 +630,10 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
         batch_lens = Variable(torch.from_numpy(np.array([sent_words_lens, sent_words_lens])), requires_grad=False)
         batch_lens = batch_lens.unsqueeze(dim=2)
         if beam_decode:
-            decode_sequence_beam(model=model,char_dictionary=char_dictionary,
-                                  max_len=max_len, src_seq=batch, src_len=batch_lens,beam_size=beam_size,
-                                  src_mask=batch_masks, pad=pad, verbose=verbose)
+            decode_sequence_beam(model=model, char_dictionary=char_dictionary,
+                                 max_len=max_len, src_seq=batch, src_len=batch_lens,beam_size=beam_size,
+                                 src_mask=batch_masks, pad=pad,
+                                 verbose=verbose)
         else:
             pdb.set_trace()
             (text_decoded, src_text, target), _, (attention, src_seq), (pred_norm,_, _, _)  \

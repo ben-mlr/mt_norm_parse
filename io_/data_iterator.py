@@ -108,7 +108,8 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             printing("TYPE {} char before batch chars_norm {} ", var=(char.is_cuda, chars_norm.is_cuda),
                      verbose=verbose, verbose_level=5)
 
-            yield MaskBatch(char, char, output_word=word_norm, output_norm_not_norm=word_norm_not_norm,
+            yield MaskBatch(char, char, output_word=word,#word_norm,
+                            output_norm_not_norm=word_norm_not_norm,
                             pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose), order_ids
 
 

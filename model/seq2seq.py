@@ -58,6 +58,7 @@ class LexNormalizer(nn.Module):
                  n_layers_sent_cell=1,
                  symbolic_end=False, symbolic_root=False,
                  extend_vocab_with_test=False, test_path=None,
+                 activation_char_decoder=None, activation_word_decoder=None,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
         character level Sequence to Sequence model for normalization
@@ -215,7 +216,9 @@ class LexNormalizer(nn.Module):
                                                    "teacher_force": teacher_force,
                                                    "stable_decoding_state": stable_decoding_state,
                                                    "init_context_decoder": init_context_decoder,
-                                                 },
+                                                   "activation_word_decoder": str(activation_word_decoder),
+                                                   "activation_char_decoder": str(activation_char_decoder),
+                                                  },
                                   "hidden_size_encoder": hidden_size_encoder,
                                   "hidden_size_sent_encoder": hidden_size_sent_encoder,
                                   "hidden_size_decoder": hidden_size_decoder,
@@ -255,7 +258,9 @@ class LexNormalizer(nn.Module):
                 teacher_force, dense_dim_auxilliary_2, stable_decoding_state, init_context_decoder, \
             word_decoding, char_decoding, auxilliary_task_pos, dense_dim_auxilliary_pos, dense_dim_auxilliary_pos_2, \
                 dense_dim_word_pred, dense_dim_word_pred_2,dense_dim_word_pred_3, \
-                symbolic_root, symbolic_end, word_embedding_dim, word_embed, word_embedding_projected_dim = get_args(args, False)
+                symbolic_root, symbolic_end, word_embedding_dim, word_embed, word_embedding_projected_dim, \
+                activation_char_decoder, activation_word_decoder = get_args(args, False)
+
 
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
@@ -309,12 +314,15 @@ class LexNormalizer(nn.Module):
         self.hidden_size_decoder = hidden_size_decoder
         #self.layer_norm = nn.LayerNorm(hidden_size_decoder, elementwise_affine=False) if True else None
         self.dropout_bridge = nn.Dropout(p=drop_out_bridge)
+        dropout_char_encoder = 0.3
+        self.dropout_char_encoder = nn.Dropout(p=dropout_char_encoder )
         self.normalize_not_normalize \
             = BinaryPredictor(input_dim=hidden_size_decoder,
                               dense_dim=dense_dim_auxilliary,
                               dense_dim_2=dense_dim_auxilliary_2) if self.auxilliary_task_norm_not_norm else None
         #self.char_embedding_2 = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
         self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size,
+                                   activation=activation_char_decoder,
                                    output_dim=output_dim, verbose=verbose)
         self.decoder = CharDecoder(self.char_embedding, input_dim=char_embedding_dim,
                                    hidden_size_decoder=hidden_size_decoder,timing=timing,
@@ -330,6 +338,7 @@ class LexNormalizer(nn.Module):
 
         self.word_decoder = WordDecoder(voc_size=word_voc_output_size, input_dim=hidden_size_decoder,
                                         dense_dim=dense_dim_word_pred, dense_dim_2=dense_dim_word_pred_2,
+                                        activation=activation_word_decoder,
                                         dense_dim_3=dense_dim_word_pred_3) if word_decoding else None
         voc_pos_size = len(self.pos_dictionary.instance2index)+1
         self.pos_predictor = PosPredictor(voc_pos_size=voc_pos_size, input_dim=hidden_size_decoder, dense_dim=dense_dim_auxilliary_pos) if auxilliary_task_pos else None
@@ -386,6 +395,7 @@ class LexNormalizer(nn.Module):
             printing("DECODER hidden state after norm_not_norm_hidden size {}", var=[norm_not_norm_hidden.size()],
                      verbose=0, verbose_level=4)
         if self.decoder is not None and not word_level_predict:
+            pdb.set_trace()
             output, attention_weight_all = self.decoder.forward(output_seq, context, output_word_len,
                                                                 word_src_sizes=word_src_sizes,
                                                                 char_seq_hidden_encoder=char_seq_hidden_encoder,

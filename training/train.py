@@ -64,6 +64,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
           word_decoding=False, char_decoding=True,
           dense_dim_word_pred=None, dense_dim_word_pred_2=None,dense_dim_word_pred_3=None,
           symbolic_root=False, symbolic_end=False, extern_emb_dir=None,
+          activation_word_decoder=None, activation_char_decoder=None,
           verbose=1):
 
     if not unrolling_word:
@@ -161,6 +162,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                           symbolic_root=symbolic_root, symbolic_end=symbolic_end,
                           word_embed=word_embed, word_embedding_dim=word_embedding_dim, word_embedding_projected_dim=word_embedding_projected_dim,
                           word_embed_dir=extern_emb_dir, word_voc_input_size=word_voc_input_size,
+                          activation_char_decoder=activation_char_decoder, activation_word_decoder=activation_word_decoder,
                           test_path=test_path, extend_vocab_with_test=test_path is not None, # if test is padded we extend
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
     pos_batch = auxilliary_task_pos
