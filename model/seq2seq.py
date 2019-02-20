@@ -321,6 +321,7 @@ class LexNormalizer(nn.Module):
                               dense_dim=dense_dim_auxilliary,
                               dense_dim_2=dense_dim_auxilliary_2) if self.auxilliary_task_norm_not_norm else None
         #self.char_embedding_2 = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
+        pdb.set_trace()
         self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size,
                                    activation=activation_char_decoder,
                                    output_dim=output_dim, verbose=verbose)
@@ -335,7 +336,6 @@ class LexNormalizer(nn.Module):
                                    generator=self.generator if not teacher_force else None, shared_context=shared_context,
                                    stable_decoding_state=stable_decoding_state,
                                    verbose=verbose) if char_decoding else None
-
         self.word_decoder = WordDecoder(voc_size=word_voc_output_size, input_dim=hidden_size_decoder,
                                         dense_dim=dense_dim_word_pred, dense_dim_2=dense_dim_word_pred_2,
                                         activation=activation_word_decoder,
@@ -372,6 +372,7 @@ class LexNormalizer(nn.Module):
             word_embed_input = self.word_embedding(word_embed_input)
             if self.word_embedding_project is not None:
                 word_embed_input = self.word_embedding_project(word_embed_input)
+
         context, sent_len_max_source, \
         char_seq_hidden_encoder, word_src_sizes = self.encoder.forward(input_seq, input_word_len,
                                                                        word_embed_input=word_embed_input)

@@ -7,7 +7,6 @@ import time
 import pdb
 from env.project_variables import SUPPORED_WORD_ENCODER
 
-
 class CharEncoder(nn.Module):
 
     def __init__(self, char_embedding, input_dim, hidden_size_encoder, hidden_size_sent_encoder,

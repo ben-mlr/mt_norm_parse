@@ -372,7 +372,9 @@ class WordDecoder(nn.Module):
                 dense_dim_3 = dense_dim_2
         else:
             dense_dim_3 = dense_dim
-        self.activation_decoder = str(nn.Relu) if activation is None else activation
+
+        self.activation_decoder = str("nn.ReLU") if activation is None or activation == str(None) else activation
+
         self.dense_output_1 = nn.Linear(input_dim, dense_dim)
         self.dense_output_2 = nn.Linear(dense_dim, dense_dim_2) if n_layers > 1 else None
         self.dense_output_3 = nn.Linear(dense_dim_2, dense_dim_3) if n_layers>2 else None

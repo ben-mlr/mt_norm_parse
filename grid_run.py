@@ -125,7 +125,8 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
                             word_decoding=word_decoding, dense_dim_word_pred=dense_dim_word_pred,
                             dense_dim_word_pred_2=dense_dim_word_pred_2, dense_dim_word_pred_3=dense_dim_word_pred_3,
                             char_decoding=char_decoding,
-                            activation_char_decoder=activation_char_decoder, activation_word_decoder=activation_word_decoder,
+                            activation_char_decoder=activation_char_decoder,
+                            activation_word_decoder=activation_word_decoder,
                             symbolic_end=symbolic_end, symbolic_root=symbolic_root,
                             stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                             test_path=test_path[0] if isinstance(test_path,list) else test_path,
@@ -375,12 +376,12 @@ if __name__ == "__main__":
           print("vword_embed_init shared_context word_decoding  n_trainable_parameters ")
           print("GRID_INFO fixed vals=  word_embed,True auxilliary_task_norm_not_norm,True auxilliary_task_pos,False lr,0.001  batch_size,25 stable_decoding_state,False teacher_force,True char_src_attention,True ")
           print("GRID_INFO fixed vars=  word_embed batch_size auxilliary_task_pos auxilliary_task_norm_not_norm stable_decoding_state teacher_force char_src_attention ")
-      grid_label = "DEBUG_NO_LOSS_PADDING-2LSMT-2dense-5DROPOUT0"#"POS-2LSMT-2dense+no_aux_task-sent_only-EWT_DEV-PONDERATION-1pos-0_norm"
+      grid_label = "DEBUG_NO_LOSS_PADDING-LEAKY-2LSMT-2dense-5DROPOUT0"#"POS-2LSMT-2dense+no_aux_task-sent_only-EWT_DEV-PONDERATION-1pos-0_norm"
       params,labels, default_all, analysed , fixed = grid_param_label_generate(
                                                                                params_strong, warmup=False,
                                                                                grid_label="0",
                                                                                stable_decoding_state_ls=[False, True],
-                                                                               word_decoding_ls=[True],
+                                                                               word_decoding_ls=[False],
                                                                                auxilliary_task_pos_ls=[False],
                                                                                word_embed_ls=[False, True],
                                                                                dir_sent_encoder_ls=[2], lr_ls=[0.001],
@@ -461,10 +462,10 @@ if __name__ == "__main__":
             param["dense_dim_auxilliary_2"] = None
             param["stable_decoding_state"] = True
             param["init_context_decoder"] = False
-            param["word_decoding"] = True
-            param["dense_dim_word_pred"] = 300
-            param["dense_dim_word_pred_2"] = 300
-            param["dense_dim_word_pred_3"] = 100
+            param["word_decoding"] = False
+            param["dense_dim_word_pred"] = None
+            param["dense_dim_word_pred_2"] = None
+            param["dense_dim_word_pred_3"] = None
 
             param["char_decoding"] = not param["word_decoding"]
             param["auxilliary_task_pos"] = True
@@ -476,8 +477,8 @@ if __name__ == "__main__":
             param["word_embedding_projected_dim"] = 50
             param["n_layers_sent_cell"] = 2
             import torch.nn as nn
-            param["activation_char_decoder"] = "nn.LeakyReLU"
-            param["activation_word_decoder"] = "nn.LeakyReLU"
+            #param["activation_char_decoder"] = "nn.LeakyReLU"
+            #param["activation_word_decoder"] = "nn.LeakyReLU"
             param["lr"] = 0.05
 
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)

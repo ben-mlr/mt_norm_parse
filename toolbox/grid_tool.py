@@ -130,7 +130,8 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
 
                                     param["stable_decoding_state"] = stable_decoding_state
                                     param["init_context_decoder"] = not param["stable_decoding_state"]
-
+                                    param["activation_char_decoder"] = "nn.LeakyReLU"
+                                    param["activation_word_decoder"] = "nn.LeakyReLU"
                                     # default
                                     param["dropout_bridge"] = 0.1
                                     param0["word_embed"] = word_embed

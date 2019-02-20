@@ -11,14 +11,15 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
         self.dense = nn.Linear(hidden_size_decoder, output_dim)
         self.proj = nn.Linear(output_dim, voc_size)
-        self.activation = str(nn.ReLU) if activation is None else activation
+        self.activation = "nn.ReLU" if activation is None or activation == str(None) else activation
         self.verbose = verbose
     # TODO : check if relu is needed or not
 
     def forward(self, x):
         # return F.log_softmax(self.proj(x), dim=-1)
         # the log_softmax is done within the loss
-        y = eval(self.activation)()(self.dense(x))
+        activation = eval(self.activation)
+        y = activation()(self.dense(x))
         proj = self.proj(y)
         printing("TYPE  proj {} is cuda ", var=(proj.is_cuda), verbose=0, verbose_level=4)
         if self.verbose >= 3:
