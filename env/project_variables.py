@@ -41,9 +41,15 @@ LEX_TEST_LABEL, LEX_TEST = "lex_norm2015_test", os.path.join(PROJECT_PATH, "./da
 
 LEX_LIU_LABEL,LEX_LIU_TRAIN = "lex_train+liu", os.path.join(PROJECT_PATH, "./data/lexnorm2015/lex_norm_train+liu_2577.conll")
 
+CP_PASTE_TRAIN_LABEL, CP_PASTE_TRAIN = "copy_paste-train", os.path.join(PROJECT_PATH, "./data/copy_paste_train.conll")
+CP_PASTE_DEV_LABEL,CP_PASTE_DEV = "copy_paste-dev", os.path.join(PROJECT_PATH, "./data/copy_paste_dev.conll")
+CP_PASTE_TEST_LABEL,CP_PASTE_TEST = "copy_paste-test", os.path.join(PROJECT_PATH, "./data/copy_paste_test.conll")
+
+
+
 DIR_TWEET_W2V = os.path.join(PROJECT_PATH, "w2v", "tweets.en.w2v.txt")
 W2V_LOADED_DIM = 400
-MAX_VOCABULARY_SIZE_WORD_DIC = 50000
+MAX_VOCABULARY_SIZE_WORD_DIC = 20000
 
 REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO2: DEMO2_LABEL,
                 TEST: TEST_LABEL, LIU: LIU_LABEL,
@@ -51,7 +57,9 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 LEX_TEST:LEX_TEST_LABEL,
                 LEX_LIU_TRAIN:LEX_LIU_LABEL,
                 LIU_DEV: LIU_DEV_LABEL, LIU_TRAIN:LIU_TRAIN_LABEL,
-                EWT_DEV:EWT_DEV_LABEL}
+                EWT_DEV: EWT_DEV_LABEL,
+                CP_PASTE_TRAIN: CP_PASTE_TRAIN_LABEL, CP_PASTE_DEV:CP_PASTE_DEV_LABEL, CP_PASTE_TEST:CP_PASTE_TEST_LABEL
+                }
 
 
 # output dir for writing

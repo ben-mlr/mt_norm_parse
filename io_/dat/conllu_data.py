@@ -19,10 +19,11 @@ from torch.autograd import Variable
 from io_.info_print import printing
 
 
-def load_dict(dict_path, train_path=None, dev_path=None, test_path=None, word_embed_dict=None,
+def load_dict(dict_path, train_path=None, dev_path=None, test_path=None,
               word_normalization=False, pos_specific_data_set=None,
-              dry_run=0, vocab_trim=False, add_start_char=None,
-              verbose=1, force_new_dic=False):
+              word_embed_dict=None,
+              dry_run=0, expand_vocab=False, add_start_char=None,
+               force_new_dic=False,verbose=1 ):
 
   to_create = False
 
@@ -35,10 +36,12 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None, word_em
   if to_create:
     assert train_path is not None and dev_path is not None and add_start_char is not None
     printing("Creating dictionary in {} ".format(dict_path), verbose=verbose, verbose_level=1)
-    word_dictionary, word_norm_dictionary, embed_np, char_dictionary, pos_dictionary, \
-    xpos_dictionary, type_dictionary = create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict, dry_run,
-                                                   vocab_trim=vocab_trim, add_start_char=add_start_char,pos_specific_data_set=pos_specific_data_set,
-                                                   word_normalization=word_normalization)
+    word_dictionary, word_norm_dictionary, char_dictionary, pos_dictionary, \
+    xpos_dictionary, type_dictionary = create_dict(dict_path, train_path, dev_path, test_path,  dry_run,
+                                                   word_embed_dict=word_embed_dict,
+                                                   expand_vocab_bool=expand_vocab, add_start_char=add_start_char,
+                                                   pos_specific_data_set=pos_specific_data_set,
+                                                   word_normalization=word_normalization, verbose=verbose)
   else:
     # ??
     assert train_path is None and dev_path is None and test_path is None and add_start_char is None
@@ -50,20 +53,18 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None, word_em
     pos_dictionary = Dictionary('pos', default_value=True)
     xpos_dictionary = Dictionary('xpos', default_value=True)
     type_dictionary = Dictionary('type', default_value=True)
-    dic_to_load_names = ["word","character","pos","xpos","type"]
+    dic_to_load_names = ["word", "character", "pos", "xpos", "type"]
     dict_to_load = [word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary]
     if word_normalization:
       dic_to_load_names.append("word_norm")
       dict_to_load.append(word_norm_dictionary)
     for name, dic in zip(dic_to_load_names, dict_to_load):
       dic.load(input_directory=dict_path, name=name)
-  if word_embed_dict == {}:
-    #TODO  should be done updward !!
-    embed_np = None
-  return word_dictionary, word_norm_dictionary, embed_np, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary
+
+  return word_dictionary, word_norm_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary
 
 
-def pos_specific_dic_builder(pos_specific_data_set,pos_dictionary):
+def pos_specific_dic_builder(pos_specific_data_set, pos_dictionary):
   if pos_specific_data_set is not None:
     assert os.path.exists(pos_specific_data_set), "{} does not exist".format(pos_specific_data_set)
     with codecs.open(pos_specific_data_set, 'r', 'utf-8', errors='ignore') as file:
@@ -79,23 +80,23 @@ def pos_specific_dic_builder(pos_specific_data_set,pos_dictionary):
         #xpos = tokens[4]
         pos_dictionary.add(pos)
         #xpos_dictionary.add(xpos)
-    printing("POS Vocabulary : pos dictionary built on {} ".format(pos_specific_data_set), verbose_level=1, verbose=1)
+    printing("VOCABULARY : POS Vocabulary : pos dictionary built on {} ".format(pos_specific_data_set), verbose_level=1, verbose=1)
     return pos_dictionary
-  printing("POS Vocabulary : pos dictionary untouched", verbose_level=1, verbose=1)
+  printing("VOCABULARY : POS Vocabulary : pos dictionary untouched", verbose_level=1, verbose=1)
   return pos_dictionary
 
 
-def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
-                dry_run, word_normalization=False, vocab_trim=False, add_start_char=0,
-                min_occurence=0, pos_specific_data_set=None,
+def create_dict(dict_path, train_path, dev_path, test_path,
+                dry_run, word_normalization=False, expand_vocab_bool=False, add_start_char=0,
+                min_occurence=0, pos_specific_data_set=None,word_embed_dict=None, verbose=1,
                ):
   """
   Given train, dev, test treebanks and a word embedding matrix :
   - basic mode : create key_value instanes for each CHAR, WORD, U|X-POS , Relation with special cases for Roots, Padding and End symbols
   - expanding is done on dev set (we assume that dev set is accessible)
   - min_occurence : if <= considered as singleton otherwise ad
-  - if vocab_trim == False : we also perform expansion on test set
-  - based on word_embed_dict a new numpy matrix is created that will be used to th
+  - if expand_vocab == True : we also perform expansion on test set if test_path is not None and on dev_path
+  - DEPRECIATED : based on word_embed_dict a new numpy matrix is created that will be used to th : ONLY expansion decision made on word_embed_dict
   - if pos_specific_data_set not None  :
       - build pos_dictionary from it
       - expand word dictionaries with it
@@ -105,7 +106,7 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
       in regard to min_occurence and that the created matrix is correct also   (index --> vetor correct
   """
   default_value = True
-  if word_embed_dict is None:   
+  if word_embed_dict is None:
     word_embed_dict = {}
   word_dictionary = Dictionary('word', default_value=default_value, singleton=True)
   word_norm_dictionary = Dictionary('word_norm', default_value=default_value, singleton=True) if word_normalization else None
@@ -113,17 +114,10 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
   pos_dictionary = Dictionary('pos', default_value=default_value)
   xpos_dictionary = Dictionary('xpos', default_value=default_value)
   type_dictionary = Dictionary('type', default_value=default_value)
-  external_embedding = []
   counter_match_train = 0
   counter_other_train = 0
   char_dictionary.add(PAD_CHAR)
-  word_dictionary.add(PAD)
-  if default_value:
-      # the index 0 is the default value UNK token
-      counter_other_train+=1
-      external_embedding.append(np.random.normal(loc=MEAN_RAND_W2V,scale=SCALE_RAND_W2V,size=W2V_LOADED_DIM))
-  if word_normalization:
-    word_norm_dictionary.add(PAD)
+
   if add_start_char:
     char_dictionary.add(CHAR_START)
 
@@ -135,19 +129,16 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
   xpos_dictionary.add(PAD_POS)
   type_dictionary.add(PAD_TYPE)
 
-  word_dictionary.add(ROOT)
   pos_dictionary.add(ROOT_POS)
   xpos_dictionary.add(ROOT_POS)
   type_dictionary.add(ROOT_TYPE)
 
-  if word_normalization:
-    word_norm_dictionary.add(END)
-  word_dictionary.add(END)
   pos_dictionary.add(END_POS)
   xpos_dictionary.add(END_POS)
   type_dictionary.add(END_TYPE)
 
   vocab = dict()
+  vocab_norm = dict()
   # read training file add to Vocab directly except for words (not word_norm)
   # ## for which we need filtering so we add them to vocab()
   with codecs.open(train_path, 'r', 'utf-8', errors='ignore') as file:
@@ -166,15 +157,17 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
       pos = tokens[3]  #if tokens[4]=='_' else tokens[3]+'$$$'+tokens[4]
       xpos = tokens[4]
       typ = tokens[7]
-      #word_dictionary.add(word) # removed done afterward
       if pos_specific_data_set is None:
         # otherwise : pos-dictionary will be build with pos_specific_data_set
         pos_dictionary.add(pos)
       xpos_dictionary.add(xpos)
       type_dictionary.add(typ)
       if word_normalization:
-        token_norm, _ = get_normalized_token(tokens[9], 0, verbose=0)
-        word_norm_dictionary.add(token_norm)
+        token_norm, _ = get_normalized_token(tokens[9], 0, verbose=verbose)
+        if token_norm in vocab_norm:
+          vocab_norm[token_norm] += 1
+        else:
+          vocab_norm[token_norm] = 1
       if word in vocab:
         vocab[word] += 1
       else:
@@ -185,23 +178,36 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
   # collect singletons
   singletons = set([word for word, count in vocab.items() if count <= min_occurence])
   # if a singleton is in pretrained embedding dict, set the count to min_occur + c
-
   for word in vocab.keys():
     if word in word_embed_dict or word.lower() in word_embed_dict:
       # if words are in word_embed_dict we want them even they appear less then min_occurence
       vocab[word] += min_occurence
+  for word_norm in vocab_norm.keys():
+    # TODO : should do something if we allow word embedding on the target standart side
+    pass
+    #if word in word_embed_dict or word.lower() in word_embed_dict:
+  vocab_norm_list = _START_VOCAB + sorted(vocab_norm, key=vocab_norm.get, reverse=True)
+  # WARNING / same min_occurence for source and target word vocabulary
+  vocab_norm_list = [word for word in vocab_norm_list if word in _START_VOCAB or vocab_norm[word] > min_occurence]
+  if len(vocab_norm_list) > MAX_VOCABULARY_SIZE_WORD_DIC:
+    printing("VOCABULARY : norm vocabulary cut to {}  tokens", var=[MAX_VOCABULARY_SIZE_WORD_DIC],verbose=verbose, verbose_level=1)
+    vocab_norm_list = vocab_norm_list[:MAX_VOCABULARY_SIZE_WORD_DIC]
+
   vocab_list = _START_VOCAB + sorted(vocab, key=vocab.get, reverse=True)
   # filter strictly above min_occurence
   vocab_list = [word for word in vocab_list if word in _START_VOCAB or vocab[word] > min_occurence]
   max_vocabulary_size = MAX_VOCABULARY_SIZE_WORD_DIC
   if len(vocab_list) > max_vocabulary_size:
+    printing("VOCABULARY : target vocabulary cut to {} tokens", var=[MAX_VOCABULARY_SIZE_WORD_DIC], verbose=verbose, verbose_level=1)
     vocab_list = vocab_list[:max_vocabulary_size]
 
   pos_dictionary = pos_specific_dic_builder(pos_specific_data_set, pos_dictionary)
 
   def expand_vocab(data_paths):
     counter_match_dev = 0
+    expand = 0
     vocab_set = set(vocab_list)
+    vocab_norm_set = set(vocab_norm_list)
     for data_path in data_paths:
       if os.path.exists(data_path):
         with codecs.open(data_path, 'r', 'utf-8', errors='ignore') as file:
@@ -221,7 +227,10 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
             typ = tokens[7]
             token_norm, _ = get_normalized_token(tokens[9], 0, verbose=0)
             if word_normalization:
-              word_norm_dictionary.add(token_norm) # TODO : should be handle as word_dictionary with frequency threshold
+              # TODO : add word_norm_embed_dict to allow expansion !
+              if word_norm not in vocab_norm_set and False:
+                vocab_norm_set.add(word_norm)
+                vocab_norm_list.append(word_norm)
             if pos_specific_data_set is None:
               pos_dictionary.add(pos)
             xpos_dictionary.add(xpos)
@@ -230,30 +239,40 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
             # but found in new dataset and appear in word_embed_dict then we add it to vocab # otherwise not need to load them to vocab (they won't have any representation)
             if word not in vocab_set and (word in word_embed_dict or word.lower() in word_embed_dict):
               vocab_set.add(word)
+              expand += 1
               vocab_list.append(word)
             li = li + 1
             if dry_run and li == 100:
               break
-  expand_vocab([dev_path])
-  if not vocab_trim and test_path is not None:
-    expand_vocab([test_path]) # TODO : word_norm should be handle spcecifically
-    printing("VOCAB INFO : expanding vocabulary with {} ", var=[test_path], verbose_level=1, verbose=1)
+        printing("VOCABULARY EXPAND word source vocabulary expanded of {} tokens based on {} ", var=[expand, data_path], verbose=verbose, verbose_level=0)
+  if expand_vocab_bool:
+    expand_vocab([dev_path])
+    printing("VOCABULARY : expanding vocabulary with {} ", var=[dev_path], verbose_level=0, verbose=verbose)
+    if test_path is not None:
+      expand_vocab([test_path])
+      # TODO : word_norm should be handle spcecifically
+      printing("VOCABULARY : expanding vocabulary with {} ", var=[test_path], verbose_level=0, verbose=verbose)
   # TODO : what is singletons for ?
   singletons = []
+  if word_norm_dictionary is not None:
+    for word_norm in vocab_norm_list:
+      word_norm_dictionary.add(word_norm)
+
   for word in vocab_list:
     word_dictionary.add(word)
     if word in word_embed_dict:
       counter_match_train += 1
-      external_embedding.append(word_embed_dict[word])
     else:
       counter_other_train +=1
-      external_embedding.append(np.random.normal(loc=MEAN_RAND_W2V, scale=SCALE_RAND_W2V, size=W2V_LOADED_DIM))
     if word in singletons :
       word_dictionary.add_singleton(word_dictionary.get_index(word))
   word_dictionary.save(dict_path)
   if word_norm_dictionary is not None:
     word_norm_dictionary.save(dict_path)
+    word_norm_dictionary_size = word_norm_dictionary.size()
     word_norm_dictionary.close()
+  else:
+    word_norm_dictionary_size = 0
   char_dictionary.save(dict_path)
   pos_dictionary.save(dict_path)
   xpos_dictionary.save(dict_path)
@@ -263,12 +282,19 @@ def create_dict(dict_path, train_path, dev_path, test_path, word_embed_dict,
   pos_dictionary.close()
   xpos_dictionary.close()
   type_dictionary.close()
-  printing("W2V INFO : {} match  train and dev, {} no match tokens : list of vectors is {} len ".format(counter_match_train,
-                                                                                                       counter_other_train,
-                                                                                                       len(external_embedding)),verbose=1, verbose_level=1)
+  if word_embed_dict != {}:
+    printing("VOCABULARY EXPANSION Match with preexisting word embedding {} match in train and dev and {} no match tokens ".format(
+    counter_match_train, counter_other_train), verbose=1, verbose_level=1)
+  else:
+    printing(
+      "VOCABULARY WORDS was not expanded on dev or test cause no external word embedding dict wa provided", verbose=1, verbose_level=1)
+  printing("VOCABULARY : {} word {} word_norm {} char {} xpos {} pos {} type encoded in vocabulary "
+           "(including default token, an special tokens)",
+           var=[word_dictionary.size(), word_norm_dictionary_size, char_dictionary.size(), xpos_dictionary.size(),
+                pos_dictionary.size(), type_dictionary.size()],
+           verbose=verbose, verbose_level=0)
 
-
-  return word_dictionary, word_norm_dictionary, np.array(external_embedding), char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary
+  return word_dictionary, word_norm_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary
 
 
 def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary, max_size=None,
@@ -496,11 +522,11 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       word_norm = word_norm.cuda() if normalization and word_decoder else None
       chars = chars.cuda()
       pos = pos.cuda()
-      xpos = xpos.cuda()
-      heads = heads.cuda()
-      types = types.cuda()
+      #xpos = xpos.cuda()
+      #heads = heads.cuda()
+      #types = types.cuda()
       masks = masks.cuda()
-      single = single.cuda()
+      #single = single.cuda()
       lengths = lengths.cuda()
     data_variable.append((words, word_norm, chars, chars_norm, word_norm_not_norm,pos, xpos, heads, types,
                           masks, single, lengths, order_inputs, raw_word_inputs, raw_lines))

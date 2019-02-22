@@ -74,7 +74,7 @@ def run_epoch(data_iter, model, loss_compute,
                                                       step=i+step)#, batch.ntokens)
 
             loss_time, start = get_timing(start)
-            total_loss += loss
+            total_loss += loss.item()
             total_loss_details = update_loss_details_dic(total_loss_details, loss_details_current)
             total_tokens += batch.ntokens.type(torch.FloatTensor)
             tokens += batch.ntokens.type(torch.FloatTensor)

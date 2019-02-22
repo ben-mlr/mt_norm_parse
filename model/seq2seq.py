@@ -58,7 +58,7 @@ class LexNormalizer(nn.Module):
                  n_layers_sent_cell=1,
                  symbolic_end=False, symbolic_root=False,
                  extend_vocab_with_test=False, test_path=None,
-                 activation_char_decoder=None, activation_word_decoder=None,
+                 activation_char_decoder=None, activation_word_decoder=None, expand_vocab_dev_test=False,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
         character level Sequence to Sequence model for normalization
@@ -140,24 +140,19 @@ class LexNormalizer(nn.Module):
                 os.mkdir(dict_path)
                 self.dict_path = dict_path
                 print("INFO making dict_path {} ".format(dict_path))
-                if word_embed_dir is not None:
-                    word_embed_dic = load_emb(word_embed_dir, verbose)
-                else:
-                    word_embed_dic = {}
             else:
                 assert train_path is None and dev_path is None and add_start_char is None
                 # we make sure the dictionary dir exists and is located in dict_path
                 assert dict_path is not None, "ERROR dict_path should be specified"
                 assert os.path.isdir(dict_path), "ERROR : dict_path {} does not exist".format(dict_path)
-                word_embed_dic = None
             # we are loading the dictionary now because we need it to define the model
 
-            self.word_dictionary, self.word_nom_dictionary, word_embed_np, self.char_dictionary, \
+            self.word_dictionary, self.word_nom_dictionary,  self.char_dictionary, \
             self.pos_dictionary, self.xpos_dictionary, self.type_dictionary =\
                 conllu_data.load_dict(dict_path=dict_path,
                                       train_path=train_path, dev_path=dev_path,
-                                      word_embed_dict=word_embed_dic, dry_run=False,
-                                      vocab_trim=not extend_vocab_with_test, test_path=test_path,
+                                      word_embed_dict=None, dry_run=False,
+                                      expand_vocab=expand_vocab_dev_test, test_path=test_path,
                                       pos_specific_data_set=pos_specific_path,
                                       word_normalization=word_decoding, add_start_char=add_start_char, verbose=1)
             voc_size = len(self.char_dictionary.instance2index) + 1
@@ -166,8 +161,6 @@ class LexNormalizer(nn.Module):
             word_voc_input_size = len(self.word_dictionary.instance2index) + 1
             word_voc_output_size = len(self.word_nom_dictionary.instance2index)+1 if self.word_nom_dictionary is not None else None
             printing("char_dictionary {} ", var=([self.char_dictionary.instance2index]), verbose=verbose, verbose_level=1)
-            printing("Character vocabulary is {} length", var=(len(self.char_dictionary.instance2index) + 1),
-                     verbose=verbose, verbose_level=0)
 
         # argument saving
         if not load:
@@ -261,14 +254,13 @@ class LexNormalizer(nn.Module):
                 symbolic_root, symbolic_end, word_embedding_dim, word_embed, word_embedding_projected_dim, \
                 activation_char_decoder, activation_word_decoder = get_args(args, False)
 
-
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
         # adjusting for directions : the hidden_size_sent_encoder provided and are the dir x hidden_dim dimensions
         hidden_size_sent_encoder = int(hidden_size_sent_encoder/(n_layers_sent_cell))
         hidden_size_encoder = int(hidden_size_encoder/dir_word_encoder)
-        printing("WARNING : Model : hidden dim of word level and sentence leve encoders are divided by the number of directions",
-                 verbose_level=1, verbose=verbose)
+        printing("WARNING : Model : hidden dim of word level and sentence leve encoders "
+                 "are divided by the number of directions", verbose_level=1, verbose=verbose)
         self.symbolic_end, self.symbolic_root = symbolic_end, symbolic_root
         self.dir_model = dir_model
         self.model_full_name = model_full_name
@@ -278,13 +270,17 @@ class LexNormalizer(nn.Module):
         self.char_embedding = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
         self.word_embedding = nn.Embedding(num_embeddings=word_voc_input_size,
                                            embedding_dim=word_embedding_dim) if word_embed else None
-        self.word_embedding_project = nn.Linear(word_embedding_dim, word_embedding_projected_dim) if word_embed and word_embedding_projected_dim is not None else None
+        if self.word_embedding is not None:
+            self.word_embedding_project = nn.Linear(word_embedding_dim, word_embedding_projected_dim) if word_embed and word_embedding_projected_dim is not None else None
 
-        if word_embed_np is not None:
-            printing("W2V INFO : loaded embedding shape is {} : {} and {} ", var=[word_embed_np.shape, np.mean(word_embed_np),
-                                                                                  np.mean(np.std(word_embed_np, axis=1))],
-                     verbose=verbose, verbose_level=1)
-            self.word_embedding.weight.data = self.word_embedding.weight.data.copy_(torch.from_numpy(word_embed_np))
+        if word_embed_dir is not None:
+            printing("W2V INFO : loading initialized embedding from {}  ", var=[word_embed_dir], verbose=verbose, verbose_level=1)
+            word_embed_dic = load_emb(word_embed_dir, verbose)
+            from io_.dat.create_embedding_mat import construct_word_embedding_table
+            word_embed_torch = construct_word_embedding_table(word_dim=word_embed_dic["a"].size(0), word_dictionary=self.word_dictionary.instance2index,
+                                                              word_embed_init_toke2vec=word_embed_dic,verbose=verbose)
+            printing("W2V INFO : intializing embedding matrix with tensor of shape {}  ", var=[word_embed_torch.size()], verbose=verbose, verbose_level=1)
+            self.word_embedding.weight.data = word_embed_torch
 
         self.encoder = CharEncoder(self.char_embedding, input_dim=char_embedding_dim,
                                    hidden_size_encoder=hidden_size_encoder,

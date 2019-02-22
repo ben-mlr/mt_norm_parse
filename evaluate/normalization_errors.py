@@ -48,7 +48,7 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
                         output_seq_n_hot=None, src_seq=None, target_seq_gold=None, task="normalization",
                         verbose=0):
     # only exact score here !!
-    assert task in ["normalization","pos"]
+    assert task in ["normalization", "pos"]
     dic = OrderedDict()
     pdb.set_trace()
     assert len(ls_gold) == len(ls_pred), "ERROR ls_gold is len {} vs {} : {} while ls_pred is {} ".format(len(ls_gold),

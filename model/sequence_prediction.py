@@ -484,7 +484,7 @@ def decode_word(model, src_seq, src_len,
 
 
 def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
-                    pad=1, target_seq_gold=None,input_word=None,
+                    pad=1, target_seq_gold=None, input_word=None,
                     use_gpu=False,
                     single_sequence=False, verbose=2):
 
@@ -625,7 +625,7 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
             # we have to create batch_size == 2 because of bug
 
         batch = Variable(torch.from_numpy(np.array([sent_character, sent_character])), requires_grad=False)
-        input_word = Variable(torch.from_numpy(np.array([word_ls,word_ls])), requires_grad=False) if word_ls is not None else None
+        input_word = Variable(torch.from_numpy(np.array([word_ls, word_ls])), requires_grad=False) if word_ls is not None else None
         batch_masks = Variable(torch.from_numpy(np.array([sent_words_mask, sent_words_mask])), requires_grad=False)
         batch_lens = Variable(torch.from_numpy(np.array([sent_words_lens, sent_words_lens])), requires_grad=False)
         batch_lens = batch_lens.unsqueeze(dim=2)

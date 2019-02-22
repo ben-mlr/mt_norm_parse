@@ -1,5 +1,6 @@
 import codecs
 import sys
+
 class CoNLLWriter(object):
   def __init__(self, word_dictionary, char_dictionary, pos_dictionary, type_dictionary):
     self.__source_file = None

@@ -89,7 +89,6 @@ class LossCompute:
         y_norm_not_norm = y_norm_not_norm[:, :x_norm_not_norm.size(1)] if y_norm_not_norm is not None else None
         y_word = y_word[:, :x_word_pred.size(1)] if y_word is not None and x_word_pred is not None else None
 
-
         scheduling_norm_not_norm, scheduling_normalize, schedule_pos = schedule_training(multi_task_mode=self.multi_task_mode)
 
         if y is not None:
@@ -118,19 +117,18 @@ class LossCompute:
         else:
             loss_pos = 0
         if loss_binary is not None or (pos_batch and self.loss_distance_pos):
-            multi_task_loss = ponderation_normalize_loss*scheduling_normalize*loss+\
-                          weight_binary_loss*loss_binary*scheduling_norm_not_norm + schedule_pos*loss_pos*weight_pos_loss
+            multi_task_loss = ponderation_normalize_loss*scheduling_normalize*loss+weight_binary_loss*loss_binary*scheduling_norm_not_norm + schedule_pos*loss_pos*weight_pos_loss
         else:
             multi_task_loss = loss
 
-        loss_details["overall_loss"] = multi_task_loss
-        loss_details["loss_seq_prediction"] = loss
+        loss_details["overall_loss"] = multi_task_loss.item()
+        loss_details["loss_seq_prediction"] = loss.item()
 
         if loss_binary is not None:
             printing("LOSS BINARY loss size {} ", var=(str(loss_binary.size())), verbose=self.verbose, verbose_level=3)
             printing("TYPE  loss_binary {} is cuda ", var=(loss_binary.is_cuda), verbose=0, verbose_level=5)
 
-        if self.writer is not None :
+        if self.writer is not None:
             self.writer.add_scalars("loss-"+self.use,
                                     {"loss-{}-seq_pred".format(self.use): loss.clone().cpu().data.numpy(),
                                      "loss-{}-seq_pred-ponderation_normalize_loss".format(self.use): loss.clone().cpu().data.numpy()*ponderation_normalize_loss,

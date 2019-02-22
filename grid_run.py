@@ -7,7 +7,8 @@ import torch
 from toolbox.grid_tool import grid_param_label_generate
 
 from env.project_variables import PROJECT_PATH, TRAINING, DEV, DIR_TWEET_W2V, \
-    TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, REPO_DATASET, LIU, LEX_TRAIN, LEX_TEST, SEED_NP, SEED_TORCH, LEX_LIU_TRAIN, LIU_DEV, LIU_TRAIN, EWT_DEV
+    TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, REPO_DATASET, LIU, LEX_TRAIN, LEX_TEST, SEED_NP, SEED_TORCH, LEX_LIU_TRAIN, LIU_DEV, LIU_TRAIN, EWT_DEV,\
+    CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST
 from uuid import uuid4
 import argparse
 from sys import platform
@@ -18,6 +19,7 @@ torch.manual_seed(SEED_TORCH)
 
 
 def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
+               expand_vocab_dev_test=False,
                n_epochs=11,test_path=None, args=None,
                overall_report_dir=CHECKPOINT_DIR, overall_label="DEFAULT",get_batch_mode_all=True,
                warmup=False, use_gpu=None, freq_checkpointing=1,debug=False,compute_scoring_curve=False,
@@ -88,7 +90,7 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
     if warmup:
         printing("Warm up : running 1 epoch ", verbose=verbose, verbose_level=0)
     printing("GRID : START TRAINING ", verbose_level=0, verbose=verbose)
-    model_full_name = train(train_path, dev_path, pos_specific_path=pos_specific_path,
+    model_full_name = train(train_path, dev_path, pos_specific_path=pos_specific_path,expand_vocab_dev_test=expand_vocab_dev_test,
                             auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
                             dense_dim_auxilliary=dense_dim_auxilliary, dense_dim_auxilliary_2=dense_dim_auxilliary_2,
                             lr=lr,extend_n_batch=extend_n_batch,
@@ -196,13 +198,13 @@ if __name__ == "__main__":
                          "n_layers_word_encoder": 1, "dir_sent_encoder": 2,"word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder":"LSTM",
                          "hidden_size_sent_encoder": 100, "hidden_size_decoder": 200, "batch_size": 10}
 
-      params_strong_tryal = {"hidden_size_encoder": 50, "output_dim": 100, "char_embedding_dim": 40,
+      params_strong_tryal = {"hidden_size_encoder": 20, "output_dim": 20, "char_embedding_dim": 40,
                             "dropout_sent_encoder": 0, "drop_out_word_encoder": 0, "dropout_word_decoder": 0.,
                             "drop_out_word_encoder_out": 0., "drop_out_sent_encoder_out": 0.,
                             "drop_out_char_embedding_decoder": 0., "dropout_bridge": 0.0,
                             "n_layers_word_encoder": 1, "dir_sent_encoder": 2, "word_recurrent_cell_decoder": "LSTM",
                             "word_recurrent_cell_encoder": "LSTM",
-                            "hidden_size_sent_encoder": 250, "hidden_size_decoder": 100, "batch_size": 10}
+                            "hidden_size_sent_encoder": 24, "hidden_size_decoder": 100, "batch_size": 10}
 
       label_0 = "origin_small-batch10-LSTM_sent_bi_dir-word_uni_LSTM"
     
@@ -376,19 +378,20 @@ if __name__ == "__main__":
           print("vword_embed_init shared_context word_decoding  n_trainable_parameters ")
           print("GRID_INFO fixed vals=  word_embed,True auxilliary_task_norm_not_norm,True auxilliary_task_pos,False lr,0.001  batch_size,25 stable_decoding_state,False teacher_force,True char_src_attention,True ")
           print("GRID_INFO fixed vars=  word_embed batch_size auxilliary_task_pos auxilliary_task_norm_not_norm stable_decoding_state teacher_force char_src_attention ")
-      grid_label = "DEBUG_NO_LOSS_PADDING-LEAKY-2LSMT-2dense-5DROPOUT0"#"POS-2LSMT-2dense+no_aux_task-sent_only-EWT_DEV-PONDERATION-1pos-0_norm"
+      grid_label = "DEBUG_NO_LOSS_PADDING-"#"POS-2LSMT-2dense+no_aux_task-sent_only-EWT_DEV-PONDERATION-1pos-0_norm"
       params,labels, default_all, analysed , fixed = grid_param_label_generate(
                                                                                params_strong, warmup=False,
                                                                                grid_label="0",
-                                                                               stable_decoding_state_ls=[False, True],
+                                                                               stable_decoding_state_ls=[False],
                                                                                word_decoding_ls=[False],
+                                                                               batch_size_ls=[26],
                                                                                auxilliary_task_pos_ls=[False],
-                                                                               word_embed_ls=[False, True],
+                                                                               word_embed_ls=[False],
                                                                                dir_sent_encoder_ls=[2], lr_ls=[0.001],
                                                                                word_embed_init_ls=[None],
-                                                                               shared_context_ls=["word", "sent", "all"],
+                                                                               shared_context_ls=["word", "all","sent"],
                                                                                word_embedding_projected_dim_ls=[100],                                                                               
-                                                                               auxilliary_task_norm_not_norm_ls=[False],
+                                                                               auxilliary_task_norm_not_norm_ls=[True],
                                                                                char_src_attention_ls=[False],
                                                                                n_layers_sent_cell_ls=[1],
                                                                                unrolling_word_ls=[True],
@@ -436,11 +439,11 @@ if __name__ == "__main__":
       dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
       os.mkdir(dir_grid)
       printing("GRID RUN : Grid directory : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
-      train_path, dev_path = LIU_TRAIN, LIU_DEV#LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+      train_path, dev_path = CP_PASTE_TRAIN, CP_PASTE_DEV#LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
       for param, model_id_pref in zip(params, labels):
           i += 1
           printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 50 if not test_before_run else 2
+          epochs = 25 if not test_before_run else 2
           if warmup:
             param = {
                      "hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10, "dropout_sent_encoder": 0.,
@@ -491,12 +494,14 @@ if __name__ == "__main__":
 
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
                                                   #pos_specific_path=DEV,
-                                                  test_path=[TEST] if not warmup else DEMO,
+                                                  expand_vocab_dev_test=False,
+                                                  test_path=[CP_PASTE_TEST] if not warmup else DEMO,
                                                   verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,
                                                   get_batch_mode_all=True, compute_scoring_curve=False,
                                                   freq_scoring=10, bucketing_train=True, freq_checkpointing=1,
+
                                                   symbolic_root=True, symbolic_end=True,
                                                   freq_writer=1 if not test_before_run else 1,
                                                   extend_n_batch=2,

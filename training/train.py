@@ -32,6 +32,7 @@ ADAPTABLE_SCORING = True
 
 
 def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_specific_path=None,
+          expand_vocab_dev_test=False,
           batch_size=10, test_path=None,
           label_train="", label_dev="",
           use_gpu=None,
@@ -114,7 +115,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                               test_path=test_path,
                               word_embed_dict={},
                               dry_run=False,
-                              vocab_trim=True,
+                              vocab_trim=False,
                               force_new_dic=True,
                               add_start_char=add_start_char, verbose=1)
 
@@ -132,7 +133,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
             # as it reload : we don't need data
             _train_path, _dev_path, _add_start_char = None, None, None
 
-    model = LexNormalizer(generator=Generator,
+    model = LexNormalizer(generator=Generator,expand_vocab_dev_test=expand_vocab_dev_test,
                           auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
                           dense_dim_auxilliary=dense_dim_auxilliary, dense_dim_auxilliary_2=dense_dim_auxilliary_2,
                           weight_binary_loss=weight_binary_loss,
@@ -165,6 +166,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                           activation_char_decoder=activation_char_decoder, activation_word_decoder=activation_word_decoder,
                           test_path=test_path, extend_vocab_with_test=test_path is not None, # if test is padded we extend
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
+    #model.word_embedding.weight.requires_grad = False
     pos_batch = auxilliary_task_pos
     if use_gpu:
         model = model.cuda()
@@ -177,8 +179,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
     starting_epoch = model.arguments["info_checkpoint"]["n_epochs"] if reload else 0
     reloading = "" if not reload else " reloaded from "+str(starting_epoch)
     n_epochs += starting_epoch
-
-    adam = torch.optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.98), eps=1e-9)
+    parameters = filter(lambda p: p.requires_grad, model.parameters())
+    adam = torch.optim.Adam(parameters, lr=lr, betas=(0.9, 0.98), eps=1e-9)
     _loss_dev = 1000
     _loss_train = 1000
     counter_no_deacrease = 0
