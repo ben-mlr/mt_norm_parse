@@ -1,6 +1,7 @@
 from env.project_variables import AVAILABLE_TASKS
 from io_.info_print import printing
 
+
 def get_label_norm(norm):
     if norm == 0:
         return "NEED_NORM"

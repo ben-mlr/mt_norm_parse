@@ -34,8 +34,6 @@ MEAN_RAND_W2V = 0
 SCALE_RAND_W2V = 0.2
 
 
-
-
 import re
 DIGIT_RE = re.compile(br"\d")
 

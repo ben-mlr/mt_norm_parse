@@ -15,6 +15,7 @@ from collections import OrderedDict
 #from toolbox.beam_related_reshape_ind import get_beam_ind_token_ind
 from evaluate.visualize_attention import show_attention
 from toolbox.norm_not_norm import get_label_norm
+from io_.dat.constants import PAD, ROOT, END, ROOT_CHAR, END_CHAR
 # EPSILON for the test of edit distance 
 EPSILON = 0.000001
 TEST_SCORING_IN_CODE = False
@@ -127,7 +128,7 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                 if model.arguments["hyperparameters"]["decoder_arch"].get("char_decoding", True):
                     assert not model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False), \
                         "ERROR : only on type of decoding should be set (for now)"
-                    (text_decoded_ls, src_text_ls, gold_text_seq_ls), counts, _, \
+                    (text_decoded_ls, src_text_ls, gold_text_seq_ls, _), counts, _, \
                     (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_sequence(model=model,
                                                                                               char_dictionary=char_dictionary,
                                                                                               single_sequence=False,
@@ -141,13 +142,13 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                                                                                               pad=pad, verbose=verbose)
 
                 elif model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False):
-                    (text_decoded_ls, src_text_ls, gold_text_seq_ls), counts, _, \
+                    (text_decoded_ls, src_text_ls, gold_text_seq_ls, _), counts, _, \
                     (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_word(model, src_seq, src_len,
                                                                                           input_word=batch.input_word,
                                                                                           target_word_gold=target_word_gold)
-                if model.arguments["hyperparameters"].get("auxilliary_arch",{}).get("auxilliary_task_pos", False):
+                if model.arguments["hyperparameters"].get("auxilliary_arch", {}).get("auxilliary_task_pos", False):
                     # decode pos
-                    (pred_pos_ls, src_text_pos, gold_pos_seq_ls), counts_pos, _, \
+                    (pred_pos_ls, src_text_pos, gold_pos_seq_ls, _), counts_pos, _, \
                     (_, _, src_seq_pos, target_seq_gold_pos) = decode_word(model, src_seq, src_len,
                                                                            input_word=batch.input_word,
                                                                            mode="pos", target_pos_gold=target_pos_gold)
@@ -188,11 +189,9 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                                                                                              src_seq=src_seq,
                                                                                              target_seq_gold=gold_pos_seq_ls,
                                                                                              ls_original=src_text_pos, task="pos")
-                        pdb.set_trace()
                         counter_correct_batch.update(counter_correct_batch_pos)
                         score_formulas.update(score_formulas_pos)
 
-                    pdb.set_trace()
                     #for key, val in zip(counter_correct.keys(), counter_correct_batch.value()):
                     for key, val in counter_correct_batch.items():
                         try:
@@ -346,7 +345,6 @@ def decode_sequence_beam(model, max_len, src_seq, src_mask, src_len, char_dictio
         # for each sent , each word , the current decoded step : we associate the prediction to its beam
         #output_seq[0, 0, char_decode - 1, beam_id_cand[0, 0, 0]] = token_pred_id_cand[0, 0, 0]
 
-
         def update_output_seq(output_seq_, token_pred_id_cand, beam_id_cand,log_scores_ranked_former_all_seq, char_decode_step):
             output_seq_1 = output_seq_.clone()
             log_scores_ranked_former_all_seq_1 = log_scores_ranked_former_all_seq.clone()
@@ -368,8 +366,6 @@ def decode_sequence_beam(model, max_len, src_seq, src_mask, src_len, char_dictio
                             print(token_pred_id_cand[sent, word, ind_new_beam])
                             print(output_seq_[sent, word, char_decode_step - 1, ind_new_beam])
                             print(output_seq_[sent, word, char_decode_step - 1, :])
-                            pdb.set_trace()
-            pdb.set_trace()
             return output_seq_1, log_scores_ranked_former_all_seq_1
 
         output_seq, log_scores_ranked_former_all_seq = update_output_seq(output_seq, token_pred_id_cand, beam_id_cand, log_scores_ranked_former_all_seq, char_decode)
@@ -401,8 +397,9 @@ def decode_sequence_beam(model, max_len, src_seq, src_mask, src_len, char_dictio
 
 
 def decode_word(model, src_seq, src_len,
-                pad=1, target_word_gold=None, use_gpu=False, target_pos_gold=None,
-                mode = "word",input_word=None,
+                pad=1, target_word_gold=None,
+                use_gpu=False, target_pos_gold=None,
+                mode="word", input_word=None,
                 single_sequence=False, verbose=2):
     """
     NB : could be more factorized (its exactly the same prediction the only difference is the dictionary
@@ -412,15 +409,18 @@ def decode_word(model, src_seq, src_len,
                                                              word_embed_input=input_word,
                                                              word_level_predict=True)
     pred_norm_not_norm = None
+    src_word_input = None
     if mode == "word":
         assert target_pos_gold is None, "Only target_word_gold should be provided"
-        assert target_word_gold is not None
+        if target_word_gold is None:
+            print("INFO decoding with no gold reference")
         prediction = word_pred.argmax(dim=-1)
 
         # we trust the predictor to do the padding !
         src_seq = src_seq[:, :prediction.size(1)]
         # should not be mandatory right ?
-        target_word_gold = target_word_gold[: , :prediction.size(1)]
+        if target_word_gold is not None:
+            target_word_gold = target_word_gold[: , :prediction.size(1)]
         if norm_not_norm is not None:
             pred_norm_not_norm = norm_not_norm.argmax(dim=-1)
         if pred_norm_not_norm is not None:
@@ -433,12 +433,26 @@ def decode_word(model, src_seq, src_len,
                                                          single_sequence=single_sequence, char_decode=False,
                                                          debug=False,
                                                          output_str=True)
-        words_count_gold, target_word_gold_text, _ = output_text_(input_word,#target_word_gold,
-                                                                  word_decode=True,
-                                                                  word_dic=model.word_dictionary,#model.word_nom_dictionary,
-                                                                  debug=False,
-                                                                  single_sequence=single_sequence, char_decode=False,
-                                                                  output_str=True)
+        pdb.set_trace()
+        if target_word_gold is not None:
+            assert model.word_nom_dictionary is not None, "ERROR : word_nom_dictionary is required"
+            words_count_gold, target_word_gold_text, _ = output_text_(target_word_gold,#input_word,#target_word_gold,
+                                                                      word_decode=True,
+                                                                      word_dic=model.word_nom_dictionary,
+                                                                      debug=False,
+                                                                      single_sequence=single_sequence, char_decode=False,
+                                                                      output_str=True)
+        else:
+            words_count_gold, target_word_gold_text = None, None
+
+        if input_word is not None:
+            words_embed_count_src, src_word_input, _ = output_text_(input_word,
+                                                                      word_decode=True,
+                                                                      word_dic=model.word_dictionary,
+                                                                      # model.word_nom_dictionary,
+                                                                      debug=False, single_sequence=single_sequence,
+                                                                      char_decode=False, output_str=True)
+
         # fix by hand  # TODO : check if it is corret
         # its based on src_text sequence length because we assumed word to word mapping and we want to predict without gold
         text_decoded = [sent[:len(ls_gold)] for sent, ls_gold in zip(text_decoded, src_text)]
@@ -478,9 +492,10 @@ def decode_word(model, src_seq, src_len,
     if single_sequence:
         if pred_norm_not_norm is not None:
             pred_norm_not_norm = pred_norm_not_norm[0]
-    return (text_decoded, src_text, target_word_gold_text), {"src_word_count": src_word_count, "target_word_count": words_count_gold,"pred_word_count": words_count_pred}, \
-            (None, None,), \
-            (pred_norm_not_norm, None, src_seq, target_word_gold)
+    return (text_decoded, src_text, target_word_gold_text, src_word_input), \
+           {"src_word_count": src_word_count, "target_word_count": words_count_gold, "pred_word_count": words_count_pred}, \
+           (None, None,), \
+           (pred_norm_not_norm, None, src_seq, target_word_gold)
 
 
 def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
@@ -573,13 +588,11 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         if pred_norm_not_norm is not None:
             pred_norm_not_norm = pred_norm_not_norm[0]
 
-
-    return (text_decoded, src_text_ls, target_seq_gold_ls), \
+    return (text_decoded, src_text_ls, target_seq_gold_ls, None), \
            {
            "src_word_count": src_word_count,
            "target_word_count": target_word_count,
-           "pred_word_count": pred_word_count
-           },\
+           "pred_word_count": pred_word_count},\
            (attention, src_all_ls,), \
            (pred_norm_not_norm, output_seq, src_seq, target_seq_gold)
 
@@ -592,27 +605,33 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
     assert sent_mode
     sent = seq_string.copy()
     # we add empty words at the end otherwie poblem !! # TODO : understand why ? is it because we need word padded at the end of the sentence ?
-    sent.append("")
+    #sent.append("")
     with torch.no_grad():
         sent_character = []
         sent_words_mask = []
         sent_words_lens = []
         word_ls = [] if word_dictionary is not None else None # word_norm_dictionary is the signal for using word at input
         print("sent", sent)
+        sent = [ROOT]+sent+[END]
         for seq_string in sent:
+            # should be padded in the same way as done in the training data conll_reader
+            pdb.set_trace()
             if len(seq_string) > 0:
-                #TODO add start symbol for word and character !!
                 word_string = seq_string[:]
+                if seq_string == ROOT:
+                    seq_string = ROOT_CHAR
                 _seq_string = ["_START"]
                 printing("WARNING : we added _START symbol and _END_CHAR ! ", verbose=verbose, verbose_level=2)
-                _seq_string.extend(list(seq_string))
+                if seq_string not in [ROOT, END]:
+                    _seq_string.extend(list(seq_string))
+                else:
+                    _seq_string.append(seq_string)
                 seq_string = _seq_string + ["_END_CHAR"] #["_END_CHAR"]#["_PAD_CHAR"]
             if len(seq_string) > max_len:
                 # cutting to respect dim requirements
                 seq_string = seq_string[:max_len-1]+["_PAD_CHAR"]
             if len(seq_string) > 0:
                 printing("INPUT SEQ is {} ", var=[seq_string], verbose=verbose, verbose_level=2)
-
             word_id = word_dictionary.get_index(word_string) if word_dictionary is not None else None
             sequence_characters = [char_dictionary.get_index(letter) for letter in seq_string]+[pad for _ in range(max_len-len(seq_string))]
             sent_character.append(sequence_characters)
@@ -623,7 +642,7 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
             words_lens = min(max_len, len(seq_string))
             sent_words_lens.append(words_lens)
             # we have to create batch_size == 2 because of bug
-
+        pdb.set_trace()
         batch = Variable(torch.from_numpy(np.array([sent_character, sent_character])), requires_grad=False)
         input_word = Variable(torch.from_numpy(np.array([word_ls, word_ls])), requires_grad=False) if word_ls is not None else None
         batch_masks = Variable(torch.from_numpy(np.array([sent_words_mask, sent_words_mask])), requires_grad=False)
@@ -636,12 +655,21 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
                                  verbose=verbose)
         else:
             pdb.set_trace()
-            (text_decoded, src_text, target), _, (attention, src_seq), (pred_norm,_, _, _)  \
-                = decode_sequence(model=model, char_dictionary=char_dictionary,
-                                  max_len=max_len, src_seq=batch, src_len=batch_lens, input_word=input_word,
-                                  src_mask=batch_masks, single_sequence=True, pad=pad, verbose=verbose)
-
-
+            if model.arguments["hyperparameters"]["decoder_arch"].get("char_decoding", True):
+                assert not model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False), "ERROR : only on type of decoding should be set (for now)"
+                (text_decoded, src_text, target, src_words_from_embed), _, (attention, src_seq), (pred_norm,_, _, _)  \
+                    = decode_sequence(model=model, char_dictionary=char_dictionary,
+                                      max_len=max_len, src_seq=batch, src_len=batch_lens, input_word=input_word,
+                                      src_mask=batch_masks, single_sequence=True, pad=pad, verbose=verbose)
+            elif model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False):
+                pdb.set_trace()
+                (text_decoded, src_text, target, src_words_from_embed), counts, (attention, src_seq), \
+                (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_word(model,
+                                                                                      src_seq=batch,
+                                                                                      src_len=batch_lens,
+                                                                                      input_word=input_word,
+                                                                                      single_sequence=True,
+                                                                                      target_word_gold=None)
         if attention is not None:
             print("Attention", attention, src_seq, text_decoded)
             for pred_word, src_word, attention_word in zip(text_decoded, src_seq, attention):
@@ -650,11 +678,11 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
                                attention_word.transpose(1, 0), save=save_attention, dir_save=dir_attention,show=show_att,
                                model_full_name=model.model_full_name)
             #show_attention("[lekfezlfkh efj ", ["se", "mjfsemkfj"], torch.tensor([[0, .4], [1, 0.6]]))
-
         if pred_norm is not None:
+            pdb.set_trace()
             norm_not_norm_seq = [(get_label_norm(norm), word) for norm, word in zip(pred_norm, src_text)]
             printing("NORMALIZING : {} ", var=[norm_not_norm_seq], verbose_level=0, verbose=0)
-        printing("DECODED text is : {} original is {}",var=(text_decoded, src_text), verbose_level=0, verbose=0)
+        printing("DECODED text is : {} original is {} and {} seen as word embed ",var=(text_decoded, src_text, src_words_from_embed), verbose_level=0, verbose=0)
 
 
 def decode_interacively(model, char_dictionary,  max_len, pad=1, sent_mode=False, save_attention=False,

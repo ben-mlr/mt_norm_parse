@@ -7,7 +7,7 @@ import torch
 from toolbox.grid_tool import grid_param_label_generate
 
 from env.project_variables import PROJECT_PATH, TRAINING, DEV, DIR_TWEET_W2V, \
-    TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, REPO_DATASET, LIU, LEX_TRAIN, LEX_TEST, SEED_NP, SEED_TORCH, LEX_LIU_TRAIN, LIU_DEV, LIU_TRAIN, EWT_DEV,\
+    TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, REPO_DATASET, LIU, LEX_TRAIN, LEX_TEST, SEED_NP, SEED_TORCH, LEX_LIU_TRAIN, LIU_DEV, LIU_TRAIN, EWT_DEV, CP_PASTE_WR_TRAIN,CP_WR_PASTE_DEV, CP_WR_PASTE_TEST,\
     CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST
 from uuid import uuid4
 import argparse
@@ -383,15 +383,15 @@ if __name__ == "__main__":
                                                                                params_strong, warmup=False,
                                                                                grid_label="0",
                                                                                stable_decoding_state_ls=[False],
-                                                                               word_decoding_ls=[False],
-                                                                               batch_size_ls=[26],
+                                                                               word_decoding_ls=[True],
+                                                                               batch_size_ls=[100],
                                                                                auxilliary_task_pos_ls=[False],
-                                                                               word_embed_ls=[False],
+                                                                               word_embed_ls=[True],
                                                                                dir_sent_encoder_ls=[2], lr_ls=[0.001],
-                                                                               word_embed_init_ls=[None],
-                                                                               shared_context_ls=["word", "all","sent"],
+                                                                               word_embed_init_ls=[DIR_TWEET_W2V],
+                                                                               shared_context_ls=["word", "all"],
                                                                                word_embedding_projected_dim_ls=[100],                                                                               
-                                                                               auxilliary_task_norm_not_norm_ls=[True],
+                                                                               auxilliary_task_norm_not_norm_ls=[False],
                                                                                char_src_attention_ls=[False],
                                                                                n_layers_sent_cell_ls=[1],
                                                                                unrolling_word_ls=[True],
@@ -439,11 +439,11 @@ if __name__ == "__main__":
       dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
       os.mkdir(dir_grid)
       printing("GRID RUN : Grid directory : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
-      train_path, dev_path = CP_PASTE_TRAIN, CP_PASTE_DEV#LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+      train_path, dev_path = CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
       for param, model_id_pref in zip(params, labels):
           i += 1
           printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 25 if not test_before_run else 2
+          epochs = 5 if not test_before_run else 2
           if warmup:
             param = {
                      "hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10, "dropout_sent_encoder": 0.,
@@ -476,8 +476,8 @@ if __name__ == "__main__":
             param["dense_dim_auxilliary_pos_2"] = None
             param["word_embed_init"] = None
             param["word_embed"] = True
-            param["word_embedding_dim"] = 100
-            param["word_embedding_projected_dim"] = 50
+            param["word_embedding_dim"] = 10
+            param["word_embedding_projected_dim"] = None
             param["n_layers_sent_cell"] = 2
             import torch.nn as nn
             #param["activation_char_decoder"] = "nn.LeakyReLU"
@@ -494,14 +494,13 @@ if __name__ == "__main__":
 
           model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
                                                   #pos_specific_path=DEV,
-                                                  expand_vocab_dev_test=False,
-                                                  test_path=[CP_PASTE_TEST] if not warmup else DEMO,
+                                                  expand_vocab_dev_test=True,
+                                                  test_path=[CP_WR_PASTE_TEST] if not warmup else DEMO,
                                                   verbose=1,
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   compute_mean_score_per_sent=True, print_raw=False,
                                                   get_batch_mode_all=True, compute_scoring_curve=False,
                                                   freq_scoring=10, bucketing_train=True, freq_checkpointing=1,
-
                                                   symbolic_root=True, symbolic_end=True,
                                                   freq_writer=1 if not test_before_run else 1,
                                                   extend_n_batch=2,

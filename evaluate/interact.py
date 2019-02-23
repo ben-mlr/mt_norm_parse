@@ -10,6 +10,7 @@ MAX_LEN = 20
 def interact(dic_path, model_full_name,
              dir_model, debug=False, model_specific_dictionary=True,
              beam_size=2,
+             word_decoding=False,
              save_attention=False, show_attention=False, beam_decode=False,
              verbose=2):
     from model.seq2seq import LexNormalizer
@@ -26,6 +27,7 @@ def interact(dic_path, model_full_name,
                           model_specific_dictionary=model_specific_dictionary,
                           dict_path=dic_path,
                           dir_model=dir_model,
+                          word_decoding=word_decoding,char_decoding=not word_decoding,
                           verbose=verbose)
     model.eval()
     if show_attention or save_attention:
@@ -44,6 +46,9 @@ def interact(dic_path, model_full_name,
                         dir_attention=dir_attention, save_attention=save_attention, show_attention=True,
                         beam_decode=beam_decode, beam_size=beam_size,
                         verbose=verbose)
+    # /1eeb9-WARMUP-unrolling-False0-model_1-model_1_fd8c-folder/dictionaries/
+    #1eeb9-WARMUP-unrolling-False0-model_1-model_1_fd8c-folder-50-False_get_batchNEW-repo-folder
+
 import io
 import torchvision
 from PIL import Image
@@ -81,11 +86,16 @@ if __name__ == "__main__":
     ablation_id = "a5c77"
     #ablation_id = "8ce6b-extend_ep-get_True-attention_simplifiedXauxXdropout0.1_scale_aux-True_aux-0.1do_char_dec-True_char_src_atten-model_14_ad6c"
     ablation_id = "4e128-WARMUP-unrolling-False0-model_1-model_1_1660-folder"
+    ablation_id = "/1eeb9-WARMUP-unrolling-False0-model_1-model_1_fd8c-folder"
     #for data in [LIU, DEV]:
     list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith("summary")]
     print("FOLDERS : ", list_)
     #list_ = []
-
+    list_ = ["1eeb9-WARMUP-unrolling-False0-model_1-model_1_fd8c-folder"]
+    # word decode with word embed
+    list_ = ["1f86c-WARMUP-unrolling-False0-model_1-model_1_57b7-folder"]
+    # char decode
+    list_ = ["2b53b-WARMUP-unrolling-False0-model_1-model_1_880a-folder"]
     for folder_name in list_:
         model_full_name = folder_name[:-7]
         print("Interatcing with new model : ", model_full_name)
@@ -94,6 +104,7 @@ if __name__ == "__main__":
         model_dir = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder")
         interact(dic_path=dic_path, dir_model=model_dir, model_full_name=model_full_name, debug=False,
                  verbose=1, beam_decode=False, beam_size=1,
+                 word_decoding=False,
                  save_attention=False, show_attention=False)
         #break
     #show_attention("[lekfezlfkh efj ", ["se", "mjfsemkfj"], torch.tensor([[0,.4], [1,0.6]]))

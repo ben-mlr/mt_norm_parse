@@ -57,11 +57,12 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
     voc_size = None
     if not debug:
         pdb.set_trace = lambda: 1
+    pdb.set_trace()
     model = LexNormalizer(generator=Generator, load=True, model_full_name=model_full_name,
+                          #word_voc_
                           word_decoding=word_decoding, char_decoding=char_decoding, # added for dictionary purposes : might be other ways
                           voc_size=voc_size, use_gpu=use_gpu, dict_path=dict_path, model_specific_dictionary=True,
-                          dir_model=os.path.join(PROJECT_PATH, "checkpoints",
-                                                 model_full_name + "-folder"),
+                          dir_model=os.path.join(PROJECT_PATH, "checkpoints", model_full_name + "-folder"),
                           verbose=verbose
                           ) if model is None else model
 
@@ -245,11 +246,11 @@ if __name__ == "__main__":
     #for ablation_id in ["28aa3-schedule-policy_2"]:
       #for data in [DEMO,DEMO2]:
     #for ablation_id in ["97440_rioc-64c34-ATTbatch-aux-scale-shared_contex-Falseteach_Falseaux-model_2_61d6-folder"]:
-    for ablation_id in ["97512_rioc-f86f4-ATTuni-Trueteach_Falseaux-model_1_1169-folder"]:
+    for ablation_id in ["1f86c-WARMUP-unrolling-False0-model_1-model_1_57b7-folder"]:
       for get_batch_mode_evaluate in [False]:
         for batch_size in [50]:
           #for data in [LIU, DEV, LEX_TEST]:
-          for data in [LIU_TRAIN]:
+          for data in [DEV]:
             list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
             print("FOLDERS : ", list_)
             for folder_name in list_:
@@ -262,7 +263,7 @@ if __name__ == "__main__":
                        overall_label=ablation_id+"-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch",#"f2f2-iterate+new_data-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch-validation_True",
                        mode_norm_ls=None,#score_to_compute_ls=["norm_not_norm-Recall"],
                        normalization=True, model_specific_dictionary=True, batch_size=batch_size,
-                       debug=False, bucket=False,
+                       debug=True, bucket=False,
                        compute_mean_score_per_sent=False,
                        word_decoding=True, char_decoding=False,
                        get_batch_mode_evaluate=get_batch_mode_evaluate, write_output=False,

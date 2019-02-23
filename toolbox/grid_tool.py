@@ -73,10 +73,16 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
     info_default.append((def_[0],def_[1])) #" "+str(def_[0])+","+str(def_[0])
     printing("GRID : {} argument defaulted to {} ", var=[str(def_)[:-6], def_], verbose=0, verbose_level=0)
 
-  dic_grid = {"batch_size":batch_size_ls, "auxilliary_task_norm_not_norm": auxilliary_task_norm_not_norm_ls,"shared_context":shared_context_ls,
-             "lr":lr_ls, "word_embed_init":word_embed_init_ls, "dir_word_encoder":dir_word_encoder_ls,"char_src_attention":char_src_attention_ls,
-              "dir_sent_encoder":dir_sent_encoder_ls, "gradient_clipping":clipping_ls, "unrolling_word":unrolling_word_ls, "word_decoding":word_decoding_ls,
-              "auxilliary_task_pos":auxilliary_task_pos_ls,"stable_decoding_state":stable_decoding_state_ls}
+  dic_grid = {"batch_size": batch_size_ls, "auxilliary_task_norm_not_norm": auxilliary_task_norm_not_norm_ls,
+              "shared_context": shared_context_ls,
+              "lr": lr_ls, "word_embed_init": word_embed_init_ls, "dir_word_encoder": dir_word_encoder_ls,
+              "char_src_attention":char_src_attention_ls,
+              "dir_sent_encoder": dir_sent_encoder_ls, "gradient_clipping":clipping_ls, "unrolling_word": unrolling_word_ls,
+              "word_decoding": word_decoding_ls, "auxilliary_task_pos": auxilliary_task_pos_ls,
+              "stable_decoding_state": stable_decoding_state_ls,
+              "word_embedding_projected_dim_ls": word_embedding_projected_dim_ls,
+              "n_layers_sent_cell_ls": n_layers_sent_cell_ls, "teacher_force_ls":teacher_force_ls,
+              "word_embed_ls": word_embed_ls}
   ind_model = 0
   for batch in batch_size_ls:
     for aux in auxilliary_task_norm_not_norm_ls:

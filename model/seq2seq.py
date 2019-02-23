@@ -9,6 +9,7 @@ from model.pos_predictor import PosPredictor
 from model.normalize_not import BinaryPredictor
 from env.project_variables import CHECKPOINT_DIR
 import torch
+from io_.dat.create_embedding_mat import construct_word_embedding_table
 from torch.autograd import Variable
 
 from io_.info_print import printing
@@ -88,7 +89,7 @@ class LexNormalizer(nn.Module):
         assert (word_decoding or char_decoding) and not (word_decoding and char_decoding), "ERROR sttricly  one of word,char decoding should be True"
         assert init_context_decoder or stable_decoding_state or char_src_attention, "ERROR : otherwise no information passes from the encoder to the decoder"
         if word_embed:
-            assert word_embedding_dim>0, "ERROR word_embedding_dim should be >0 as word_embed"
+            assert word_embedding_dim > 0, "ERROR word_embedding_dim should be >0 as word_embed"
         else:
             assert word_embedding_dim == 0 and word_embedding_projected_dim is None, "ERROR  word_embedding_dim needs to be 0 " \
                                                                                      "and word_embedding_projected_dim None if not word_embed "
@@ -146,7 +147,6 @@ class LexNormalizer(nn.Module):
                 assert dict_path is not None, "ERROR dict_path should be specified"
                 assert os.path.isdir(dict_path), "ERROR : dict_path {} does not exist".format(dict_path)
             # we are loading the dictionary now because we need it to define the model
-
             self.word_dictionary, self.word_nom_dictionary,  self.char_dictionary, \
             self.pos_dictionary, self.xpos_dictionary, self.type_dictionary =\
                 conllu_data.load_dict(dict_path=dict_path,
@@ -156,6 +156,7 @@ class LexNormalizer(nn.Module):
                                       pos_specific_data_set=pos_specific_path,
                                       word_normalization=word_decoding, add_start_char=add_start_char, verbose=1)
             voc_size = len(self.char_dictionary.instance2index) + 1
+
             if word_decoding:
                 assert self.word_nom_dictionary is not None, "ERROR self.word_nom_dictionary should not be None"
             word_voc_input_size = len(self.word_dictionary.instance2index) + 1
@@ -240,7 +241,9 @@ class LexNormalizer(nn.Module):
             assert args["voc_size"] == voc_size, "ERROR : voc_size loaded and voc_size " \
                                                  "redefined in dictionnaries do not " \
                                                  "match {} vs {} ".format(args["voc_size"], voc_size)
-            assert args["word_voc_output_size"] == word_voc_output_size, "ERROR mismatch of stored voc and passed voc {} and passed {} ".format(args["word_voc_output_size"], word_voc_output_size)
+            assert args["word_voc_output_size"] == word_voc_output_size, "ERROR mismatch of stored voc and passed voc {} " \
+                                                                         "and passed {}".format(args["word_voc_output_size"],
+                                                                                                word_voc_output_size)
             word_voc_output_size = args.get("word_voc_output_size", None)
 
             char_embedding_dim, output_dim, hidden_size_encoder, hidden_size_sent_encoder, drop_out_sent_encoder_cell,\
@@ -276,11 +279,14 @@ class LexNormalizer(nn.Module):
         if word_embed_dir is not None:
             printing("W2V INFO : loading initialized embedding from {}  ", var=[word_embed_dir], verbose=verbose, verbose_level=1)
             word_embed_dic = load_emb(word_embed_dir, verbose)
-            from io_.dat.create_embedding_mat import construct_word_embedding_table
-            word_embed_torch = construct_word_embedding_table(word_dim=word_embed_dic["a"].size(0), word_dictionary=self.word_dictionary.instance2index,
+            assert len(word_embed_dic["a"]) == word_embedding_dim, "ERROR : mismatch between word embedding definition and init"
+            word_embed_torch = construct_word_embedding_table(word_dim=len(word_embed_dic["a"]),
+                                                              word_dictionary=self.word_dictionary.instance2index,
                                                               word_embed_init_toke2vec=word_embed_dic,verbose=verbose)
+            pdb.set_trace()
             printing("W2V INFO : intializing embedding matrix with tensor of shape {}  ", var=[word_embed_torch.size()], verbose=verbose, verbose_level=1)
             self.word_embedding.weight.data = word_embed_torch
+            pdb.set_trace()
 
         self.encoder = CharEncoder(self.char_embedding, input_dim=char_embedding_dim,
                                    hidden_size_encoder=hidden_size_encoder,
@@ -369,9 +375,8 @@ class LexNormalizer(nn.Module):
             if self.word_embedding_project is not None:
                 word_embed_input = self.word_embedding_project(word_embed_input)
 
-        context, sent_len_max_source, \
-        char_seq_hidden_encoder, word_src_sizes = self.encoder.forward(input_seq, input_word_len,
-                                                                       word_embed_input=word_embed_input)
+        context, sent_len_max_source, char_seq_hidden_encoder, word_src_sizes = self.encoder.forward(input_seq, input_word_len,
+                                                                                                     word_embed_input=word_embed_input)
 
         source_encoder, start = get_timing(start)
         # [] [batch, , hiden_size_decoder]
