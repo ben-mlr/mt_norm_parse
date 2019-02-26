@@ -123,7 +123,6 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                 if model.arguments["hyperparameters"]["decoder_arch"].get("char_decoding", True):
                     assert not model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False), \
                         "ERROR : only on type of decoding should be set (for now)"
-                    print("SRC LEN", batch.input_seq_len)
                     (text_decoded_ls, src_text_ls, gold_text_seq_ls, _), counts, _, \
                     (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_sequence(model=model,
                                                                                               char_dictionary=char_dictionary,

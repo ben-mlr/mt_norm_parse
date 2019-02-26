@@ -175,6 +175,7 @@ class LexNormalizer(nn.Module):
                                   "symbolic_end": symbolic_end, "symbolic_root": symbolic_root,
                                   "gradient_clipping": None,
                                   "tasks_schedule_policy": None,
+                                  "proportion_pred_train":None,
                                   "auxilliary_arch": {
                                                   "weight_binary_loss": weight_binary_loss,
                                                   "auxilliary_task_norm_not_norm": self.auxilliary_task_norm_not_norm,
@@ -450,6 +451,8 @@ class LexNormalizer(nn.Module):
         model.arguments["hyperparameters"]["n_trainable_parameters"] = count_trainable_parameters(model)
         printing("MODEL : trainable parameters : {} ",  var=model.arguments["hyperparameters"]["n_trainable_parameters"]
                  , verbose_level=0, verbose=verbose)
+        model.arguments["hyperparameters"]["proportion_pred_train"] = info_checkpoint["proportion_pred_train"]
+        model.arguments["hyperparameters"]["decoder_arch"]["teacher_force"] = info_checkpoint["teacher_force"]
         model.arguments["hyperparameters"]["batch_size"] = info_checkpoint["batch_size"]
         model.arguments["hyperparameters"]["gradient_clipping"] = info_checkpoint["gradient_clipping"]
         model.arguments["hyperparameters"]["tasks_schedule_policy"] = info_checkpoint["tasks_schedule_policy"]

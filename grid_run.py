@@ -66,6 +66,11 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
     gradient_clipping = args.get("gradient_clipping", None)
 
     teacher_force = args.get("teacher_force", True)
+    proportion_pred_train = args.get("proportion_pred_train",None)
+    if teacher_force and proportion_pred_train is not None:
+        printing("WARNING : inconsistent arguments solved :  proportion_pred_train forced to None while it was {} "
+                 "cause teacher_force mode",var=[proportion_pred_train], verbose=verbose, verbose_level=0)
+        proportion_pred_train = None
 
     stable_decoding_state = args.get("stable_decoding_state", False)
     init_context_decoder = args.get("init_context_decoder", True)
@@ -120,7 +125,7 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
                             print_raw=print_raw, debug=debug,
                             shared_context=shared_context,
                             bucketing=bucketing_train, weight_binary_loss=weight_binary_loss,
-                            teacher_force=teacher_force,
+                            teacher_force=teacher_force, proportion_pred_train=proportion_pred_train,
                             clipping=gradient_clipping,
                             auxilliary_task_pos=auxilliary_task_pos, dense_dim_auxilliary_pos=dense_dim_auxilliary_pos,
                             dense_dim_auxilliary_pos_2=dense_dim_auxilliary_pos_2,
@@ -389,7 +394,8 @@ if __name__ == "__main__":
                                                                                word_embed_ls=[False],
                                                                                dir_sent_encoder_ls=[2], lr_ls=[0.001],
                                                                                word_embed_init_ls=[None],
-                                                                               teacher_force_ls=[True],
+                                                                               teacher_force_ls=[False],
+                                                                               proportion_pred_train_ls=[10, 50],
                                                                                shared_context_ls=["all"],
                                                                                word_embedding_projected_dim_ls=[100],                                                                               
                                                                                auxilliary_task_norm_not_norm_ls=[False],
@@ -444,7 +450,7 @@ if __name__ == "__main__":
       for param, model_id_pref in zip(params, labels):
           i += 1
           printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 3 if not test_before_run else 2
+          epochs = 2 if not test_before_run else 2
           if warmup:
             param = {
                      "hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10, "dropout_sent_encoder": 0.,
@@ -462,7 +468,6 @@ if __name__ == "__main__":
             param["shared_context"] = "all"
             param["dense_dim_auxilliary"] = None
             param["gradient_clipping"] = None
-            param["teacher_force"] = True
             param["dense_dim_auxilliary_2"] = None
             param["stable_decoding_state"] = True
             param["init_context_decoder"] = False
@@ -480,6 +485,9 @@ if __name__ == "__main__":
             param["word_embedding_dim"] = 10
             param["word_embedding_projected_dim"] = None
             param["n_layers_sent_cell"] = 2
+            param["proportion_pred_train"] = 10
+            param["teacher_force"] = True
+
             import torch.nn as nn
             #param["activation_char_decoder"] = "nn.LeakyReLU"
             #param["activation_word_decoder"] = "nn.LeakyReLU"

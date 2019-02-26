@@ -58,7 +58,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
           dense_dim_auxilliary=None, dense_dim_auxilliary_2=None,
           unrolling_word=False, char_src_attention=False,
           debug=False, timing=False, dev_report_loss=True,
-          bucketing=True, policy=None, teacher_force=True,
+          bucketing=True, policy=None, teacher_force=True, proportion_pred_train=None,
           shared_context="all", clipping=None, extend_n_batch=1,
           stable_decoding_state=False, init_context_decoder=True,
           auxilliary_task_pos=False, dense_dim_auxilliary_pos=None, dense_dim_auxilliary_pos_2=None,
@@ -67,6 +67,10 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
           symbolic_root=False, symbolic_end=False, extern_emb_dir=None,
           activation_word_decoder=None, activation_char_decoder=None,
           verbose=1):
+    if teacher_force:
+        assert proportion_pred_train is None, "proportion_pred_train should be None as teacher_force mode"
+    else:
+        assert 100 > proportion_pred_train > 0, "proportion_pred_train should be between 0 and 100"
 
     if not unrolling_word:
         assert not char_src_attention, "ERROR attention requires step by step unrolling  "
@@ -134,6 +138,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
             _train_path, _dev_path, _add_start_char = None, None, None
 
     model = LexNormalizer(generator=Generator,expand_vocab_dev_test=expand_vocab_dev_test,
+
                           auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
                           dense_dim_auxilliary=dense_dim_auxilliary, dense_dim_auxilliary_2=dense_dim_auxilliary_2,
                           weight_binary_loss=weight_binary_loss,
@@ -162,11 +167,12 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                           stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                           symbolic_root=symbolic_root, symbolic_end=symbolic_end,
                           word_embed=word_embed, word_embedding_dim=word_embedding_dim, word_embedding_projected_dim=word_embedding_projected_dim,
-                          word_embed_dir=extern_emb_dir, word_voc_input_size=word_voc_input_size,
+                          word_embed_dir=extern_emb_dir, word_voc_input_size=word_voc_input_size, teacher_force=teacher_force,
                           activation_char_decoder=activation_char_decoder, activation_word_decoder=activation_word_decoder,
                           test_path=test_path, extend_vocab_with_test=test_path is not None, # if test is padded we extend
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
-    #model.word_embedding.weight.requires_grad = False
+
+
     pos_batch = auxilliary_task_pos
     if use_gpu:
         model = model.cuda()
@@ -243,12 +249,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                     print_raw=print_raw,timing=timing, pos_dictionary=model.pos_dictionary,
                                     verbose=verbose)
         start = time.time()
-        proportion_pred_train = 30 if not teacher_force else None
-        #if 40 > epoch >= 10 and not teacher_force:
-        #    proportion_pred_train = epoch-10
-        #elif epoch > 40 and not teacher_force:
-        #    proportion_pred_train = 40
-        printing("TRAINING : Schedule Sampling proportion of train on prediction is {} ", var=[proportion_pred_train],
+
+        printing("TRAINING : TEACHER FORCE : Schedule Sampling proportion of train on prediction is {} ", var=[proportion_pred_train],
                  verbose=verbose, verbose_level=1)
         loss_train, loss_details_train, step_train = run_epoch(batchIter, model,
                                                                LossCompute(model.generator, opt=adam,
@@ -400,6 +402,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                 "gradient_clipping": clipping,
                                                 "tasks_schedule_policy": policy,
                                                 "teacher_force": teacher_force,
+                                                "proportion_pred_train": proportion_pred_train,
                                                 "train_data_path": train_path, "dev_data_path": dev_path,
                                                 "other": {"error_curves": dir_plot, "loss": _loss_dev,
                                                           "error_curves_details":dir_plot_detailed,

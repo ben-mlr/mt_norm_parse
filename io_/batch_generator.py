@@ -23,7 +23,6 @@ class MaskBatch(object):
                  output_word=None, pos=None, input_word=None,
                  output_norm_not_norm=None, pad=0, verbose=0, timing=False):
         # input mask
-        timing = True
         if not output_seq.size(0) >1:
             pdb.set_trace()
         assert output_seq.size(0) >1 , "ERROR  batch_size should be strictly above 1 but is {} ".format(output_seq.size())

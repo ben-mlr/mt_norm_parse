@@ -197,7 +197,7 @@ class CharDecoder(nn.Module):
             max_word_len = char_vecs.size(1)
             for char_i in range(max_word_len):
                 if proportion_pred_train is not None:
-                    teacher_force = True if np.random.randint(0, 100)>proportion_pred_train else False
+                    teacher_force = True if np.random.randint(0, 100) > proportion_pred_train else False
                 else:
                     teacher_force = True
                 if teacher_force or char_i == 0:

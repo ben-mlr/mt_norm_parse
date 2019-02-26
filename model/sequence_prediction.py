@@ -301,8 +301,8 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         # new seq
         predictions = scores.argmax(dim=-1)
         printing("Prediction size {} ", var=(predictions.size()), verbose=verbose, verbose_level=4)
-        printing("SCORES {} ", var=[str(scores)], verbose=verbose, verbose_level=0)
-        printing("Prediction {} ", var=(predictions), verbose=verbose, verbose_level=0)
+        printing("SCORES {} ", var=[str(scores)], verbose=verbose, verbose_level=5)
+        printing("Prediction {} ", var=(predictions), verbose=verbose, verbose_level=5)
 
         printing("scores: {} scores {} scores sized  {} predicion size {} prediction {} outputseq ", var=(scores,
                  scores.size(), predictions.size(), predictions[:, -1],
@@ -316,23 +316,23 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
             pred_norm_not_norm = pred_norm_not_norm[:, :scores.size(1)]  # followign what's done above
         output_seq[:, :, char_decode - 1] = predictions[:, :, -1]
 
-        if verbose >= 0:
+        if verbose >= 5:
             sequence = [" ".join([char_dictionary.get_instance(output_seq[sent, word_ind, char_i]) for char_i in range(max_len)])
                         + "|sent-{}|".format(sent) for sent in range(output_seq.size(0)) for word_ind in range(output_seq.size(1))]
         else:
             sequence = []
 
-        printing("Decoding step {} decoded target {} ", var=(step, sequence), verbose=verbose, verbose_level=0)
+        printing("Decoding step {} decoded target {} ", var=(step, sequence), verbose=verbose, verbose_level=5)
 
         pred_word_count, text_decoded, decoded_ls = output_text_(output_seq,
                                                                  char_dictionary, single_sequence=single_sequence,
                                                                  output_str=output_str, last=char_decode==(max_len-1),
                                                                  debug=False)
-    printing("PREDICTION : array text {} ", var=[text_decoded], verbose=verbose, verbose_level=0)
+    printing("PREDICTION : array text {} ", var=[text_decoded], verbose=verbose, verbose_level=5)
 
     src_word_count, src_text, src_all_ls = output_text_(src_seq, char_dictionary, single_sequence=single_sequence,
                                                         output_str=output_str)
-    printing("SOURCE  : array text {} ", var=[src_text], verbose=verbose, verbose_level=0)
+    printing("SOURCE  : array text {} ", var=[src_text], verbose=verbose, verbose_level=5)
     src_text_ls.extend(src_text)
     if target_seq_gold is not None:
         target_word_count, target_text, _ = output_text_(target_seq_gold, char_dictionary,
