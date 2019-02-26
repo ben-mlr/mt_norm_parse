@@ -243,7 +243,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                     print_raw=print_raw,timing=timing, pos_dictionary=model.pos_dictionary,
                                     verbose=verbose)
         start = time.time()
-        proportion_pred_train = 10 if not teacher_force else None
+        proportion_pred_train = 30 if not teacher_force else None
         #if 40 > epoch >= 10 and not teacher_force:
         #    proportion_pred_train = epoch-10
         #elif epoch > 40 and not teacher_force:
@@ -401,7 +401,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                 "tasks_schedule_policy": policy,
                                                 "teacher_force": teacher_force,
                                                 "train_data_path": train_path, "dev_data_path": dev_path,
-                                                "other": {"error_curves": dir_plot, "loss": _loss_dev, "error_curves_details":dir_plot_detailed,
+                                                "other": {"error_curves": dir_plot, "loss": _loss_dev,
+                                                          "error_curves_details":dir_plot_detailed,
                                                           "weight_binary_loss": weight_binary_loss*int(auxilliary_task_norm_not_norm),
                                                           "weight_pos_loss": weight_pos_loss*int(auxilliary_task_pos),
                                                           "ponderation_normalize_loss": ponderation_normalize_loss,

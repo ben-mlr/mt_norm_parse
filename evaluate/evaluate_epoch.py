@@ -3,7 +3,7 @@ import sys
 sys.path.insert(0,"..")
 sys.path.insert(0,"/scratch/bemuller/mt_norm_parse")
 #TODO  why is it necessary fo rioc ? 
-from model.sequence_prediction import greedy_decode_batch, decode_seq_str, decode_interacively
+from predict.prediction_batch import greedy_decode_batch#, decode_seq_str, decode_interacively
 import pdb
 from model.seq2seq import LexNormalizer
 from model.generator import Generator
@@ -18,7 +18,7 @@ import torch
 import re
 
 from scipy.stats import hmean
-from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, DEMO, DEMO2, LIU, LEX_TEST, REPO_DATASET, CHECKPOINT_DIR, SEED_TORCH, SEED_NP, LEX_TRAIN, LIU_TRAIN, LIU_DEV
+from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, DEMO, DEMO2, LIU, LEX_TEST, REPO_DATASET, CHECKPOINT_DIR, SEED_TORCH, SEED_NP, LEX_TRAIN, LIU_TRAIN, LIU_DEV, CP_WR_PASTE_TEST
 from toolbox.gpu_related import use_gpu_
 sys.path.insert(0, os.path.join(PROJECT_PATH, "..", "experimental_pipe"))
 from reporting.write_to_performance_repo import report_template, write_dic
@@ -246,11 +246,11 @@ if __name__ == "__main__":
     #for ablation_id in ["28aa3-schedule-policy_2"]:
       #for data in [DEMO,DEMO2]:
     #for ablation_id in ["97440_rioc-64c34-ATTbatch-aux-scale-shared_contex-Falseteach_Falseaux-model_2_61d6-folder"]:
-    for ablation_id in ["1f86c-WARMUP-unrolling-False0-model_1-model_1_57b7-folder"]:
+    for ablation_id in ["97942_rioc--DEBUG_NO_LOSS_PADDING-0-model_1-model_1_767d-folder"]:
       for get_batch_mode_evaluate in [False]:
-        for batch_size in [50]:
+        for batch_size in [2]:
           #for data in [LIU, DEV, LEX_TEST]:
-          for data in [DEV]:
+          for data in [CP_WR_PASTE_TEST]:
             list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
             print("FOLDERS : ", list_)
             for folder_name in list_:
@@ -263,9 +263,9 @@ if __name__ == "__main__":
                        overall_label=ablation_id+"-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch",#"f2f2-iterate+new_data-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch-validation_True",
                        mode_norm_ls=None,#score_to_compute_ls=["norm_not_norm-Recall"],
                        normalization=True, model_specific_dictionary=True, batch_size=batch_size,
-                       debug=True, bucket=False,
+                       debug=False, bucket=True,
                        compute_mean_score_per_sent=False,
-                       word_decoding=True, char_decoding=False,
+                       word_decoding=False, char_decoding=True,
                        get_batch_mode_evaluate=get_batch_mode_evaluate, write_output=False,
                        dir_report=os.path.join(PROJECT_PATH, "checkpoints", folder_name), verbose=1)
 

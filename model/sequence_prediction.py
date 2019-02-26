@@ -21,249 +21,7 @@ EPSILON = 0.000001
 TEST_SCORING_IN_CODE = False
 
 
-def _init_metric_report(score_to_compute_ls, mode_norm_score_ls):
-    if score_to_compute_ls is not None:
-        dic = {score+"-"+norm_mode: 0 for score in score_to_compute_ls for norm_mode in mode_norm_score_ls}
-        dic.update({score + "-" + norm_mode + "-" + "n_sents": 0 for score in score_to_compute_ls for norm_mode in
-                    mode_norm_score_ls})
-        dic.update({score+"-"+norm_mode+"-"+"total_tokens": 0 for score in score_to_compute_ls for norm_mode in mode_norm_score_ls})
-        dic.update({score+"-"+norm_mode+"-"+"mean_per_sent": 0 for score in score_to_compute_ls for norm_mode in mode_norm_score_ls})
-        dic.update({score + "-" + norm_mode + "-" + "n_word_per_sent": 0 for score in score_to_compute_ls for norm_mode in mode_norm_score_ls})
-        dic.update({token + "-norm_not_norm-" + type_ + "-count":0 for token in ["all","need_norm"] for type_ in ["pred", "gold"]})
-        dic["all-norm_not_norm-pred_correct-count"] = 0
-        dic["need_norm-norm_not_norm-pred_correct-count"] = 0
-        return dic
-    return None
 
-
-def _init_metric_report_2():
-
-    formulas = {"recall-normalization": ("NEED_NORM-normalization-pred_correct-count", "NEED_NORM-normalization-gold-count"),
-                "tnr-normalization": ("NORMED-normalization-pred_correct-count", "NORMED-normalization-gold-count"),
-                "precision-normalization": ("NEED_NORM-normalization-pred_correct-count", "NEED_NORM-normalization-pred-count"),
-                "npv-normalization": ("NORMED-normalization-pred_correct-count", "NORMED-normalization-pred-count"),
-                "accuracy-normalization": ("all-normalization-pred_correct-count", "all-normalization-gold-count"),
-                "accuracy-per_sent-normalization": ("all-normalization-pred_correct_per_sent-count", "all-normalization-n_sents"),
-                "info-all-per_sent": ("all-normalization-n_word_per_sent-count", "all-normalization-n_sents"),
-                "info-NORMED-per_sent": ("NORMED-normalization-n_word_per_sent-count", "NORMED-n_sents"),
-                "recall-per_sent-normalization": ("NEED_NORM-normalization-pred_correct_per_sent-count", "NEED_NORM-n_sents"),
-                "info-NEED_NORM-per_sent": ("NEED_NORM-normalization-n_word_per_sent-count", "NEED_NORM-normalization-n_sents"),
-                "tnr-per_sent-normalization": ("NORMED-normalization-pred_correct_per_sent-count", "NORMED-normalization-n_sents"),
-                "aa": ("n_sents","n_sents")
-                }
-
-    formulas_2 = {
-        "recall-norm_not_norm": ("need_norm-norm_not_norm-pred_correct-count", "need_norm-norm_not_norm-gold-count"),
-        "precision-norm_not_norm": ("need_norm-norm_not_norm-pred_correct-count", "need_norm-norm_not_norm-pred-count"),
-        "accuracy-norm_not_norm": ("all-norm_not_norm-pred_correct-count", "all-norm_not_norm-gold-count"),
-        "IoU-pred-need_norm": (
-        "need_norm-norm_not_normXnormalization-pred-count", "normed-norm_not_normUnormalization-pred-count"),
-        "IoU-pred-normed": ("normed-norm_not_normXnormalization-pred-count", "need_norm-norm_not_normUnormalization-pred-count")
-    }
-    task = "pos"
-    formula_pos = {
-                #"recall-" + task + "": ("NEED_NORM-" + task + "-pred_correct-count", "NEED_NORM-" + task + "-gold-count"),
-                #"recall-per_sent-" + task + "": ("NEED_NORM-" + task + "-pred_correct_per_sent-count", "NEED_NORM-"+task+"-n_sents"),
-                #"tnr-" + task + "": ("NORMED-" + task + "-pred_correct-count", "NORMED-" + task + "-gold-count"),
-                #"tnr-per_sent-" + task + "": ("NORMED-" + task + "-pred_correct_per_sent-count", "NORMED-"+task+"-n_sents"),
-                "accuracy-"+task+"": ("all-"+task+"-pred_correct-count", "all-"+task+"-gold-count"),
-                "accuracy-per_sent-"+task+"": ("all-"+task+"-pred_correct_per_sent-count", "all-"+task+"-n_sents"),
-                "info-all-per_sent": ("all-"+task+"-n_word_per_sent-count", "all-"+task+"-n_sents"),
-                "info-all_tokens-"+task+"": ("all-"+task+"-gold-count"),
-                "info-"+task+"-n_sents": ("all-"+task+"-n_sents")
-                }
-
-    dic = OrderedDict()
-    for a, (val, val2) in formulas.items():
-        dic[val] = 0
-        dic[val2] = 0
-    for a, (val1, val12) in formulas_2.items():
-        dic[val1] = 0
-        dic[val12] = 0
-    for a, tupl in formula_pos.items():
-        if len(tupl) > 1:
-            dic[tupl[0]] = 0
-            dic[tupl[1]] = 0
-        elif len(tupl) == 1:
-            dic[tupl[0]] = 0
-    dic["all-normalization-pred-count"] = 0
-    return dic
-
-
-def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
-                        gold_output=False, score_to_compute_ls=None, stat=None,
-                        use_gpu=False,
-                        compute_mean_score_per_sent=False,
-                        mode_norm_score_ls=None,
-                        label_data=None, eval_new=False,
-                        write_output=False, write_to="conll", dir_normalized=None, dir_original=None,
-
-                        verbose=0):
-
-        score_dic = _init_metric_report(score_to_compute_ls, mode_norm_score_ls)
-
-        counter_correct = _init_metric_report_2()
-        total_count = {"src_word_count": 0,
-                       "target_word_count": 0,
-                       "pred_word_count": 0}
-        if mode_norm_score_ls is None:
-            mode_norm_score_ls = ["all"]
-
-        assert len(set(mode_norm_score_ls) & set(["all", "NEED_NORM", "NORMED"])) > 0
-
-        with torch.no_grad():
-            for step, (batch, _) in enumerate(batchIter):
-                # read src sequence
-                src_seq = batch.input_seq
-                src_len = batch.input_seq_len
-                src_mask = batch.input_seq_mask
-                target_gold = batch.output_seq if gold_output else None
-                target_word_gold = batch.output_word if gold_output else None
-                target_pos_gold = batch.pos if gold_output else None
-                # do something with it : When do you stop decoding ?
-                max_len = src_seq.size(-1)
-                printing("WARNING : word max_len set to src_seq.size(-1) {} ", var=(max_len), verbose=verbose,
-                         verbose_level=3)
-                # decoding one batch
-                if model.arguments["hyperparameters"]["decoder_arch"].get("char_decoding", True):
-                    assert not model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False), \
-                        "ERROR : only on type of decoding should be set (for now)"
-                    (text_decoded_ls, src_text_ls, gold_text_seq_ls, _), counts, _, \
-                    (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_sequence(model=model,
-                                                                                              char_dictionary=char_dictionary,
-                                                                                              single_sequence=False,
-                                                                                              target_seq_gold=target_gold,
-                                                                                              use_gpu=use_gpu,
-                                                                                              max_len=max_len,
-                                                                                              src_seq=src_seq,
-                                                                                              src_mask=src_mask,
-                                                                                              src_len=src_len,
-                                                                                              input_word=batch.input_word,
-                                                                                              pad=pad, verbose=verbose)
-
-                elif model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False):
-                    (text_decoded_ls, src_text_ls, gold_text_seq_ls, _), counts, _, \
-                    (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_word(model, src_seq, src_len,
-                                                                                          input_word=batch.input_word,
-                                                                                          target_word_gold=target_word_gold)
-                if model.arguments["hyperparameters"].get("auxilliary_arch", {}).get("auxilliary_task_pos", False):
-                    # decode pos
-                    (pred_pos_ls, src_text_pos, gold_pos_seq_ls, _), counts_pos, _, \
-                    (_, _, src_seq_pos, target_seq_gold_pos) = decode_word(model, src_seq, src_len,
-                                                                           input_word=batch.input_word,
-                                                                           mode="pos", target_pos_gold=target_pos_gold)
-                else:
-                    pred_pos_ls, src_text_pos, gold_pos_seq_ls = None, None, None
-
-                if write_output:
-                    if dir_normalized is None:
-                        dir_normalized = os.path.join(WRITING_DIR, model.model_full_name+"-{}-normalized.conll".format(label_data))
-                        dir_original = os.path.join(WRITING_DIR, model.model_full_name+"-{}-original.conll".format(label_data))
-
-                    write_normalization(format=write_to, dir_normalized=dir_normalized, dir_original=dir_original,
-                                        text_decoded_ls=text_decoded_ls, src_text_ls=src_text_ls, verbose=verbose)
-
-                total_count["src_word_count"] += counts["src_word_count"]
-                total_count["pred_word_count"] += counts["pred_word_count"]
-                printing("Source text {} ", var=[(src_text_ls)], verbose=verbose, verbose_level=5)
-                printing("Prediction {} ", var=[(text_decoded_ls)], verbose=verbose, verbose_level=5)
-                if gold_output:
-                    total_count["target_word_count"] += counts["target_word_count"]
-                    # we can score
-                    printing("Gold {} ", var=[(gold_text_seq_ls)], verbose=verbose, verbose_level=5)
-                    # output exact score only
-                    # sent mean not yet supported for npv and tnr, precision
-                    counter_correct_batch, score_formulas = correct_pred_counter(ls_pred=text_decoded_ls,
-                                                                                 ls_gold=gold_text_seq_ls,
-                                                                                 output_seq_n_hot=output_seq_n_hot,
-                                                                                 src_seq=src_seq,
-                                                                                 target_seq_gold=target_seq_gold,
-                                                                                 pred_norm_not_norm=pred_norm,
-                                                                                 gold_norm_not_norm=batch.output_norm_not_norm,
-                                                                                 ls_original=src_text_ls)
-                    if pred_pos_ls is not None and src_text_pos is not None and gold_pos_seq_ls is not None:
-
-                        counter_correct_batch_pos, score_formulas_pos = correct_pred_counter(ls_pred=pred_pos_ls,
-                                                                                             ls_gold=gold_pos_seq_ls,
-                                                                                             output_seq_n_hot=None,
-                                                                                             src_seq=src_seq,
-                                                                                             target_seq_gold=gold_pos_seq_ls,
-                                                                                             ls_original=src_text_pos, task="pos")
-                        counter_correct_batch.update(counter_correct_batch_pos)
-                        score_formulas.update(score_formulas_pos)
-
-                    #for key, val in zip(counter_correct.keys(), counter_correct_batch.value()):
-                    for key, val in counter_correct_batch.items():
-                        try:
-                            counter_correct[key] += val
-                        except Exception as e:
-                            print("key", key)
-                            counter_correct[key] += 0
-                            print(e)
-                            print("EXXCEPTION WHEN updating counter_correct {} : val {} was therefore set to 0".format(key, val))
-                    if score_to_compute_ls is not None and not eval_new:
-                        for metric in score_to_compute_ls:
-                            # TODO : DEPRECIATED : should be remove til
-                            # ---- no more need t set the norm/need_norm : all is done by default
-                            for mode_norm_score in mode_norm_score_ls:
-                                if metric not in ["norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recall", "norm_not_norm-accuracy"]:
-                                    try:
-                                        _score, _n_tokens = score_ls_(text_decoded_ls, gold_text_seq_ls, ls_original=src_text_ls,
-                                                                      score=metric, stat=stat,
-                                                                      compute_mean_score_per_sent=compute_mean_score_per_sent,
-                                                                      normalized_mode=mode_norm_score, verbose=verbose)
-                                        if compute_mean_score_per_sent:
-                                            score_dic[metric + "-" + mode_norm_score + "-n_sents"] += _score["n_sents"]
-                                            score_dic[metric + "-" + mode_norm_score + "-n_word_per_sent"] += _score["n_word_per_sent"]
-                                            score_dic[metric + "-" + mode_norm_score+"-mean_per_sent"] += _score["mean_per_sent"]
-                                        score_dic[metric + "-" + mode_norm_score] += _score["sum"]
-                                        score_dic[metric + "-" + mode_norm_score + "-" + "total_tokens"] += _n_tokens
-
-                                    except Exception as e:
-                                        print("Exception {}".format(e))
-                                        score_dic[metric + "-" + mode_norm_score] += 0
-                                        #score_dic[metric + "-" + mode_norm_score + "-" + "total_tokens"] += 0
-                                        if compute_mean_score_per_sent:
-                                            score_dic[metric + "-" + mode_norm_score + "-n_sents"] += 0
-                                            score_dic[metric + "-" + mode_norm_score + "-n_word_per_sent"] += 0
-                                            score_dic[metric + "-" + mode_norm_score+"-mean_per_sent"] += 0
-
-                            if batch.output_norm_not_norm is not None:
-                                batch.output_norm_not_norm = batch.output_norm_not_norm[:, :pred_norm.size(1)]  # not that clean : we cut gold norm_not_norm sequence
-                                _score, _ = score_norm_not_norm(pred_norm, batch.output_norm_not_norm)
-                                # means : aux task is on
-                                for token in ["all", "need_norm"]:
-                                    for type_ in ["pred", "gold","pred_correct"]:
-                                        if token == "all" and type_ == "pred":
-                                            continue
-                                        score_dic[token+"-norm_not_norm-"+type_+"-count"] += _score[token+"-norm_not_norm-"+type_+"-count"]
-                    test_scoring = TEST_SCORING_IN_CODE
-                    if test_scoring:
-                        assert len(list((set(mode_norm_score_ls)&set(["NEED_NORM", "NORMED","all"])))) == 3, "ERROR : to perform test need all normalization mode "
-                            #print("Scoring with mode {}".format(mode_norm_score))
-                        for metric in score_to_compute_ls:
-                            assert score_dic[metric + "-NEED_NORM-total_tokens"]+score_dic[metric + "-NORMED-total_tokens"] == score_dic[metric + "-all-total_tokens"], \
-                                'ERROR all-total_tokens is {}  not equal to NEED NORMED {} +  NORMED {} '.format(score_dic[metric + "-all-total_tokens"], score_dic[metric + "-NEED_NORM-total_tokens"], score_dic[metric + "-NORMED-total_tokens"])
-                            assert np.abs(score_dic[metric + "-NEED_NORM"]+score_dic[metric + "-NORMED"] - score_dic[metric + "-all"]) < EPSILON, "ERROR : correct NEED_NORM {} , NORMED {} and all {} ".format(score_dic[metric + "-NEED_NORM"], score_dic[metric + "-NORMED"], score_dic[metric + "-all"])
-                            print("TEST PASSED")
-            if gold_output:
-                try:
-                    assert total_count["src_word_count"] == total_count["target_word_count"], \
-                        "ERROR src_word_count {} vs target_word_count {}".format(total_count["src_word_count"], total_count["target_word_count"])
-                    assert total_count["src_word_count"] == total_count["pred_word_count"], \
-                        "ERROR src_word_count {} vs pred_word_count {}".format(total_count["src_word_count"], total_count["pred_word_count"])
-                    printing("Assertion passed : there are as many words in the source side,"
-                             "the target side and"
-                             "the predicted side : {} ".format(total_count["src_word_count"]), verbose_level=2,
-                             verbose=verbose)
-                except Exception as e:
-                    print("Assertion failed count tokens")
-                    print(e)
-
-            if eval_new:
-                return counter_correct, score_formulas
-            else:
-                return score_dic, None
 
 
 def decode_sequence_beam(model, max_len, src_seq, src_mask, src_len, char_dictionary,
@@ -542,9 +300,9 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         output_mask[:, char_decode:] = 0
         # new seq
         predictions = scores.argmax(dim=-1)
-
         printing("Prediction size {} ", var=(predictions.size()), verbose=verbose, verbose_level=4)
-        printing("Prediction {} ", var=(predictions), verbose=verbose, verbose_level=5)
+        printing("SCORES {} ", var=[str(scores)], verbose=verbose, verbose_level=0)
+        printing("Prediction {} ", var=(predictions), verbose=verbose, verbose_level=0)
 
         printing("scores: {} scores {} scores sized  {} predicion size {} prediction {} outputseq ", var=(scores,
                  scores.size(), predictions.size(), predictions[:, -1],
@@ -553,27 +311,28 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
 
         output_seq = output_seq[:, :scores.size(1), :]
 
+
         if pred_norm_not_norm is not None:
             pred_norm_not_norm = pred_norm_not_norm[:, :scores.size(1)]  # followign what's done above
         output_seq[:, :, char_decode - 1] = predictions[:, :, -1]
 
-        if verbose >= 5:
+        if verbose >= 0:
             sequence = [" ".join([char_dictionary.get_instance(output_seq[sent, word_ind, char_i]) for char_i in range(max_len)])
                         + "|sent-{}|".format(sent) for sent in range(output_seq.size(0)) for word_ind in range(output_seq.size(1))]
         else:
             sequence = []
 
-        printing("Decoding step {} decoded target {} ", var=(step, sequence), verbose=verbose, verbose_level=5)
+        printing("Decoding step {} decoded target {} ", var=(step, sequence), verbose=verbose, verbose_level=0)
 
         pred_word_count, text_decoded, decoded_ls = output_text_(output_seq,
                                                                  char_dictionary, single_sequence=single_sequence,
                                                                  output_str=output_str, last=char_decode==(max_len-1),
                                                                  debug=False)
-    printing("PREDICTION : array text {} ", var=[text_decoded], verbose=verbose, verbose_level=5)
+    printing("PREDICTION : array text {} ", var=[text_decoded], verbose=verbose, verbose_level=0)
 
     src_word_count, src_text, src_all_ls = output_text_(src_seq, char_dictionary, single_sequence=single_sequence,
                                                         output_str=output_str)
-    printing("SOURCE  : array text {} ", var=[src_text], verbose=verbose, verbose_level=5)
+    printing("SOURCE  : array text {} ", var=[src_text], verbose=verbose, verbose_level=0)
     src_text_ls.extend(src_text)
     if target_seq_gold is not None:
         target_word_count, target_text, _ = output_text_(target_seq_gold, char_dictionary,
@@ -597,125 +356,3 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
            (pred_norm_not_norm, output_seq, src_seq, target_seq_gold)
 
 
-def decode_seq_str(seq_string, model, char_dictionary, pad=1,
-                   dir_attention=None, save_attention=False,
-                   show_att=False, beam_decode=False,beam_size=None,
-                   word_dictionary=None,
-                   max_len=20, verbose=2, sent_mode=False):
-    assert sent_mode
-    sent = seq_string.copy()
-    # we add empty words at the end otherwie poblem !! # TODO : understand why ? is it because we need word padded at the end of the sentence ?
-    #sent.append("")
-    with torch.no_grad():
-        sent_character = []
-        sent_words_mask = []
-        sent_words_lens = []
-        word_ls = [] if word_dictionary is not None else None # word_norm_dictionary is the signal for using word at input
-        print("sent", sent)
-        sent = [ROOT]+sent+[END]
-        for seq_string in sent:
-            # should be padded in the same way as done in the training data conll_reader
-            pdb.set_trace()
-            if len(seq_string) > 0:
-                word_string = seq_string[:]
-                if seq_string == ROOT:
-                    seq_string = ROOT_CHAR
-                _seq_string = ["_START"]
-                printing("WARNING : we added _START symbol and _END_CHAR ! ", verbose=verbose, verbose_level=2)
-                if seq_string not in [ROOT, END]:
-                    _seq_string.extend(list(seq_string))
-                else:
-                    _seq_string.append(seq_string)
-                seq_string = _seq_string + ["_END_CHAR"] #["_END_CHAR"]#["_PAD_CHAR"]
-            if len(seq_string) > max_len:
-                # cutting to respect dim requirements
-                seq_string = seq_string[:max_len-1]+["_PAD_CHAR"]
-            if len(seq_string) > 0:
-                printing("INPUT SEQ is {} ", var=[seq_string], verbose=verbose, verbose_level=2)
-            word_id = word_dictionary.get_index(word_string) if word_dictionary is not None else None
-            sequence_characters = [char_dictionary.get_index(letter) for letter in seq_string]+[pad for _ in range(max_len-len(seq_string))]
-            sent_character.append(sequence_characters)
-            if word_ls is not None:
-                word_ls.append(word_id)
-            masks = [1 for _ in seq_string]+[0 for _ in range(max_len-len(seq_string))]
-            sent_words_mask.append(masks)
-            words_lens = min(max_len, len(seq_string))
-            sent_words_lens.append(words_lens)
-            # we have to create batch_size == 2 because of bug
-        pdb.set_trace()
-        batch = Variable(torch.from_numpy(np.array([sent_character, sent_character])), requires_grad=False)
-        input_word = Variable(torch.from_numpy(np.array([word_ls, word_ls])), requires_grad=False) if word_ls is not None else None
-        batch_masks = Variable(torch.from_numpy(np.array([sent_words_mask, sent_words_mask])), requires_grad=False)
-        batch_lens = Variable(torch.from_numpy(np.array([sent_words_lens, sent_words_lens])), requires_grad=False)
-        batch_lens = batch_lens.unsqueeze(dim=2)
-        if beam_decode:
-            decode_sequence_beam(model=model, char_dictionary=char_dictionary,
-                                 max_len=max_len, src_seq=batch, src_len=batch_lens,beam_size=beam_size,
-                                 src_mask=batch_masks, pad=pad,
-                                 verbose=verbose)
-        else:
-            pdb.set_trace()
-            if model.arguments["hyperparameters"]["decoder_arch"].get("char_decoding", True):
-                assert not model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False), "ERROR : only on type of decoding should be set (for now)"
-                (text_decoded, src_text, target, src_words_from_embed), _, (attention, src_seq), (pred_norm,_, _, _)  \
-                    = decode_sequence(model=model, char_dictionary=char_dictionary,
-                                      max_len=max_len, src_seq=batch, src_len=batch_lens, input_word=input_word,
-                                      src_mask=batch_masks, single_sequence=True, pad=pad, verbose=verbose)
-            elif model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False):
-                pdb.set_trace()
-                (text_decoded, src_text, target, src_words_from_embed), counts, (attention, src_seq), \
-                (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_word(model,
-                                                                                      src_seq=batch,
-                                                                                      src_len=batch_lens,
-                                                                                      input_word=input_word,
-                                                                                      single_sequence=True,
-                                                                                      target_word_gold=None)
-        if attention is not None:
-            print("Attention", attention, src_seq, text_decoded)
-            for pred_word, src_word, attention_word in zip(text_decoded, src_seq, attention):
-
-                show_attention(list(pred_word), src_word[:attention_word.size(1)],
-                               attention_word.transpose(1, 0), save=save_attention, dir_save=dir_attention,show=show_att,
-                               model_full_name=model.model_full_name)
-            #show_attention("[lekfezlfkh efj ", ["se", "mjfsemkfj"], torch.tensor([[0, .4], [1, 0.6]]))
-        if pred_norm is not None:
-            pdb.set_trace()
-            norm_not_norm_seq = [(get_label_norm(norm), word) for norm, word in zip(pred_norm, src_text)]
-            printing("NORMALIZING : {} ", var=[norm_not_norm_seq], verbose_level=0, verbose=0)
-        printing("DECODED text is : {} original is {} and {} seen as word embed ",var=(text_decoded, src_text, src_words_from_embed), verbose_level=0, verbose=0)
-
-
-def decode_interacively(model, char_dictionary,  max_len, pad=1, sent_mode=False, save_attention=False,
-                        show_attention=False, beam_decode=False,beam_size=None,
-                        dir_attention=None, verbose=0):
-    if char_dictionary is None:
-        printing("INFO : dictionary is None so setting char_dictionary to model.char_dictionary",
-                 verbose=verbose, verbose_level=0)
-        char_dictionary = model.char_dictionary
-    if model.arguments["hyperparameters"]["encoder_arch"].get("word_embed",False):
-        word_dictionary = model.word_dictionary
-    else:
-        word_dictionary = None
-    sentence = []
-    while True:
-        seq_string = input("Please type what you want to normalize word by word and "
-                           "finishes by 'stop' ? to end type : 'END'    ")
-        if seq_string == "":
-            continue
-        if seq_string == "stop":
-            if not sent_mode:
-
-                break
-            else:
-                decode_seq_str(seq_string=sentence, model=model, char_dictionary=char_dictionary, pad=pad, max_len= max_len,
-                               show_att=show_attention, beam_decode=beam_decode,beam_size=beam_size,
-                               word_dictionary=word_dictionary,
-                               verbose=verbose, sent_mode=True, dir_attention=dir_attention, save_attention=save_attention)
-                sentence = []
-        elif seq_string == "END":
-            printing("ENDING INTERACTION", verbose=verbose, verbose_level=0)
-            break
-        else:
-            sentence.append(seq_string)
-            if not sent_mode:
-                decode_seq_str(seq_string, model, char_dictionary, pad, max_len, verbose)

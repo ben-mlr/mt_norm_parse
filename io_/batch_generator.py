@@ -4,6 +4,7 @@ import numpy as np
 import pdb
 import matplotlib.pyplot as plt
 from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
+from io_.dat.constants import PAD_ID_CHAR 
 from io_.info_print import printing
 import time
 from toolbox.sanity_check import get_timing
@@ -22,6 +23,7 @@ class MaskBatch(object):
                  output_word=None, pos=None, input_word=None,
                  output_norm_not_norm=None, pad=0, verbose=0, timing=False):
         # input mask
+        timing = True
         if not output_seq.size(0) >1:
             pdb.set_trace()
         assert output_seq.size(0) >1 , "ERROR  batch_size should be strictly above 1 but is {} ".format(output_seq.size())
@@ -41,7 +43,9 @@ class MaskBatch(object):
         zero_last, start = get_timing(start)
         # Handle long unpadded sequence
         ##- still last dimension : maybe 3
-        self.input_seq_len = torch.argmin(_input_seq_mask, dim=-1)
+        self.input_seq_len = torch.argmin(_input_seq_mask.cpu(), dim=-1)
+        if _input_seq_mask.is_cuda:
+            self.input_seq_len = self.input_seq_len.cuda()
         get_len_input, start = get_timing(start)
         printing("BATCH : SOURCE true dim size {} ", var=(self.input_seq.size()), verbose=verbose, verbose_level=3)
         printing("BATCH : SOURCE input_seq_len  {} ", var=(self.input_seq_len), verbose=verbose, verbose_level=5)
@@ -61,7 +65,9 @@ class MaskBatch(object):
             zero_mask_output, start = get_timing(start)
             self.output_seq_y = output_seq[:, :, 1:]
             ##- last dim also
-            self.output_seq_len = torch.argmin(_output_mask_x, dim=-1)
+            self.output_seq_len = torch.argmin(_output_mask_x.cpu(), dim=-1)
+            if _output_mask_x.is_cuda:
+                self.output_seq_len = self.output_seq_len.cuda()
             get_len_output, start = get_timing(start)
             printing("BATCH : OUTPUT self.output_seq_x,  subsequent {} {} ", var=(self.output_seq_x.size(), self.output_seq_x), verbose= verbose, verbose_level=5)
             printing("BATCH : OUTPUT self.output_seq_len,  {} {} ", var=(self.output_seq_len.size(), self.output_seq_len), verbose=verbose, verbose_level=5)
@@ -91,7 +97,7 @@ class MaskBatch(object):
                                                      batch_first=True)
             pack_output_y, start = get_timing(start)
             #pdb.set_trace()
-            self.output_seq_y, lenghts = pad_packed_sequence(self.output_seq_y, batch_first=True, padding_value=1.0)
+            self.output_seq_y, lenghts = pad_packed_sequence(self.output_seq_y, batch_first=True, padding_value=PAD_ID_CHAR)
             pad_output_y, start = get_timing(start)
             #useless but bug raised of not packeding (would like to remove packing which I think is useless ?)
 

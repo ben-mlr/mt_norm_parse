@@ -1,4 +1,5 @@
-from model.sequence_prediction import greedy_decode_batch, decode_seq_str, decode_interacively
+from predict.prediction_batch import  greedy_decode_batch
+from predict.prediction_string import decode_seq_str, decode_interacively
 import pdb
 from model.loss import LossCompute
 import os

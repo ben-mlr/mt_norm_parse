@@ -91,7 +91,7 @@ class LexNormalizer(nn.Module):
         if word_embed:
             assert word_embedding_dim > 0, "ERROR word_embedding_dim should be >0 as word_embed"
         else:
-            assert word_embedding_dim == 0 and word_embedding_projected_dim is None, "ERROR  word_embedding_dim needs to be 0 " \
+            assert word_embedding_dim == 0 and word_embedding_projected_dim is None and word_embed_dir is None, "ERROR  word_embedding_dim needs to be 0 " \
                                                                                      "and word_embedding_projected_dim None if not word_embed "
         if char_decoding:
             assert dense_dim_word_pred is None or dense_dim_word_pred == 0, "ERROR dense_dim_word_pred should be None as not word_decoding"
@@ -276,7 +276,7 @@ class LexNormalizer(nn.Module):
         if self.word_embedding is not None:
             self.word_embedding_project = nn.Linear(word_embedding_dim, word_embedding_projected_dim) if word_embed and word_embedding_projected_dim is not None else None
 
-        if word_embed_dir is not None:
+        if word_embed_dir is not None and not load:
             printing("W2V INFO : loading initialized embedding from {}  ", var=[word_embed_dir], verbose=verbose, verbose_level=1)
             word_embed_dic = load_emb(word_embed_dir, verbose)
             assert len(word_embed_dic["a"]) == word_embedding_dim, "ERROR : mismatch between word embedding definition and init"
@@ -348,11 +348,20 @@ class LexNormalizer(nn.Module):
         # bridge between encoder hidden representation and decoder
         if load:
             # TODO : see if can be factorized
+            print("MODEL loading weights from {} ".format(checkpoint_dir))
             if use_gpu:
                 self.load_state_dict(torch.load(checkpoint_dir))
                 self = self.cuda()
             else:
                 self.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
+            
+            with open("./parameters.txt", "a") as f:
+                for name, param in self.named_parameters():
+                    f.write(name+"\n")
+                    f.write(str(np.array(param.data)))
+                    f.write("\n")
+                    f.write("\n")
+                    #print(name, param.data)
 
     def forward(self, input_seq, input_word_len, word_embed_input=None,
                 output_word_len=None, output_seq=None, word_level_predict=False,

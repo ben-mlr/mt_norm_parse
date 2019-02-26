@@ -383,13 +383,14 @@ if __name__ == "__main__":
                                                                                params_strong, warmup=False,
                                                                                grid_label="0",
                                                                                stable_decoding_state_ls=[False],
-                                                                               word_decoding_ls=[True],
+                                                                               word_decoding_ls=[False],
                                                                                batch_size_ls=[100],
                                                                                auxilliary_task_pos_ls=[False],
-                                                                               word_embed_ls=[True],
+                                                                               word_embed_ls=[False],
                                                                                dir_sent_encoder_ls=[2], lr_ls=[0.001],
-                                                                               word_embed_init_ls=[DIR_TWEET_W2V],
-                                                                               shared_context_ls=["word", "all"],
+                                                                               word_embed_init_ls=[None],
+                                                                               teacher_force_ls=[True],
+                                                                               shared_context_ls=["all"],
                                                                                word_embedding_projected_dim_ls=[100],                                                                               
                                                                                auxilliary_task_norm_not_norm_ls=[False],
                                                                                char_src_attention_ls=[False],
@@ -443,7 +444,7 @@ if __name__ == "__main__":
       for param, model_id_pref in zip(params, labels):
           i += 1
           printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 5 if not test_before_run else 2
+          epochs = 3 if not test_before_run else 2
           if warmup:
             param = {
                      "hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10, "dropout_sent_encoder": 0.,
