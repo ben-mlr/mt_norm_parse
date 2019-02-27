@@ -44,8 +44,11 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None,
                                                    word_normalization=word_normalization, verbose=verbose)
   else:
     # ??
-    assert train_path is None and dev_path is None and test_path is None and add_start_char is None
-    embed_np = None
+    assert train_path is None and dev_path is None and test_path is None and add_start_char is None, \
+      "train_path {} dev_path {} test_path {} add_start_char {}".format(train_path,
+                                                                        dev_path,
+                                                                        test_path,
+                                                                        add_start_char)
     printing("Loading dictionary from {} ".format(dict_path), verbose=verbose, verbose_level=1)
     word_dictionary = Dictionary('word', default_value=True, singleton=True)
     word_norm_dictionary = Dictionary('word_norm', default_value=True, singleton=True) if word_normalization else None

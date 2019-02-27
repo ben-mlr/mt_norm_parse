@@ -59,7 +59,6 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
         pdb.set_trace = lambda: 1
     pdb.set_trace()
     model = LexNormalizer(generator=Generator, load=True, model_full_name=model_full_name,
-                          #word_voc_
                           word_decoding=word_decoding, char_decoding=char_decoding, # added for dictionary purposes : might be other ways
                           voc_size=voc_size, use_gpu=use_gpu, dict_path=dict_path, model_specific_dictionary=True,
                           dir_model=os.path.join(PROJECT_PATH, "checkpoints", model_full_name + "-folder"),

@@ -130,11 +130,11 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
                             activation_word_decoder=activation_word_decoder,
                             symbolic_end=symbolic_end, symbolic_root=symbolic_root,
                             stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
-                            test_path=test_path[0] if isinstance(test_path,list) else test_path,
+                            test_path=test_path[0] if isinstance(test_path, list) else test_path,
                             checkpointing=True, verbose=verbose)
 
     model_dir = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder")
-    if test_path is not None :
+    if test_path is not None:
       dict_path = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder", "dictionaries")
       printing("GRID : START EVALUATION FINAL ", verbose_level=0, verbose=verbose)
       eval_data_paths = [train_path, dev_path]

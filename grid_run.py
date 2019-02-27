@@ -133,7 +133,7 @@ if __name__ == "__main__":
       for param, model_id_pref in zip(params, labels):
           i += 1
           printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-          epochs = 2 if not test_before_run else 2
+          epochs = 5 if not test_before_run else 2
           if warmup:
             param = {
                      "hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10, "dropout_sent_encoder": 0.,
@@ -143,7 +143,7 @@ if __name__ == "__main__":
                      "hidden_size_decoder": 50, "batch_size": 2
                      }
             param["batch_size"] = 20
-            param["auxilliary_task_norm_not_norm"] = True
+            param["auxilliary_task_norm_not_norm"] = False
             param["weight_binary_loss"] = 1
             param["unrolling_word"] = True
             param["char_src_attention"] = True
@@ -160,8 +160,8 @@ if __name__ == "__main__":
             param["dense_dim_word_pred_3"] = None
 
             param["char_decoding"] = not param["word_decoding"]
-            param["auxilliary_task_pos"] = True
-            param["dense_dim_auxilliary_pos"] = 100
+            param["auxilliary_task_pos"] = False
+            param["dense_dim_auxilliary_pos"] = 0
             param["dense_dim_auxilliary_pos_2"] = None
             param["word_embed_init"] = None
             param["word_embed"] = True
@@ -178,7 +178,7 @@ if __name__ == "__main__":
 
           model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
           if warmup:
-              epochs = 1
+              epochs = 5
               print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
               print("GRID_INFO analy vars=    dense_dim_auxilliary_pos_2 dense_dim_auxilliary_pos")
               print("GRID_INFO fixed vars=  word_embed ")

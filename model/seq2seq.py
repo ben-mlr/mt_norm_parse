@@ -76,6 +76,7 @@ class LexNormalizer(nn.Module):
         :param model_specific_dictionary: if True will compute (if new model) or load (if load) a dictionary
         and add it as attributes of the model
         :param train_path: training data path needed to compute the dictionary if model_specific_dictionary
+        test_path : ONLY FOR DICTIONARY
         :param dev_path: dev data path
         :param add_start_char: add or not start symbol for computing the dictionary
         :param verbose:
@@ -88,28 +89,11 @@ class LexNormalizer(nn.Module):
         # TODO factorize as args_checking
         assert (word_decoding or char_decoding) and not (word_decoding and char_decoding), "ERROR sttricly  one of word,char decoding should be True"
         assert init_context_decoder or stable_decoding_state or char_src_attention, "ERROR : otherwise no information passes from the encoder to the decoder"
-        if word_embed:
-            assert word_embedding_dim > 0, "ERROR word_embedding_dim should be >0 as word_embed"
-        else:
-            assert word_embedding_dim == 0 and word_embedding_projected_dim is None and word_embed_dir is None, "ERROR  word_embedding_dim needs to be 0 " \
-                                                                                     "and word_embedding_projected_dim None if not word_embed "
-        if char_decoding:
-            assert dense_dim_word_pred is None or dense_dim_word_pred == 0, "ERROR dense_dim_word_pred should be None as not word_decoding"
-        if auxilliary_task_pos:
-            assert dense_dim_auxilliary_pos is not None and dense_dim_auxilliary_pos > 0
-        else:
-            assert dense_dim_auxilliary_pos == 0 or dense_dim_auxilliary_pos is None
-        if not auxilliary_task_norm_not_norm:
-            assert dense_dim_auxilliary_2 is None or dense_dim_auxilliary_2 == 0, \
-                "ERROR dense_dim_auxilliary_2 shound be None or 0 when auxilliary_task_norm_not_norm is False"
-            assert dense_dim_auxilliary is None or dense_dim_auxilliary == 0,\
-                "ERROR dense_dim_auxilliary shound be None or 0 when auxilliary_task_norm_not_norm is False"
-        if dense_dim_auxilliary is None or dense_dim_auxilliary == 0:
-            assert dense_dim_auxilliary_2 == 0 or dense_dim_auxilliary_2 is None, "dense_dim_auxilliary_2 should be 0 or None as dense_dim_auxilliary is "
+
         # initialize dictionaries
         self.timing = timing
         self.dict_path, self.word_dictionary, self.word_nom_dictionary,  self.char_dictionary, self.pos_dictionary, self.xpos_dictionary, self.type_dictionary = None, None, None, None, None, None, None
-        self.auxilliary_task_norm_not_norm = auxilliary_task_norm_not_norm
+        self.auxilliary_task_norm_not_norm = False
         # new model : we create an id , and a saving directory for the model (checkpoints, reporting, arguments)
         if not load:
             printing("Defining new model ", verbose=verbose, verbose_level=0)
@@ -203,8 +187,10 @@ class LexNormalizer(nn.Module):
                                                    "dir_word": "uni",
                                                    "char_decoding": char_decoding,
                                                    "word_decoding": word_decoding,
-                                                   "dense_dim_word_pred":dense_dim_word_pred, "dense_dim_word_pred_2":dense_dim_word_pred_2,"dense_dim_word_pred_3":dense_dim_word_pred_3,
-                                                   "drop_out_bridge": drop_out_bridge, "drop_out_char_embedding_decoder": drop_out_char_embedding_decoder,
+                                                   "dense_dim_word_pred": dense_dim_word_pred,
+                                                   "dense_dim_word_pred_2": dense_dim_word_pred_2, "dense_dim_word_pred_3":dense_dim_word_pred_3,
+                                                   "drop_out_bridge": drop_out_bridge,
+                                                   "drop_out_char_embedding_decoder": drop_out_char_embedding_decoder,
                                                    "drop_out_word_decoder_cell": drop_out_word_decoder_cell,
                                                    "char_src_attention": char_src_attention,
                                                    "unrolling_word": unrolling_word,
@@ -260,6 +246,27 @@ class LexNormalizer(nn.Module):
 
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
+
+        if word_embed:
+            assert word_embedding_dim > 0, "ERROR word_embedding_dim should be >0 as word_embed"
+        else:
+            assert word_embedding_dim == 0 and word_embedding_projected_dim is None and word_embed_dir is None, "ERROR  word_embedding_dim needs to be 0 " \
+                                                                                     "and word_embedding_projected_dim None if not word_embed "
+        if char_decoding:
+            assert dense_dim_word_pred is None or dense_dim_word_pred == 0, "ERROR dense_dim_word_pred should be None as not word_decoding"
+        if auxilliary_task_pos:
+            assert dense_dim_auxilliary_pos is not None and dense_dim_auxilliary_pos > 0
+        else:
+            assert dense_dim_auxilliary_pos == 0 or dense_dim_auxilliary_pos is None
+        if not self.auxilliary_task_norm_not_norm:
+            assert dense_dim_auxilliary_2 is None or dense_dim_auxilliary_2 == 0, \
+                "ERROR dense_dim_auxilliary_2 shound be None or 0 when auxilliary_task_norm_not_norm is False"
+            assert dense_dim_auxilliary is None or dense_dim_auxilliary == 0,\
+                "ERROR dense_dim_auxilliary shound be None or 0 when auxilliary_task_norm_not_norm is False"
+        if dense_dim_auxilliary is None or dense_dim_auxilliary == 0:
+            assert dense_dim_auxilliary_2 == 0 or dense_dim_auxilliary_2 is None, "dense_dim_auxilliary_2 should be 0 or None as dense_dim_auxilliary is "
+
+
         # adjusting for directions : the hidden_size_sent_encoder provided and are the dir x hidden_dim dimensions
         hidden_size_sent_encoder = int(hidden_size_sent_encoder/(n_layers_sent_cell))
         hidden_size_encoder = int(hidden_size_encoder/dir_word_encoder)
@@ -348,21 +355,14 @@ class LexNormalizer(nn.Module):
         self.verbose = verbose
         # bridge between encoder hidden representation and decoder
         if load:
-            # TODO : see if can be factorized
-            print("MODEL loading weights from {} ".format(checkpoint_dir))
+            printing("MODEL loading existing weights from checkpoint {} ".format(checkpoint_dir),
+                     verbose=verbose, verbose_level=0)
             if use_gpu:
                 self.load_state_dict(torch.load(checkpoint_dir))
                 self = self.cuda()
             else:
                 self.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
-            
-            with open("./parameters.txt", "a") as f:
-                for name, param in self.named_parameters():
-                    f.write(name+"\n")
-                    f.write(str(np.array(param.data)))
-                    f.write("\n")
-                    f.write("\n")
-                    #print(name, param.data)
+
 
     def forward(self, input_seq, input_word_len, word_embed_input=None,
                 output_word_len=None, output_seq=None, word_level_predict=False,

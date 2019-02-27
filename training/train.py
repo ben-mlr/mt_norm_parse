@@ -132,13 +132,12 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
         word_voc_input_size = 0
         if not reload:
             # we need to feed the model the data so that it computes the model_specific_dictionary
-            _train_path, _dev_path, _add_start_char = train_path, dev_path, add_start_char
+            _train_path, _dev_path, _test_path, _add_start_char = train_path, dev_path, test_path, add_start_char
         else:
             # as it reload : we don't need data
-            _train_path, _dev_path, _add_start_char = None, None, None
+            _train_path, _dev_path, _test_path, _add_start_char = None, None, None, None
 
-    model = LexNormalizer(generator=Generator,expand_vocab_dev_test=expand_vocab_dev_test,
-
+    model = LexNormalizer(generator=Generator, expand_vocab_dev_test=expand_vocab_dev_test,
                           auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
                           dense_dim_auxilliary=dense_dim_auxilliary, dense_dim_auxilliary_2=dense_dim_auxilliary_2,
                           weight_binary_loss=weight_binary_loss,
@@ -169,11 +168,11 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                           word_embed=word_embed, word_embedding_dim=word_embedding_dim, word_embedding_projected_dim=word_embedding_projected_dim,
                           word_embed_dir=extern_emb_dir, word_voc_input_size=word_voc_input_size, teacher_force=teacher_force,
                           activation_char_decoder=activation_char_decoder, activation_word_decoder=activation_word_decoder,
-                          test_path=test_path, extend_vocab_with_test=test_path is not None, # if test is padded we extend
+                          test_path=_test_path, extend_vocab_with_test=_test_path is not None, # if test is padded we extend
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
 
-
     pos_batch = auxilliary_task_pos
+
     if use_gpu:
         model = model.cuda()
         printing("TYPE model is cuda : {} ", var=(next(model.parameters()).is_cuda), verbose=verbose, verbose_level=4)
@@ -191,8 +190,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
     _loss_train = 1000
     counter_no_deacrease = 0
     saved_epoch = 1
-
-    printing("GENERAL : Running from {} to {} epochs : training on {} evaluating on {}", var=(starting_epoch, n_epochs, train_path, dev_path), verbose=verbose, verbose_level=0)
+    if reload:
+        printing("TRAINING : RELOADED MODE , starting from checkpointed epoch {} ", var=starting_epoch, verbose_level=0, verbose=verbose)
+    printing("TRAINING : Running from {} to {} epochs : training on {} evaluating on {}", var=(starting_epoch, n_epochs, train_path, dev_path), verbose=verbose, verbose_level=0)
     starting_time = time.time()
     total_time = 0
     x_axis_epochs = []
@@ -254,7 +254,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                  verbose=verbose, verbose_level=1)
         loss_train, loss_details_train, step_train = run_epoch(batchIter, model,
                                                                LossCompute(model.generator, opt=adam,
-
                                                                            auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
                                                                            model=model,
                                                                            writer=writer, use="train",
@@ -394,7 +393,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                    epoch_ls_1=epoch_ls_train, epoch_ls_2=epoch_ls_dev, label=label_train+"-train",
                                    label_2=label_dev+"-dev", save=True, dir=model.dir_model, verbose=verbose,
                                    verbose_level=1, lr=lr, prefix=model.model_full_name, show=False)
-
+            print("CHECKPOINTE ", epoch)
             model, _loss_dev, counter_no_deacrease, saved_epoch = \
                     checkpoint(loss_saved=_loss_dev, loss=loss_dev, model=model, counter_no_decrease=counter_no_deacrease,
                                saved_epoch=saved_epoch, model_dir=model.dir_model,
