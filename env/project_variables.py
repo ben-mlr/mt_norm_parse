@@ -50,6 +50,9 @@ CP_PASTE_WR_TRAIN_LABEL, CP_PASTE_WR_TRAIN = "copy_paste_real_word-train", os.pa
 CP_PASTE_WR_DEV_LABEL, CP_WR_PASTE_DEV = "copy_paste_real_word-dev", os.path.join(PROJECT_PATH, "./data/copy_paste_real_word_dev.conll")
 CP_PASTE_WR_TEST_LABEL, CP_WR_PASTE_TEST = "copy_paste_real_word-test", os.path.join(PROJECT_PATH, "./data/copy_paste_real_word_test.conll")
 
+CP_PASTE_WR_TEST_269_LABEL, CP_WR_PASTE_TEST_269 = "copy_paste_real_word_test-first269", os.path.join(PROJECT_PATH, "./data/copy_paste_real_word_test-first269.conll")
+
+
 DIR_TWEET_W2V = os.path.join(PROJECT_PATH, "w2v", "tweets.en.w2v.txt")
 W2V_LOADED_DIM = 400
 MAX_VOCABULARY_SIZE_WORD_DIC = 20000
@@ -62,7 +65,7 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 LIU_DEV: LIU_DEV_LABEL, LIU_TRAIN:LIU_TRAIN_LABEL,
                 EWT_DEV: EWT_DEV_LABEL,
                 CP_PASTE_TRAIN: CP_PASTE_TRAIN_LABEL, CP_PASTE_DEV: CP_PASTE_DEV_LABEL, CP_PASTE_TEST: CP_PASTE_TEST_LABEL,
-                CP_PASTE_WR_TRAIN: CP_PASTE_WR_TRAIN_LABEL, CP_WR_PASTE_DEV: CP_PASTE_WR_DEV_LABEL, CP_WR_PASTE_TEST: CP_PASTE_WR_TEST_LABEL,
+                CP_PASTE_WR_TRAIN: CP_PASTE_WR_TRAIN_LABEL, CP_WR_PASTE_DEV: CP_PASTE_WR_DEV_LABEL, CP_WR_PASTE_TEST: CP_PASTE_WR_TEST_LABEL, CP_WR_PASTE_TEST_269: CP_PASTE_WR_TEST_269_LABEL,
                 }
 
 print(REPO_DATASET)

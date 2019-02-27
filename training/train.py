@@ -66,6 +66,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
           dense_dim_word_pred=None, dense_dim_word_pred_2=None,dense_dim_word_pred_3=None,
           symbolic_root=False, symbolic_end=False, extern_emb_dir=None,
           activation_word_decoder=None, activation_char_decoder=None,
+          extra_arg_specific_label="",
           verbose=1):
     if teacher_force:
         assert proportion_pred_train is None, "proportion_pred_train should be None as teacher_force mode"
@@ -181,7 +182,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
         model.word_dictionary, model.char_dictionary, model.pos_dictionary, \
         model.xpos_dictionary, model.type_dictionary = word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary
 
-    starting_epoch = model.arguments["info_checkpoint"]["n_epochs"] if reload else 0
+    starting_epoch = model.arguments["info_checkpoint"]["n_epochs"] if reload else 1
     reloading = "" if not reload else " reloaded from "+str(starting_epoch)
     n_epochs += starting_epoch
     parameters = filter(lambda p: p.requires_grad, model.parameters())
@@ -231,6 +232,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
     if ADAPTABLE_SCORING:
         printing("WARNING : scoring epochs not regualr (more at the begining ", verbose_level=1, verbose=verbose)
         freq_scoring = 1
+    checkpoint_dir_former = None
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
         assert policy in AVAILABLE_SCHEDULING_POLICIES
         policy_dic = eval(policy)(epoch) if policy is not None else None
@@ -299,7 +301,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                              weight_binary_loss=weight_binary_loss,
                                                              ponderation_normalize_loss=ponderation_normalize_loss,
                                                              weight_pos_loss=weight_pos_loss,
-                                                             log_every_x_batch=100, )
+                                                             log_every_x_batch=100)
 
             loss_developing.append(loss_dev)
             epoch_ls_dev.append(epoch)
@@ -350,7 +352,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                   word_decoding=word_decoding,
                                   dir_report=model.dir_model,
                                   debug=debug,
-                                  verbose=1)
+                                  verbose=verbose)
 
                 # dirty but do the job
                 exact_only = True
@@ -370,7 +372,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                     curves = [curve for curve in curves if len(curve)>0]
 
                 simple_plot_ls(losses_ls=curves, labels=val_ls, final_loss="", save=True, filter_by_label=score_plot,  x_axis=x_axis_epochs,
-                               dir=model.dir_model, prefix=model.model_full_name,epochs=str(epoch)+reloading, verbose=verbose, lr=lr,
+                               dir=model.dir_model, prefix=model.model_full_name, epochs=str(epoch)+reloading, verbose=verbose, lr=lr,
                                label_color_0=REPO_DATASET[evaluation_set_reporting[0]], label_color_1=REPO_DATASET[evaluation_set_reporting[1]])
 
         # WARNING : only saving if we decrease not loading former model if we relaod
@@ -394,9 +396,12 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                    label_2=label_dev+"-dev", save=True, dir=model.dir_model, verbose=verbose,
                                    verbose_level=1, lr=lr, prefix=model.model_full_name, show=False)
             print("CHECKPOINTE ", epoch)
-            model, _loss_dev, counter_no_deacrease, saved_epoch = \
+            model, _loss_dev, counter_no_deacrease, saved_epoch, checkpoint_dir_former = \
                     checkpoint(loss_saved=_loss_dev, loss=loss_dev, model=model, counter_no_decrease=counter_no_deacrease,
+                               checkpoint_dir_former=checkpoint_dir_former,
                                saved_epoch=saved_epoch, model_dir=model.dir_model,
+                               extra_checkpoint_label="1st_train" if not reload else "{}ep_restarted".format(starting_epoch),
+                               extra_arg_specific_label=extra_arg_specific_label,
                                info_checkpoint={"n_epochs": epoch, "batch_size": batch_size,
                                                 "gradient_clipping": clipping,
                                                 "tasks_schedule_policy": policy,
@@ -413,7 +418,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                           "lr": lr, "optim_strategy":"lr_constant",
                                                           "time_training(min)": "{0:.2f}".format(total_time/60),
                                                           "average_per_epoch(min)": "{0:.2f}".format((total_time/n_epochs)/60)}},
-                             epoch=epoch, epochs=n_epochs,
+                             epoch=epoch, epochs=n_epochs-1, keep_all_checkpoint=False if epoch > starting_epoch else True,# we have nothing to remove after 1st epoch
                              verbose=verbose)
             if counter_no_deacrease*freq_checkpointing >= BREAKING_NO_DECREASE:
                 printing("CHECKPOINTING : Breaking training : loss did not decrease on dev for 10 checkpoints "

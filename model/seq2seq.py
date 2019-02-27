@@ -59,6 +59,7 @@ class LexNormalizer(nn.Module):
                  n_layers_sent_cell=1,
                  symbolic_end=False, symbolic_root=False,
                  extend_vocab_with_test=False, test_path=None,
+                 extra_arg_specific_label="",
                  activation_char_decoder=None, activation_word_decoder=None, expand_vocab_dev_test=False,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
@@ -219,7 +220,7 @@ class LexNormalizer(nn.Module):
                 assert voc_size is not None, "ERROR : voc_size is required for sanity checking " \
                                              "as we recompute the dictionary "
 
-            args, checkpoint_dir, args_dir = self.load(dir_model, model_full_name, verbose=verbose)
+            args, checkpoint_dir, args_dir = self.load(dir_model, model_full_name, extra_label=extra_arg_specific_label,verbose=verbose)
             self.arguments = args
             args = args["hyperparameters"]
             # -1 because when is passed for checking it accounts for the unkwnown which is
@@ -440,9 +441,17 @@ class LexNormalizer(nn.Module):
         return output, word_pred_state, pos_pred_state, norm_not_norm_hidden, attention_weight_all
 
     @staticmethod
-    def save(dir, model, info_checkpoint, suffix_name="",verbose=0):
+    def rm_checkpoint(checkpoint_dir_to_remove, verbose=0):
+        assert os.path.isfile(checkpoint_dir_to_remove), "ERROR checkpoint_dir_to_remove {} does not exist".format(checkpoint_dir_to_remove)
+        os.remove(checkpoint_dir_to_remove)
+        printing("CHECKPOINT removed {} ", var=[checkpoint_dir_to_remove], verbose=verbose, verbose_level=1)
+
+    @staticmethod
+    def save(dir, model, info_checkpoint, suffix_name="", extra_arg_specific_label="",verbose=0):
         """
         saving model as and arguments as json
+        extra_arg_specific_label
+        --> designed for fine tuning purpose : to have one directory with checkpoint for each training process (each time) + if we want new argument directory for fine tuning we add it int it
         """
         sanity_check_info_checkpoint(info_checkpoint, template=TEMPLATE_INFO_CHECKPOINT)
         assert os.path.isdir(dir), " ERROR : dir {} does not exist".format(dir)
@@ -465,9 +474,13 @@ class LexNormalizer(nn.Module):
         model.arguments["info_checkpoint"]["git_id"] = get_commit_id()
         model.arguments["checkpoint_dir"] = checkpoint_dir
         # the arguments dir does not change !
-        arguments_dir = os.path.join(dir,  model.model_full_name + "-" + "args.json")
+        if len(extra_arg_specific_label) > 0:
+            extra_arg_specific_label += "-"
+            printing("MODEL : added extra {} to arg directory {} ", var=[extra_arg_specific_label], verbose_level=0,
+                     verbose=0)
+        arguments_dir = os.path.join(dir,  model.model_full_name + "-" + extra_arg_specific_label + "args.json")
         model.args_dir = arguments_dir
-        printing("WARNING : overwriting checkpoint {} ", var=[checkpoint_dir], verbose=verbose, verbose_level=0)
+
 
         if os.path.isfile(arguments_dir):
             printing("Overwriting argument file (checkpoint dir updated with {}  ) ", var=[checkpoint_dir],
@@ -479,11 +492,15 @@ class LexNormalizer(nn.Module):
         json.dump(model.arguments, open(arguments_dir, "w"))
         printing("Saving model weights and arguments as {}  and {} ", var=(checkpoint_dir, arguments_dir),
                  verbose=verbose, verbose_level=0)
-        return dir, model.model_full_name
+        return dir, model.model_full_name, checkpoint_dir
 
     @staticmethod
-    def load(dir, model_full_name, verbose=0):
-        args = model_full_name+"-args.json"
+    def load(dir, model_full_name, extra_label="", verbose=0):
+        if len(extra_label):
+            extra_label = extra_label + "-" if len(extra_label) else extra_label
+            printing("MODEL : added extra {} to arg directory {} ",
+                     var=[extra_arg_specific_label], verbose_level=0, verbose=0)
+        args = model_full_name+"-"+extra_label+"args.json"
         args_dir = os.path.join(dir, args)
         assert os.path.isfile(args_dir), "ERROR {} does not exits".format(args_dir)
         args = json.load(open(args_dir, "r"))

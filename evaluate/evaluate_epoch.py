@@ -36,6 +36,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
              model_specific_dictionary=True, label_report="", print_raw=False, model=None,
              compute_mean_score_per_sent=False,write_output=False,
              word_decoding=False, char_decoding=True,
+             extra_arg_specific_label="",
              normalization=True, debug=False, force_new_dic=False, use_gpu=None, verbose=0):
     assert model_specific_dictionary, "ERROR : only model_specific_dictionary = True supported now"
     # NB : now : you have to load dictionary when evaluating (cannot recompute) (could add in the LexNormalizer ability)
@@ -61,7 +62,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
     model = LexNormalizer(generator=Generator, load=True, model_full_name=model_full_name,
                           word_decoding=word_decoding, char_decoding=char_decoding, # added for dictionary purposes : might be other ways
                           voc_size=voc_size, use_gpu=use_gpu, dict_path=dict_path, model_specific_dictionary=True,
-                          dir_model=os.path.join(PROJECT_PATH, "checkpoints", model_full_name + "-folder"),
+                          dir_model=os.path.join(PROJECT_PATH, "checkpoints", model_full_name + "-folder"), extra_arg_specific_label=extra_arg_specific_label,
                           verbose=verbose
                           ) if model is None else model
 

@@ -1,14 +1,20 @@
 from io_.info_print import printing
+import os
 import torch
 
 
-def checkpoint(loss_saved , loss, model, model_dir, epoch, epochs, info_checkpoint, saved_epoch,
-               counter_no_decrease, verbose):
+def checkpoint(loss_saved, loss, model, model_dir, epoch, epochs, info_checkpoint, saved_epoch,
+               counter_no_decrease, verbose, extra_checkpoint_label="",extra_arg_specific_label="",
+               checkpoint_dir_former=None, keep_all_checkpoint=False):
     if loss < loss_saved:
         saved_epoch = epoch
         loss_saved = loss
         printing('Checkpoint info : Loss decreased so saving model saved epoch is {} (counter_no_decrease set to 0)',var=saved_epoch, verbose=verbose, verbose_level=1)
-        model.save(model_dir, model, info_checkpoint=info_checkpoint, suffix_name="Xep-outof{}ep".format(epochs), verbose=verbose)
+        _,_, checkpoint_dir = model.save(model_dir, model, info_checkpoint=info_checkpoint, extra_arg_specific_label=extra_arg_specific_label,
+                                         suffix_name="{}-{}of{}epoch".format(extra_checkpoint_label, epoch, epochs), verbose=verbose)
+        if not keep_all_checkpoint:
+            model.rm_checkpoint(checkpoint_dir_former, verbose=verbose)
+        checkpoint_dir_former = checkpoint_dir
         counter_no_decrease = 0
     else:
         # could add loading former model if loss suddenly pick
@@ -20,7 +26,7 @@ def checkpoint(loss_saved , loss, model, model_dir, epoch, epochs, info_checkpoi
                  "counter_no_decrease is now {} ",
                  var=(saved_epoch, counter_no_decrease), verbose=verbose, verbose_level=1)
 
-    return model, loss_saved , counter_no_decrease, saved_epoch
+    return model, loss_saved , counter_no_decrease, saved_epoch, checkpoint_dir_former
 
 
 def update_curve_dic(score_to_compute_ls, mode_norm_ls, eval_data, scores, former_curve_scores, exact_only=True):
