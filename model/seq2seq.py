@@ -498,8 +498,8 @@ class LexNormalizer(nn.Module):
     def load(dir, model_full_name, extra_label="", verbose=0):
         if len(extra_label):
             extra_label = extra_label + "-" if len(extra_label) else extra_label
-            printing("MODEL : added extra {} to arg directory {} ",
-                     var=[extra_arg_specific_label], verbose_level=0, verbose=0)
+            printing("MODEL : added extra {} to arg directory before loading{} ",
+                     var=[extra_label], verbose_level=0, verbose=0)
         args = model_full_name+"-"+extra_label+"args.json"
         args_dir = os.path.join(dir, args)
         assert os.path.isfile(args_dir), "ERROR {} does not exits".format(args_dir)
