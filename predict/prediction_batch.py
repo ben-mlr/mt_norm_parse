@@ -107,8 +107,7 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
         with torch.no_grad():
             for step, (batch, _) in enumerate(batchIter):
                 # read src sequence
-                if step>=1:
-                    raise(Exception)
+                
                 src_seq = batch.input_seq
                 src_len = batch.input_seq_len
                 src_mask = batch.input_seq_mask

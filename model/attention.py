@@ -9,7 +9,6 @@ import time
 EPSILON = 1e-4
 
 
-
 class Attention(nn.Module):
 
     def __init__(self,  hidden_size_word_decoder,
