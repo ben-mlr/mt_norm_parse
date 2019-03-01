@@ -162,7 +162,7 @@ class CharDecoder(nn.Module):
         printing("TARGET EMBEDDING size {} ", var=[char_vecs.size()], verbose=self.verbose, verbose_level=3) #if False else None
         printing("TARGET EMBEDDING data {} ", var=char_vecs, verbose=self.verbose, verbose_level=5)
         not_printing, start = get_timing(start)
-        pdb.set_trace()
+
         conditioning = conditioning[:, perm_idx_output, :]
         reorder_conditioning, start = get_timing(start)
 
@@ -320,7 +320,7 @@ class CharDecoder(nn.Module):
         packed_sent, start = get_timing(start)
         # unpacked for the word level representation
         # packed_char_vecs_output .data : [batch x shorted sent_lenS , word lens ] + .batch_sizes
-        pdb.set_trace()
+
         output_char_vecs, output_sizes = pad_packed_sequence(packed_char_vecs_output, batch_first=True,
                                                              padding_value=PAD_ID_WORD) # padding_value
         padd_sent, start = get_timing(start)
@@ -331,7 +331,7 @@ class CharDecoder(nn.Module):
         # cut input_word_len so that it fits packed_padded sequence
         output_word_len = output_word_len[:, :output_char_vecs.size(1), :]
         # cut again (should be done in one step I guess) to fit sent len source
-        pdb.set_trace()
+
         output_word_len = output_word_len[:, :sent_len_max_source, :]
         output_seq = output_char_vecs.view(output_char_vecs.size(0) * output_char_vecs.size(1), output_char_vecs.size(2))
         reshape_sent, start = get_timing(start)

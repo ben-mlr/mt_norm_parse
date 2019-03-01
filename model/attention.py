@@ -59,29 +59,35 @@ class Attention(nn.Module):
             #batch_diag[word,:,:] = diag
         #
         #scores_energy = diag.matmul(scores_energy)
-        attn_energies = self.score(char_state_decoder=char_state_decoder[:, :],
+        attn_energies = self.score(char_state_decoder=char_state_decoder,
                                    encoder_output=encoder_outputs.squeeze(1))
         # scores_energy shaped : number of decoded word (batch x len_sent max) times n_character max src
         # we have a attention energy for the current decoding character for each src word target word pair
         #attn_energies[:, char_src] = diag.matmul(scores_energy)
         # DO WE NEED TO SET THE ENERGY TO -inf to force the softmax to be zero to all padded vector
+        pdb.set_trace()
+        # WARNING : we use encoder_outputs as our masking :
+        # it means that we assume encoder_outputs is equal to 0 (at first index)
+        # FINE because we have word_encoder_source which provides pad sequence
+        attn_energies[encoder_outputs[:, :, 0] == 0] = -float("Inf")
         softmax = F.softmax(attn_energies, dim=1)
-        try:
-            ones = torch.ones(softmax.size(0)).cuda() if softmax.is_cuda else torch.ones(softmax.size(0))
-            assert ((softmax.sum(dim=1) - ones) < EPSILON).all(), "ERROR : softmax not softmax"
-        except:
-            print("SOFTMAX0 is not softmax : softmax.size(0)")
-            print(softmax.sum(dim=1))
+        #try:
+        # TOD is kind of costly
+        ones = torch.ones(softmax.size(0)).cuda() if softmax.is_cuda else torch.ones(softmax.size(0))
+        assert ((softmax.sum(dim=1) - ones) < EPSILON).all(), "ERROR : softmax not softmax"
+        #except:
+            #print("SOFTMAX0 is not softmax : softmax.size(0)")
+            #print(softmax.sum(dim=1))
         #  we do masking here : word that are only 1 len (START character) :
         #  we set their softmax to 0 so that their context vector is
         #  Q? is it useful
         # masking of softmax weights : we set the weights to 0 if padded value
-        diag_sotm = torch.diag(word_src_sizes != 1).float()
+        #diag_sotm = torch.diag(word_src_sizes != 1).float()
 
-        if softmax.is_cuda:
-            diag_sotm = diag_sotm.cuda()
+        #if softmax.is_cuda:
+        #    diag_sotm = diag_sotm.cuda()
         # masking empty words
-        softmax_ = diag_sotm.matmul(softmax) # equivalent to softmax[word_src_sizes == 1, :] = 0. #assert (softmax_2==softmax).all()
-        softmax_ = softmax_.unsqueeze(1)
-        return softmax_
+        #softmax_ = diag_sotm.matmul(softmax) # equivalent to softmax[word_src_sizes == 1, :] = 0. #assert (softmax_2==softmax).all()
+        #softmax_ = softmax_.unsqueeze(1)
+        return softmax.unsqueeze(1)
 

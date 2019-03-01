@@ -66,7 +66,7 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
         sent = [ROOT]+sent+[END]
         for seq_string in sent:
             # should be padded in the same way as done in the training data conll_reader
-            pdb.set_trace()
+
             if len(seq_string) > 0:
                 word_string = seq_string[:]
                 if seq_string == ROOT:
@@ -86,7 +86,7 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
             word_id = word_dictionary.get_index(word_string) if word_dictionary is not None else None
             sequence_characters = [char_dictionary.get_index(letter) for letter in seq_string]+[pad for _ in range(max_len-len(seq_string))]
             sent_character.append(sequence_characters)
-            pdb.set_trace()
+
             if word_ls is not None:
                 word_ls.append(word_id)
             masks = [1 for _ in seq_string]+[0 for _ in range(max_len-len(seq_string))]
@@ -94,7 +94,7 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
             words_lens = min(max_len, len(seq_string))
             sent_words_lens.append(words_lens)
             # we have to create batch_size == 2 because of bug
-        pdb.set_trace()
+
         batch = Variable(torch.from_numpy(np.array([sent_character, sent_character])), requires_grad=False)
         input_word = Variable(torch.from_numpy(np.array([word_ls, word_ls])), requires_grad=False) if word_ls is not None else None
         batch_masks = Variable(torch.from_numpy(np.array([sent_words_mask, sent_words_mask])), requires_grad=False)
@@ -106,7 +106,7 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
                                  src_mask=batch_masks, pad=pad,
                                  verbose=verbose)
         else:
-            pdb.set_trace()
+
             if model.arguments["hyperparameters"]["decoder_arch"].get("char_decoding", True):
                 assert not model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False), "ERROR : only on type of decoding should be set (for now)"
                 (text_decoded, src_text, target, src_words_from_embed), _, (attention, src_seq), (pred_norm,_, _, _)  \
@@ -114,7 +114,7 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
                                       max_len=max_len, src_seq=batch, src_len=batch_lens, input_word=input_word,
                                       src_mask=batch_masks, single_sequence=True, pad=pad, verbose=verbose)
             elif model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False):
-                pdb.set_trace()
+
                 (text_decoded, src_text, target, src_words_from_embed), counts, (attention, src_seq), \
                 (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_word(model,
                                                                                       src_seq=batch,
@@ -123,6 +123,7 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
                                                                                       single_sequence=True,
                                                                                       target_word_gold=None)
         if attention is not None:
+            print("Attention shape", attention.size())
             print("Attention", attention, src_seq, text_decoded)
             for pred_word, src_word, attention_word in zip(text_decoded, src_seq, attention):
 

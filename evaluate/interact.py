@@ -28,7 +28,7 @@ def interact(dic_path, model_full_name,
                           model_specific_dictionary=model_specific_dictionary,
                           dict_path=dic_path,
                           dir_model=dir_model,
-                          word_decoding=word_decoding,char_decoding=not word_decoding,
+                          word_decoding=word_decoding, char_decoding=not word_decoding,
                           verbose=verbose)
     model.eval()
     if show_attention or save_attention:
@@ -103,9 +103,10 @@ if __name__ == "__main__":
         print("0Evaluating {} ".format(model_full_name))
         dic_path = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder", "dictionaries")
         model_dir = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder")
-        interact(dic_path=dic_path, dir_model=model_dir, model_full_name=model_full_name, debug=False,
-                 verbose=1, beam_decode=False, beam_size=1,
+        interact(dic_path=dic_path, dir_model=model_dir, model_full_name=model_full_name,
+                 beam_decode=False, beam_size=1,
                  word_decoding=False,
-                 save_attention=False, show_attention=False)
+                 save_attention=False, show_attention=False,
+                 debug=True, verbose=1)
         #break
     #show_attention("[lekfezlfkh efj ", ["se", "mjfsemkfj"], torch.tensor([[0,.4], [1,0.6]]))

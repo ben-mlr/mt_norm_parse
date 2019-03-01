@@ -4,11 +4,13 @@ from torch.autograd import Variable
 from io_.info_print import printing
 from io_.dat.normalized_writer import write_normalization
 from io_.from_array_to_text import output_text, output_text_
+from io_.dat.constants import PAD_ID_CHAR, CHAR_END_ID
 import numpy as np
 from evaluate.normalization_errors import score_norm_not_norm
 from evaluate.normalization_errors import score_ls_, correct_pred_counter
 from env.project_variables import WRITING_DIR
 from io_.dat.constants import CHAR_START_ID
+from toolbox.sanity_check import get_timing
 import pdb
 import os
 from collections import OrderedDict
@@ -17,6 +19,7 @@ from evaluate.visualize_attention import show_attention
 from toolbox.norm_not_norm import get_label_norm
 from io_.dat.constants import PAD, ROOT, END, ROOT_CHAR, END_CHAR
 # EPSILON for the test of edit distance 
+import time
 EPSILON = 0.000001
 TEST_SCORING_IN_CODE = False
 
@@ -259,8 +262,11 @@ def decode_word(model, src_seq, src_len,
 def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                     pad=1, target_seq_gold=None, input_word=None,
                     use_gpu=False,
-                    single_sequence=False, verbose=2):
+                    single_sequence=False, eval_time=True, verbose=2,
+                    timing=True):
 
+    #eval_time alays True for now
+    printing("EVAL TIME is {}", var=eval_time, verbose=verbose, verbose_level=2)
     output_seq = pad*np.ones(src_seq.size(), dtype=np.int64)
     # we start with the _START symbol
     output_seq[:, :, 0] = src_seq[:, :, 0] #CHAR_START_ID
@@ -275,22 +281,26 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
     output_str = True
     printing("WARNING : output_str = True hardcoded (decode_sequence)", verbose=verbose, verbose_level=2)
     printing("Data output sizes ", var=(output_seq.size(), output_len.size(), output_mask.size()), verbose=verbose, verbose_level=6)
+    start_decode_sequence = time.time() if timing else None
+
     for step, char_decode in enumerate(range(2,  max_len)):
         if use_gpu:
             src_seq = src_seq.cuda()
             output_seq = output_seq.cuda()
             src_len = src_len.cuda()
             output_len = output_len.cuda()
-        pdb.set_trace()
+        start = time.time() if timing else None
         decoding_states, word_pred, pos_pred, norm_not_norm, attention = model.forward(input_seq=src_seq,
                                                                                        output_seq=output_seq,
                                                                                        input_word_len=src_len,
                                                                                        output_word_len=output_len,
                                                                                        word_embed_input=input_word)
+        time_forward, start = get_timing(start)
         # [batch, seq_len, V]
-        pdb.set_trace()
+
         pred_norm_not_norm = norm_not_norm.argmax(dim=-1) if norm_not_norm is not None else None
         scores = model.generator.forward(x=decoding_states)
+        time_generate, start = get_timing(start)
         # each time step predict the most likely
         # len
         # output_len defined based on src_len to remove empty words
@@ -302,17 +312,22 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         output_mask[:, char_decode:] = 0
         # new seq
         predictions = scores.argmax(dim=-1)
-        printing("Prediction size {} ", var=(predictions.size()), verbose=verbose, verbose_level=4)
-        printing("SCORES {} ", var=[str(scores)], verbose=verbose, verbose_level=5)
-        printing("Prediction {} ", var=(predictions), verbose=verbose, verbose_level=5)
 
-        printing("scores: {} scores {} scores sized  {} predicion size {} prediction {} outputseq ", var=(scores,
-                 scores.size(), predictions.size(), predictions[:, -1],
-                 output_seq.size()),
-                 verbose=verbose, verbose_level=5)
-        pdb.set_trace()
+        time_argmax_printing, start = get_timing(start)
+        if verbose >= 4:
+            # .size() takes some time
+            printing("Prediction size {} ", var=(predictions.size()), verbose=verbose, verbose_level=4)
+            printing("SCORES {} ", var=[str(scores)], verbose=verbose, verbose_level=5)
+            printing("Prediction {} ", var=[predictions], verbose=verbose, verbose_level=5)
+
+            printing("scores: {} scores {} scores sized  {} predicion size {} prediction {} outputseq ", var=(scores,
+                     scores.size(), predictions.size(), predictions[:, -1],
+                     output_seq.size()),
+                     verbose=verbose, verbose_level=5)
+        time_printing, start = get_timing(start)
+
         output_seq = output_seq[:, :scores.size(1), :]
-
+        time_output_seq, start = get_timing(start)
         if pred_norm_not_norm is not None:
             pred_norm_not_norm = pred_norm_not_norm[:, :scores.size(1)]  # followign what's done above
         output_seq[:, :, char_decode - 1] = predictions[:, :, -1]
@@ -324,14 +339,21 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
             sequence = []
 
         printing("Decoding step {} decoded target {} ", var=(step, sequence), verbose=verbose, verbose_level=5)
+        time_sequence_text, start = get_timing(start)
 
-        pred_word_count, text_decoded, decoded_ls = output_text_(output_seq,
-                                                                 char_dictionary, single_sequence=single_sequence,
-                                                                 output_str=output_str, last=char_decode==(max_len-1),
-                                                                 debug=False)
-    pdb.set_trace()
-    printing("PREDICTION : array text {} ", var=[text_decoded], verbose=verbose, verbose_level=5)
-
+        if eval_time:
+            # at test time : if all prediction in the batch are whether PAD symbol or END symbol : we break
+            if ((predictions[:, :, -1] == PAD_ID_CHAR) + (predictions[:, :, -1] == CHAR_END_ID)).all():
+                printing("PREDICTION IS ONLY PAD or END SYMBOL SO BREAKING DECODING", verbose=verbose, verbose_level=1)
+                break
+    # no need to do that in the loop
+    pred_word_count, text_decoded, decoded_ls = output_text_(output_seq,
+                                                             char_dictionary, single_sequence=single_sequence,
+                                                             output_str=output_str, last=char_decode==(max_len-1),
+                                                             debug=False)
+    time_output_text, start = get_timing(start)
+    time_decoding_all_seq, start  = get_timing(start_decode_sequence)
+    printing("PREDICTION : array text {} ", var=[text_decoded], verbose=verbose, verbose_level=0)
     src_word_count, src_text, src_all_ls = output_text_(src_seq, char_dictionary, single_sequence=single_sequence,
                                                         output_str=output_str)
     printing("SOURCE  : array text {} ", var=[src_text], verbose=verbose, verbose_level=5)
@@ -348,6 +370,18 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
             attention = attention[0]
         if pred_norm_not_norm is not None:
             pred_norm_not_norm = pred_norm_not_norm[0]
+    if timing:
+        print("DECODING TIME : {}".format(
+            OrderedDict([("time_decoding_all_seq", time_decoding_all_seq),
+                         ("time_forward", time_forward),
+                         ("time_generate", time_generate),
+                         ("time_argmax_printing", time_argmax_printing),
+                         ("time_printing", time_printing),
+                         ("time_output_seq", time_output_seq),
+                         ("time_sequence_text", time_sequence_text),
+                         ("time_output_text",time_output_text),
+                         ("time_decoding_all_seq",time_decoding_all_seq)
+                         ])))
 
     return (text_decoded, src_text_ls, target_seq_gold_ls, None), \
            {

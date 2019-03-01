@@ -250,7 +250,7 @@ if __name__ == "__main__":
       for get_batch_mode_evaluate in [False]:
         for batch_size in [2]:
           #for data in [LIU, DEV, LEX_TEST]:
-          for data in [CP_WR_PASTE_TEST]:
+          for data in [DEMO]:
             list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
             print("FOLDERS : ", list_)
             for folder_name in list_:

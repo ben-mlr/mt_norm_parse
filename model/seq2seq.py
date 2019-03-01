@@ -382,7 +382,7 @@ class LexNormalizer(nn.Module):
             word_embed_input = self.word_embedding(word_embed_input)
             if self.word_embedding_project is not None:
                 word_embed_input = self.word_embedding_project(word_embed_input)
-        pdb.set_trace()
+
         context, sent_len_max_source, char_seq_hidden_encoder, word_src_sizes = self.encoder.forward(input_seq, input_word_len,
                                                                                                      word_embed_input=word_embed_input)
 
@@ -404,13 +404,13 @@ class LexNormalizer(nn.Module):
             printing("DECODER hidden state after norm_not_norm_hidden size {}", var=[norm_not_norm_hidden.size()],
                      verbose=0, verbose_level=4)
         if self.decoder is not None and not word_level_predict:
-            pdb.set_trace()
+
             output, attention_weight_all = self.decoder.forward(output_seq, context, output_word_len,
                                                                 word_src_sizes=word_src_sizes,
                                                                 char_seq_hidden_encoder=char_seq_hidden_encoder,
                                                                 proportion_pred_train=proportion_pred_train,
                                                                 sent_len_max_source=sent_len_max_source)
-            pdb.set_trace()
+
         else:
             output = None
             attention_weight_all = None
@@ -434,7 +434,7 @@ class LexNormalizer(nn.Module):
             time_report = OrderedDict(
                 [("source_encoder", source_encoder), ("target_encoder", target_encoder), ("bridge", bridge)])
             print("time report {}".format(time_report))
-        pdb.set_trace()
+
         return output, word_pred_state, pos_pred_state, norm_not_norm_hidden, attention_weight_all
 
     @staticmethod

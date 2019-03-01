@@ -133,7 +133,8 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                                                                                               src_mask=src_mask,
                                                                                               src_len=src_len,
                                                                                               input_word=batch.input_word,
-                                                                                              pad=pad, verbose=verbose)
+                                                                                              pad=pad,
+                                                                                              verbose=verbose)
 
                 elif model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False):
                     (text_decoded_ls, src_text_ls, gold_text_seq_ls, _), counts, _, \
