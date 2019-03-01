@@ -34,6 +34,7 @@ class Attention(nn.Module):
             energy = energy.unsqueeze(-1)
             encoder_output = encoder_output.squeeze(-1)#.unsqueeze(1)
             #energy = encoder_output.matmul(energy)
+            pdb.set_trace()
             energy = torch.bmm(encoder_output, energy)
             #energy = energy.squeeze(1).squeeze(1)
             energy = energy.squeeze(-1)
@@ -44,21 +45,22 @@ class Attention(nn.Module):
         return energy
 
     def forward(self, char_state_decoder, encoder_outputs, word_src_sizes=None):
-        max_word_len_src = encoder_outputs.size(1)
-        this_batch_size = encoder_outputs.size(0)
-        attn_energies = Variable(torch.zeros(this_batch_size, max_word_len_src)) # B x S
+        #max_word_len_src = encoder_outputs.size(1)
+        #this_batch_size = encoder_outputs.size(0)
+        #attn_energies = Variable(torch.zeros(this_batch_size, max_word_len_src)) # B x S
         # we loop over all the source encoded sequence (of character) to compute the attention weight
         # is the loop on the batch necessary
         #for batch in range(this_batch_size):
         # index of src word for masking
-        batch_diag = torch.empty(encoder_outputs.size(1), len(word_src_sizes),len(word_src_sizes))
+        #batch_diag = torch.empty(encoder_outputs.size(1), len(word_src_sizes),len(word_src_sizes))
         #for word in range(len(encoder_outputs.size(1))):
             #score_index = np.array([i for i in range(len(word)) > word_src_sizes[word]])
             #diag = torch.diag(score_index).float()
             #batch_diag[word,:,:] = diag
         #
         #scores_energy = diag.matmul(scores_energy)
-        attn_energies = self.score(char_state_decoder[:, :], encoder_outputs.squeeze(1))
+        attn_energies = self.score(char_state_decoder=char_state_decoder[:, :],
+                                   encoder_output=encoder_outputs.squeeze(1))
         # scores_energy shaped : number of decoded word (batch x len_sent max) times n_character max src
         # we have a attention energy for the current decoding character for each src word target word pair
         #attn_energies[:, char_src] = diag.matmul(scores_energy)

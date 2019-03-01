@@ -93,6 +93,7 @@ class CharDecoder(nn.Module):
         start_atten = time.time()
 
         if self.attn_layer is not None:
+            pdb.set_trace()
             attention_weights = self.attn_layer(char_state_decoder=state_hiden.squeeze(0),# current_state,
                                                 word_src_sizes=char_vecs_sizes,
                                                 encoder_outputs=char_seq_hidden_encoder)
@@ -149,6 +150,7 @@ class CharDecoder(nn.Module):
         printing("TARGET size {} ", var=output.size(), verbose=self.verbose, verbose_level=3)
         printing("TARGET data {} ", var=output, verbose=self.verbose, verbose_level=5)
         printing("TARGET  : Word  length  {}  ".format(output_word_len), self.verbose, verbose_level=5)
+
         output_word_len, perm_idx_output = output_word_len.squeeze().sort(0, descending=True)
         output = output[perm_idx_output, :]
         inverse_perm_idx_output = torch.from_numpy(np.argsort(perm_idx_output.cpu().numpy()))
@@ -160,6 +162,7 @@ class CharDecoder(nn.Module):
         printing("TARGET EMBEDDING size {} ", var=[char_vecs.size()], verbose=self.verbose, verbose_level=3) #if False else None
         printing("TARGET EMBEDDING data {} ", var=char_vecs, verbose=self.verbose, verbose_level=5)
         not_printing, start = get_timing(start)
+        pdb.set_trace()
         conditioning = conditioning[:, perm_idx_output, :]
         reorder_conditioning, start = get_timing(start)
 
@@ -229,15 +232,15 @@ class CharDecoder(nn.Module):
                     # we feed to generator to get the score and the prediction
                     # [batch x sent_max_len, len_words, hidden_dim] ??
                     scores = self.generator.forward(x=decoding_states)
-                    pdb.set_trace()
+
                     predictions = scores.argmax(dim=-1)
-                    pdb.set_trace()
+
                     # TODO : to confirm the shapes here
                     pred = predictions[:,  -1]
-                    pdb.set_trace()
+
                     # given the prediction we get the next character embedding
                     emb_char = self.char_embedding_decoder(pred)
-                    pdb.set_trace()
+
                 # no more pack sequence&
                 # TODO : should shorted sequence output and state by setting them to 0 using step_char and char_vecs_sizes_target (but it should be fine with the loss outpu)
                 #c_i = state_i[1] if isinstance(self.seq_decoder, nn.LSTM) else None
@@ -301,9 +304,11 @@ class CharDecoder(nn.Module):
         # TODO : WARNING : is +1 required : as sent with 1 ? WHY ALWAYS IS NOT WORKING
         sent_len = torch.argmin(_output_word_len, dim=1)
         # WARNING : forcint sent_len to be one
-        if (sent_len == 0).any():
+        if (sent_len == 0).any() and False:
             printing("WARNING : WE ARE FORCING SENT_LEN in the SOURCE SIDE", verbose=verbose, verbose_level=3)
             sent_len[sent_len == 0] += 1
+        # as encoder side : we handle words that take the all sequnence
+        sent_len += (output_word_len[:, -1, :] != 0).long()
         # sort batch at the sentence length
         sent_len, perm_idx_input_sent = sent_len.squeeze().sort(0, descending=True)
         argmin_squeeze, start = get_timing(start)
@@ -315,15 +320,18 @@ class CharDecoder(nn.Module):
         packed_sent, start = get_timing(start)
         # unpacked for the word level representation
         # packed_char_vecs_output .data : [batch x shorted sent_lenS , word lens ] + .batch_sizes
+        pdb.set_trace()
         output_char_vecs, output_sizes = pad_packed_sequence(packed_char_vecs_output, batch_first=True,
                                                              padding_value=PAD_ID_WORD) # padding_value
         padd_sent, start = get_timing(start)
+
         # output_char_vecs : [batch ,  shorted sent_len, word len ] + .batch_sizes
         # output_char_vecs : [batch, sent_len max, dim encoder] reorder the sequence
         output_char_vecs = output_char_vecs[inverse_perm_idx_input_sent, :, :]
         # cut input_word_len so that it fits packed_padded sequence
         output_word_len = output_word_len[:, :output_char_vecs.size(1), :]
         # cut again (should be done in one step I guess) to fit sent len source
+        pdb.set_trace()
         output_word_len = output_word_len[:, :sent_len_max_source, :]
         output_seq = output_char_vecs.view(output_char_vecs.size(0) * output_char_vecs.size(1), output_char_vecs.size(2))
         reshape_sent, start = get_timing(start)

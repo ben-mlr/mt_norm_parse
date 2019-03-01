@@ -6,6 +6,7 @@ from io_.info_print import printing
 import time
 import pdb
 from env.project_variables import SUPPORED_WORD_ENCODER
+from io_.dat.constants import PAD_ID_CHAR
 
 class CharEncoder(nn.Module):
 
@@ -109,8 +110,11 @@ class CharEncoder(nn.Module):
         # TODO : I think this case problem for sentence that take the all sequence : we are missing a word ! ??
         _input_word_len[:, -1, :] = 0
         # when input_word_len is 0 means we reached end of sentence
-        # I think +1 is required
+        # I think +1 is required : we want the lenght !! so if argmin --> 0 lenght should be 1 right
         sent_len = torch.argmin(_input_word_len, dim=1)
+        # we add to sent len if the original src word was filling the entire sequence (i.e last len is not 0)
+        pdb.set_trace()
+        sent_len += (input_word_len[:, -1, :] != 0).long()
         # sort batch based on sentence length
         sent_len, perm_idx_input_sent = sent_len.squeeze().sort(0, descending=True)
         inverse_perm_idx_input_sent = torch.from_numpy(np.argsort(perm_idx_input_sent.cpu().numpy()))
@@ -119,8 +123,9 @@ class CharEncoder(nn.Module):
         packed_char_vecs_input = pack_padded_sequence(input[perm_idx_input_sent, :, :],
                                                       sent_len.squeeze().cpu().numpy(), batch_first=True)
         # unpacked for the word level representation
+        pdb.set_trace()
         input_char_vecs, input_sizes = pad_packed_sequence(packed_char_vecs_input, batch_first=True,
-                                                           padding_value=1.0)
+                                                           padding_value=PAD_ID_CHAR)
         # [batch, sent_len max, dim encoder] reorder the sequence
         input_char_vecs = input_char_vecs[inverse_perm_idx_input_sent, :, :]
         # cut input_word_len so that it fits packed_padded sequence
@@ -135,7 +140,7 @@ class CharEncoder(nn.Module):
 
         # input_char_vecs : [batch x max sent_len , MAX_CHAR_LENGTH or bucket max_char_length]
         # input_word_len  [batch x max sent_len]
-
+        pdb.set_trace()
         h_w, char_seq_hidden, word_src_sizes = self.word_encoder_source(input=input_char_vecs, input_word_len=input_word_len)
         # [batch x max sent_len , packed max_char_length, hidden_size_encoder]
 
@@ -157,7 +162,6 @@ class CharEncoder(nn.Module):
                              h_w), dim=-1)
         sent_encoded, hidden = self.sent_encoder(h_w)
         # sent_encoded : upper layer only but all time step, to get all the layers states of the last state get hidden
-        pdb.set_trace()
         # sent_encoded : [batch, max sent len ,hidden_size_sent_encoder]
         printing("SOURCE sentence encoder output dim sent : {} ", var=[sent_encoded.size()],
                  verbose=verbose, verbose_level=3)
@@ -173,5 +177,6 @@ class CharEncoder(nn.Module):
             source_context_word_vector = h_w
         printing("SOURCE contextual for decoding: {} ", var=[source_context_word_vector.size() if source_context_word_vector is not None else 0],
                  verbose=verbose, verbose_level=3)
+        pdb.set_trace()
         return source_context_word_vector, sent_len_max_source, char_seq_hidden, word_src_sizes
 

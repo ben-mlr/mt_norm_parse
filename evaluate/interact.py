@@ -44,7 +44,7 @@ def interact(dic_path, model_full_name,
     else:
         dir_attention = None
     decode_interacively(max_len=MAX_LEN, model=model, char_dictionary=char_dictionary, sent_mode=True,
-                        dir_attention=dir_attention, save_attention=save_attention, show_attention=True,
+                        dir_attention=dir_attention, save_attention=save_attention, show_attention=show_attention,
                         beam_decode=beam_decode, beam_size=beam_size,
                         verbose=verbose)
     # /1eeb9-WARMUP-unrolling-False0-model_1-model_1_fd8c-folder/dictionaries/
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     # word decode with word embed
     list_ = ["1f86c-WARMUP-unrolling-False0-model_1-model_1_57b7-folder"]
     # char decode
-    list_ = ["2b53b-WARMUP-unrolling-False0-model_1-model_1_880a-folder"]
+    list_ = ["98759_rioc--DEBUG_NO_LOSS_PADDING-0-model_1-model_1_b108-folder"]
     for folder_name in list_:
         model_full_name = folder_name[:-7]
         print("Interatcing with new model : ", model_full_name)

@@ -73,7 +73,7 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
                     seq_string = ROOT_CHAR
                 _seq_string = ["_START"]
                 printing("WARNING : we added _START symbol and _END_CHAR ! ", verbose=verbose, verbose_level=2)
-                if seq_string not in [ROOT, END]:
+                if seq_string not in [ROOT, END, ROOT_CHAR]:
                     _seq_string.extend(list(seq_string))
                 else:
                     _seq_string.append(seq_string)
@@ -86,6 +86,7 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
             word_id = word_dictionary.get_index(word_string) if word_dictionary is not None else None
             sequence_characters = [char_dictionary.get_index(letter) for letter in seq_string]+[pad for _ in range(max_len-len(seq_string))]
             sent_character.append(sequence_characters)
+            pdb.set_trace()
             if word_ls is not None:
                 word_ls.append(word_id)
             masks = [1 for _ in seq_string]+[0 for _ in range(max_len-len(seq_string))]

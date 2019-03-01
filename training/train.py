@@ -400,7 +400,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                     checkpoint(loss_saved=_loss_dev, loss=loss_dev, model=model, counter_no_decrease=counter_no_deacrease,
                                checkpoint_dir_former=checkpoint_dir_former,
                                saved_epoch=saved_epoch, model_dir=model.dir_model,
-                               extra_checkpoint_label="1st_train" if not reload else "{}ep_restarted".format(starting_epoch),
+                               extra_checkpoint_label="1st_train" if not reload else "start_{}_ep-{}".format(starting_epoch, extra_arg_specific_label),
                                extra_arg_specific_label=extra_arg_specific_label,
                                info_checkpoint={"n_epochs": epoch, "batch_size": batch_size,
                                                 "gradient_clipping": clipping,

@@ -292,10 +292,8 @@ class LexNormalizer(nn.Module):
             word_embed_torch = construct_word_embedding_table(word_dim=len(word_embed_dic["a"]),
                                                               word_dictionary=self.word_dictionary.instance2index,
                                                               word_embed_init_toke2vec=word_embed_dic,verbose=verbose)
-            pdb.set_trace()
             printing("W2V INFO : intializing embedding matrix with tensor of shape {}  ", var=[word_embed_torch.size()], verbose=verbose, verbose_level=1)
             self.word_embedding.weight.data = word_embed_torch
-            pdb.set_trace()
 
         self.encoder = CharEncoder(self.char_embedding, input_dim=char_embedding_dim,
                                    hidden_size_encoder=hidden_size_encoder,
@@ -332,7 +330,6 @@ class LexNormalizer(nn.Module):
                               dense_dim=dense_dim_auxilliary,
                               dense_dim_2=dense_dim_auxilliary_2) if self.auxilliary_task_norm_not_norm else None
         #self.char_embedding_2 = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
-        pdb.set_trace()
         self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size,
                                    activation=activation_char_decoder,
                                    output_dim=output_dim, verbose=verbose)
@@ -385,7 +382,7 @@ class LexNormalizer(nn.Module):
             word_embed_input = self.word_embedding(word_embed_input)
             if self.word_embedding_project is not None:
                 word_embed_input = self.word_embedding_project(word_embed_input)
-
+        pdb.set_trace()
         context, sent_len_max_source, char_seq_hidden_encoder, word_src_sizes = self.encoder.forward(input_seq, input_word_len,
                                                                                                      word_embed_input=word_embed_input)
 
@@ -393,7 +390,6 @@ class LexNormalizer(nn.Module):
         # [] [batch, , hiden_size_decoder]
         printing("DECODER hidden state before bridge size {}", var=[context.size() if context is not None else 0],
                  verbose=0, verbose_level=3)
-        pdb.set_trace()
         context = torch.tanh(self.bridge(context))
         #h = self.layer_norm(h) if self.layer_norm is not None else h
         context = self.dropout_bridge(context)
@@ -414,6 +410,7 @@ class LexNormalizer(nn.Module):
                                                                 char_seq_hidden_encoder=char_seq_hidden_encoder,
                                                                 proportion_pred_train=proportion_pred_train,
                                                                 sent_len_max_source=sent_len_max_source)
+            pdb.set_trace()
         else:
             output = None
             attention_weight_all = None
@@ -437,7 +434,7 @@ class LexNormalizer(nn.Module):
             time_report = OrderedDict(
                 [("source_encoder", source_encoder), ("target_encoder", target_encoder), ("bridge", bridge)])
             print("time report {}".format(time_report))
-
+        pdb.set_trace()
         return output, word_pred_state, pos_pred_state, norm_not_norm_hidden, attention_weight_all
 
     @staticmethod
@@ -447,7 +444,7 @@ class LexNormalizer(nn.Module):
         printing("CHECKPOINT removed {} ", var=[checkpoint_dir_to_remove], verbose=verbose, verbose_level=1)
 
     @staticmethod
-    def save(dir, model, info_checkpoint, suffix_name="", extra_arg_specific_label="",verbose=0):
+    def save(dir, model, info_checkpoint, suffix_name="", extra_arg_specific_label="", verbose=0):
         """
         saving model as and arguments as json
         extra_arg_specific_label
@@ -476,7 +473,7 @@ class LexNormalizer(nn.Module):
         # the arguments dir does not change !
         if len(extra_arg_specific_label) > 0:
             extra_arg_specific_label += "-"
-            printing("MODEL : added extra {} to arg directory {} ", var=[extra_arg_specific_label], verbose_level=0,
+            printing("MODEL : added extra {} to arg directory  ", var=[extra_arg_specific_label], verbose_level=0,
                      verbose=0)
         arguments_dir = os.path.join(dir,  model.model_full_name + "-" + extra_arg_specific_label + "args.json")
         model.args_dir = arguments_dir
@@ -498,7 +495,7 @@ class LexNormalizer(nn.Module):
     def load(dir, model_full_name, extra_label="", verbose=0):
         if len(extra_label):
             extra_label = extra_label + "-" if len(extra_label) else extra_label
-            printing("MODEL : added extra {} to arg directory before loading{} ",
+            printing("MODEL : added extra {} to arg directory before loading ",
                      var=[extra_label], verbose_level=0, verbose=0)
         args = model_full_name+"-"+extra_label+"args.json"
         args_dir = os.path.join(dir, args)

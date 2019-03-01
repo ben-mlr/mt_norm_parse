@@ -3,14 +3,14 @@ from io_.info_print import printing
 import os
 from training.train_eval import train_eval
 from toolbox.grid_tool import grid_param_label_generate
-from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, LIU_DEV, DEV, DIR_TWEET_W2V, TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, CP_PASTE_WR_TRAIN,CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST
+from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN,  CP_WR_PASTE_TEST_269, LIU_DEV, DEV, DIR_TWEET_W2V, TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, CP_PASTE_WR_TRAIN,CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST
 from uuid import uuid4
 import argparse
 from sys import platform
 
 #4538
 
-FINE_TUNE = False
+FINE_TUNE = 0
 GRID = 1
 
 if __name__ == "__main__":
@@ -144,7 +144,7 @@ if __name__ == "__main__":
                          "word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder": "LSTM", "hidden_size_sent_encoder": 20,
                          "hidden_size_decoder": 50, "batch_size": 2
                          }
-                param["batch_size"] = 20
+                param["batch_size"] = 2
                 param["auxilliary_task_norm_not_norm"] = False
                 param["weight_binary_loss"] = 1
                 param["unrolling_word"] = True
@@ -180,7 +180,7 @@ if __name__ == "__main__":
 
               model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
               if warmup:
-                  epochs = 5
+                  epochs = 2
                   print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
                   print("GRID_INFO analy vars=    dense_dim_auxilliary_pos_2 dense_dim_auxilliary_pos")
                   print("GRID_INFO fixed vars=  word_embed ")
@@ -200,7 +200,8 @@ if __name__ == "__main__":
                                                                            "norm_not_norm-Precision",
                                                                            "norm_not_norm-Recall",
                                                                            "norm_not_norm-accuracy"],
-                                                      warmup=False, args=param, use_gpu=None, n_epochs=epochs, debug=False,
+                                                      warmup=warmup, args=param, use_gpu=None, n_epochs=epochs,
+                                                      debug=False,
                                                       verbose=1)
 
               run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
@@ -214,11 +215,18 @@ if __name__ == "__main__":
         from training.fine_tune import fine_tune
         train_path = LIU_TRAIN
         dev_path = LIU_DEV
-        test_path = [DEMO, DEMO2]
-        fine_tune(train_path=train_path, dev_path=dev_path, evaluation=True,
-                  test_path=test_path, n_epochs=1,
-                  model_full_name="98752_rioc--DEBUG_NO_LOSS_PADDING-0-model_1-model_1_25ea",
-                  word_decoding=False, char_decoding=True)
+        test_path = TEST#[TEST, CP_WR_PASTE_TEST_269]
+        fine_tune(train_path=train_path, dev_path=dev_path, evaluation=True,batch_size=50,
+                  test_path=[test_path, CP_WR_PASTE_TEST_269], n_epochs=30, fine_tune_label="tuned_hundredth_lr",
+                  model_full_name="98754_rioc--DEBUG_NO_LOSS_PADDING-0-model_1-model_1_ac89",
+                  learning_rate=0.00001,
+              )
+        to_enrich = "lr  char_decoding char_src_attention "
+        to_analysed = to_enrich
+        to_keep_only = ""
+        print("GRID_INFO enrch vars=  ", to_enrich)
+        print("GRID_INFO analy vars=  ", to_analysed)
+        print("GRID_INFO fixed vals=   ", to_keep_only)
 
 
 

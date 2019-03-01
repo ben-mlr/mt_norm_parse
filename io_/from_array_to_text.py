@@ -102,6 +102,7 @@ def output_text_(one_code_prediction, char_dic=None, start_symbol=CHAR_START,
         decoding_all_sequences.append(sent_all_sequence)
         #print("FINAL", sent, word_i)
     # NB : former single_sequence have no impact on output
+    pdb.set_trace()
     if single_sequence:
         # for interactive mode : as batch_size == 2 not supported we have to decode with batch_size 2 and then only keeping first
         decoding = decoding[0]

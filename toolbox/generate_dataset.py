@@ -43,7 +43,7 @@ def generate_data(dir,n_sent, max_n_words_per_sent, max_words_len=None, word_lev
 
 if __name__=="__main__":
     char_level_data = False
-    word_level_data = True
+    word_level_data = False
     if char_level_data:
         generate_data("../data/copy_paste_train.conll", n_sent=100000, max_n_words_per_sent=30, max_words_len=15)
         generate_data("../data/copy_paste_dev.conll", n_sent=10000, max_n_words_per_sent=30, max_words_len=15)
@@ -53,5 +53,5 @@ if __name__=="__main__":
         # we add 500 extra words to dev vocab
         generate_data("../data/copy_paste_real_word_dev.conll", n_sent=10000, max_n_words_per_sent=30,
                       max_words_len=15, word_level=True, word_embed_dir=DIR_TWEET_W2V, n_vocab=7000, add_n_words=500)
-        generate_data("../data/copy_paste_real_word_test.conll", n_sent=20000, max_n_words_per_sent=30,
-                      max_words_len=15, word_level=True, word_embed_dir=DIR_TWEET_W2V, n_vocab=7000+1000,add_n_words=1000)
+        generate_data("../data/copy_paste_real_word_train.conll", n_sent=20000, max_n_words_per_sent=30,
+                      max_words_len=15, word_level=True, word_embed_dir=DIR_TWEET_W2V, n_vocab=7000, add_n_words=1000)

@@ -281,12 +281,14 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
             output_seq = output_seq.cuda()
             src_len = src_len.cuda()
             output_len = output_len.cuda()
+        pdb.set_trace()
         decoding_states, word_pred, pos_pred, norm_not_norm, attention = model.forward(input_seq=src_seq,
                                                                                        output_seq=output_seq,
                                                                                        input_word_len=src_len,
                                                                                        output_word_len=output_len,
                                                                                        word_embed_input=input_word)
         # [batch, seq_len, V]
+        pdb.set_trace()
         pred_norm_not_norm = norm_not_norm.argmax(dim=-1) if norm_not_norm is not None else None
         scores = model.generator.forward(x=decoding_states)
         # each time step predict the most likely
@@ -308,9 +310,8 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                  scores.size(), predictions.size(), predictions[:, -1],
                  output_seq.size()),
                  verbose=verbose, verbose_level=5)
-
+        pdb.set_trace()
         output_seq = output_seq[:, :scores.size(1), :]
-
 
         if pred_norm_not_norm is not None:
             pred_norm_not_norm = pred_norm_not_norm[:, :scores.size(1)]  # followign what's done above
@@ -328,6 +329,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                                                                  char_dictionary, single_sequence=single_sequence,
                                                                  output_str=output_str, last=char_decode==(max_len-1),
                                                                  debug=False)
+    pdb.set_trace()
     printing("PREDICTION : array text {} ", var=[text_decoded], verbose=verbose, verbose_level=5)
 
     src_word_count, src_text, src_all_ls = output_text_(src_seq, char_dictionary, single_sequence=single_sequence,
