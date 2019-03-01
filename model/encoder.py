@@ -96,7 +96,6 @@ class CharEncoder(nn.Module):
                  "hidden states of last layers), last hidden hidden for each dir+layers)", var=(output.data.shape, h_n.size()),
                  verbose=self.verbose, verbose_level=3)
         # TODO: check that using packed sequence provides the last state of the sequence(not the end of the padded one!)
-        pdb.set_trace()
         return h_n, output, word_src_sizes
 
     def forward(self, input, input_word_len=None, word_embed_input=None, verbose=0):

@@ -46,11 +46,12 @@ def score_ls(ls_pred, ls_gold, score, stat="mean", verbose=0):
 
 def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None, gold_norm_not_norm=None,
                         output_seq_n_hot=None, src_seq=None, target_seq_gold=None, task="normalization",
+                         in_vocab_ls=None,
                         verbose=0):
     # only exact score here !!
     assert task in ["normalization", "pos"]
     dic = OrderedDict()
-    pdb.set_trace()
+    in_vocab_ls = ["what","ayee"]
     assert len(ls_gold) == len(ls_pred), "ERROR ls_gold is len {} vs {} : {} while ls_pred is {} ".format(len(ls_gold),
                                                                                                           len(ls_pred),
                                                                                                           ls_gold,
@@ -66,7 +67,11 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
     #normalization_prediction_by_seq_need_norm = len(normalization_prediction_by_seq[normalization_prediction_by_seq == False])
     #assert len(normalization_prediction_by_seq) == len(normalization_ls)
     normalized_mode_ls = ["all", "NEED_NORM", "NORMED"] if task == "normalization" else ["all"]
+    if in_vocab_ls is not None:
+        normalized_mode_ls.extend(["InV", "OOV"])
+    pdb.set_trace()
     for normalized_mode in normalized_mode_ls:
+        print("SCORE ON MODE", normalized_mode)
         scores = []
         sent_score_ls = []
         try:
@@ -79,9 +84,20 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
             norm_mode = 1 if normalized_mode == "NORMED" else 0
             _ls_gold = [[token for token, normed in zip(batch, batch_norm) if normed == norm_mode] for batch, batch_norm in zip(ls_gold, normalization_ls)]
             _ls_pred = [[token for token, normed in zip(batch, batch_norm) if normed == norm_mode] for batch, batch_norm in zip(ls_pred, normalization_ls)]
-        else:
+        elif normalized_mode == "all":
             _ls_gold = ls_gold
             _ls_pred = ls_pred
+        elif normalized_mode in ["InV", "OOV"]:
+            if normalized_mode == "InV":
+                gold_pred = [[(token, normalization) for token,normalization in zip(batch, batch_pred) if token in in_vocab_ls] for batch, batch_pred in zip(ls_gold, ls_pred)]
+            else:
+                gold_pred = [[(token, normalization) for token, normalization in zip(batch, batch_pred) if token not in in_vocab_ls] for batch, batch_pred in zip(ls_gold, ls_pred)]
+            _ls_gold = [[tup[0] for tup in batch] for batch in gold_pred]
+            _ls_pred = [[tup[1] for tup in batch] for batch in gold_pred]
+            pdb.set_trace()
+        else:
+            print("ERROR normalized_mode {} not supported".format(normalized_mode))
+            raise(Exception)
         for ind, (gold_sent, pred_sent) in enumerate(zip(_ls_gold, _ls_pred)):
             try:
                 assert len(gold_sent) == len(pred_sent), "len : pred {}, gold {} - pred {} gold {} " \
@@ -122,7 +138,7 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
                       normalized_mode+"-"+task+"-gold-count": len(scores),
                       normalized_mode+"-"+task+"-n_sents": n_sents
                      }
-        if task == "normalization":
+        if task == "normalization" and normalized_mode not in ["InV", "OOV"]:
             return_dic[normalized_mode + "-" + task + "-pred-count"] = count_pred_number
         dic.update(return_dic)
 
@@ -164,12 +180,18 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
                          "recall-per_sent-"+task+"": ("NEED_NORM-"+task+"-pred_correct_per_sent-count", "NEED_NORM-"+task+"-n_sents"),
                          "tnr-per_sent-"+task+"": ("NORMED-"+task+"-pred_correct_per_sent-count", "NORMED-"+task+"-n_sents"),
                          "info-NEED_NORM_tokens-"+task+"": ("NEED_NORM-"+task+"-gold-count"),
+                         ""
                          "info-NORMED_tokens-"+task+"": ("NORMED-"+task+"-gold-count"),
                          "info-NORMED-per_sent": (
                          "NORMED-" + task + "-n_word_per_sent-count", "NORMED-" + task + "-n_sents"),
                          "info-NEED_NORM-per_sent": ("NEED_NORM-" + task + "-n_word_per_sent-count", "NEED_NORM-" + task + "-n_sents"),
 
                          }
+        if len(set(["InV","OOV"])&set(normalized_mode_ls))>0:
+            for vocab_filter in ["InV","OOV"]:
+                formulas.update( {vocab_filter+"-"+task+"": (vocab_filter+"-"+task+"-pred_correct-count", vocab_filter+"-"+task+"-gold-count"),
+                                 vocab_filter+"-"+task+"": (vocab_filter+"-"+task+"-pred_correct_per_sent-count", vocab_filter+"-"+task+"-n_sents")
+                                  })
         formulas.update(formulas_fine)
 
     if formulas_bin is not None:

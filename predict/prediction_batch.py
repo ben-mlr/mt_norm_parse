@@ -42,7 +42,15 @@ def _init_metric_report_2():
                 "recall-per_sent-normalization": ("NEED_NORM-normalization-pred_correct_per_sent-count", "NEED_NORM-n_sents"),
                 "info-NEED_NORM-per_sent": ("NEED_NORM-normalization-n_word_per_sent-count", "NEED_NORM-normalization-n_sents"),
                 "tnr-per_sent-normalization": ("NORMED-normalization-pred_correct_per_sent-count", "NORMED-normalization-n_sents"),
-                "aa": ("n_sents","n_sents")
+                "aa": ("n_sents", "n_sents"),
+                "InV_accuracy-normalization": ("InV-normalization-pred_correct-count", "InV-normalization-gold-count"),
+                "info-InV-per_sent": ("InV-normalization-n_word_per_sent-count", "InV-normalization-n_sents"),
+                #"INV_accuracy-normalization": ("InV-normalization-pred_correct-count", "InV-normalization-gold-count"),
+                "InV_accuracy-per_sent-normalization": ("InV-normalization-pred_correct_per_sent-count", "InV-normalization-n_sents"),
+                #"OOV_accuracy-normalization": ("OOV-normalization-pred_correct-count", "OOV-normalization-gold-count"),
+                "info-OOV-per_sent": ("OOV-normalization-n_word_per_sent-count", "OOV-normalization-n_sents"),
+                "OOV_accuracy-normalization": ("OOV-normalization-pred_correct-count", "OOV-normalization-gold-count"),
+                "OOV_accuracy-per_sent-normalization": ("OOV-normalization-pred_correct_per_sent-count", "OOV-normalization-n_sents")
                 }
 
     formulas_2 = {
