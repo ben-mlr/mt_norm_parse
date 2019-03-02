@@ -5,15 +5,15 @@ import os
 class Dictionary(object):
 
   def __init__(self, name, default_value=False, keep_growing=True, singleton=False):
-    self.__name = name
 
+    self.__name = name
     self.instance2index = {}
     self.instances = []
     self.default_value = default_value
     self.offset = 1 if self.default_value else 0
     self.keep_growing = keep_growing
     self.singletons = set() if singleton else None
-
+    self.inv_ls = []
     # Index 0 is occupied by default, all else following.
     self.default_index = 0 if self.default_value else None
 
@@ -50,9 +50,12 @@ class Dictionary(object):
 
   def get_content(self):
     if self.singletons is None:
-      return {'instance2index': self.instance2index, 'instances': self.instances}
+      return {'instance2index': self.instance2index,
+              'instances': self.instances,
+              "inv_ls": self.inv_ls}
     else:
-      return {'instance2index': self.instance2index, 'instances': self.instances, 'singletions': list(self.singletons)}
+      return {'instance2index': self.instance2index, 'instances': self.instances, 'singletions': list(self.singletons),
+              "inv_ls":self.inv_ls}
 
   def save(self, output_directory, name=None):
     saving_name = name if name else self.__name
@@ -96,7 +99,11 @@ class Dictionary(object):
       self.singletons = set(data['singletions'])
     else:
       self.singletons = None
-  
+    if "inv_ls" in data:
+      self.inv_ls = list(data['inv_ls'])
+    else:
+      self.inv_ls = None
+
   def load(self, input_directory, name):
     """
     Load model architecture and weights from the give directory. This allow we use old models even the structure

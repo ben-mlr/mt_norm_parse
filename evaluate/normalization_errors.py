@@ -45,13 +45,11 @@ def score_ls(ls_pred, ls_gold, score, stat="mean", verbose=0):
 
 
 def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None, gold_norm_not_norm=None,
-                        output_seq_n_hot=None, src_seq=None, target_seq_gold=None, task="normalization",
-                         in_vocab_ls=None,
-                        verbose=0):
+                         output_seq_n_hot=None, src_seq=None, target_seq_gold=None, task="normalization",
+                         in_vocab_ls=None, verbose=0):
     # only exact score here !!
     assert task in ["normalization", "pos"]
     dic = OrderedDict()
-    in_vocab_ls = ["what","ayee"]
     assert len(ls_gold) == len(ls_pred), "ERROR ls_gold is len {} vs {} : {} while ls_pred is {} ".format(len(ls_gold),
                                                                                                           len(ls_pred),
                                                                                                           ls_gold,
@@ -71,7 +69,7 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
         normalized_mode_ls.extend(["InV", "OOV"])
     pdb.set_trace()
     for normalized_mode in normalized_mode_ls:
-        print("SCORE ON MODE", normalized_mode)
+
         scores = []
         sent_score_ls = []
         try:
@@ -189,8 +187,8 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
                          }
         if len(set(["InV","OOV"])&set(normalized_mode_ls))>0:
             for vocab_filter in ["InV","OOV"]:
-                formulas.update( {vocab_filter+"-"+task+"": (vocab_filter+"-"+task+"-pred_correct-count", vocab_filter+"-"+task+"-gold-count"),
-                                 vocab_filter+"-"+task+"": (vocab_filter+"-"+task+"-pred_correct_per_sent-count", vocab_filter+"-"+task+"-n_sents")
+                formulas.update( {vocab_filter+"-accuracy-"+task+"": (vocab_filter+"-"+task+"-pred_correct-count", vocab_filter+"-"+task+"-gold-count"),
+                                 vocab_filter+"-accuracy_per_sent-"+task+"": (vocab_filter+"-"+task+"-pred_correct_per_sent-count", vocab_filter+"-"+task+"-n_sents")
                                   })
         formulas.update(formulas_fine)
 

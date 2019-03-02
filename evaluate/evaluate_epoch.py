@@ -82,9 +82,10 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                                                   normalization=normalization,
                                                   bucket=bucket,
                                                   add_start_char=1, add_end_char=1, word_decoder=word_decoding,
-
                                                   word_norm_dictionary=model.word_nom_dictionary)
-    batchIter = data_gen_conllu(data_read, model.word_dictionary, model.char_dictionary,
+    batchIter = data_gen_conllu(data_read,
+                                model.word_dictionary,
+                                model.char_dictionary,
                                 batch_size=batch_size,
                                 get_batch_mode=get_batch_mode_evaluate,
                                 normalization=normalization, pos_dictionary=model.pos_dictionary,

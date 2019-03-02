@@ -263,7 +263,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                     pad=1, target_seq_gold=None, input_word=None,
                     use_gpu=False,
                     single_sequence=False, eval_time=True, verbose=2,
-                    timing=True):
+                    timing=False):
 
     #eval_time alays True for now
     printing("EVAL TIME is {}", var=eval_time, verbose=verbose, verbose_level=2)
@@ -353,7 +353,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                                                              debug=False)
     time_output_text, start = get_timing(start)
     time_decoding_all_seq, start  = get_timing(start_decode_sequence)
-    printing("PREDICTION : array text {} ", var=[text_decoded], verbose=verbose, verbose_level=0)
+    printing("PREDICTION : array text {} ", var=[text_decoded], verbose=verbose, verbose_level=5)
     src_word_count, src_text, src_all_ls = output_text_(src_seq, char_dictionary, single_sequence=single_sequence,
                                                         output_str=output_str)
     printing("SOURCE  : array text {} ", var=[src_text], verbose=verbose, verbose_level=5)

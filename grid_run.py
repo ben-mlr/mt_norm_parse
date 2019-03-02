@@ -66,22 +66,22 @@ if __name__ == "__main__":
           # param["dense_dim_auxilliary_pos"] = None if not auxilliary_task_pos else 200
           # param["dense_dim_auxilliary_pos_2"] = None
           params,labels, default_all, analysed, fixed = grid_param_label_generate(
-                                                                                  params_strong,
+                                                                                  params_strong_tryal,
                                                                                   warmup=False,
                                                                                   grid_label="0",
                                                                                   stable_decoding_state_ls=[False],
                                                                                   word_decoding_ls=[False],
                                                                                   batch_size_ls=[100],
                                                                                   auxilliary_task_pos_ls=[False],
-                                                                                  word_embed_ls=[False],
+                                                                                  word_embed_ls=[True],
                                                                                   dir_sent_encoder_ls=[2], lr_ls=[0.001],
-                                                                                  word_embed_init_ls=[None],
+                                                                                  word_embed_init_ls=[DIR_TWEET_W2V],
                                                                                   teacher_force_ls=[True],
                                                                                   proportion_pred_train_ls=[None],
                                                                                   shared_context_ls=["all"],
                                                                                   word_embedding_projected_dim_ls=[100],
                                                                                   auxilliary_task_norm_not_norm_ls=[False],
-                                                                                  char_src_attention_ls=[True],
+                                                                                  char_src_attention_ls=[False],
                                                                                   n_layers_sent_cell_ls=[1],
                                                                                   unrolling_word_ls=[True],
                                                                                   scale_ls=[1]
@@ -135,7 +135,7 @@ if __name__ == "__main__":
           for param, model_id_pref in zip(params, labels):
               i += 1
               printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-              epochs = 5 if not test_before_run else 2
+              epochs = 3 if not test_before_run else 2
               if warmup:
                 param = {
                          "hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10, "dropout_sent_encoder": 0.,
@@ -149,7 +149,7 @@ if __name__ == "__main__":
                 param["weight_binary_loss"] = 1
                 param["unrolling_word"] = True
                 param["char_src_attention"] = True
-                train_path, dev_path = DEMO, DEMO2
+                train_path, dev_path = DEMO, DEMO
                 param["shared_context"] = "all"
                 param["dense_dim_auxilliary"] = None
                 param["gradient_clipping"] = None
@@ -213,13 +213,13 @@ if __name__ == "__main__":
 
       elif FINE_TUNE:
         from training.fine_tune import fine_tune
-        train_path = LIU_TRAIN
-        dev_path = LIU_DEV
-        test_path = TEST#[TEST, CP_WR_PASTE_TEST_269]
-        fine_tune(train_path=train_path, dev_path=dev_path, evaluation=True,batch_size=50,
-                  test_path=[test_path, CP_WR_PASTE_TEST_269], n_epochs=30, fine_tune_label="tuned_hundredth_lr",
-                  model_full_name="98754_rioc--DEBUG_NO_LOSS_PADDING-0-model_1-model_1_ac89",
-                  learning_rate=0.00001,
+        #train_path = LIU_TRAIN
+        #dev_path = LIU_DEV
+        #test_path = TEST#[TEST, CP_WR_PASTE_TEST_269]
+        fine_tune(train_path=LIU_TRAIN, dev_path=LIU_DEV, evaluation=True,batch_size=50,
+                  test_path=[TEST, CP_WR_PASTE_TEST_269], n_epochs=15, fine_tune_label="X1-fine_tune_same_rate-X1",
+                  model_full_name="99428_rioc--DEBUG_NO_LOSS_PADDING-0-model_1-model_1_8fb8",
+                  learning_rate=0.001,
               )
         to_enrich = "lr  char_decoding char_src_attention "
         to_analysed = to_enrich
