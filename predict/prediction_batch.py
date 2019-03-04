@@ -149,6 +149,16 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                     (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_word(model, src_seq, src_len,
                                                                                           input_word=batch.input_word,
                                                                                           target_word_gold=target_word_gold)
+                else:
+                    #TODO : should deal with this in another way as you're missing the norm_not_norm prediction
+                    counts = None
+                    src_text_ls = ""
+                    text_decoded_ls = ""
+                    gold_text_seq_ls = ""
+                    output_seq_n_hot = None
+                    target_seq_gold = None
+                    pred_norm = None
+                    batch.output_norm_not_norm = None
                 if model.arguments["hyperparameters"].get("auxilliary_arch", {}).get("auxilliary_task_pos", False):
                     # decode pos
                     (pred_pos_ls, src_text_pos, gold_pos_seq_ls, _), counts_pos, _, \
@@ -166,13 +176,15 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                     write_normalization(format=write_to, dir_normalized=dir_normalized, dir_original=dir_original,
                                         ind_batch=step*batch_size,
                                         text_decoded_ls=text_decoded_ls, src_text_ls=src_text_ls, verbose=verbose)
-
-                total_count["src_word_count"] += counts["src_word_count"]
-                total_count["pred_word_count"] += counts["pred_word_count"]
+                if counts is not None:
+                    total_count["src_word_count"] += counts["src_word_count"]
+                    total_count["pred_word_count"] += counts["pred_word_count"]
                 printing("Source text {} ", var=[(src_text_ls)], verbose=verbose, verbose_level=5)
                 printing("Prediction {} ", var=[(text_decoded_ls)], verbose=verbose, verbose_level=5)
                 if gold_output:
-                    total_count["target_word_count"] += counts["target_word_count"]
+                    if counts is not None:
+                        total_count["target_word_count"] += counts["target_word_count"]
+
                     # we can score
                     printing("Gold {} ", var=[(gold_text_seq_ls)], verbose=verbose, verbose_level=5)
                     # output exact score only

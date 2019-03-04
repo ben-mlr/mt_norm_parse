@@ -227,7 +227,6 @@ def score_norm_not_norm(norm_not_norm_pred, norm_not_norm_gold, output_seq_n_hot
         except:
             print("WARNING : no need_norm predicted : == 1 [0,:] failed on predicted_not_pad  {} ".format(predicted_not_pad))
             predicted_not_pad_need_norm = torch.tensor([])
-
         try:
             predicted_not_pad_normed = np.argwhere(predicted_not_pad == 0)[0, :]#.squeeze()
         except:
@@ -235,8 +234,8 @@ def score_norm_not_norm(norm_not_norm_pred, norm_not_norm_gold, output_seq_n_hot
             predicted_not_pad_normed = torch.tensor([])
         need_norm_norm_not_normUnormalization_pred_count = len(set(predicted_not_pad_need_norm))+len(set(predicted_not_pad_seq_need_norm))-len(list(set(predicted_not_pad_need_norm.tolist()) & set(predicted_not_pad_seq_need_norm.tolist())))
         normed_norm_not_normUnormalization_pred_count = len(set(predicted_not_pad_seq_normed))+len(set(predicted_not_pad_normed))-len(list(set(predicted_not_pad_seq_normed.tolist()) & set(predicted_not_pad_normed.tolist())))
-        need_norm_norm_not_normXnormalization_pred_count = len(list(set(predicted_not_pad_need_norm.tolist())&set(predicted_not_pad_seq_need_norm.tolist())))
-        normed_norm_not_normXnormalization_pred_count = len(list(set(predicted_not_pad_seq_normed.tolist())&set(predicted_not_pad_normed.tolist())))
+        need_norm_norm_not_normXnormalization_pred_count = len(list(set(predicted_not_pad_need_norm.tolist()) & set(predicted_not_pad_seq_need_norm.tolist())))
+        normed_norm_not_normXnormalization_pred_count = len(list(set(predicted_not_pad_seq_normed.tolist()) & set(predicted_not_pad_normed.tolist())))
     else:
         need_norm_norm_not_normUnormalization_pred_count = None
         normed_norm_not_normUnormalization_pred_count = None

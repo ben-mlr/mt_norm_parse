@@ -208,6 +208,7 @@ def create_dict(dict_path, train_path, dev_path, test_path,
   printing("VOCABULARY INV added {} ".format(vocab_list), verbose_level=3, verbose=verbose)
   pos_dictionary = pos_specific_dic_builder(pos_specific_data_set, pos_dictionary)
 
+
   def expand_vocab(data_paths):
     counter_match_dev = 0
     expand = 0
@@ -219,7 +220,7 @@ def create_dict(dict_path, train_path, dev_path, test_path,
           li = 0
           for line in file:
             line = line.strip()
-            if len(line) == 0 or line[0]=='#':
+            if len(line) == 0 or line[0] == '#':
               continue
             tokens = line.split('\t')
             if '-' in tokens[0] or '.' in tokens[0]:

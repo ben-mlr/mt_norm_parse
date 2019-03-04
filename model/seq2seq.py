@@ -7,7 +7,7 @@ from model.encoder import CharEncoder
 from model.decoder import CharDecoder
 from model.pos_predictor import PosPredictor
 from model.normalize_not import BinaryPredictor
-from env.project_variables import CHECKPOINT_DIR
+from env.project_variables import CHECKPOINT_DIR, AVAILABLE_TASKS
 import torch
 from io_.dat.create_embedding_mat import construct_word_embedding_table
 from torch.autograd import Variable
@@ -38,6 +38,7 @@ class LexNormalizer(nn.Module):
     def __init__(self, generator,
                  auxilliary_task_norm_not_norm=False, dense_dim_auxilliary=None,dense_dim_auxilliary_2=None,
                  auxilliary_task_pos=False, dense_dim_auxilliary_pos=None, dense_dim_auxilliary_pos_2=None,
+                 tasks=None,
                  char_embedding_dim=None, hidden_size_encoder=None,output_dim=None,
                  hidden_size_sent_encoder=None,
                  weight_binary_loss=None,
@@ -88,13 +89,21 @@ class LexNormalizer(nn.Module):
         """
         super(LexNormalizer, self).__init__()
         # TODO factorize as args_checking
-        assert (word_decoding or char_decoding) and not (word_decoding and char_decoding), "ERROR sttricly  one of word,char decoding should be True"
+        #assert (word_decoding or char_decoding) and not (word_decoding and char_decoding), "ERROR sttricly  one of word,char decoding should be True"
         assert init_context_decoder or stable_decoding_state or char_src_attention, "ERROR : otherwise no information passes from the encoder to the decoder"
-
+        if tasks is None or len(tasks)==0:
+            tasks = ["normalize"]
+            printing("MODEL : Default task is {} ", var=[tasks[0]], verbose=verbose, verbose_level=1)
+        assert len(set(tasks)) == len(tasks), "CORRUPTED tasks list"
+        assert len(set(tasks) & set(AVAILABLE_TASKS)) == len(tasks), "ERROR : task should be in {} one of {} is not ".format(AVAILABLE_TASKS, tasks)
+        if "normalize" not in tasks:
+            word_decoding = False
+            char_decoding = False
         # initialize dictionaries
         self.timing = timing
         self.dict_path, self.word_dictionary, self.word_nom_dictionary,  self.char_dictionary, self.pos_dictionary, self.xpos_dictionary, self.type_dictionary = None, None, None, None, None, None, None
-        self.auxilliary_task_norm_not_norm = auxilliary_task_norm_not_norm
+        self.auxilliary_task_norm_not_norm = "norm_not_norm" in tasks #auxilliary_task_norm_not_norm
+        auxilliary_task_pos = "pos" in tasks
         # new model : we create an id , and a saving directory for the model (checkpoints, reporting, arguments)
         if not load:
             printing("Defining new model ", verbose=verbose, verbose_level=0)
@@ -161,7 +170,8 @@ class LexNormalizer(nn.Module):
                                   "symbolic_end": symbolic_end, "symbolic_root": symbolic_root,
                                   "gradient_clipping": None,
                                   "tasks_schedule_policy": None,
-                                  "proportion_pred_train":None,
+                                  "tasks": tasks, # TODO : remove aux pos and norm not norm boolean from json
+                                  "proportion_pred_train": None,
                                   "auxilliary_arch": {
                                                   "weight_binary_loss": weight_binary_loss,
                                                   "auxilliary_task_norm_not_norm": self.auxilliary_task_norm_not_norm,

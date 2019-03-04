@@ -62,6 +62,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
           shared_context="all", clipping=None, extend_n_batch=1,
           stable_decoding_state=False, init_context_decoder=True,
           auxilliary_task_pos=False, dense_dim_auxilliary_pos=None, dense_dim_auxilliary_pos_2=None,
+          tasks=None,
           word_decoding=False, char_decoding=True,
           dense_dim_word_pred=None, dense_dim_word_pred_2=None,dense_dim_word_pred_3=None,
           symbolic_root=False, symbolic_end=False, extern_emb_dir=None,
@@ -73,7 +74,11 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
         assert proportion_pred_train is None, "proportion_pred_train should be None as teacher_force mode"
     else:
         assert 100 > proportion_pred_train > 0, "proportion_pred_train should be between 0 and 100"
-
+    auxilliary_task_norm_not_norm = "norm_not_norm" in tasks  # auxilliary_task_norm_not_norm
+    auxilliary_task_pos = "pos" in tasks
+    if "normalize" not in tasks:
+        word_decoding = False
+        char_decoding = False
     if not unrolling_word:
         assert not char_src_attention, "ERROR attention requires step by step unrolling  "
     printing("WARNING bucketing is {} ", var=bucketing, verbose=verbose, verbose_level=1)
@@ -139,10 +144,12 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
             _train_path, _dev_path, _test_path, _add_start_char = None, None, None, None
 
     model = LexNormalizer(generator=Generator, expand_vocab_dev_test=expand_vocab_dev_test,
-                          auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
+                          #auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
                           dense_dim_auxilliary=dense_dim_auxilliary, dense_dim_auxilliary_2=dense_dim_auxilliary_2,
+                          tasks=tasks,
                           weight_binary_loss=weight_binary_loss,
-                          auxilliary_task_pos=auxilliary_task_pos, dense_dim_auxilliary_pos=dense_dim_auxilliary_pos,
+                          #auxilliary_task_pos=auxilliary_task_pos,
+                          dense_dim_auxilliary_pos=dense_dim_auxilliary_pos,
                           dense_dim_auxilliary_pos_2=dense_dim_auxilliary_pos_2,
                           load=reload,
                           char_embedding_dim=char_embedding_dim, voc_size=voc_size,
@@ -312,6 +319,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                              weight_binary_loss=weight_binary_loss,
                                                              ponderation_normalize_loss=ponderation_normalize_loss,
                                                              weight_pos_loss=weight_pos_loss,
+                                                             pos_batch=pos_batch,
                                                              log_every_x_batch=100)
 
             loss_developing.append(loss_dev)
@@ -429,8 +437,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                           "lr": lr, "optim_strategy":"lr_constant",
                                                           "time_training(min)": "{0:.2f}".format(total_time/60),
                                                           "average_per_epoch(min)": "{0:.2f}".format((total_time/n_epochs)/60)}},
-                             epoch=epoch, epochs=n_epochs-1, keep_all_checkpoint=False if epoch > starting_epoch else True,# we have nothing to remove after 1st epoch
-                             verbose=verbose)
+                               epoch=epoch, epochs=n_epochs-1,
+                               keep_all_checkpoint=False if epoch > starting_epoch else True,# we have nothing to remove after 1st epoch
+                               verbose=verbose)
             if counter_no_deacrease*freq_checkpointing >= BREAKING_NO_DECREASE:
                 printing("CHECKPOINTING : Breaking training : loss did not decrease on dev for 10 checkpoints "
                          "so keeping model from {} epoch  ".format(saved_epoch),

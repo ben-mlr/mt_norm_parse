@@ -49,7 +49,7 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
     drop_out_char_embedding_decoder = args.get("drop_out_char_embedding_decoder", 0)
     unrolling_word= args.get("unrolling_word", False)
 
-    auxilliary_task_norm_not_norm = args.get("auxilliary_task_norm_not_norm",False)
+    #auxilliary_task_norm_not_norm = args.get("auxilliary_task_norm_not_norm",False)
     char_src_attention = args.get("char_src_attention",False)
     weight_binary_loss = args.get("weight_binary_loss", 1)
     dir_word_encoder = args.get("dir_word_encoder", 1)
@@ -77,20 +77,21 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
 
     char_decoding = args.get("char_decoding", True)
 
-    auxilliary_task_pos = args.get("auxilliary_task_pos", False)
+    #auxilliary_task_pos = args.get("auxilliary_task_pos", False)
     dense_dim_auxilliary_pos = args.get("dense_dim_auxilliary_pos", None)
     dense_dim_auxilliary_pos_2 = args.get("dense_dim_auxilliary_pos_2", None)
 
-    activation_char_decoder =  args.get("activation_char_decoder", None)
+    activation_char_decoder = args.get("activation_char_decoder", None)
     activation_word_decoder = args.get("activation_word_decoder", None)
-
+    tasks = args.get("tasks", ["normalize"])
     n_epochs = 1 if warmup else n_epochs
 
     if warmup:
         printing("Warm up : running 1 epoch ", verbose=verbose, verbose_level=0)
     printing("GRID : START TRAINING ", verbose_level=0, verbose=verbose)
+    print("TASKS", tasks)
     model_full_name = train(train_path, dev_path, pos_specific_path=pos_specific_path,expand_vocab_dev_test=expand_vocab_dev_test,
-                            auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
+                            #auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
                             dense_dim_auxilliary=dense_dim_auxilliary, dense_dim_auxilliary_2=dense_dim_auxilliary_2,
                             lr=lr,extend_n_batch=extend_n_batch,
                             n_epochs=n_epochs, normalization=True,get_batch_mode_all=get_batch_mode_all,
@@ -121,7 +122,9 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
                             bucketing=bucketing_train, weight_binary_loss=weight_binary_loss,
                             teacher_force=teacher_force, proportion_pred_train=proportion_pred_train,
                             clipping=gradient_clipping,
-                            auxilliary_task_pos=auxilliary_task_pos, dense_dim_auxilliary_pos=dense_dim_auxilliary_pos,
+                            tasks=tasks,
+                            #auxilliary_task_pos=auxilliary_task_pos,
+                            dense_dim_auxilliary_pos=dense_dim_auxilliary_pos,
                             dense_dim_auxilliary_pos_2=dense_dim_auxilliary_pos_2,
                             word_decoding=word_decoding, dense_dim_word_pred=dense_dim_word_pred,
                             dense_dim_word_pred_2=dense_dim_word_pred_2, dense_dim_word_pred_3=dense_dim_word_pred_3,
