@@ -10,9 +10,8 @@ from sys import platform
 
 #4538
 
-FINE_TUNE = 0
-GRID = 1
-
+FINE_TUNE = 1
+GRID = 0
 if __name__ == "__main__":
       if GRID:
           ##train_path = LIU
@@ -65,23 +64,25 @@ if __name__ == "__main__":
           # param["dense_dim_word_pred_3"] = 100 if word_decoding else None
           # param["dense_dim_auxilliary_pos"] = None if not auxilliary_task_pos else 200
           # param["dense_dim_auxilliary_pos_2"] = None
-          params,labels, default_all, analysed, fixed = grid_param_label_generate(
+
+          # default not used but could be
+          params, labels, default_all, analysed, fixed = grid_param_label_generate(
                                                                                   params_strong_tryal,
                                                                                   warmup=False,
                                                                                   grid_label="0",
                                                                                   stable_decoding_state_ls=[False],
                                                                                   word_decoding_ls=[False],
                                                                                   batch_size_ls=[100],
-                                                                                  auxilliary_task_pos_ls=[False],
-                                                                                  word_embed_ls=[True],
+                                                                                  auxilliary_task_pos_ls=[True],
+                                                                                  word_embed_ls=[False],
                                                                                   dir_sent_encoder_ls=[2], lr_ls=[0.001],
-                                                                                  word_embed_init_ls=[DIR_TWEET_W2V],
+                                                                                  word_embed_init_ls=[None],
                                                                                   teacher_force_ls=[True],
                                                                                   proportion_pred_train_ls=[None],
-                                                                                  shared_context_ls=["all"],
+                                                                                  shared_context_ls=["all", "word"],
                                                                                   word_embedding_projected_dim_ls=[100],
-                                                                                  auxilliary_task_norm_not_norm_ls=[False],
-                                                                                  char_src_attention_ls=[False],
+                                                                                  auxilliary_task_norm_not_norm_ls=[True],
+                                                                                  char_src_attention_ls=[True],
                                                                                   n_layers_sent_cell_ls=[1],
                                                                                   unrolling_word_ls=[True],
                                                                                   scale_ls=[1]
@@ -89,16 +90,15 @@ if __name__ == "__main__":
 
 
           # grid information
-          to_enrich = " ".join([a for a, _ in default_all])+" "+" ".join(analysed)
+          to_enrich = " ".join([a for a, _ in fixed])+" "+" ".join(analysed)
           to_analysed = " ".join(analysed)
-          to_keep_only = " ".join([a+","+str(b) for a, b in default_all])
+          to_keep_only = " ".join([a+","+str(b) for a, b in fixed])
           metric_add = ""
-          if "auxilliary_task_norm_not_norm " in default_all:
+          if "auxilliary_task_norm_not_norm " in to_analysed or "auxilliary_task_norm_not_norm,True" in to_keep_only :
               metric_add+=" precision-norm_not_norm accuracy-norm_not_norm recall-norm_not_norm"
-          if "auxilliary_task_pos" in default_all:
+          if "auxilliary_task_pos" in to_analysed  or "auxilliary_task_pos,True"  in to_keep_only:
               metric_add += " accuracy-pos"
           print("GRID_INFO metric    =  ", metric_add)
-
           print("GRID_INFO enrch vars=  ", to_enrich)
           print("GRID_INFO analy vars=  ", to_analysed)
           print("GRID_INFO fixed vals=   ", to_keep_only)
@@ -130,12 +130,12 @@ if __name__ == "__main__":
           dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
           os.mkdir(dir_grid)
           printing("GRID RUN : Grid directory : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
-          train_path, dev_path = CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+          train_path, dev_path = CP_WR_PASTE_DEV, CP_WR_PASTE_TEST #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
           i = 0
           for param, model_id_pref in zip(params, labels):
               i += 1
               printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-              epochs = 3 if not test_before_run else 2
+              epochs = 1 if not test_before_run else 2
               if warmup:
                 param = {
                          "hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10, "dropout_sent_encoder": 0.,
@@ -145,7 +145,7 @@ if __name__ == "__main__":
                          "hidden_size_decoder": 50, "batch_size": 2
                          }
                 param["batch_size"] = 2
-                param["auxilliary_task_norm_not_norm"] = False
+                param["auxilliary_task_norm_not_norm"] = True
                 param["weight_binary_loss"] = 1
                 param["unrolling_word"] = True
                 param["char_src_attention"] = True
@@ -188,7 +188,7 @@ if __name__ == "__main__":
 
               model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
                                                       expand_vocab_dev_test=True,
-                                                      test_path=[CP_WR_PASTE_TEST] if not warmup else DEMO,
+                                                      test_path=[DEMO] if not warmup else DEMO,
                                                       overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                       compute_mean_score_per_sent=True, print_raw=False,
                                                       get_batch_mode_all=True, compute_scoring_curve=False,
@@ -201,7 +201,7 @@ if __name__ == "__main__":
                                                                            "norm_not_norm-Recall",
                                                                            "norm_not_norm-accuracy"],
                                                       warmup=warmup, args=param, use_gpu=None, n_epochs=epochs,
-                                                      debug=False,
+                                                      debug=True,
                                                       verbose=1)
 
               run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
@@ -216,11 +216,11 @@ if __name__ == "__main__":
         #train_path = LIU_TRAIN
         #dev_path = LIU_DEV
         #test_path = TEST#[TEST, CP_WR_PASTE_TEST_269]
-        fine_tune(train_path=LIU_TRAIN, dev_path=LIU_DEV, evaluation=True,batch_size=50,
-                  test_path=[TEST, CP_WR_PASTE_TEST_269], n_epochs=15, fine_tune_label="X1-fine_tune_same_rate-X1",
+        fine_tune(train_path=LIU_TRAIN, dev_path=LIU_DEV, evaluation=True,batch_size=2,
+                  test_path=[TEST, CP_WR_PASTE_TEST_269], n_epochs=10, fine_tune_label="X1-fine_tune_same_freezing_encoder_bridge-batch_larger-X1",
                   model_full_name="99428_rioc--DEBUG_NO_LOSS_PADDING-0-model_1-model_1_8fb8",
-                  learning_rate=0.001,
-              )
+                  learning_rate=0.001, freeze_ls_param_prefix=["char_embedding","encoder","bridge"],
+                  debug=False, verbose=1)
         to_enrich = "lr  char_decoding char_src_attention "
         to_analysed = to_enrich
         to_keep_only = ""

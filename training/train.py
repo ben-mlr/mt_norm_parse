@@ -67,6 +67,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
           symbolic_root=False, symbolic_end=False, extern_emb_dir=None,
           activation_word_decoder=None, activation_char_decoder=None,
           extra_arg_specific_label="",
+          freezing_mode=False, freeze_ls_param_prefix=None,
           verbose=1):
     if teacher_force:
         assert proportion_pred_train is None, "proportion_pred_train should be None as teacher_force mode"
@@ -98,7 +99,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
 
     if not debug:
         pdb.set_trace = lambda: 1
-
 
     loss_training = []
     loss_developing = []
@@ -156,8 +156,10 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                           drop_out_sent_encoder_cell=dropout_sent_encoder_cell, drop_out_word_encoder_cell=dropout_word_encoder_cell,
                           drop_out_word_decoder_cell=dropout_word_decoder_cell, drop_out_bridge=dropout_bridge,
                           drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
-                          drop_out_word_encoder_out=drop_out_word_encoder_out, drop_out_sent_encoder_out=drop_out_sent_encoder_out,
-                          n_layers_word_encoder=n_layers_word_encoder, dir_sent_encoder=dir_sent_encoder, n_layers_sent_cell=n_layers_sent_cell,
+                          drop_out_word_encoder_out=drop_out_word_encoder_out,
+                          drop_out_sent_encoder_out=drop_out_sent_encoder_out,
+                          n_layers_word_encoder=n_layers_word_encoder, dir_sent_encoder=dir_sent_encoder,
+                          n_layers_sent_cell=n_layers_sent_cell,
                           hidden_size_encoder=hidden_size_encoder, output_dim=output_dim,
                           model_id_pref=model_id_pref, model_full_name=model_full_name,
                           hidden_size_sent_encoder=hidden_size_sent_encoder, shared_context=shared_context,
@@ -185,6 +187,15 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
     starting_epoch = model.arguments["info_checkpoint"]["n_epochs"] if reload else 1
     reloading = "" if not reload else " reloaded from "+str(starting_epoch)
     n_epochs += starting_epoch
+    if freezing_mode:
+        assert freeze_ls_param_prefix is not None, "freeze_ls_param_prefix should not be None"
+        printing("TRAINING : freezing is on for layers {} ", var=[freeze_ls_param_prefix], verbose=verbose, verbose_level=1)
+        for name, param in model.named_parameters():
+            for freeze_param in freeze_ls_param_prefix:
+                if name.startswith(freeze_param):
+                    param.requires_grad = False
+                    printing("TRAINING : freezing {} parameter ", var=[name], verbose=verbose, verbose_level=1)
+
     parameters = filter(lambda p: p.requires_grad, model.parameters())
     adam = torch.optim.Adam(parameters, lr=lr, betas=(0.9, 0.98), eps=1e-9)
     _loss_dev = 1000

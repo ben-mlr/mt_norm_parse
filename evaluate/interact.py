@@ -12,6 +12,7 @@ def interact(dic_path, model_full_name,
              dir_model, debug=False, model_specific_dictionary=True,
              beam_size=2,
              word_decoding=False,
+             extra_arg_specific_label="",
              save_attention=False, show_attention=False, beam_decode=False,
              verbose=2):
     from model.seq2seq import LexNormalizer
@@ -28,6 +29,7 @@ def interact(dic_path, model_full_name,
                           model_specific_dictionary=model_specific_dictionary,
                           dict_path=dic_path,
                           dir_model=dir_model,
+                          extra_arg_specific_label=extra_arg_specific_label,
                           word_decoding=word_decoding, char_decoding=not word_decoding,
                           verbose=verbose)
     model.eval()

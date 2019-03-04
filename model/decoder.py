@@ -93,7 +93,7 @@ class CharDecoder(nn.Module):
         start_atten = time.time()
 
         if self.attn_layer is not None:
-            pdb.set_trace()
+
             attention_weights = self.attn_layer(char_state_decoder=state_hiden.squeeze(0),# current_state,
                                                 word_src_sizes=char_vecs_sizes,
                                                 encoder_outputs=char_seq_hidden_encoder)

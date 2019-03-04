@@ -205,7 +205,7 @@ def create_dict(dict_path, train_path, dev_path, test_path,
     printing("VOCABULARY : target vocabulary cut to {} tokens", var=[MAX_VOCABULARY_SIZE_WORD_DIC], verbose=verbose, verbose_level=1)
     vocab_list = vocab_list[:max_vocabulary_size]
   word_dictionary.inv_ls = vocab_list
-  printing("VOCABULARY INV added {} ".format(vocab_list), verbose_level=1, verbose=verbose)
+  printing("VOCABULARY INV added {} ".format(vocab_list), verbose_level=3, verbose=verbose)
   pos_dictionary = pos_specific_dic_builder(pos_specific_data_set, pos_dictionary)
 
   def expand_vocab(data_paths):

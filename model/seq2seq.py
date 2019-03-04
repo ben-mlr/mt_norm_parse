@@ -94,7 +94,7 @@ class LexNormalizer(nn.Module):
         # initialize dictionaries
         self.timing = timing
         self.dict_path, self.word_dictionary, self.word_nom_dictionary,  self.char_dictionary, self.pos_dictionary, self.xpos_dictionary, self.type_dictionary = None, None, None, None, None, None, None
-        self.auxilliary_task_norm_not_norm = False
+        self.auxilliary_task_norm_not_norm = auxilliary_task_norm_not_norm
         # new model : we create an id , and a saving directory for the model (checkpoints, reporting, arguments)
         if not load:
             printing("Defining new model ", verbose=verbose, verbose_level=0)
@@ -140,7 +140,7 @@ class LexNormalizer(nn.Module):
                                       expand_vocab=expand_vocab_dev_test, test_path=test_path,
                                       pos_specific_data_set=pos_specific_path,
                                       word_normalization=word_decoding, add_start_char=add_start_char, verbose=1)
-            print("INV0", self.word_dictionary.inv_ls)
+            
             voc_size = len(self.char_dictionary.instance2index) + 1
 
             if word_decoding:
@@ -361,7 +361,6 @@ class LexNormalizer(nn.Module):
                 self = self.cuda()
             else:
                 self.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
-
 
     def forward(self, input_seq, input_word_len, word_embed_input=None,
                 output_word_len=None, output_seq=None, word_level_predict=False,

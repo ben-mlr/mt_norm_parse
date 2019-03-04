@@ -25,6 +25,7 @@ torch.manual_seed(SEED_TORCH)
 def fine_tune(train_path, dev_path, test_path, n_epochs,  model_full_name, learning_rate,
               evaluation=False,
               freq_checkpointing=1, freq_writer=1, fine_tune_label="",batch_size=2,
+              freeze_ls_param_prefix=None,
               debug=False, verbose=0):
     if not debug:
         pdb.set_trace = lambda: 1
@@ -75,7 +76,8 @@ def fine_tune(train_path, dev_path, test_path, n_epochs,  model_full_name, learn
           score_to_compute_ls=["exact"], mode_norm_ls=["all", "NEED_NORM", "NORMED"], compute_scoring_curve=False,
           add_start_char=1, add_end_char=1,
           extra_arg_specific_label=fine_tune_label,
-          debug=False, use_gpu=None, verbose=0)
+          freeze_ls_param_prefix=freeze_ls_param_prefix, freezing_mode=freeze_ls_param_prefix is not None,
+          debug=False, use_gpu=None, verbose=verbose)
 
     if evaluation:
         if test_path is not None:

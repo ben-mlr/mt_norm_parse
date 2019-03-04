@@ -34,7 +34,6 @@ class Attention(nn.Module):
             energy = energy.unsqueeze(-1)
             encoder_output = encoder_output.squeeze(-1)#.unsqueeze(1)
             #energy = encoder_output.matmul(energy)
-            pdb.set_trace()
             energy = torch.bmm(encoder_output, energy)
             #energy = energy.squeeze(1).squeeze(1)
             energy = energy.squeeze(-1)
@@ -47,7 +46,7 @@ class Attention(nn.Module):
     def forward(self, char_state_decoder, encoder_outputs, word_src_sizes=None):
         attn_energies = self.score(char_state_decoder=char_state_decoder,
                                    encoder_output=encoder_outputs.squeeze(1))
-        pdb.set_trace()
+
         # WARNING : we use encoder_outputs as our masking :
         # it means that we assume encoder_outputs is equal to 0 (at first index) # FINE because we have word_encoder_source which provides pad sequence
         attn_energies[encoder_outputs[:, :, 0] == 0] = -float("Inf")

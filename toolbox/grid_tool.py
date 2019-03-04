@@ -165,9 +165,11 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
   fixed_vars = []
   for var, vals in dic_grid.items():
     if len(vals)>1:
+      print("STUDIES", var, vals)
       studied_vars.append(var)
     else:
-      fixed_vars.append(var)
+      print("FIXED", var, vals)
+      fixed_vars.append((var,vals[0]))
   
 
   return params,labels, info_default, studied_vars, fixed_vars

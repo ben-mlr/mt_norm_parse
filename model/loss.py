@@ -68,8 +68,8 @@ class LossCompute:
         loss_details = self.loss_details_template.copy()
         if self.loss_binary is not None:
             assert x_norm_not_norm is not None and y_norm_not_norm is not None, \
-                "ERROR : auxilliary_task_norm_not_norm was set to True but x_norm_not_norm or" \
-                " x_norm_not_norm was not y_norm_not_norm "
+                "ERROR : auxilliary_task_norm_not_norm was set to True but x_norm_not_norm {} or" \
+                " y_norm_not_norm {} was None ".format(x_norm_not_norm, y_norm_not_norm)
         printing("LOSS decoding states {} ", var=[x.size()] if x is not None else None, verbose=self.verbose, verbose_level=3)
         start = time.time() if self.timing else None
         x = self.generator(x) if x is not None else None
