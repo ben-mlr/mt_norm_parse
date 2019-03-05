@@ -1,6 +1,7 @@
 import time
 import torch
 import numpy as np
+from env.project_variables import AVAILABLE_TASKS
 from io_.info_print import printing, VERBOSE_1_LOG_EVERY_x_BATCH
 import pdb
 from toolbox.sanity_check import get_timing
@@ -37,7 +38,8 @@ def run_epoch(data_iter, model, loss_compute,
 
               log_every_x_batch=VERBOSE_1_LOG_EVERY_x_BATCH):
     "Standard Training and Logging Function"
-    assert multi_task_mode in ["all", "norm_not_norm","normalize"]
+
+    assert multi_task_mode in AVAILABLE_TASKS
     _start = time.time()
     total_tokens = 0
     total_loss = 0
@@ -81,11 +83,11 @@ def run_epoch(data_iter, model, loss_compute,
             elapsed = torch.from_numpy(np.array(time.time() - _start)).float()
             _start = time.time() if verbose >= 2 else _start
             _loss = loss / float(batch.ntokens)
-            printing("Epoch {} Step: {}  Loss: {}  Tokens per Sec: {}  ", var=(
-                i_epoch+1, i, _loss, tokens / elapsed), verbose=verbose, verbose_level=2)
+            printing("Epoch {} Step: {}  Loss: {}  Tokens per Sec: {} , total tokens {}  ", var=(
+                i_epoch+1, i, _loss, tokens / elapsed, tokens), verbose=verbose, verbose_level=2)
             tokens = 0 if verbose >= 2 else tokens
             if i % log_every_x_batch == 1 and verbose == 1:
-                print("Epoch {} Step: {}  Loss: {}  Tokens per Sec: {}  ".format(i_epoch, i, loss / float(batch.ntokens), tokens / elapsed))
+                print("Epoch {} Step: {}  Loss: {}  Tokens per Sec: {} , total tokens {}".format(i_epoch, i, loss / float(batch.ntokens), tokens / elapsed, tokens))
                 _start = time.time()
                 tokens = 0
         else:

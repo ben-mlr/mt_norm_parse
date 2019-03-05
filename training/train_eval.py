@@ -89,12 +89,14 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
     if warmup:
         printing("Warm up : running 1 epoch ", verbose=verbose, verbose_level=0)
     printing("GRID : START TRAINING ", verbose_level=0, verbose=verbose)
-    print("TASKS", tasks)
+    printing("SANITY CHECK : TASKS {} ", var=[tasks], verbose=verbose, verbose_level=1)
+    normalization = "normalize" in tasks or "norm_not_norm" in tasks
+    printing("SANITY CHECK : normalization {} ", var=normalization, verbose=verbose, verbose_level=1)
     model_full_name = train(train_path, dev_path, pos_specific_path=pos_specific_path,expand_vocab_dev_test=expand_vocab_dev_test,
                             #auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
                             dense_dim_auxilliary=dense_dim_auxilliary, dense_dim_auxilliary_2=dense_dim_auxilliary_2,
                             lr=lr,extend_n_batch=extend_n_batch,
-                            n_epochs=n_epochs, normalization=True,get_batch_mode_all=get_batch_mode_all,
+                            n_epochs=n_epochs, normalization=normalization,get_batch_mode_all=get_batch_mode_all,
                             batch_size=batch_size, model_specific_dictionary=True, freq_writer=freq_writer,
                             dict_path=None, model_dir=None, add_start_char=1, freq_scoring=freq_scoring,
                             add_end_char=1, use_gpu=use_gpu, dir_sent_encoder=dir_sent_encoder,
@@ -157,7 +159,7 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
                          dict_path=dict_path, use_gpu=use_gpu,
                          label_report=eval_label, overall_label=overall_label+"-last+bucket_True_eval-get_batch_"+str(get_batch_mode_evaluate),
                          score_to_compute_ls=score_to_compute_ls, mode_norm_ls=["all", "NEED_NORM", "NORMED"],
-                         normalization=True, print_raw=print_raw,
+                         normalization=normalization, print_raw=print_raw,
                          model_specific_dictionary=True, get_batch_mode_evaluate=get_batch_mode_evaluate, bucket=True,
                          compute_mean_score_per_sent=compute_mean_score_per_sent,
                          batch_size=batch_size, debug=debug,

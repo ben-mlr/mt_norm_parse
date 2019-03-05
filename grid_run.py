@@ -5,16 +5,17 @@ from training.train_eval import train_eval
 from toolbox.grid_tool import grid_param_label_generate
 from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, CP_WR_PASTE_TEST_269, \
     LIU_DEV, DEV, DIR_TWEET_W2V, TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, CP_PASTE_WR_TRAIN, \
-    CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST, \
-    LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT
+    CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST, EWT_DEV, EWT_TEST, \
+    LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO
 from uuid import uuid4
 import argparse
 from sys import platform
 
 #4538
 
-FINE_TUNE = 0
-GRID = 1
+FINE_TUNE = 1
+GRID = 0
+
 if __name__ == "__main__":
       if GRID:
           ##train_path = LIU
@@ -52,7 +53,13 @@ if __name__ == "__main__":
                                 "n_layers_word_encoder": 1, "dir_sent_encoder": 2, "word_recurrent_cell_decoder": "LSTM",
                                 "word_recurrent_cell_encoder": "LSTM",
                                 "hidden_size_sent_encoder": 24, "hidden_size_decoder": 30, "batch_size": 10}
-
+          params_dozat = {"hidden_size_encoder": 200, "output_dim": 100, "char_embedding_dim": 100,
+                            "dropout_sent_encoder": 0.5, "drop_out_word_encoder": 0.3, "dropout_word_decoder": 0.3,
+                            "drop_out_word_encoder_out": 0.3, "drop_out_sent_encoder_out": 0.3,
+                            "drop_out_char_embedding_decoder": 0.1, "dropout_bridge": 0.5,
+                            "n_layers_word_encoder": 1, "dir_sent_encoder": 2, "word_recurrent_cell_decoder": "LSTM",
+                            "word_recurrent_cell_encoder": "LSTM",
+                            "hidden_size_sent_encoder": 200, "hidden_size_decoder": 100, "batch_size": 500}
 
           grid_label = "DEBUG_NO_LOSS_PADDING-"#"POS-2LSMT-2dense+no_aux_task-sent_only-EWT_DEV-PONDERATION-1pos-0_norm"
           # param["policy"] = policy
@@ -70,26 +77,26 @@ if __name__ == "__main__":
 
           # default not used but could be
           params, labels, default_all, analysed, fixed = grid_param_label_generate(
-                                                                                  params_strong_tryal,
+                                                                                  params_dozat,
                                                                                   warmup=False,
                                                                                   grid_label="0",
                                                                                   stable_decoding_state_ls=[False],
                                                                                   word_decoding_ls=[False],
-                                                                                  batch_size_ls=[10],
+                                                                                  batch_size_ls=[250],
                                                                                   #auxilliary_task_pos_ls=[False],
-                                                                                  word_embed_ls=[False],
-                                                                                  dir_sent_encoder_ls=[2], lr_ls=[0.001],
-                                                                                  word_embed_init_ls=[None],
-                                                                                  teacher_force_ls=[True, False],
-                                                                                  proportion_pred_train_ls=[20],
-                                                                                  shared_context_ls=["word"],
+                                                                                  word_embed_ls=[True],
+                                                                                  dir_sent_encoder_ls=[2], lr_ls=[0.02],
+                                                                                  word_embed_init_ls=[DIR_TWEET_W2V, None],
+                                                                                  teacher_force_ls=[True],
+                                                                                  proportion_pred_train_ls=[None],
+                                                                                  shared_context_ls=["all","word"],
                                                                                   word_embedding_projected_dim_ls=[100],
                                                                                   #auxilliary_task_norm_not_norm_ls=[True],
-                                                                                  tasks_ls=[["normalize", "pos"]],
+                                                                                  tasks_ls=[[ "pos"]],
                                                                                   char_src_attention_ls=[True],
-                                                                                  n_layers_sent_cell_ls=[1],
+                                                                                  n_layers_sent_cell_ls=[2],
                                                                                   unrolling_word_ls=[True],
-                                                                                  scale_ls=[1,5,10]
+                                                                                  scale_ls=[1]
                                                                                   )
 
 
@@ -134,54 +141,59 @@ if __name__ == "__main__":
           dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
           os.mkdir(dir_grid)
           printing("GRID RUN : Grid directory : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
-          train_path, dev_path = LIU_TRAIN_SENT, LIU_DEV_SENT #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+          train_path, dev_path = TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
           i = 0
           for param, model_id_pref in zip(params, labels):
               i += 1
               printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-              epochs = 50 if not test_before_run else 2
+              epochs = 500 if not test_before_run else 2
               if warmup:
-                param = {
-                         "hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10, "dropout_sent_encoder": 0.,
-                         "drop_out_word_encoder": 0., "dropout_word_decoder": 0., "drop_out_sent_encoder_out": 0,
-                         "drop_out_word_encoder_out": 0, "dir_word_encoder": 2, "n_layers_word_encoder": 1, "dir_sent_encoder": 2,
-                         "word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder": "LSTM", "hidden_size_sent_encoder": 20,
-                         "hidden_size_decoder": 50, "batch_size": 2
-                         }
-                param["batch_size"] = 2
-                param["auxilliary_task_norm_not_norm"] = True
-                param["weight_binary_loss"] = 1
-                param["unrolling_word"] = True
-                param["char_src_attention"] = True
-                train_path, dev_path = DEMO, DEMO2
-                param["shared_context"] = "all"
-                param["dense_dim_auxilliary"] = None
-                param["gradient_clipping"] = None
-                param["dense_dim_auxilliary_2"] = None
-                param["stable_decoding_state"] = True
-                param["init_context_decoder"] = False
-                param["word_decoding"] = False
-                param["dense_dim_word_pred"] = None
-                param["tasks"] = ["pos"]
-                param["dense_dim_word_pred_2"] = None
-                param["dense_dim_word_pred_3"] = None
 
-                param["char_decoding"] = not param["word_decoding"]
-                param["auxilliary_task_pos"] = False
-                param["dense_dim_auxilliary_pos"] = 10
-                param["dense_dim_auxilliary_pos_2"] = 20
+                train_path, dev_path = TRAINING_DEMO, EWT_DEV
                 param["word_embed_init"] = None
-                param["word_embed"] = True
-                param["word_embedding_dim"] = 10
-                param["word_embedding_projected_dim"] = None
-                param["n_layers_sent_cell"] = 2
-                param["proportion_pred_train"] = 10
-                param["teacher_force"] = True
 
-                import torch.nn as nn
-                #param["activation_char_decoder"] = "nn.LeakyReLU"
-                #param["activation_word_decoder"] = "nn.LeakyReLU"
-                param["lr"] = 0.05
+                if False:
+                    param = {"hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10,
+                             "dropout_sent_encoder": 0.,
+                             "drop_out_word_encoder": 0., "dropout_word_decoder": 0., "drop_out_sent_encoder_out": 0,
+                             "drop_out_word_encoder_out": 0, "dir_word_encoder": 2, "n_layers_word_encoder": 1,
+                             "dir_sent_encoder": 2,
+                             "word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder": "LSTM",
+                             "hidden_size_sent_encoder": 20,
+                             "hidden_size_decoder": 50, "batch_size": 2}
+                    param["batch_size"] = 2
+                    param["auxilliary_task_norm_not_norm"] = True
+                    param["weight_binary_loss"] = 1
+                    param["unrolling_word"] = True
+                    param["char_src_attention"] = True
+                    param["shared_context"] = "all"
+                    param["dense_dim_auxilliary"] = None
+                    param["gradient_clipping"] = None
+                    param["dense_dim_auxilliary_2"] = None
+                    param["stable_decoding_state"] = True
+                    param["init_context_decoder"] = False
+                    param["word_decoding"] = False
+                    param["dense_dim_word_pred"] = None
+                    param["tasks"] = ["pos"]
+                    param["dense_dim_word_pred_2"] = None
+                    param["dense_dim_word_pred_3"] = None
+
+                    param["char_decoding"] = not param["word_decoding"]
+                    param["auxilliary_task_pos"] = False
+                    param["dense_dim_auxilliary_pos"] = 10
+                    param["dense_dim_auxilliary_pos_2"] = 20
+                    param["word_embed_init"] = None
+                    param["word_embed"] = True
+                    param["word_embedding_dim"] = 10
+                    param["word_embedding_projected_dim"] = None
+                    param["n_layers_sent_cell"] = 2
+                    param["proportion_pred_train"] = 10
+                    param["teacher_force"] = True
+
+                    import torch.nn as nn
+                    #param["activation_char_decoder"] = "nn.LeakyReLU"
+                    #param["activation_word_decoder"] = "nn.LeakyReLU"
+                    param["lr"] = 0.05
 
               model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
               if warmup:
@@ -193,7 +205,7 @@ if __name__ == "__main__":
 
               model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
                                                       expand_vocab_dev_test=True,
-                                                      test_path=[TEST_SENT, TEST] if not warmup else DEMO,
+                                                      test_path=[TEST, DEV, EWT_TEST] if not warmup else DEMO,
                                                       overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                       compute_mean_score_per_sent=True, print_raw=False,
                                                       get_batch_mode_all=True, compute_scoring_curve=False,
@@ -222,16 +234,16 @@ if __name__ == "__main__":
         #dev_path = LIU_DEV
         #test_path = TEST#[TEST, CP_WR_PASTE_TEST_269]
         fine_tune(train_path=LIU_TRAIN, dev_path=LIU_DEV, evaluation=True,batch_size=2,
-                  test_path=[LIU_DEV,TEST, CP_WR_PASTE_TEST_269], n_epochs=30, fine_tune_label="X1-fine_tune_same_freezing_encoder_bridge-batch_larger-X1",
+                  test_path=[LIU_DEV, TEST, CP_WR_PASTE_TEST_269], n_epochs=30, fine_tune_label="X1-fine_tune_for_real-X1",
                   model_full_name="99428_rioc--DEBUG_NO_LOSS_PADDING-0-model_1-model_1_8fb8",
                   learning_rate=0.001, freeze_ls_param_prefix=["char_embedding","encoder","bridge"],
                   debug=False, verbose=1)
         to_enrich = "lr  char_decoding char_src_attention "
         to_analysed = to_enrich
         to_keep_only = ""
-        print("GRID_INFO enrch vars=  ", to_enrich)
+        print("GRID_INFO enrch vars= batch_size lr ", to_enrich)
         print("GRID_INFO analy vars=  ", to_analysed)
-        print("GRID_INFO fixed vals=   ", to_keep_only)
+        print("GRID_INFO fixed vals=  batch_size,2 lr,0.001 ", to_keep_only)
 
 
 

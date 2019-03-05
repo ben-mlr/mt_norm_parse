@@ -267,7 +267,8 @@ class LexNormalizer(nn.Module):
         if char_decoding:
             assert dense_dim_word_pred is None or dense_dim_word_pred == 0, "ERROR dense_dim_word_pred should be None as not word_decoding"
         if auxilliary_task_pos:
-            assert dense_dim_auxilliary_pos is not None and dense_dim_auxilliary_pos > 0
+            if dense_dim_auxilliary_pos == 0:
+                printing("MODEL : PosPredictor straight projection to label space with activation", verbose_level=1, verbose=1)
         else:
             assert dense_dim_auxilliary_pos == 0 or dense_dim_auxilliary_pos is None
         if not self.auxilliary_task_norm_not_norm:

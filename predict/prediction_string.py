@@ -31,13 +31,12 @@ def decode_interacively(model, char_dictionary,  max_len, pad=1, sent_mode=False
             continue
         if seq_string == "stop":
             if not sent_mode:
-
                 break
             else:
                 decode_seq_str(seq_string=sentence, model=model, char_dictionary=char_dictionary, pad=pad, max_len= max_len,
                                show_att=show_attention, beam_decode=beam_decode,beam_size=beam_size,
-                               word_dictionary=word_dictionary,
-                               verbose=verbose, sent_mode=True, dir_attention=dir_attention, save_attention=save_attention)
+                               word_dictionary=word_dictionary, verbose=verbose, sent_mode=True,
+                               dir_attention=dir_attention, save_attention=save_attention)
                 sentence = []
         elif seq_string == "END":
             printing("ENDING INTERACTION", verbose=verbose, verbose_level=0)
@@ -122,6 +121,20 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
                                                                                       input_word=input_word,
                                                                                       single_sequence=True,
                                                                                       target_word_gold=None)
+            else:
+                attention = None
+                pred_norm = None
+                text_decoded = None
+
+            if model.arguments["hyperparameters"].get("auxilliary_arch", {}).get("auxilliary_task_pos", False):
+                # decode pos
+                (pred_pos_ls, src_text_pos, gold_pos_seq_ls, _), counts_pos, _, \
+                (_, _, src_seq_pos, target_seq_gold_pos) = decode_word(model, batch, batch_lens,
+                                                                       input_word=input_word,
+                                                                       mode="pos", target_pos_gold=None)
+            else:
+                pred_pos_ls, src_text_pos, gold_pos_seq_ls = None, None, None
+
         if attention is not None:
             print("Attention shape", attention.size())
             print("Attention", attention, src_seq, text_decoded)
@@ -135,4 +148,8 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
             pdb.set_trace()
             norm_not_norm_seq = [(get_label_norm(norm), word) for norm, word in zip(pred_norm, src_text)]
             printing("NORMALIZING : {} ", var=[norm_not_norm_seq], verbose_level=0, verbose=0)
-        printing("DECODED text is : {} original is {} and {} seen as word embed ",var=(text_decoded, src_text, src_words_from_embed), verbose_level=0, verbose=0)
+        if text_decoded is not None:
+            printing("DECODED text is : {} original is {} and {} seen as word embed ",var=(text_decoded, src_text, src_words_from_embed), verbose_level=0, verbose=0)
+        if pred_pos_ls is not None:
+            printing("SRC sequence {} ", var=[src_text_pos], verbose_level=0, verbose=0)
+            printing("POS prediction {} ", var=[pred_pos_ls], verbose_level=0, verbose=0)

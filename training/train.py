@@ -254,10 +254,11 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
         assert policy in AVAILABLE_SCHEDULING_POLICIES
         policy_dic = eval(policy)(epoch) if policy is not None else None
-        multi_task_mode, ponderation_normalize_loss, weight_binary_loss, weight_pos_loss = scheduling_policy(epoch=epoch, phases_ls=policy_dic)
+        #TODO : no need of reouptuting multi_task_mode : tasks should be harminized to read
+        multi_task_mode, ponderation_normalize_loss, weight_binary_loss, weight_pos_loss = scheduling_policy(epoch=epoch, phases_ls=policy_dic, tasks=tasks)
 
-        printing("TRAINING Tasks scheduling : ponderation_normalize_loss is {} weight_binary_loss is {} ",
-                 var=[ponderation_normalize_loss, weight_binary_loss], verbose=verbose, verbose_level=1)
+        printing("TRAINING Tasks scheduling : ponderation_normalize_loss is {} weight_binary_loss is {} weight_pos_loss is {} mode is {} ",
+                 var=[ponderation_normalize_loss, weight_binary_loss, weight_pos_loss, multi_task_mode], verbose=verbose, verbose_level=1)
 
         printing("TRAINING : Starting {} epoch out of {} ", var=(epoch+1, n_epochs), verbose= verbose, verbose_level=1)
         model.train()
@@ -363,7 +364,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                   overall_label=overall_label,overall_report_dir=overall_report_dir,
                                   score_to_compute_ls=score_to_compute_ls, mode_norm_ls=mode_norm_ls,
                                   label_report=eval_label, model=model,
-                                  normalization=True, print_raw=False,
+                                  normalization=normalization, print_raw=False,
                                   model_specific_dictionary=True,
                                   get_batch_mode_evaluate=get_batch_mode_all,
                                   compute_mean_score_per_sent=compute_mean_score_per_sent,

@@ -224,7 +224,7 @@ def decode_word(model, src_seq, src_len,
 
     elif mode == "pos":
         assert target_word_gold is None, "Only target_pos_gold should be provided"
-        assert target_pos_gold is not None
+        #assert target_pos_gold is not None
         prediction_pos = pos_pred.argmax(dim=-1)
         src_seq = src_seq[:, :prediction_pos.size(1)]
         if target_pos_gold is not None:

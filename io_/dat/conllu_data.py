@@ -613,10 +613,19 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
           _word_norm_not_norm = word_norm_not_norm[excerpt]
         else:
             _word_norm_not_norm = None
-      if chars[excerpt].size(0) <= 1 or chars_norm_.size(0) <= 1:
-        print("WARNING : We are skipping a batch because size is {}"
-              " char and {} for char_nor  ".format(chars[excerpt].size(), chars_norm_.size()))
+      else:
+        chars_norm_ = None
+        #TODO : should make _word_norm_not_norm  and char norm independant !!
+        _word_norm_not_norm = None
+      if chars[excerpt].size(0) <= 1 :
+        print("WARNING : We are skipping a batch because size is {} char ".format(chars[excerpt].size()))
         continue
+      if normalization:
+        if chars_norm_.size(0) <= 1:
+          print("WARNING : We are skipping a batch because size is "
+                " {} for char_nor  ".format(chars_norm_.size()))
+          continue
+
       if word_norm is not None:
         if word_norm.size(0) <= 0:
           print("WARNING : We are skipping a batch because word_norm {} ".format(word_norm.size()))

@@ -25,6 +25,9 @@ AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm","pos"]
 
 # DATASETS
 TRAINING_LABEL, TRAINING = "en-ud-train", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-train.conllu")
+TRAINING_DEMO_LABEL, TRAINING_DEMO = "en-ud-train_demo", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-train_demo.conllu")
+
+EWT_TEST_LABEL, EWT_TEST = "ewt_dev", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-test.conllu")
 
 EWT_DEV_LABEL, EWT_DEV = "ewt_dev", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-dev.integrated-po_as_norm")
 DEV_LABEL, DEV = "owoputi", os.path.join(PROJECT_PATH, "../parsing/normpar/data/owoputi.integrated_fixed")
@@ -68,7 +71,7 @@ LIU_TRAIN_SENT_LABEL, LIU_TRAIN_SENT = "liu_train_sent" , os.path.join(PROJECT_P
 LIU_DEV_SENT_LABEL, LIU_DEV_SENT = "liu_dev_sent" , os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-sent-dev_500.conll")
 
 
-REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO2: DEMO2_LABEL,
+REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO2: DEMO2_LABEL,TRAINING_DEMO:TRAINING_DEMO_LABEL,
                 TEST: TEST_LABEL, LIU: LIU_LABEL,
                 LEX_TRAIN:LEX_TRAIN_LABEL,
                 LEX_TEST:LEX_TEST_LABEL,

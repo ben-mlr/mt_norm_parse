@@ -56,7 +56,8 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                 print("WARNING : Skip character ", char)
                 continue 
             printing("TYPE {} word, char {} , chars_norm {} length {} ", var=(word.is_cuda, char.is_cuda,
-                                                                              chars_norm.is_cuda, lenght.is_cuda),
+                                                                              #chars_norm.is_cuda, lenght.is_cuda
+                                                                              ),
                      verbose=verbose, verbose_level=5)
             assert min(lenght.data) > 0, "ERROR : min(lenght.data) is {} ".format(min(lenght.data))
             # TODO : you want to correct that : you're missing word !!
@@ -108,7 +109,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             printing("TYPE {} char before batch chars_norm {} ", var=(char.is_cuda, chars_norm.is_cuda),
                      verbose=verbose, verbose_level=5)
 
-            yield MaskBatch(char, char, output_word=word,#word_norm,
+            yield MaskBatch(char, chars_norm, output_word=word_norm,
                             output_norm_not_norm=word_norm_not_norm,
                             pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose), order_ids
 

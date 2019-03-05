@@ -105,8 +105,9 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
             if shared_context == "sent":
               scale_sent_context = 1
               scale_word = 1
+              scaled_output_dim = 1
             else:
-              scale_sent_context, scale_word = 1, 1
+              scale_sent_context, scale_word, scaled_output_dim = 1, 1, 1
             for dir_word_encoder in dir_word_encoder_ls:
               for char_src_attention in char_src_attention_ls:
                 for dir_sent_encoder in dir_sent_encoder_ls:
@@ -120,61 +121,63 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                               for n_layers_sent_cell in n_layers_sent_cell_ls:
                                 for proportion_pred_train in proportion_pred_train_ls:
                                   for tasks in tasks_ls:
-                                    param0 = param.copy()
-                                    ind_model += 1
-                                    param0["batch_size"] = batch
-                                    #param0["auxilliary_task_norm_not_norm"] = aux
-                                    param0["shared_context"] = shared_context
-                                    param0["lr"] = lr
-                                    param0["word_embed_init"] = word_embed_init
-                                    param0["hidden_size_encoder"] = int(param0["hidden_size_encoder"] * scale * scale_word)
-                                    param0["hidden_size_sent_encoder"] = int(param0["hidden_size_sent_encoder"] * scale * scale_sent_context)
-                                    param0["hidden_size_decoder"] = int(param0["hidden_size_decoder"] * scale)
-                                    param0["output_dim"] *= int(scale * 0.5) + 1
+                                    for teacher_force in teacher_force_ls:
+                                      param0 = param.copy()
+                                      ind_model += 1
+                                      param0["batch_size"] = batch
+                                      #param0["auxilliary_task_norm_not_norm"] = aux
+                                      param0["shared_context"] = shared_context
+                                      param0["lr"] = lr
+                                      param0["word_embed_init"] = word_embed_init
+                                      param0["hidden_size_encoder"] = int(param0["hidden_size_encoder"] * scale *
+                                                                          scale_word)
+                                      param0["hidden_size_sent_encoder"] = int(param0["hidden_size_sent_encoder"] *
+                                                                               scale * scale_sent_context)
+                                      param0["hidden_size_decoder"] = int(param0["hidden_size_decoder"] * scale)
+                                      param0["output_dim"] *= int(scale * scaled_output_dim) + 1
+                                      param0["dir_word_encoder"] = dir_word_encoder
+                                      param0["char_src_attention"] = char_src_attention
+                                      param0["unrolling_word"] = unrolling_word
+                                      param0["dir_sent_encoder"] = dir_sent_encoder
+                                      param0["n_layers_sent_cell"] = n_layers_sent_cell
+                                      param0["gradient_clipping"] = clipping
+                                      param0["teacher_force"] = teacher_force
+                                      param0["word_decoding"] = word_decoding
+                                      param0["char_decoding"] = not word_decoding
+                                      #param0["auxilliary_task_pos"] = auxilliary_task_pos
+                                      param0["dense_dim_auxilliary_pos"] = 100 #if not "pos" in tasks else 0
+                                      param0["dense_dim_auxilliary_pos_2"] = 100 #if not "pos" in tasks else 100
 
-                                    param0["dir_word_encoder"] = dir_word_encoder
-                                    param0["char_src_attention"] = char_src_attention
-                                    param0["unrolling_word"] = unrolling_word
-                                    param0["dir_sent_encoder"] = dir_sent_encoder
-                                    param0["n_layers_sent_cell"] = n_layers_sent_cell
+                                      param0["stable_decoding_state"] = stable_decoding_state
+                                      param0["init_context_decoder"] = not param0["stable_decoding_state"]
+                                      param0["activation_char_decoder"] = "nn.LeakyReLU"
+                                      param0["activation_word_decoder"] = "nn.LeakyReLU"
 
-                                    param0["gradient_clipping"] = clipping
-                                    param0["teacher_force"] = teacher_force_ls
-
-                                    param0["word_decoding"] = word_decoding
-                                    param0["char_decoding"] = not word_decoding
-
-                                    #param0["auxilliary_task_pos"] = auxilliary_task_pos
-                                    param0["dense_dim_auxilliary_pos"] = None if not "pos" in tasks else 200
-                                    param0["dense_dim_auxilliary_pos_2"] = None if not "pos" in tasks else 100
-
-                                    param0["stable_decoding_state"] = stable_decoding_state
-                                    param0["init_context_decoder"] = not param0["stable_decoding_state"]
-                                    param0["activation_char_decoder"] = "nn.LeakyReLU"
-                                    param0["activation_word_decoder"] = "nn.LeakyReLU"
-
-                                    param0["tasks"] = tasks
-                                    # default
-                                    param0["dropout_bridge"] = 0.1
-                                    param0["word_embed"] = word_embed
-                                    if word_embed_init is not None and word_embed:
-                                      param0["word_embedding_dim"] = 400
-                                    elif word_embed:
-                                      param0["word_embedding_dim"] = 50
-                                    else:
-                                      param0["word_embedding_dim"] = 0
-                                    param0["dense_dim_word_pred"] = 300 if word_decoding else None
-                                    param0["dense_dim_word_pred_2"] = 300 if word_decoding else None
-                                    param0["dense_dim_word_pred_3"] = 100 if word_decoding else None
-                                    param0["word_embedding_projected_dim"] = word_embedding_projected_dim if param0["word_embed"] else None
-                                    param0["proportion_pred_train"] = proportion_pred_train
-                                    params.append(param0)
-                                    labels.append("{}-model_{}".format(grid_label,ind_model))
+                                      param0["tasks"] = tasks
+                                      # default
+                                      param0["dropout_bridge"] = 0.1
+                                      param0["word_embed"] = word_embed
+                                      if word_embed_init is not None and word_embed:
+                                        param0["word_embedding_dim"] = 400
+                                      elif word_embed:
+                                        param0["word_embedding_dim"] = 50
+                                      else:
+                                        param0["word_embedding_dim"] = 0
+                                      param0["dense_dim_word_pred"] = 300 if word_decoding else None
+                                      param0["dense_dim_word_pred_2"] = 300 if word_decoding else None
+                                      param0["dense_dim_word_pred_3"] = 100 if word_decoding else None
+                                      param0["word_embedding_projected_dim"] = word_embedding_projected_dim if param0["word_embed"] else None
+                                      param0["proportion_pred_train"] = proportion_pred_train
+                                      params.append(param0)
+                                      labels.append("{}-model_{}".format(grid_label,ind_model))
 
 
   studied_vars = []
   fixed_vars = []
   for var, vals in dic_grid.items():
+    if var == "proportion_pred_train":
+      if None in vals:
+        vals[vals.index(None)] = 0
     if len(vals) > 1:
       print("STUDIES", var, vals)
       studied_vars.append(var)
