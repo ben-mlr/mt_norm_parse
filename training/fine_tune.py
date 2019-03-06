@@ -22,10 +22,9 @@ np.random.seed(SEED_NP)
 torch.manual_seed(SEED_TORCH)
 
 
-def fine_tune(train_path, dev_path, test_path, n_epochs,  model_full_name, learning_rate,
+def fine_tune(train_path, dev_path, test_path, n_epochs,  model_full_name, learning_rate,tasks,
               evaluation=False,
-              freq_checkpointing=1, freq_writer=1, fine_tune_label="",batch_size=2,
-              freeze_ls_param_prefix=None,
+              freq_checkpointing=1, freq_writer=1, fine_tune_label="",batch_size=2,freeze_ls_param_prefix=None,
               debug=False, verbose=0):
     if not debug:
         pdb.set_trace = lambda: 1
@@ -44,13 +43,13 @@ def fine_tune(train_path, dev_path, test_path, n_epochs,  model_full_name, learn
     print("WARNING : char_decoding {} and word_decoding should not be loaded here ".format(char_decoding, word_decoding))
 
     warmup = False
-    test_before_run=False
+    test_before_run = False
     RUN_ID = str(uuid4())[0:5]
     LABEL_GRID = fine_tune_label if not warmup else "WARMUP"
     LABEL_GRID = "test_before_run-"+LABEL_GRID if test_before_run else LABEL_GRID
 
     OAR = os.environ.get('OAR_JOB_ID')+"_rioc-" if os.environ.get('OAR_JOB_ID', None) is not None else ""
-    print("OAR=",OAR)
+    print("OAR=", OAR)
     OAR = RUN_ID if OAR == "" else OAR
     LABEL_GRID = OAR+"-"+LABEL_GRID
 
@@ -74,10 +73,10 @@ def fine_tune(train_path, dev_path, test_path, n_epochs,  model_full_name, learn
           extend_n_batch=2,#model.arguments["info_checkpoint"]["other"]["extend_n_batch"],
           freq_writer=freq_writer, freq_checkpointing=freq_checkpointing, #compute_mean_score_per_sent=True,
           score_to_compute_ls=["exact"], mode_norm_ls=["all", "NEED_NORM", "NORMED"], compute_scoring_curve=False,
-          add_start_char=1, add_end_char=1,
+          add_start_char=1, add_end_char=1, tasks=tasks,
           extra_arg_specific_label=fine_tune_label,
-          freeze_ls_param_prefix=freeze_ls_param_prefix, freezing_mode=freeze_ls_param_prefix is not None,
-          debug=False, use_gpu=None, verbose=verbose)
+          freeze_ls_param_prefix=freeze_ls_param_prefix,  freezing_mode=freeze_ls_param_prefix is not None,
+          debug=False, use_gpu=None, verbose=0)
 
     if evaluation:
         if test_path is not None:
@@ -121,7 +120,7 @@ if __name__ == "__main__":
     dev_path = DEMO2
     test_path = TEST
     fine_tune(train_path=train_path, dev_path=dev_path,
-              test_path=test_path, n_epochs=11, fine_tune_label="fine_tune_ab",
+              test_path=test_path, n_epochs=11, fine_tune_label="tune_",
               model_full_name="17bcb-WARMUP-unrolling-False0-model_1-model_1_780c",
            )
 

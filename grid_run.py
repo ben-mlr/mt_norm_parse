@@ -6,15 +6,16 @@ from toolbox.grid_tool import grid_param_label_generate
 from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, CP_WR_PASTE_TEST_269, \
     LIU_DEV, DEV, DIR_TWEET_W2V, TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, CP_PASTE_WR_TRAIN, \
     CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST, EWT_DEV, EWT_TEST, \
-    LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO
+    LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO, EN_LINES_EWT_TRAIN, EN_LINES_DEV, EN_LINES_EWT_TRAIN, \
+    MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST
 from uuid import uuid4
 import argparse
 from sys import platform
 
 #4538
 
-FINE_TUNE = 1
-GRID = 0
+FINE_TUNE = 0
+GRID = 1
 
 if __name__ == "__main__":
       if GRID:
@@ -54,8 +55,8 @@ if __name__ == "__main__":
                                 "word_recurrent_cell_encoder": "LSTM",
                                 "hidden_size_sent_encoder": 24, "hidden_size_decoder": 30, "batch_size": 10}
           params_dozat = {"hidden_size_encoder": 200, "output_dim": 100, "char_embedding_dim": 100,
-                            "dropout_sent_encoder": 0.5, "drop_out_word_encoder": 0.3, "dropout_word_decoder": 0.3,
-                            "drop_out_word_encoder_out": 0.3, "drop_out_sent_encoder_out": 0.3,
+                            "dropout_sent_encoder": 0.5, "drop_out_word_encoder": 0.5, "dropout_word_decoder": 0.3,
+                            "drop_out_word_encoder_out": 0.5, "drop_out_sent_encoder_out": 0.0,
                             "drop_out_char_embedding_decoder": 0.1, "dropout_bridge": 0.5,
                             "n_layers_word_encoder": 1, "dir_sent_encoder": 2, "word_recurrent_cell_decoder": "LSTM",
                             "word_recurrent_cell_encoder": "LSTM",
@@ -82,17 +83,17 @@ if __name__ == "__main__":
                                                                                   grid_label="0",
                                                                                   stable_decoding_state_ls=[False],
                                                                                   word_decoding_ls=[False],
-                                                                                  batch_size_ls=[250],
+                                                                                  batch_size_ls=[25,250,500,1000,2000],
                                                                                   #auxilliary_task_pos_ls=[False],
                                                                                   word_embed_ls=[True],
-                                                                                  dir_sent_encoder_ls=[2], lr_ls=[0.02],
-                                                                                  word_embed_init_ls=[DIR_TWEET_W2V, None],
+                                                                                  dir_sent_encoder_ls=[2], lr_ls=[0.1,0.05,0.01,0.005,0.001,0.0005],
+                                                                                  word_embed_init_ls=[None],
                                                                                   teacher_force_ls=[True],
                                                                                   proportion_pred_train_ls=[None],
-                                                                                  shared_context_ls=["all","word"],
+                                                                                  shared_context_ls=["all"],
                                                                                   word_embedding_projected_dim_ls=[100],
                                                                                   #auxilliary_task_norm_not_norm_ls=[True],
-                                                                                  tasks_ls=[[ "pos"]],
+                                                                                  tasks_ls=[["normalize"]],
                                                                                   char_src_attention_ls=[True],
                                                                                   n_layers_sent_cell_ls=[2],
                                                                                   unrolling_word_ls=[True],
@@ -141,16 +142,16 @@ if __name__ == "__main__":
           dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
           os.mkdir(dir_grid)
           printing("GRID RUN : Grid directory : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
-          train_path, dev_path = TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+          train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV# MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
           i = 0
           for param, model_id_pref in zip(params, labels):
               i += 1
               printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-              epochs = 500 if not test_before_run else 2
+              epochs = 50 if not test_before_run else 2
               if warmup:
 
-                train_path, dev_path = TRAINING_DEMO, EWT_DEV
-                param["word_embed_init"] = None
+                train_path, dev_path = DEMO, DEMO2
+                param["word_embed_init"] = DIR_TWEET_W2V
 
                 if False:
                     param = {"hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10,
@@ -205,7 +206,7 @@ if __name__ == "__main__":
 
               model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
                                                       expand_vocab_dev_test=True,
-                                                      test_path=[TEST, DEV, EWT_TEST] if not warmup else DEMO,
+                                                      test_path=[TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV] if not warmup else DEMO,
                                                       overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                       compute_mean_score_per_sent=True, print_raw=False,
                                                       get_batch_mode_all=True, compute_scoring_curve=False,
@@ -233,17 +234,22 @@ if __name__ == "__main__":
         #train_path = LIU_TRAIN
         #dev_path = LIU_DEV
         #test_path = TEST#[TEST, CP_WR_PASTE_TEST_269]
-        fine_tune(train_path=LIU_TRAIN, dev_path=LIU_DEV, evaluation=True,batch_size=2,
-                  test_path=[LIU_DEV, TEST, CP_WR_PASTE_TEST_269], n_epochs=30, fine_tune_label="X1-fine_tune_for_real-X1",
+        fine_tune_label = "fine_tuning"
+        OAR = os.environ.get('OAR_JOB_ID')+"_rioc-" if os.environ.get('OAR_JOB_ID', None) is not None else ""
+        print("OAR=",OAR)
+        fine_tune_label = OAR+"-"+fine_tune_label
+        fine_tune(train_path=LIU_TRAIN, dev_path=LIU_DEV, evaluation=True,batch_size=100,
+                  test_path=[LIU_TRAIN, LIU_DEV, TEST, CP_WR_PASTE_TEST_269], n_epochs=30, fine_tune_label=fine_tune_label+"fine_tune_for_real-BACK_NORMALIZE-tenth",
                   model_full_name="99428_rioc--DEBUG_NO_LOSS_PADDING-0-model_1-model_1_8fb8",
-                  learning_rate=0.001, freeze_ls_param_prefix=["char_embedding","encoder","bridge"],
+                  learning_rate=0.00005, freeze_ls_param_prefix=["char_embedding","encoder","bridge"],
+                  tasks=["normalize"],
                   debug=False, verbose=1)
         to_enrich = "lr  char_decoding char_src_attention "
         to_analysed = to_enrich
         to_keep_only = ""
         print("GRID_INFO enrch vars= batch_size lr ", to_enrich)
         print("GRID_INFO analy vars=  ", to_analysed)
-        print("GRID_INFO fixed vals=  batch_size,2 lr,0.001 ", to_keep_only)
+        print("GRID_INFO fixed vals=  batch_size,2 lr,0.0001 ", to_keep_only)
 
 
 

@@ -25,8 +25,6 @@ TEST_SCORING_IN_CODE = False
 
 
 
-
-
 def decode_sequence_beam(model, max_len, src_seq, src_mask, src_len, char_dictionary,
                          pad=1, target_seq_gold=None,
                          use_gpu=False, beam_size=2,
@@ -88,7 +86,7 @@ def decode_sequence_beam(model, max_len, src_seq, src_mask, src_len, char_dictio
                                                              log_softmax_score.size(1),
                                                              log_softmax_score.size(-1))
             # we update the log score of all candidates with the new ones
-
+            pdb.set_trace()
             log_scores_all_candidates[:, :log_softmax_score.size(1), :, candidate_ind] = torch.add(log_softmax_score, expand_score_former)
         # we find the best scores of all beam x decoded tokens
         log_scores_all_candidates_reshaped = log_scores_all_candidates.view(log_scores_all_candidates.size(0),

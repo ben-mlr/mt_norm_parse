@@ -7,7 +7,7 @@ from model.encoder import CharEncoder
 from model.decoder import CharDecoder
 from model.pos_predictor import PosPredictor
 from model.normalize_not import BinaryPredictor
-from env.project_variables import CHECKPOINT_DIR, AVAILABLE_TASKS
+from env.project_variables import CHECKPOINT_DIR, AVAILABLE_TASKS, REPO_DATASET
 import torch
 from io_.dat.create_embedding_mat import construct_word_embedding_table
 from torch.autograd import Variable
@@ -187,7 +187,7 @@ class LexNormalizer(nn.Module):
                                                    "word_embed": word_embed,  "word_embedding_dim": word_embedding_dim,
                                                    "word_embedding_projected_dim": word_embedding_projected_dim,
                                                    "n_layers_word_encoder": n_layers_word_encoder,
-                                                   "word_embed_init": word_embed_dir,
+                                                   "word_embed_init": REPO_DATASET.get(word_embed_dir),
                                                    "dir_sent_encoder": dir_sent_encoder,
                                                    "dir_word_encoder": dir_word_encoder,
                                                    "drop_out_sent_encoder_out": drop_out_sent_encoder_out,

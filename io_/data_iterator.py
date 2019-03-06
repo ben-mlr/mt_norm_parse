@@ -10,7 +10,7 @@ from io_.dat import conllu_data
 from io_.info_print import printing, print_char_seq, disable_tqdm_level
 import time
 from toolbox.sanity_check import get_timing
-
+NORM2NOISY=False
 
 def data_gen_conllu(data, word_dictionary, char_dictionary,
                     batch_size,
@@ -37,9 +37,15 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                           disable=disable_tqdm_level(verbose, verbose_level=2)):
 
             words, word_norm, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, lengths, order_ids, raw_word_inputs, raw_lines = batch
-            yield MaskBatch(chars, chars,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
+            if not NORM2NOISY:
+                yield MaskBatch(chars, chars_norm,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
                             output_word=word_norm, pos=pos, input_word=words,
                             verbose=verbose), order_ids
+            else:
+                yield MaskBatch(chars_norm, chars,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
+                output_word=word_norm, pos=pos, input_word=words,
+                verbose=verbose), order_ids
+
 
     # get_batch randomly (for training purpose)
     elif get_batch_mode:
@@ -91,7 +97,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                 pos_display = []
             if not normalization:
                 chars_norm = char.clone()
-                printing("Normalisation is False : model is a autoencoder ", verbose=_verbose, verbose_level=5)
+                printing("WARNING : Normalisation is False : model is a autoencoder ", verbose=_verbose, verbose_level=0)
 
             if _verbose >= 5:
                 character_norm_display = [" ".join([char_dictionary.get_instance(chars_norm[sent, word_ind, char_i])
@@ -108,10 +114,16 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             printing("Feeding source pos {} ", var=[pos_display], verbose=_verbose, verbose_level=5)
             printing("TYPE {} char before batch chars_norm {} ", var=(char.is_cuda, chars_norm.is_cuda),
                      verbose=verbose, verbose_level=5)
-
-            yield MaskBatch(char, chars_norm, output_word=word_norm,
-                            output_norm_not_norm=word_norm_not_norm,
-                            pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose), order_ids
+            pdb.set_trace()
+            if NORM2NOISY:
+                print("WARNING !! NORM2NOISY ON ")
+                yield MaskBatch(chars_norm, char, output_word=word_norm,
+                                output_norm_not_norm=word_norm_not_norm,
+                                pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose), order_ids
+            else:
+                yield MaskBatch(char, chars_norm, output_word=word_norm,
+                                output_norm_not_norm=word_norm_not_norm,
+                                pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose), order_ids
 
 
 def data_gen_dummy(V, batch, nbatches, sent_len=9, word_len=5, verbose=0, seed=None):

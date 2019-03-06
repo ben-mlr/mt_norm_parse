@@ -59,9 +59,25 @@ CP_PASTE_WR_TEST_269_LABEL, CP_WR_PASTE_TEST_269 = "copy_paste_real_word_test-fi
 
 
 DIR_TWEET_W2V = os.path.join(PROJECT_PATH, "w2v", "tweets.en.w2v.txt")
+TWEET_W2V_LABEL = "tweets_en_w2v"
 W2V_LOADED_DIM = 400
 MAX_VOCABULARY_SIZE_WORD_DIC = 20000
 
+# Michel
+MTNT_TOK_TRAIN_LABEL, MTNT_TOK_TRAIN= "mtnt_tok_train", os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/train.en.raw2tok.conll")
+MTNT_TOK_DEV_LABEL, MTNT_TOK_DEV= "mtnt_tok_dev", os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/dev.en.raw2tok.conll")
+
+MTNT_EN_FR_TRAIN_LABEL, MTNT_EN_FR_TRAIN = "mtnt_train", os.path.join(PROJECT_PATH, "./data/MTNT/train/train.en-fr.conll")
+MTNT_EN_FR_DEV_LABEL, MTNT_EN_FR_DEV = "mtnt_valid", os.path.join(PROJECT_PATH, "./data/MTNT/valid/valid.en-fr.conll")
+MTNT_EN_FR_TEST_LABEL, MTNT_EN_FR_TEST = "mtnt_test", os.path.join(PROJECT_PATH, "./data/MTNT/test/test.en-fr.conll")
+
+
+
+# EN
+EN_LINES_TRAIN_LABEL, EN_LINES_TRAIN = "en_lines_train", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en_lines-ud-train.conllu")
+EN_LINES_EWT_TRAIN_LABEL, EN_LINES_EWT_TRAIN = "en_lines_ewt_train", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en_lines+ewt-ud-train.conllu")
+
+EN_LINES_DEV_LABEL, EN_LINES_DEV = "en_lines_dev", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en_lines-ud-dev.conllu")
 
 # SENT conll like
 DEMO_SENT_LABEL, DEMO_SENT = "lexnorm-Demo_sent", os.path.join(PROJECT_PATH, "../parsing/normpar/data/char_test.demo")
@@ -72,7 +88,7 @@ LIU_DEV_SENT_LABEL, LIU_DEV_SENT = "liu_dev_sent" , os.path.join(PROJECT_PATH, "
 
 
 REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO2: DEMO2_LABEL,TRAINING_DEMO:TRAINING_DEMO_LABEL,
-                TEST: TEST_LABEL, LIU: LIU_LABEL,
+                TEST: TEST_LABEL, LIU: LIU_LABEL, EWT_TEST: EWT_TEST_LABEL,
                 LEX_TRAIN:LEX_TRAIN_LABEL,
                 LEX_TEST:LEX_TEST_LABEL,
                 LEX_LIU_TRAIN:LEX_LIU_LABEL,
@@ -82,7 +98,11 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 CP_PASTE_WR_TRAIN: CP_PASTE_WR_TRAIN_LABEL, CP_WR_PASTE_DEV: CP_PASTE_WR_DEV_LABEL, CP_WR_PASTE_TEST: CP_PASTE_WR_TEST_LABEL, CP_WR_PASTE_TEST_269: CP_PASTE_WR_TEST_269_LABEL,
                 DEMO_SENT: DEMO_SENT_LABEL,
                 TEST_SENT: TEST_SENT_LABEL, DEV_SENT: DEV_SENT_LABEL, LIU_TRAIN_SENT: LIU_TRAIN_SENT_LABEL,
-                LIU_DEV_SENT: LIU_DEV_SENT_LABEL
+                LIU_DEV_SENT: LIU_DEV_SENT_LABEL,
+                EN_LINES_TRAIN: EN_LINES_TRAIN_LABEL, EN_LINES_DEV: EN_LINES_DEV_LABEL, EN_LINES_EWT_TRAIN: EN_LINES_EWT_TRAIN_LABEL,
+                MTNT_TOK_TRAIN: MTNT_TOK_TRAIN_LABEL, MTNT_TOK_DEV: MTNT_TOK_DEV_LABEL, MTNT_EN_FR_TRAIN: MTNT_EN_FR_TRAIN_LABEL,
+                MTNT_EN_FR_DEV: MTNT_EN_FR_DEV_LABEL, MTNT_EN_FR_TEST: MTNT_EN_FR_TEST_LABEL,
+                DIR_TWEET_W2V:TWEET_W2V_LABEL,
                 }
 # output dir for writing
 WRITING_DIR = os.path.join(PROJECT_PATH, "predictions")

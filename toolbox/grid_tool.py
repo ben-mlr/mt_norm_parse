@@ -145,8 +145,8 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                                       param0["word_decoding"] = word_decoding
                                       param0["char_decoding"] = not word_decoding
                                       #param0["auxilliary_task_pos"] = auxilliary_task_pos
-                                      param0["dense_dim_auxilliary_pos"] = 100 #if not "pos" in tasks else 0
-                                      param0["dense_dim_auxilliary_pos_2"] = 100 #if not "pos" in tasks else 100
+                                      param0["dense_dim_auxilliary_pos"] = 0 #if not "pos" in tasks else 0
+                                      param0["dense_dim_auxilliary_pos_2"] = 0 #if not "pos" in tasks else 100
 
                                       param0["stable_decoding_state"] = stable_decoding_state
                                       param0["init_context_decoder"] = not param0["stable_decoding_state"]
@@ -155,7 +155,7 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
 
                                       param0["tasks"] = tasks
                                       # default
-                                      param0["dropout_bridge"] = 0.1
+                                      #param0["dropout_bridge"] = 0.1
                                       param0["word_embed"] = word_embed
                                       if word_embed_init is not None and word_embed:
                                         param0["word_embedding_dim"] = 400

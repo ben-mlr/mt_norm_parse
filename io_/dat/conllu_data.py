@@ -390,6 +390,8 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
   max_char_length = max_char_length_dic["max_char_length"]
   max_char_norm_length = max_char_length_dic["max_char_norm_length"]
 
+  printing("DATA MAX_CHAR_LENGTH set to {}".format(MAX_CHAR_LENGTH), verbose=verbose, verbose_level=1)
+
 
   bucket_sizes = [len(data[b]) for b in range(len(_buckets))]
 
@@ -617,7 +619,7 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
         chars_norm_ = None
         #TODO : should make _word_norm_not_norm  and char norm independant !!
         _word_norm_not_norm = None
-      if chars[excerpt].size(0) <= 1 :
+      if chars[excerpt].size(0) <= 1:
         print("WARNING : We are skipping a batch because size is {} char ".format(chars[excerpt].size()))
         continue
       if normalization:

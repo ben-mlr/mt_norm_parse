@@ -13,7 +13,7 @@ def reframe_conll_to_sentConll(src_dir, target_dir, n_hashtag=1,verbose=1):
 
             while len(line) > 0:
                 line = f.readline()
-                if line.startswith("#") :
+                if line.startswith("#"):
                     g.write(line)
                     # if new_sent == n_hashtag:
                     sent = []

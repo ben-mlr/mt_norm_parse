@@ -249,9 +249,9 @@ if __name__ == "__main__":
     #for ablation_id in ["97440_rioc-64c34-ATTbatch-aux-scale-shared_contex-Falseteach_Falseaux-model_2_61d6-folder"]:
     for ablation_id in ["97942_rioc--DEBUG_NO_LOSS_PADDING-0-model_1-model_1_767d-folder"]:
       for get_batch_mode_evaluate in [False]:
-        for batch_size in [2]:
+        for batch_size in [200]:
           #for data in [LIU, DEV, LEX_TEST]:
-          for data in [DEMO]:
+          for data in [TEST]:
             list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
             print("FOLDERS : ", list_)
             for folder_name in list_:
