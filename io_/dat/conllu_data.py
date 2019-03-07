@@ -577,7 +577,6 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
       word_norm = word_norm[index]
     if word_norm_not_norm is not None:
       word_norm_not_norm = word_norm_not_norm[index]
-
   return words, word_norm , chars[index], chars_norm, word_norm_not_norm, pos[index], xpos[index], heads[index], \
          types[index], masks[index], lengths[index], order_inputs[index]
 
@@ -608,7 +607,7 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
     for start_idx in range(0, bucket_size, batch_size):
       excerpt = slice(start_idx, start_idx + batch_size)
       if normalization:
-        chars_norm_ = chars_norm[excerpt] if normalization else None
+        chars_norm_ = chars_norm[excerpt]
         if word_norm is not None:
           word_norm = word_norm[excerpt]
         if word_norm_not_norm is not None:
@@ -632,7 +631,6 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
         if word_norm.size(0) <= 0:
           print("WARNING : We are skipping a batch because word_norm {} ".format(word_norm.size()))
           continue
-
       yield words[excerpt], word_norm, chars[excerpt], chars_norm_, _word_norm_not_norm, \
             pos[excerpt], xpos[excerpt], heads[excerpt], \
             types[excerpt],  \

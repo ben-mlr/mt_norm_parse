@@ -62,7 +62,7 @@ if __name__ == "__main__":
                             "word_recurrent_cell_encoder": "LSTM",
                             "hidden_size_sent_encoder": 200, "hidden_size_decoder": 100, "batch_size": 500}
 
-          grid_label = "DEBUG_NO_LOSS_PADDING-"#"POS-2LSMT-2dense+no_aux_task-sent_only-EWT_DEV-PONDERATION-1pos-0_norm"
+          grid_label = "B"#"POS-2LSMT-2dense+no_aux_task-sent_only-EWT_DEV-PONDERATION-1pos-0_norm"
           # param["policy"] = policy
           # param["drop_out_sent_encoder_out"] = 0.2#add_dropout_encoder
           # param["drop_out_word_encoder_out"] = 0.2#add_dropout_encoder
@@ -83,21 +83,21 @@ if __name__ == "__main__":
                                                                                   grid_label="0",
                                                                                   stable_decoding_state_ls=[False],
                                                                                   word_decoding_ls=[False],
-                                                                                  batch_size_ls=[25,250,500,1000,2000],
+                                                                                  batch_size_ls=[250],
                                                                                   #auxilliary_task_pos_ls=[False],
-                                                                                  word_embed_ls=[True],
-                                                                                  dir_sent_encoder_ls=[2], lr_ls=[0.1,0.05,0.01,0.005,0.001,0.0005],
-                                                                                  word_embed_init_ls=[None],
+                                                                                  word_embed_ls=[False],
+                                                                                  dir_sent_encoder_ls=[2], lr_ls=[0.001],
+                                                                                  word_embed_init_ls=[True],
                                                                                   teacher_force_ls=[True],
                                                                                   proportion_pred_train_ls=[None],
                                                                                   shared_context_ls=["all"],
-                                                                                  word_embedding_projected_dim_ls=[100],
+                                                                                  word_embedding_projected_dim_ls=[0],
                                                                                   #auxilliary_task_norm_not_norm_ls=[True],
                                                                                   tasks_ls=[["normalize"]],
                                                                                   char_src_attention_ls=[True],
                                                                                   n_layers_sent_cell_ls=[2],
                                                                                   unrolling_word_ls=[True],
-                                                                                  scale_ls=[1]
+                                                                                  scale_ls=[1,0.5]
                                                                                   )
 
 
@@ -142,7 +142,7 @@ if __name__ == "__main__":
           dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
           os.mkdir(dir_grid)
           printing("GRID RUN : Grid directory : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
-          train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV# MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+          train_path, dev_path = MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV# MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
           i = 0
           for param, model_id_pref in zip(params, labels):
               i += 1
@@ -151,7 +151,7 @@ if __name__ == "__main__":
               if warmup:
 
                 train_path, dev_path = DEMO, DEMO2
-                param["word_embed_init"] = DIR_TWEET_W2V
+                param["word_embed_init"] = None
 
                 if False:
                     param = {"hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10,
@@ -206,7 +206,9 @@ if __name__ == "__main__":
 
               model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
                                                       expand_vocab_dev_test=True,
-                                                      test_path=[TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV] if not warmup else DEMO,
+                                                      test_path=[MTNT_TOK_DEV,TEST_SENT]\
+                                                      #[TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV]\
+                                                      if not warmup else DEMO,
                                                       overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                       compute_mean_score_per_sent=True, print_raw=False,
                                                       get_batch_mode_all=True, compute_scoring_curve=False,

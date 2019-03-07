@@ -166,6 +166,7 @@ class LexNormalizer(nn.Module):
                                                   "git_id": git_commit_id},
                               "hyperparameters": {
                                   "lr": None, "lr_policy": None, "extend_vocab_with_test": extend_vocab_with_test,
+                                  "optimizer": None,
                                   "shared_context": shared_context,
                                   "symbolic_end": symbolic_end, "symbolic_root": symbolic_root,
                                   "gradient_clipping": None,
@@ -474,6 +475,7 @@ class LexNormalizer(nn.Module):
         model.arguments["hyperparameters"]["gradient_clipping"] = info_checkpoint["gradient_clipping"]
         model.arguments["hyperparameters"]["tasks_schedule_policy"] = info_checkpoint["tasks_schedule_policy"]
         model.arguments["hyperparameters"]["lr"] = info_checkpoint["other"]["lr"]
+        model.arguments["hyperparameters"]["optimizer"] = info_checkpoint["optimizer"]
         model.arguments["hyperparameters"]["lr_policy"] = info_checkpoint["other"]["optim_strategy"]
         model.arguments["hyperparameters"]["weight_binary_loss"] = info_checkpoint["other"]["weight_binary_loss"]
         model.arguments["hyperparameters"]["weight_pos_loss"] = info_checkpoint["other"]["weight_pos_loss"]

@@ -12,7 +12,7 @@ from toolbox.checkpointing import checkpoint, update_curve_dic
 import os
 import numpy as np
 from io_.info_print import disable_tqdm_level, printing
-from env.project_variables import PROJECT_PATH, REPO_DATASET, SEED_TORCH, BREAKING_NO_DECREASE, CHECKPOINT_DIR, LOSS_DETAIL_TEMPLATE_LS
+from env.project_variables import PROJECT_PATH, REPO_DATASET, SEED_TORCH, BREAKING_NO_DECREASE, CHECKPOINT_DIR, LOSS_DETAIL_TEMPLATE_LS, AVAILABLE_OPTIMIZER
 from env.project_variables import SEED_NP, SEED_TORCH
 import time
 from toolbox.gpu_related import use_gpu_
@@ -69,7 +69,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
           activation_word_decoder=None, activation_char_decoder=None,
           extra_arg_specific_label="",
           freezing_mode=False, freeze_ls_param_prefix=None,
+          optimizer="adam",
           verbose=1):
+    assert optimizer in AVAILABLE_OPTIMIZER, "optimizer supported are {} ".format(AVAILABLE_OPTIMIZER)
     if teacher_force:
         assert proportion_pred_train is None, "proportion_pred_train should be None as teacher_force mode"
     else:
@@ -204,7 +206,10 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                     printing("TRAINING : freezing {} parameter ", var=[name], verbose=verbose, verbose_level=1)
 
     parameters = filter(lambda p: p.requires_grad, model.parameters())
-    adam = torch.optim.Adam(parameters, lr=lr, betas=(0.9, 0.98), eps=1e-9)
+    if optimizer == "adam":
+        adam = torch.optim.Adam(parameters, lr=lr, betas=(0.9, 0.98), eps=1e-9)
+    elif optimizer == "bahdanu-adadelta":
+        adam = torch.optim.Adadelta(parameters, eps=10e-6, rho=0.95)
     _loss_dev = 1000
     _loss_train = 1000
     counter_no_deacrease = 0
@@ -422,7 +427,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                saved_epoch=saved_epoch, model_dir=model.dir_model,
                                extra_checkpoint_label="1st_train" if not reload else "start_{}_ep-{}".format(starting_epoch, extra_arg_specific_label),
                                extra_arg_specific_label=extra_arg_specific_label,
-                               info_checkpoint={"n_epochs": epoch, "batch_size": batch_size,
+                               info_checkpoint={"n_epochs": epoch, "batch_size": batch_size, "optimizer": optimizer,
                                                 "gradient_clipping": clipping,
                                                 "tasks_schedule_policy": policy,
                                                 "teacher_force": teacher_force,

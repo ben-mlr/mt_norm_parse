@@ -68,6 +68,7 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
 
     stable_decoding_state = args.get("stable_decoding_state", False)
     init_context_decoder = args.get("init_context_decoder", True)
+    optimizer = args.get("optimizer", "bahdanu-adadelta")
 
     word_decoding = args.get("word_decoding", False)
     dense_dim_word_pred = args.get("dense_dim_word_pred", None)
@@ -125,6 +126,7 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
                             teacher_force=teacher_force, proportion_pred_train=proportion_pred_train,
                             clipping=gradient_clipping,
                             tasks=tasks,
+                            optimizer=optimizer,
                             #auxilliary_task_pos=auxilliary_task_pos,
                             dense_dim_auxilliary_pos=dense_dim_auxilliary_pos,
                             dense_dim_auxilliary_pos_2=dense_dim_auxilliary_pos_2,
