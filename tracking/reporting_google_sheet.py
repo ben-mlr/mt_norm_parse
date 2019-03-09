@@ -46,9 +46,9 @@ log_dir = "--"
 target_dir = "--"
 env = "rioc"
 completion = "running"
-row, col = append_reporting_sheet(git_id, rioc, description, log_dir, target_dir, env, completion)
-print(col, row)
-update_status(row, "algright")
+#row, col = append_reporting_sheet(git_id, rioc, description, log_dir, target_dir, env, completion)
+#print(col, row)
+#update_status(row, "algright")
 
 
 # TODO

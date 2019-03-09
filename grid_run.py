@@ -11,17 +11,61 @@ from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, C
 from uuid import uuid4
 import argparse
 from sys import platform
+from toolbox.git_related import get_commit_id
 from tracking.reporting_google_sheet import update_status, append_reporting_sheet
 
-#4538
 
 FINE_TUNE = 0
 GRID = 1
 
+
+def run_grid(params, labels, dir_grid, label_grid, epochs=50, test_before_run=False, warmup=False):
+    i = 0
+    for param, model_id_pref in zip(params, labels):
+        i += 1
+        printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
+        epochs = epochs if not test_before_run else 2
+        if warmup:
+            train_path, dev_path = DEMO, DEMO2
+            param["word_embed_init"] = None
+
+        model_id_pref = label_grid + model_id_pref + "-model_" + str(i)
+        if warmup:
+            epochs = 1
+            print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
+            print("GRID_INFO analy vars=    dense_dim_auxilliary_pos_2 dense_dim_auxilliary_pos")
+            print("GRID_INFO fixed vars=  word_embed ")
+            print("GRID_INFO fixed vals=  word_embed,False ")
+
+        model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
+                                                expand_vocab_dev_test=True,
+                                                test_path=[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST] \
+                                                    # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV]\
+                                                if not warmup else DEMO,
+                                                overall_report_dir=dir_grid, overall_label=LABEL_GRID,
+                                                compute_mean_score_per_sent=True, print_raw=False,
+                                                get_batch_mode_all=True, compute_scoring_curve=False,
+                                                freq_scoring=10, bucketing_train=True, freq_checkpointing=1,
+                                                symbolic_root=True, symbolic_end=True,
+                                                freq_writer=1 if not test_before_run else 1,
+                                                extend_n_batch=2,
+                                                score_to_compute_ls=["exact", "norm_not_norm-F1",
+                                                                     "norm_not_norm-Precision",
+                                                                     "norm_not_norm-Recall",
+                                                                     "norm_not_norm-accuracy"],
+                                                warmup=warmup, args=param, use_gpu=None, n_epochs=epochs,
+                                                debug=False,
+                                                verbose=1)
+        run_dir = os.path.join(dir_grid, RUN_ID + "-run-log")
+        open(run_dir, "a").write("model : done " + model_full_name + " in " + model_dir + " \n")
+        print("GRID : Log RUN is : {} to see model list ".format(run_dir))
+        print("GRID RUN : DONE MODEL {} with param {} ".format(model_id_pref, param))
+        if warmup:
+            break
+
+
 if __name__ == "__main__":
       if GRID:
-          ##train_path = LIU
-          ##dev_path = DEV
           params = []
 
           ls_param = ["hidden_size_encoder", "hidden_size_sent_encoder","hidden_size_decoder", "output_dim", "char_embedding_dim"]
@@ -138,7 +182,7 @@ if __name__ == "__main__":
           LABEL_GRID = "test_before_run-"+LABEL_GRID if test_before_run else LABEL_GRID
 
           OAR = os.environ.get('OAR_JOB_ID')+"_rioc-" if os.environ.get('OAR_JOB_ID', None) is not None else ""
-          print("OAR=",OAR)
+          print("OAR=", OAR)
           OAR = RUN_ID if OAR == "" else OAR
           LABEL_GRID = OAR+"-"+LABEL_GRID
 
@@ -147,103 +191,19 @@ if __name__ == "__main__":
           dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
           os.mkdir(dir_grid)
           printing("GRID RUN : Grid directory : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
-          train_path, dev_path =EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
-          i = 0
-          description = "Analysing : "+to_analysed+" with regard to "+to_keep_only+" fixed"
-          row, col = append_reporting_sheet(git_id="0", rioc_job=LABEL_GRID,
-                                            description=description,
-                                            log_dir=log, target_dir=dir_grid,
+          train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+          n_models = len(params)if not warmup else 1
+          description = "{} models : Analysing : {} with regard to {} fixed".format(n_models, to_analysed, to_keep_only)
+          row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=LABEL_GRID, description=description,
+                                            log_dir=log, target_dir=dir_grid+" | "+os.path.join(CHECKPOINT_DIR, "{}*".format(LABEL_GRID)),
                                             env=environment, status="running",
                                             verbose=1)
-
-          for param, model_id_pref in zip(params, labels):
-              i += 1
-              printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-              epochs = 50 if not test_before_run else 2
-              if warmup:
-
-                train_path, dev_path = DEMO, DEMO2
-                param["word_embed_init"] = None
-
-                if False:
-                    param = {"hidden_size_encoder": 100, "output_dim": 15, "char_embedding_dim": 10,
-                             "dropout_sent_encoder": 0.,
-                             "drop_out_word_encoder": 0., "dropout_word_decoder": 0., "drop_out_sent_encoder_out": 0,
-                             "drop_out_word_encoder_out": 0, "dir_word_encoder": 2, "n_layers_word_encoder": 1,
-                             "dir_sent_encoder": 2,
-                             "word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder": "LSTM",
-                             "hidden_size_sent_encoder": 20,
-                             "hidden_size_decoder": 50, "batch_size": 2}
-                    param["batch_size"] = 2
-                    param["auxilliary_task_norm_not_norm"] = True
-                    param["weight_binary_loss"] = 1
-                    param["unrolling_word"] = True
-                    param["char_src_attention"] = True
-                    param["shared_context"] = "all"
-                    param["dense_dim_auxilliary"] = None
-                    param["gradient_clipping"] = None
-                    param["dense_dim_auxilliary_2"] = None
-                    param["stable_decoding_state"] = True
-                    param["init_context_decoder"] = False
-                    param["word_decoding"] = False
-                    param["dense_dim_word_pred"] = None
-                    param["tasks"] = ["pos"]
-                    param["dense_dim_word_pred_2"] = None
-                    param["dense_dim_word_pred_3"] = None
-
-                    param["char_decoding"] = not param["word_decoding"]
-                    param["auxilliary_task_pos"] = False
-                    param["dense_dim_auxilliary_pos"] = 10
-                    param["dense_dim_auxilliary_pos_2"] = 20
-                    param["word_embed_init"] = None
-                    param["word_embed"] = True
-                    param["word_embedding_dim"] = 10
-                    param["word_embedding_projected_dim"] = None
-                    param["n_layers_sent_cell"] = 2
-                    param["proportion_pred_train"] = 10
-                    param["teacher_force"] = True
-
-                    import torch.nn as nn
-                    #param["activation_char_decoder"] = "nn.LeakyReLU"
-                    #param["activation_word_decoder"] = "nn.LeakyReLU"
-                    param["lr"] = 0.05
-
-              model_id_pref = LABEL_GRID + model_id_pref + "-model_"+str(i)
-              if warmup:
-                  epochs = 1
-                  print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
-                  print("GRID_INFO analy vars=    dense_dim_auxilliary_pos_2 dense_dim_auxilliary_pos")
-                  print("GRID_INFO fixed vars=  word_embed ")
-                  print("GRID_INFO fixed vals=  word_embed,False ")
-
-              model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
-                                                      expand_vocab_dev_test=True,
-                                                      test_path=[EWT_TEST,EWT_DEV, EN_LINES_EWT_TRAIN, TEST]\
-                                                      #[TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV]\
-                                                      if not warmup else DEMO,
-                                                      overall_report_dir=dir_grid, overall_label=LABEL_GRID,
-                                                      compute_mean_score_per_sent=True, print_raw=False,
-                                                      get_batch_mode_all=True, compute_scoring_curve=False,
-                                                      freq_scoring=10, bucketing_train=True, freq_checkpointing=1,
-                                                      symbolic_root=True, symbolic_end=True,
-                                                      freq_writer=1 if not test_before_run else 1,
-                                                      extend_n_batch=2,
-                                                      score_to_compute_ls=["exact", "norm_not_norm-F1",
-                                                                           "norm_not_norm-Precision",
-                                                                           "norm_not_norm-Recall",
-                                                                           "norm_not_norm-accuracy"],
-                                                      warmup=warmup, args=param, use_gpu=None, n_epochs=epochs,
-                                                      debug=False,
-                                                      verbose=1)
-
-              run_dir = os.path.join(dir_grid, RUN_ID+"-run-log")
-              open(run_dir, "a").write("model : done "+model_full_name+" in "+model_dir+" \n")
-              print("GRID : Log RUN is : {} to see model list ".format(run_dir))
-              print("GRID RUN : DONE MODEL {} with param {} ".format(model_id_pref, param))
-              if warmup:
-                  break
-
-          update_status(row=row, new_status="done",verbose=1)
+          try:
+              run_grid(params=params, labels=labels, dir_grid=dir_grid, label_grid=LABEL_GRID, epochs=50, warmup=warmup)
+              update_status(row=row, new_status="done", verbose=1)
+          except Exception as e:
+              print("ERROR {}".format(e))
+              update_status(row=row, new_status="failed (error {})".format(e), verbose=1)
 
       elif FINE_TUNE:
         from training.fine_tune import fine_tune
@@ -251,15 +211,29 @@ if __name__ == "__main__":
         #dev_path = LIU_DEV
         #test_path = TEST#[TEST, CP_WR_PASTE_TEST_269]
         fine_tune_label = "fine_tuning"
-        OAR = os.environ.get('OAR_JOB_ID')+"_rioc-" if os.environ.get('OAR_JOB_ID', None) is not None else ""
+        OAR = os.environ.get('OAR_JOB_ID')+"_rioc-" if os.environ.get('OAR_JOB_ID', None) is not None else "local"
         print("OAR=",OAR)
         fine_tune_label = OAR+"-"+fine_tune_label
-        fine_tune(train_path=LIU_TRAIN, dev_path=LIU_DEV, evaluation=True,batch_size=100,
-                  test_path=[LIU_TRAIN, LIU_DEV, TEST, CP_WR_PASTE_TEST_269], n_epochs=30, fine_tune_label=fine_tune_label+"fine_tune_for_real-BACK_NORMALIZE-tenth",
-                  model_full_name="99428_rioc--DEBUG_NO_LOSS_PADDING-0-model_1-model_1_8fb8",
-                  learning_rate=0.00005, freeze_ls_param_prefix=["char_embedding","encoder","bridge"],
-                  tasks=["normalize"],
-                  debug=False, verbose=1)
+
+        model_full_name = "99428_rioc--DEBUG_NO_LOSS_PADDING-0-model_1-model_1_8fb8"
+        description = "Fine tuning {}".format(model_full_name)
+        row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=OAR, description=description ,
+                                          log_dir="", target_dir="",
+                                          env="", status="running",
+                                          verbose=1)
+        try:
+            fine_tune(train_path=LIU_TRAIN, dev_path=LIU_DEV, evaluation=True, batch_size=100,
+                      test_path=[LIU_TRAIN, LIU_DEV, TEST, CP_WR_PASTE_TEST_269], n_epochs=30,
+                      fine_tune_label=fine_tune_label+"fine_tune_for_real-BACK_NORMALIZE-tenth",
+                      model_full_name=model_full_name,
+                      learning_rate=0.00005, freeze_ls_param_prefix=["char_embedding","encoder","bridge"],
+                      tasks=["normalize"],
+                      debug=False, verbose=1)
+            update_status(row=row, new_status="done", verbose=1)
+        except Exception as e:
+            update_status(row=row, new_status="failed ERROR {} ".format(e),
+                          verbose=1)
+
         to_enrich = "lr  char_decoding char_src_attention "
         to_analysed = to_enrich
         to_keep_only = ""
@@ -270,6 +244,8 @@ if __name__ == "__main__":
 
 
 
-
+# reporting
+# -- test on rioc
+# -- add eventually update for reports into evaluation src --> done
 
 #oarsub -q gpu -l /core=2,walltime=48:00:00  -p "host='gpu004'" -O ./logs/%jobid%-job.stdout -E ./logs/%jobid%-job.stderr ./train/train_mt_norm.sh 
