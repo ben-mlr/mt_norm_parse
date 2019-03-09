@@ -126,7 +126,11 @@ if __name__ == "__main__":
               test_before_run = args.test_before_run
               print("GRID : test_before_run set to {} ".format(test_before_run))
               warmup = False
+              environment = "rioc"
+              log = "to fill"
           else:
+              environment = "local"
+              log = "in the fly logs"
               test_before_run = False
 
           RUN_ID = str(uuid4())[0:5]
@@ -145,10 +149,12 @@ if __name__ == "__main__":
           printing("GRID RUN : Grid directory : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
           train_path, dev_path =EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
           i = 0
-
-          row, col = append_reporting_sheet(git_id="0", rioc_job=LABEL_GRID, description="test",
-                                            log_dir="log", target_dir="--",
-                                            env="local", status="running", verbose=1)
+          description = "Analysing : "+to_analysed+" with regard to "+to_keep_only+" fixed"
+          row, col = append_reporting_sheet(git_id="0", rioc_job=LABEL_GRID,
+                                            description=description,
+                                            log_dir=log, target_dir=dir_grid,
+                                            env=environment, status="running",
+                                            verbose=1)
 
           for param, model_id_pref in zip(params, labels):
               i += 1
