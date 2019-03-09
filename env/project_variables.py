@@ -12,6 +12,9 @@ PROJECT_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 # checkpoint dir if not checkpoint_dir as defined in args.json not found
 CHECKPOINT_DIR = os.path.join(PROJECT_PATH, "checkpoints")
 
+CLIENT_GOOGLE_CLOUD = os.path.join(PROJECT_PATH, "tracking/google_api")
+SHEET_NAME_DEFAULT, TAB_NAME_DEFAULT = "model_evaluation", "experiments_tracking"
+
 # architecture/model/training supported
 SUPPORED_WORD_ENCODER = ["LSTM", "GRU"]
 BREAKING_NO_DECREASE = 21
@@ -20,7 +23,7 @@ LOSS_DETAIL_TEMPLATE = {"loss_overall": 0, "loss_seq_prediction": 0, "other": {}
 LOSS_DETAIL_TEMPLATE_LS = {"loss_overall": [], "loss_seq_prediction": [], "other": {}}
 SCORE_AUX = ["norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recall", "norm_not_norm-accuracy"]
 AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm","pos"]
-AVAILABLE_OPTIMIZER = ["adam","bahdanu-adadelta"]
+AVAILABLE_OPTIMIZER = ["adam", "bahdanu-adadelta"]
 
 
 # DATASETS

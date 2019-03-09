@@ -11,6 +11,7 @@ from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, C
 from uuid import uuid4
 import argparse
 from sys import platform
+from tracking.reporting_google_sheet import update_status, append_reporting_sheet
 
 #4538
 
@@ -83,21 +84,21 @@ if __name__ == "__main__":
                                                                                   grid_label="0",
                                                                                   stable_decoding_state_ls=[False],
                                                                                   word_decoding_ls=[False],
-                                                                                  batch_size_ls=[250],
+                                                                                  batch_size_ls=[50,100,200,400],
                                                                                   #auxilliary_task_pos_ls=[False],
                                                                                   word_embed_ls=[False],
-                                                                                  dir_sent_encoder_ls=[2], lr_ls=[0.001],
-                                                                                  word_embed_init_ls=[True],
+                                                                                  dir_sent_encoder_ls=[2], lr_ls=[0],
+                                                                                  word_embed_init_ls=[None],
                                                                                   teacher_force_ls=[True],
                                                                                   proportion_pred_train_ls=[None],
                                                                                   shared_context_ls=["all"],
-                                                                                  word_embedding_projected_dim_ls=[0],
+                                                                                  word_embedding_projected_dim_ls=[None],
                                                                                   #auxilliary_task_norm_not_norm_ls=[True],
-                                                                                  tasks_ls=[["normalize"]],
+                                                                                  tasks_ls=[["pos"]],
                                                                                   char_src_attention_ls=[True],
                                                                                   n_layers_sent_cell_ls=[2],
                                                                                   unrolling_word_ls=[True],
-                                                                                  scale_ls=[1,0.5]
+                                                                                  scale_ls=[1]
                                                                                   )
 
 
@@ -142,8 +143,13 @@ if __name__ == "__main__":
           dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
           os.mkdir(dir_grid)
           printing("GRID RUN : Grid directory : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
-          train_path, dev_path = MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV# MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+          train_path, dev_path =EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
           i = 0
+
+          row, col = append_reporting_sheet(git_id="0", rioc_job=LABEL_GRID, description="test",
+                                            log_dir="log", target_dir="--",
+                                            env="local", status="running", verbose=1)
+
           for param, model_id_pref in zip(params, labels):
               i += 1
               printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
@@ -206,7 +212,7 @@ if __name__ == "__main__":
 
               model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
                                                       expand_vocab_dev_test=True,
-                                                      test_path=[MTNT_TOK_DEV,TEST_SENT]\
+                                                      test_path=[EWT_TEST,EWT_DEV, EN_LINES_EWT_TRAIN, TEST]\
                                                       #[TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV]\
                                                       if not warmup else DEMO,
                                                       overall_report_dir=dir_grid, overall_label=LABEL_GRID,
@@ -230,6 +236,8 @@ if __name__ == "__main__":
               print("GRID RUN : DONE MODEL {} with param {} ".format(model_id_pref, param))
               if warmup:
                   break
+
+          update_status(row=row, new_status="done",verbose=1)
 
       elif FINE_TUNE:
         from training.fine_tune import fine_tune
