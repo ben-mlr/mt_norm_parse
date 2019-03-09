@@ -2,6 +2,7 @@
 from io_.info_print import printing
 import os
 from training.train_eval import train_eval
+from training.fine_tune import fine_tune
 from toolbox.grid_tool import grid_param_label_generate
 from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, CP_WR_PASTE_TEST_269, \
     LIU_DEV, DEV, DIR_TWEET_W2V, TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, CP_PASTE_WR_TRAIN, \
@@ -19,7 +20,7 @@ FINE_TUNE = 0
 GRID = 1
 
 
-def run_grid(params, labels, dir_grid, label_grid, epochs=50, test_before_run=False, warmup=False):
+def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_paths,epochs=50, test_before_run=False, warmup=False):
     i = 0
     for param, model_id_pref in zip(params, labels):
         i += 1
@@ -39,9 +40,7 @@ def run_grid(params, labels, dir_grid, label_grid, epochs=50, test_before_run=Fa
 
         model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
                                                 expand_vocab_dev_test=True,
-                                                test_path=[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST] \
-                                                    # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV]\
-                                                if not warmup else DEMO,
+                                                test_path=test_paths if not warmup else DEMO,
                                                 overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                 compute_mean_score_per_sent=True, print_raw=False,
                                                 get_batch_mode_all=True, compute_scoring_curve=False,
@@ -56,36 +55,20 @@ def run_grid(params, labels, dir_grid, label_grid, epochs=50, test_before_run=Fa
                                                 warmup=warmup, args=param, use_gpu=None, n_epochs=epochs,
                                                 debug=False,
                                                 verbose=1)
+
         run_dir = os.path.join(dir_grid, RUN_ID + "-run-log")
         open(run_dir, "a").write("model : done " + model_full_name + " in " + model_dir + " \n")
         print("GRID : Log RUN is : {} to see model list ".format(run_dir))
         print("GRID RUN : DONE MODEL {} with param {} ".format(model_id_pref, param))
+        
         if warmup:
             break
-
 
 if __name__ == "__main__":
       if GRID:
           params = []
 
           ls_param = ["hidden_size_encoder", "hidden_size_sent_encoder","hidden_size_decoder", "output_dim", "char_embedding_dim"]
-          param_0 = {"hidden_size_encoder": 5, "output_dim": 10, "char_embedding_dim": 10,
-                     "dropout_sent_encoder": 0., "dropout_word_encoder": 0., "dropout_word_decoder": 0.,
-                     "n_layers_word_encoder": 1, "dir_sent_encoder": 2,
-                     "hidden_size_sent_encoder": 10, "hidden_size_decoder": 5, "batch_size": 10}
-
-          params_baseline = {"hidden_size_encoder": 50, "output_dim": 100, "char_embedding_dim": 50,
-                             "dropout_sent_encoder": 0., "drop_out_word_encoder": 0., "dropout_word_decoder": 0.,
-                             "drop_out_sent_encoder_out": 1, "drop_out_word_encoder_out": 1, "dir_word_encoder": 1,
-                             "n_layers_word_encoder": 1, "dir_sent_encoder": 1, "word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder":"LSTM",
-                             "hidden_size_sent_encoder": 50, "hidden_size_decoder": 50, "batch_size": 10}
-          params_intuition = {"hidden_size_encoder": 40, "output_dim": 50, "char_embedding_dim": 30,
-                              "dropout_sent_encoder": 0., "drop_out_word_encoder": 0., "dropout_word_decoder": 0.,
-                              "drop_out_sent_encoder_out": 0, "drop_out_word_encoder_out": 0, "dir_word_encoder": 1,
-                              "n_layers_word_encoder": 1, "dir_sent_encoder": 1, "word_recurrent_cell_decoder": "LSTM",
-                              "word_recurrent_cell_encoder": "LSTM",
-                              "hidden_size_sent_encoder": 15, "hidden_size_decoder": 40, "batch_size": 10
-                             }
           params_strong = {"hidden_size_encoder": 100, "output_dim": 100, "char_embedding_dim": 50,
                              "dropout_sent_encoder": 0.3, "drop_out_word_encoder": 0.3, "dropout_word_decoder": 0.,
                              "drop_out_word_encoder_out": 0.3, "drop_out_sent_encoder_out": 0.3, "drop_out_char_embedding_decoder":0.3, "dropout_bridge":0.01,
@@ -169,10 +152,13 @@ if __name__ == "__main__":
               args = parser.parse_args()
               test_before_run = args.test_before_run
               print("GRID : test_before_run set to {} ".format(test_before_run))
-              warmup = False
+              #warmup = False
               environment = "rioc"
-              log = "to fill"
+              OAR = os.environ.get('OAR_JOB_ID') + "_rioc-" if os.environ.get('OAR_JOB_ID', None) is not None else ""
+              print("OAR=", OAR)
+              log = "{}/logs/{}".format(os.getcwd(), os.environ.get('OAR_JOB_ID')+"-job.stdout")
           else:
+              OAR=""
               environment = "local"
               log = "in the fly logs"
               test_before_run = False
@@ -180,33 +166,35 @@ if __name__ == "__main__":
           RUN_ID = str(uuid4())[0:5]
           LABEL_GRID = grid_label if not warmup else "WARMUP-unrolling-False"
           LABEL_GRID = "test_before_run-"+LABEL_GRID if test_before_run else LABEL_GRID
-
-          OAR = os.environ.get('OAR_JOB_ID')+"_rioc-" if os.environ.get('OAR_JOB_ID', None) is not None else ""
-          print("OAR=", OAR)
           OAR = RUN_ID if OAR == "" else OAR
           LABEL_GRID = OAR+"-"+LABEL_GRID
-
           GRID_FOLDER_NAME = LABEL_GRID if len(LABEL_GRID) > 0 else RUN_ID
           GRID_FOLDER_NAME += "-summary"
           dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
           os.mkdir(dir_grid)
           printing("GRID RUN : Grid directory : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
-          train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+          
           n_models = len(params)if not warmup else 1
+          warmup_desc = "warmup" if warmup else ""
           description = "{} models : Analysing : {} with regard to {} fixed".format(n_models, to_analysed, to_keep_only)
           row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=LABEL_GRID, description=description,
                                             log_dir=log, target_dir=dir_grid+" | "+os.path.join(CHECKPOINT_DIR, "{}*".format(LABEL_GRID)),
-                                            env=environment, status="running",
+                                            env=environment, status="running {}".format(warmup_desc),
                                             verbose=1)
           try:
-              run_grid(params=params, labels=labels, dir_grid=dir_grid, label_grid=LABEL_GRID, epochs=50, warmup=warmup)
-              update_status(row=row, new_status="done", verbose=1)
+              train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV#MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+              run_grid(params=params, labels=labels, dir_grid=dir_grid, label_grid=LABEL_GRID, 
+                epochs=50, 
+                train_path=train_path, 
+                dev_path=dev_path,
+                test_paths=[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], #[TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
+                warmup=warmup)
+              update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
           except Exception as e:
               print("ERROR {}".format(e))
-              update_status(row=row, new_status="failed (error {})".format(e), verbose=1)
+              update_status(row=row, new_status="failed {} (error {})".format(warmup_desc,e), verbose=1)
 
       elif FINE_TUNE:
-        from training.fine_tune import fine_tune
         #train_path = LIU_TRAIN
         #dev_path = LIU_DEV
         #test_path = TEST#[TEST, CP_WR_PASTE_TEST_269]
@@ -219,7 +207,7 @@ if __name__ == "__main__":
         description = "Fine tuning {}".format(model_full_name)
         row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=OAR, description=description ,
                                           log_dir="", target_dir="",
-                                          env="", status="running",
+                                          env="", status="running fine tune",
                                           verbose=1)
         try:
             fine_tune(train_path=LIU_TRAIN, dev_path=LIU_DEV, evaluation=True, batch_size=100,
@@ -229,7 +217,7 @@ if __name__ == "__main__":
                       learning_rate=0.00005, freeze_ls_param_prefix=["char_embedding","encoder","bridge"],
                       tasks=["normalize"],
                       debug=False, verbose=1)
-            update_status(row=row, new_status="done", verbose=1)
+            update_status(row=row, new_status="done fine tune", verbose=1)
         except Exception as e:
             update_status(row=row, new_status="failed ERROR {} ".format(e),
                           verbose=1)
@@ -242,10 +230,5 @@ if __name__ == "__main__":
         print("GRID_INFO fixed vals=  batch_size,2 lr,0.0001 ", to_keep_only)
 
 
-
-
-# reporting
-# -- test on rioc
-# -- add eventually update for reports into evaluation src --> done
 
 #oarsub -q gpu -l /core=2,walltime=48:00:00  -p "host='gpu004'" -O ./logs/%jobid%-job.stdout -E ./logs/%jobid%-job.stderr ./train/train_mt_norm.sh 
