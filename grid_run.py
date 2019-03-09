@@ -111,7 +111,7 @@ if __name__ == "__main__":
                                                                                   grid_label="0",
                                                                                   stable_decoding_state_ls=[False],
                                                                                   word_decoding_ls=[False],
-                                                                                  batch_size_ls=[50,100,200,400],
+                                                                                  batch_size_ls=[50, 100,200,400],
                                                                                   #auxilliary_task_pos_ls=[False],
                                                                                   word_embed_ls=[False],
                                                                                   dir_sent_encoder_ls=[2], lr_ls=[0],

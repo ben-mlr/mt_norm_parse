@@ -1,20 +1,25 @@
+import argparse
+import sys
+
+sys.path.insert(0,"..")
+sys.path.insert(0,".")
 from training.train import train
+
 from io_.info_print import printing
 import os
 from evaluate.evaluate_epoch import evaluate
 import numpy as np
 import torch
 from env.project_variables import CHECKPOINT_DIR, REPO_DATASET, SEED_NP, SEED_TORCH
-
 import time
 
 np.random.seed(SEED_NP+1)
 torch.manual_seed(SEED_TORCH)
 
 
-def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
+def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                expand_vocab_dev_test=False,
-               n_epochs=11,test_path=None, args=None,
+               n_epochs=11, test_path=None, args=None,
                overall_report_dir=CHECKPOINT_DIR, overall_label="DEFAULT",get_batch_mode_all=True,
                warmup=False, use_gpu=None, freq_checkpointing=1,debug=False,compute_scoring_curve=False,
                compute_mean_score_per_sent=False,print_raw=False,freq_scoring=5,bucketing_train=True,freq_writer=None,
@@ -24,7 +29,7 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
 
     hidden_size_encoder = args.get("hidden_size_encoder", 10)
     word_embed = args.get("word_embed", False)
-    word_embedding_projected_dim = args.get("word_embedding_projected_dim",None)
+    word_embedding_projected_dim = args.get("word_embedding_projected_dim", None)
     word_embedding_dim  = args.get("word_embedding_dim", 0)
     output_dim = args.get("output_dim", 10)
     char_embedding_dim = args.get("char_embedding_dim", 10)
@@ -170,3 +175,78 @@ def train_eval(train_path, dev_path, model_id_pref,pos_specific_path=None,
         print("GRID : END EVAL", time.time()-start_eval)
 
     return model_full_name, model_dir
+
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--verbose", help="increase output verbosity", action="store_true")
+
+    parser.add_argument("--hidden_size_encoder", type=int, default=10,help="display a square of a given number")
+    parser.add_argument("--hidden_size_sent_encoder", default=10, help="display a square of a given number")
+
+    parser.add_argument("--word_embed", type=int, default=False, help="display a square of a given number")
+    parser.add_argument("--word_embedding_projected_dim", default=None, help="display a square of a given number")
+    parser.add_argument("--output_dim", default=10, help="display a square of a given number")
+    parser.add_argument("--char_embedding_dim", default=10, help="display a square of a given number")
+
+    parser.add_argument("--batch_size", default=2, help="display a square of a given number")
+
+    parser.add_argument("--dropout_sent_encoder", default=0, help="display a square of a given number")
+    parser.add_argument("--dropout_word_encoder", default=0, help="display a square of a given number")
+    parser.add_argument("--dropout_word_decoder", default=0, help="display a square of a given number")
+    parser.add_argument("--drop_out_word_encoder_out", default=0, help="display a square of a given number")
+    parser.add_argument("--drop_out_sent_encoder_out", default=0, help="display a square of a given number")
+    parser.add_argument("--dropout_bridge", default=0, help="display a square of a given number")
+    parser.add_argument("--drop_out_char_embedding_decoder", default=0, help="display a square of a given number")
+
+    parser.add_argument("--n_layers_word_encoder", default=1, help="display a square of a given number")
+    parser.add_argument("--n_layers_sent_cell", default=1, help="display a square of a given number")
+
+    parser.add_argument("--dir_sent_encoder", default=2, help="display a square of a given number")
+
+    parser.add_argument("--word_recurrent_cell_encoder", default="GRU", help="display a square of a given number")
+    parser.add_argument("--word_recurrent_cell_decoder", default="GRU", help="display a square of a given number")
+
+    parser.add_argument("--dense_dim_auxilliary", default=None, help="display a square of a given number")
+    parser.add_argument("--dense_dim_auxilliary_2", default=None, help="display a square of a given number")
+
+    parser.add_argument("--unrolling_word", default=True, help="display a square of a given number")
+
+    parser.add_argument("--char_src_attention", default=False, help="display a square of a given number")
+    parser.add_argument("--dir_word_encoder", default=1, help="display a square of a given number")
+    parser.add_argument("--weight_binary_loss", default=1, help="display a square of a given number")
+    parser.add_argument("--shared_context", default="all", help="display a square of a given number")
+
+    parser.add_argument("--policy", default=None, help="display a square of a given number")
+    parser.add_argument("--lr", default=0.001, help="display a square of a given number")
+    parser.add_argument("--gradient_clipping", default=None, help="display a square of a given number")
+    parser.add_argument("--teacher_force", default=True, help="display a square of a given number")
+    parser.add_argument("--proportion_pred_train", default=None, help="display a square of a given number")
+
+    parser.add_argument("--stable_decoding_state", default=False, help="display a square of a given number")
+    parser.add_argument("--init_context_decoder", default=True, help="display a square of a given number")
+    parser.add_argument("--optimizer", default="adam", help="display a square of a given number ")
+
+    parser.add_argument("--word_decoding", default=False, help="display a square of a given number ")
+
+    parser.add_argument("--dense_dim_word_pred", default=None, help="display a square of a given number ")
+    parser.add_argument("--dense_dim_word_pred_2", default=None, help="display a square of a given number ")
+    parser.add_argument("--dense_dim_word_pred_3", default=0, help="display a square of a given number ")
+
+    parser.add_argument("--word_embed_init", default=None, help="display a square of a given number")
+    parser.add_argument("--char_decoding", default=True, help="display a square of a given number")
+
+    parser.add_argument("--dense_dim_auxilliary_pos", default=None, help="display a square of a given number")
+    parser.add_argument("--dense_dim_auxilliary_pos_2", default=None, help="display a square of a given number")
+    parser.add_argument("--activation_char_decoder", default=None, help="display a square of a given number")
+    parser.add_argument("--activation_word_decoder", default=None, help="display a square of a given number")
+    parser.add_argument("--tasks", default=["normalize"], help="display a square of a given number")
+
+
+    args = parser.parse_args()
+    params = vars(args)
+    train_eval(args=params, train_path=)
+    #print(vars(argparse.Namespace()))
+
+
