@@ -1,6 +1,7 @@
 
 from io_.info_print import printing
 import os
+
 from training.train_eval import train_eval
 from training.fine_tune import fine_tune
 from toolbox.grid_tool import grid_param_label_generate
@@ -8,13 +9,13 @@ from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, C
     LIU_DEV, DEV, DIR_TWEET_W2V, TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, CP_PASTE_WR_TRAIN, \
     CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST, EWT_DEV, EWT_TEST, \
     LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO, EN_LINES_EWT_TRAIN, EN_LINES_DEV, EN_LINES_EWT_TRAIN, \
-    MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST
+    MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, RUN_SCRIPTS_DIR, GPU_AVAILABLE_DEFAULT_LS
 from uuid import uuid4
 import argparse
 from sys import platform
 from toolbox.git_related import get_commit_id
 from tracking.reporting_google_sheet import update_status, append_reporting_sheet
-
+from toolbox.grid_script_generation import script_generation
 
 FINE_TUNE = 0
 GRID = 1
@@ -60,11 +61,13 @@ def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_pa
         open(run_dir, "a").write("model : done " + model_full_name + " in " + model_dir + " \n")
         print("GRID : Log RUN is : {} to see model list ".format(run_dir))
         print("GRID RUN : DONE MODEL {} with param {} ".format(model_id_pref, param))
-        
         if warmup:
             break
 
-if __name__ == "__main__":
+if __name__ == "__main__" :
+
+      run_standart = False
+
       if GRID:
           params = []
 
@@ -181,18 +184,45 @@ if __name__ == "__main__":
                                             log_dir=log, target_dir=dir_grid+" | "+os.path.join(CHECKPOINT_DIR, "{}*".format(LABEL_GRID)),
                                             env=environment, status="running {}".format(warmup_desc),
                                             verbose=1)
-          try:
-              train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV#MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
-              run_grid(params=params, labels=labels, dir_grid=dir_grid, label_grid=LABEL_GRID, 
-                epochs=50, 
-                train_path=train_path, 
-                dev_path=dev_path,
-                test_paths=[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], #[TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
-                warmup=warmup)
-              update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
-          except Exception as e:
-              print("ERROR {}".format(e))
-              update_status(row=row, new_status="failed {} (error {})".format(warmup_desc,e), verbose=1)
+          if run_standart:
+              try:
+                  train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+                  run_grid(params=params, labels=labels, dir_grid=dir_grid, label_grid=LABEL_GRID,
+                           epochs=50,
+                           train_path=train_path,
+                           dev_path=dev_path,
+                           test_paths=[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST],
+                           # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
+                           warmup=warmup)
+                  update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
+              except Exception as e:
+                  print("ERROR {}".format(e))
+                  update_status(row=row, new_status="failed {} (error {})".format(warmup_desc, e), verbose=1)
+
+          else:
+              train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+              dir_script = script_generation(grid_label="0", init_param=params_dozat, warmup=False,
+                                stable_decoding_state_ls=[False],
+                                word_decoding_ls=[False],
+                                batch_size_ls=[50, 100, 200, 400],
+                                word_embed_ls=[False],
+                                dir_sent_encoder_ls=[2], lr_ls=[0],
+                                word_embed_init_ls=[None],
+                                teacher_force_ls=[True],
+                                proportion_pred_train_ls=[None],
+                                shared_context_ls=["all"],
+                                word_embedding_projected_dim_ls=[None],
+                                tasks_ls=[["pos"]],
+                                char_src_attention_ls=[True],
+                                n_layers_sent_cell_ls=[2],
+                                unrolling_word_ls=[True],
+                                scale_ls=[1],
+                                overall_report_dir=dir_grid, overall_label=LABEL_GRID,
+                                train_path=DEV, dev_path=TEST, test_paths=None, gpu_mode="random",
+                                gpus_ls=GPU_AVAILABLE_DEFAULT_LS,
+                                write_to_dir=RUN_SCRIPTS_DIR)
+              print("row:{}".format(row))
+              print("dir_script:{}".format(dir_script))
 
       elif FINE_TUNE:
         #train_path = LIU_TRAIN
@@ -200,7 +230,7 @@ if __name__ == "__main__":
         #test_path = TEST#[TEST, CP_WR_PASTE_TEST_269]
         fine_tune_label = "fine_tuning"
         OAR = os.environ.get('OAR_JOB_ID')+"_rioc-" if os.environ.get('OAR_JOB_ID', None) is not None else "local"
-        print("OAR=",OAR)
+        print("OAR=", OAR)
         fine_tune_label = OAR+"-"+fine_tune_label
 
         model_full_name = "99428_rioc--DEBUG_NO_LOSS_PADDING-0-model_1-model_1_8fb8"

@@ -39,9 +39,9 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
 
     if gpu is not None:
         assert use_gpu or use_gpu is None, "ERROR : use_gpu should be neutral (None) or True as 'gpu' is defined"
-        assert os.environ.get("CUDA_VISIBLE_DEVICES") is not None, "ERROR : no CUDA_VISIBLE_DEVICES env variable (gpu should be None)"
+        #assert os.environ.get("CUDA_VISIBLE_DEVICES") is not None, "ERROR : no CUDA_VISIBLE_DEVICES env variable (gpu should be None)"
         os.environ["CUDA_VISIBLE_DEVICES"] = gpu
-        printing("ENV : CUDA_VISIBLE_DEVICES set to {}", var=gpu, verbose=verbose, verbose_level=1)
+        printing("ENV : CUDA_VISIBLE_DEVICES set to {}", var=[gpu], verbose=verbose, verbose_level=1)
 
     print("WOARD_EMBED", args["word_embed"])
     hidden_size_encoder = args.get("hidden_size_encoder", 10)

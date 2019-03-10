@@ -1,4 +1,7 @@
 
+import os
+print("CONDA : ",os.environ["CONDA_PREFIX"])
+
 import sys
 from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, CP_WR_PASTE_TEST_269, \
     LIU_DEV, DEV, DIR_TWEET_W2V, TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, CP_PASTE_WR_TRAIN, \
@@ -11,7 +14,9 @@ from training.train_eval import train_eval
 
 
 if __name__ == "__main__":
+    
 
+    #from tqdm import tqdm
     args = args_train()
     params = vars(args)
     print("PARAMS CHECK", params, args.word_embed)

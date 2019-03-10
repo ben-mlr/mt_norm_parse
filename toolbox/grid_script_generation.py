@@ -53,7 +53,7 @@ def script_generation(grid_label, init_param, warmup,
         scale_ls=scale_ls, gpu_mode=gpu_mode, gpus_ls=gpus_ls)
     print(params, labels)
     for ind, (param, model_id_pref) in enumerate(zip(params, labels)):
-        script = "python {}".format(os.path.join(PROJECT_PATH, "train_evaluate_run.py"))
+        script = "/home/rioc/bemuller/miniconda3/envs/mt_norm_parse/bin/python {}".format(os.path.join(PROJECT_PATH, "train_evaluate_run.py"))
         for arg, val in param.items():
             # args in NONE ARGS ARE NOT ADDED TO THE SCRIPT MAKER (they will be handle by default behavior later in the code)
 
@@ -75,21 +75,24 @@ def script_generation(grid_label, init_param, warmup,
         script += " --{} {}".format("overall_label", overall_label)
         script += " --{} {}".format("model_id_pref", model_id_pref)
         script += " --{} {}".format("overall_report_dir", overall_report_dir)
-        print(script)
+        #print(script)
         if write_to_dir is not None:
-            if ind==0:
+            if ind == 0:
                 assert not os.path.isfile(script_dir), "ERROR script_dir already exists can't do that"
                 mode = "w"
             else:
                 mode = "a"
+            with open(script_dir+"-"+str(ind)+".sh", "w") as file:
+                file.write(script)
             with open(script_dir, mode) as file:
-                file.write(script+"\n")
+                file.write("sh "+script_dir+"-"+str(ind)+".sh"+"\n")
     if write_to_dir is not None:
         printing("WRITTEN to {}", var=[script_dir], verbose_level=1, verbose=1)
-
+    return script_dir
 
 
 if __name__ == "__main__":
+
 
     script_generation(grid_label="0", init_param=params_dozat, warmup=False,
                       stable_decoding_state_ls=[False],

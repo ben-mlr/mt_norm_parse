@@ -1,5 +1,7 @@
 import gzip
 import codecs
+
+import os
 from tqdm import tqdm
 import os
 

@@ -19,6 +19,7 @@ LIST_ARGS = ["tasks"]
 NONE_ARGS = ["gpu"]
 BOOL_ARGS = ["word_embed", "teacher_force", "char_decoding", "unrolling_word", "init_context_decoder",
              "word_decoding", "stable_decoding_state", "char_src_attention"]
+GPU_AVAILABLE_DEFAULT_LS = ["0","1","2","3"]
 
 # architecture/model/training supported
 SUPPORED_WORD_ENCODER = ["LSTM", "GRU"]
