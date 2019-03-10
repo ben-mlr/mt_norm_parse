@@ -1,12 +1,16 @@
 import argparse
 
-def args_train():
+def args_train(mode="command_line"):
+
+    assert mode in ["command_line", "script"], "mode should be in '[command_line, script]"
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--hidden_size_encoder", type=int, default=10, help="display a square of a given number")
     parser.add_argument("--hidden_size_sent_encoder", default=10, help="display a square of a given number")
+    parser.add_argument("--hidden_size_decoder", default=10, help="display a square of a given number")
 
-    parser.add_argument("--word_embed", type=int, default=False, help="display a square of a given number")
+    parser.add_argument("--word_embed", type=bool, default=False, help="display a square of a given number")
+    parser.add_argument("--word_embedding_dim", default=10, help="display a square of a given number")
     parser.add_argument("--word_embedding_projected_dim", default=None, help="display a square of a given number")
     parser.add_argument("--output_dim", default=10, help="display a square of a given number")
     parser.add_argument("--char_embedding_dim", default=10, help="display a square of a given number")
@@ -62,21 +66,24 @@ def args_train():
     parser.add_argument("--dense_dim_auxilliary_pos_2", default=None, help="display a square of a given number")
     parser.add_argument("--activation_char_decoder", default=None, help="display a square of a given number")
     parser.add_argument("--activation_word_decoder", default=None, help="display a square of a given number")
-    parser.add_argument("--tasks", default=["normalize"], help="display a square of a given number")
+    #parser.add_argument("--tasks", default=["normalize"], help="display a square of a given number")
+    parser.add_argument('--tasks', nargs='+', help='<Required> Set flag', default=["normalize"])
 
-    parser.add_argument("--train_path", default=None, help="display a square of a given number")
-    parser.add_argument("--dev_path", default=None, help="display a square of a given number")
-    parser.add_argument("--test_paths", default=["pos"], help="display a square of a given number")
+    parser.add_argument("--train_path", required=mode == "command_line", help="display a square of a given number")
+    parser.add_argument("--dev_path", required=mode == "command_line", help="display a square of a given number")
+    parser.add_argument("--test_paths", default=None, help="display a square of a given number")
 
-    parser.add_argument("--pos_specific_path", default=None, help="display a square of a given number")
+    parser.add_argument("--pos_specific_path", default=None, type=str, help="display a square of a given number")
     parser.add_argument("--expand_vocab_dev_test", default=True, help="display a square of a given number")
 
-    parser.add_argument("--model_id_pref", required=True, help="display a square of a given number")
+    parser.add_argument("--model_id_pref", required=mode == "command_line", help="display a square of a given number")
     parser.add_argument("--overall_label", default="DEFAULT", help="display a square of a given number")
-
+    parser.add_argument("--overall_report_dir", required=mode == "command_line", help="display a square of a given number")
     parser.add_argument("--debug", action="store_true", help="display a square of a given number")
     parser.add_argument("--warmup", action="store_true", help="display a square of a given number")
     parser.add_argument("--verbose", default=1, help="display a square of a given number")
 
     args = parser.parse_args()
+
+
     return args

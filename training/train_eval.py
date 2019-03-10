@@ -1,8 +1,8 @@
 import argparse
 import sys
 
-sys.path.insert(0,"..")
-sys.path.insert(0,".")
+sys.path.insert(0, "..")
+sys.path.insert(0, ".")
 from training.train import train
 
 from io_.info_print import printing
@@ -188,14 +188,19 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
 
 if __name__ == "__main__":
 
-    args = args_train()
+
+    # just here to test train_eval workflow for prod like run : train_evaluate_run.py
+
+    args = args_train(mode="script")
     params = vars(args)
 
     if args.train_path is None:
         args.train_path = DEMO
     if args.dev_path is None:
         args.dev_path = DEMO2
-
+    if args.model_id_pref is None:
+        args.model_id_pref = "TEST"
+    print(params)
     train_eval(args=params,
                model_id_pref=args.model_id_pref,
                train_path=args.train_path,
