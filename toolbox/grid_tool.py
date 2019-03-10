@@ -1,8 +1,32 @@
 from io_.info_print import printing
-
+import numpy as np
 DEFAULT_BATCH_SIZE = 25
 DEFAULT_SCALE = 2
 DEFAULT_AUX_NORM_NOT_NORM = False
+GPU_MODE_SUPPORTED = ["random", "fixed", "CPU"]
+DEFAULT_VISIBLE_CUDA_GPU = [str(i) for i in range(3)]
+
+
+def get_gpu_id(gpu_mode, gpus_ls, verbose):
+  if gpus_ls is None:
+    if gpu_mode == "random":
+      gpus_ls = DEFAULT_VISIBLE_CUDA_GPU
+      printing("ENV : switch to default gpu_ls {} cause mode is {}".format(gpus_ls, gpu_mode),
+               verbose=verbose, verbose_level=1)
+    if gpu_mode == "fixed":
+      gpus_ls = ["0"]
+      printing("ENV : switch to default gpu_ls {} cause mode is {}".format(gpus_ls, gpu_mode),
+               verbose=verbose, verbose_level=1)
+  if gpu_mode == "random":
+    gpu = np.random.choice(gpus_ls,1)[0]
+  elif gpu_mode == "fixed":
+    assert len(gpus_ls) == 1, "ERROR : gpus_ls should be len 1 as gpu_mode fixed"
+    gpu = gpus_ls[0]
+  elif gpu_mode == "CPU":
+    if gpu_mode == "CPU":
+      printing("ENV : CPU mode (gpu_ls {} ignored) ", verbose=verbose, verbose_level=1)
+    gpu = None
+  return gpu
 
 
 def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =None,
@@ -13,9 +37,11 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                               word_decoding_ls=None,
                               #auxilliary_task_pos_ls=None,
                               stable_decoding_state_ls=None, warmup=False,
-                              word_embedding_projected_dim_ls=None, n_layers_sent_cell_ls=None, word_embed_ls=None,proportion_pred_train_ls=None,
-                              tasks_ls=None,
-                              grid_label=""):
+                              word_embedding_projected_dim_ls=None, n_layers_sent_cell_ls=None, word_embed_ls=None,
+                              proportion_pred_train_ls=None, tasks_ls=None,
+                              grid_label="", gpu_mode="random", gpus_ls=None):
+
+  assert gpu_mode in GPU_MODE_SUPPORTED, "ERROR gpu_mode not in {}".format(str(GPU_MODE_SUPPORTED))
 
   params = []
   labels = []
@@ -29,10 +55,6 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
     lr_ls = [0.001]
   if scale_ls is None:
     scale_ls = [DEFAULT_SCALE]
-    #default.append(scale_ls[0])
-  #if auxilliary_task_norm_not_norm_ls is None:
-  #  auxilliary_task_norm_not_norm_ls = [DEFAULT_AUX_NORM_NOT_NORM]
-  #  default.append(("auxilliary_task_norm_not_norm",auxilliary_task_norm_not_norm_ls[0]))
   if shared_context_ls is None:
     shared_context_ls = ["all"]
     default.append(("shared_context",shared_context_ls[0]))
@@ -168,6 +190,7 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                                       param0["dense_dim_word_pred_3"] = 100 if word_decoding else None
                                       param0["word_embedding_projected_dim"] = word_embedding_projected_dim if param0["word_embed"] else None
                                       param0["proportion_pred_train"] = proportion_pred_train
+                                      param0["gpu"] = get_gpu_id(gpu_mode, gpus_ls, 1)
                                       params.append(param0)
                                       labels.append("{}-model_{}".format(grid_label,ind_model))
 

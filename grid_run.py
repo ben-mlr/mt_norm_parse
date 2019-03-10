@@ -230,5 +230,6 @@ if __name__ == "__main__":
         print("GRID_INFO fixed vals=  batch_size,2 lr,0.0001 ", to_keep_only)
 
 
-
-#oarsub -q gpu -l /core=2,walltime=48:00:00  -p "host='gpu004'" -O ./logs/%jobid%-job.stdout -E ./logs/%jobid%-job.stderr ./train/train_mt_norm.sh 
+# oarsub -q gpu
+# -l /core=2,walltime=48:00:00
+# -p "host='gpu004'" -O ./logs/%jobid%-job.stdout -E ./logs/%jobid%-job.stderr ./train/train_mt_norm.sh

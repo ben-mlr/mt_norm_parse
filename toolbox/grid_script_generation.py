@@ -2,12 +2,14 @@
 from env.project_variables import PROJECT_PATH
 from toolbox.grid_tool import grid_param_label_generate
 import os
-
+from io_.info_print import printing
 from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, CP_WR_PASTE_TEST_269, \
     LIU_DEV, DEV, DIR_TWEET_W2V, TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, CP_PASTE_WR_TRAIN, \
     CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST, EWT_DEV, EWT_TEST, \
     LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO, EN_LINES_EWT_TRAIN, EN_LINES_DEV, EN_LINES_EWT_TRAIN, \
-    MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST
+    MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, LIST_ARGS, NONE_ARGS, BOOL_ARGS, RUN_SCRIPTS_DIR
+
+
 
 params_dozat = {"hidden_size_encoder": 200, "output_dim": 100, "char_embedding_dim": 100,
                 "dropout_sent_encoder": 0.5, "drop_out_word_encoder": 0.5, "dropout_word_decoder": 0.3,
@@ -19,14 +21,17 @@ params_dozat = {"hidden_size_encoder": 200, "output_dim": 100, "char_embedding_d
 
 
 def script_generation(grid_label, init_param, warmup,
-                      train_path, dev_path, test_paths, overall_report_dir, overall_label,model_id_pref,
+                      train_path, dev_path, test_paths, overall_report_dir, overall_label,
                       stable_decoding_state_ls, word_decoding_ls, batch_size_ls,
                       word_embed_ls, dir_sent_encoder_ls, lr_ls, word_embed_init_ls,
                       teacher_force_ls, proportion_pred_train_ls, shared_context_ls,
                       word_embedding_projected_dim_ls,
                       tasks_ls, char_src_attention_ls,
                       n_layers_sent_cell_ls, unrolling_word_ls,
-                      scale_ls, pos_specific_path=None):
+                      scale_ls, pos_specific_path=None, gpu_mode="random", gpus_ls=None,write_to_dir=None,):
+    if write_to_dir is not None:
+        script_dir = os.path.join(write_to_dir, "{}-run.sh".format(overall_label))
+
     params, labels, default_all, analysed, fixed = grid_param_label_generate(
         init_param,
         warmup=warmup,
@@ -45,25 +50,43 @@ def script_generation(grid_label, init_param, warmup,
         char_src_attention_ls=char_src_attention_ls,
         n_layers_sent_cell_ls=n_layers_sent_cell_ls,
         unrolling_word_ls=unrolling_word_ls,
-        scale_ls=scale_ls )
-
-    LIST_ARGS = ["tasks"]
+        scale_ls=scale_ls, gpu_mode=gpu_mode, gpus_ls=gpus_ls)
     print(params, labels)
-    for param, model_id_pref in zip(params, labels):
+    for ind, (param, model_id_pref) in enumerate(zip(params, labels)):
         script = "python {}".format(os.path.join(PROJECT_PATH, "train_evaluate_run.py"))
         for arg, val in param.items():
+            # args in NONE ARGS ARE NOT ADDED TO THE SCRIPT MAKER (they will be handle by default behavior later in the code)
+
+            if arg in BOOL_ARGS:
+                val = int(val)
+            if arg in NONE_ARGS or True:
+                if val is None:
+                    continue
             if arg not in LIST_ARGS:
-                script+=" --{} {}".format(arg,val)
+                script += " --{} {}".format(arg, val)
             else:
                 script += " --{} {}".format(arg, " ".join(val))
-            script += " --{} {}".format("train_path", train_path)
-            script += " --{} {}".format("dev_path", dev_path)
+        script += " --{} {}".format("train_path", train_path)
+        script += " --{} {}".format("dev_path", dev_path)
+        if test_paths is not None:
             script += " --{} {}".format("test_path", test_paths)
+        if pos_specific_path is not None:
             script += " --{} {}".format("pos_specific_path", pos_specific_path)
-            script += " --{} {}".format("overall_label", overall_label)
-            script += " --{} {}".format("model_id_pref", model_id_pref)
-            script += " --{} {}".format("overall_report_dir", overall_report_dir)
+        script += " --{} {}".format("overall_label", overall_label)
+        script += " --{} {}".format("model_id_pref", model_id_pref)
+        script += " --{} {}".format("overall_report_dir", overall_report_dir)
         print(script)
+        if write_to_dir is not None:
+            if ind==0:
+                assert not os.path.isfile(script_dir), "ERROR script_dir already exists can't do that"
+                mode = "w"
+            else:
+                mode = "a"
+            with open(script_dir, mode) as file:
+                file.write(script+"\n")
+    if write_to_dir is not None:
+        printing("WRITTEN to {}", var=[script_dir], verbose_level=1, verbose=1)
+
 
 
 if __name__ == "__main__":
@@ -84,8 +107,9 @@ if __name__ == "__main__":
                       n_layers_sent_cell_ls=[2],
                       unrolling_word_ls=[True],
                       scale_ls=[1],
-                      overall_report_dir="./", overall_label="test_label", model_id_pref="",
-                      train_path=DEV, dev_path=TEST, test_paths=None)
+                      overall_report_dir="./", overall_label="test_label",
+                      train_path=DEV, dev_path=TEST, test_paths=None, gpu_mode="CPU", gpus_ls=["10","11"],
+                      write_to_dir=RUN_SCRIPTS_DIR)
 
 # default not used but could be
 
@@ -93,9 +117,11 @@ if __name__ == "__main__":
 ## Default behaviorn : ex None for path , behavior for test_paths as list
 ## bug quick fix
 
-# to add : hardwards : gpu force true, cpu or gpu number
+# to add : hardwares : gpu force true, cpu or gpu number
 # write to script as list of scripts
 
+# make sure : reports point to the correct directiory : summary and folders with same grid id and labels
+
 # Task farm script that call this grid_script_generation , that call tracking : google sheet then should fit in the pipeline
-# test on rioc
+# test on RIOC
 # test on Neff

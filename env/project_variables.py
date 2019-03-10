@@ -6,7 +6,7 @@ SEED_TORCH = 123
 
 # ENVIRONMENT VARIABLES
 PROJECT_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
-
+RUN_SCRIPTS_DIR = os.path.join(PROJECT_PATH,"run_scripts")
 
 # MODELS
 # checkpoint dir if not checkpoint_dir as defined in args.json not found
@@ -14,6 +14,11 @@ CHECKPOINT_DIR = os.path.join(PROJECT_PATH, "checkpoints")
 
 CLIENT_GOOGLE_CLOUD = os.path.join(PROJECT_PATH, "tracking/google_api")
 SHEET_NAME_DEFAULT, TAB_NAME_DEFAULT = "model_evaluation", "experiments_tracking"
+
+LIST_ARGS = ["tasks"]
+NONE_ARGS = ["gpu"]
+BOOL_ARGS = ["word_embed", "teacher_force", "char_decoding", "unrolling_word", "init_context_decoder",
+             "word_decoding", "stable_decoding_state", "char_src_attention"]
 
 # architecture/model/training supported
 SUPPORED_WORD_ENCODER = ["LSTM", "GRU"]

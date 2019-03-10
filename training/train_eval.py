@@ -30,12 +30,20 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                n_epochs=11, test_path=None, args=None,
                overall_report_dir=CHECKPOINT_DIR, overall_label="DEFAULT",
                get_batch_mode_all=True,
-               warmup=False, use_gpu=None, freq_checkpointing=1,debug=False,compute_scoring_curve=False,
+               warmup=False, freq_checkpointing=1,debug=False,compute_scoring_curve=False,
                compute_mean_score_per_sent=False,print_raw=False, freq_scoring=5, bucketing_train=True, freq_writer=None,
                extend_n_batch=1, score_to_compute_ls=None,
                symbolic_end=False, symbolic_root=False,
+               gpu=None, use_gpu=None,
                verbose=0):
 
+    if gpu is not None:
+        assert use_gpu or use_gpu is None, "ERROR : use_gpu should be neutral (None) or True as 'gpu' is defined"
+        assert os.environ.get("CUDA_VISIBLE_DEVICES") is not None, "ERROR : no CUDA_VISIBLE_DEVICES env variable (gpu should be None)"
+        os.environ["CUDA_VISIBLE_DEVICES"] = gpu
+        printing("ENV : CUDA_VISIBLE_DEVICES set to {}", var=gpu, verbose=verbose, verbose_level=1)
+
+    print("WOARD_EMBED", args["word_embed"])
     hidden_size_encoder = args.get("hidden_size_encoder", 10)
     word_embed = args.get("word_embed", False)
     word_embedding_projected_dim = args.get("word_embedding_projected_dim", None)

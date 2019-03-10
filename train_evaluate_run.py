@@ -14,6 +14,7 @@ if __name__ == "__main__":
 
     args = args_train()
     params = vars(args)
+    print("PARAMS CHECK", params, args.word_embed)
     print("TASKS", params["tasks"])
     train_eval(args=params,
                model_id_pref=args.model_id_pref,
@@ -25,4 +26,5 @@ if __name__ == "__main__":
                extend_n_batch=2,
                get_batch_mode_all=True, compute_mean_score_per_sent=False, bucketing_train=True, freq_checkpointing=1,
                symbolic_end=True, symbolic_root=True, freq_writer=1, compute_scoring_curve=False,
+               gpu=args.gpu,
                verbose=args.verbose, warmup=args.warmup, debug=args.debug)
