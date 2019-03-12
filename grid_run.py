@@ -66,13 +66,14 @@ def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_pa
 
 
 if __name__ == "__main__":
+
       if platform != "darwin":
         printing("RUN : running in rioc", verbose=1, verbose_level=1)
         assert os.environ.get("MODE_RUN") is not None, "Running in rioc, MODE_RUN empty while it should not "
         assert os.environ.get("MODE_RUN") in ["DISTRIBUTED", "SINGLE"]
         run_standart = os.environ.get("MODE_RUN") != "DISTRIBUTED"
       else:
-          run_standart = True
+          run_standart = False
 
 
       params = []
@@ -184,22 +185,24 @@ if __name__ == "__main__":
       os.mkdir(dir_grid)
       printing("GRID RUN : Grid directory : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
 
-      n_models = len(params)if not warmup else 1
-      warmup_desc = "warmup" if warmup else ""
-      description = "{} models : Analysing : {} with regard to {} fixed".format(n_models, to_analysed, to_keep_only)
-      row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=LABEL_GRID, description=description,
-                                        log_dir=log, target_dir=dir_grid+" | "+os.path.join(CHECKPOINT_DIR, "{}*".format(LABEL_GRID)),
-                                        env=environment, status="running {}".format(warmup_desc),
-                                        verbose=1)
       if run_standart:
           try:
+              n_models = len(params) if not warmup else 1
+              warmup_desc = "warmup" if warmup else ""
+              description = "{} models : Analysing : {} with regard to {} fixed".format(n_models, to_analysed,
+                                                                                        to_keep_only)
+              row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=LABEL_GRID, description=description,
+                                                log_dir=log, target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR,
+                                                                                                        "{}*".format(
+                                                                                                            LABEL_GRID)),
+                                                env=environment, status="running {}".format(warmup_desc),
+                                                verbose=1)
               train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
               run_grid(params=params, labels=labels, dir_grid=dir_grid, label_grid=LABEL_GRID,
                        epochs=50,
                        train_path=train_path,
                        dev_path=dev_path,
-                       test_paths=[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST],
-                       # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
+                       test_paths=[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
                        warmup=warmup)
               update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
           except Exception as e:
@@ -208,7 +211,8 @@ if __name__ == "__main__":
 
       else:
           train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
-          dir_script = script_generation(grid_label="0", init_param=params_dozat, warmup=False,
+          dir_script, row = script_generation(grid_label="0", init_param=params_dozat, warmup=False,
+                                         dir_grid=dir_grid, environment=environment, dir_log=log, label_grid=LABEL_GRID,
                                          stable_decoding_state_ls=[False],
                                          word_decoding_ls=[False],
                                          batch_size_ls=[50, 100, 200, 400],

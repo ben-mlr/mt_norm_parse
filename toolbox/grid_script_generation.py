@@ -9,7 +9,8 @@ from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, C
     LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO, EN_LINES_EWT_TRAIN, EN_LINES_DEV, EN_LINES_EWT_TRAIN, \
     MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, LIST_ARGS, NONE_ARGS, BOOL_ARGS, RUN_SCRIPTS_DIR
 
-
+from toolbox.git_related import get_commit_id
+from tracking.reporting_google_sheet import append_reporting_sheet
 
 params_dozat = {"hidden_size_encoder": 200, "output_dim": 100, "char_embedding_dim": 100,
                 "dropout_sent_encoder": 0.5, "drop_out_word_encoder": 0.5, "dropout_word_decoder": 0.3,
@@ -20,7 +21,7 @@ params_dozat = {"hidden_size_encoder": 200, "output_dim": 100, "char_embedding_d
                 "hidden_size_sent_encoder": 200, "hidden_size_decoder": 100, "batch_size": 500}
 
 
-def script_generation(grid_label, init_param, warmup,
+def script_generation(grid_label, init_param, warmup,dir_grid, environment, dir_log, label_grid,
                       train_path, dev_path, test_paths, overall_report_dir, overall_label,
                       stable_decoding_state_ls, word_decoding_ls, batch_size_ls,
                       word_embed_ls, dir_sent_encoder_ls, lr_ls, word_embed_init_ls,
@@ -31,6 +32,7 @@ def script_generation(grid_label, init_param, warmup,
                       scale_ls, pos_specific_path=None, gpu_mode="random", gpus_ls=None,write_to_dir=None,):
     if write_to_dir is not None:
         script_dir = os.path.join(write_to_dir, "{}-run.sh".format(overall_label))
+    warmup_desc = "warmup" if warmup else ""
 
     params, labels, default_all, analysed, fixed = grid_param_label_generate(
         init_param,
@@ -52,6 +54,14 @@ def script_generation(grid_label, init_param, warmup,
         unrolling_word_ls=unrolling_word_ls,
         scale_ls=scale_ls, gpu_mode=gpu_mode, gpus_ls=gpus_ls)
     print(params, labels)
+
+    description = "{} models : Analysing : {} with regard to {} fixed".format(len(params), analysed, fixed)
+    row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=label_grid, description=description,
+                                      log_dir=dir_log, target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR,
+                                                                                              "{}*".format(label_grid)),
+                                      env=environment, status="running {}".format(warmup_desc),
+                                      verbose=1)
+
     for ind, (param, model_id_pref) in enumerate(zip(params, labels)):
         script = "/home/rioc/bemuller/miniconda3/envs/mt_norm_parse/bin/python {}".format(os.path.join(PROJECT_PATH, "train_evaluate_run.py"))
         for arg, val in param.items():
@@ -88,11 +98,10 @@ def script_generation(grid_label, init_param, warmup,
                 file.write("sh "+script_dir+"-"+str(ind)+".sh"+"\n")
     if write_to_dir is not None:
         printing("WRITTEN to {}", var=[script_dir], verbose_level=1, verbose=1)
-    return script_dir
+    return script_dir, row
 
 
 if __name__ == "__main__":
-
 
     script_generation(grid_label="0", init_param=params_dozat, warmup=False,
                       stable_decoding_state_ls=[False],
@@ -111,7 +120,7 @@ if __name__ == "__main__":
                       unrolling_word_ls=[True],
                       scale_ls=[1],
                       overall_report_dir="./", overall_label="test_label",
-                      train_path=DEV, dev_path=TEST, test_paths=None, gpu_mode="CPU", gpus_ls=["10","11"],
+                      train_path=DEV, dev_path=TEST, test_paths=None, gpu_mode="CPU", gpus_ls=["10", "11"],
                       write_to_dir=RUN_SCRIPTS_DIR)
 
 # default not used but could be
