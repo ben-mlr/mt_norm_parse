@@ -57,7 +57,7 @@ def fine_tune(train_path, dev_path, test_path, n_epochs,  model_full_name, learn
     GRID_FOLDER_NAME += "-summary"
     dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
     os.mkdir(dir_grid)
-    printing("GRID RUN : Grid directory : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
+    printing("FINE TUNE RUN : target directory   {} made".format(dir_grid), verbose=verbose, verbose_level=0)
 
     train(train_path=train_path, dev_path=dev_path, test_path=test_path, n_epochs=n_epochs,
           batch_size=batch_size, get_batch_mode_all=True, bucketing=True,
