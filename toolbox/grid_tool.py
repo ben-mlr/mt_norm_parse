@@ -1,4 +1,5 @@
 from io_.info_print import printing
+from env.project_variables import TASKS_2_METRICS_STR
 import numpy as np
 DEFAULT_BATCH_SIZE = 25
 DEFAULT_SCALE = 2
@@ -39,7 +40,7 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                               stable_decoding_state_ls=None, warmup=False,
                               word_embedding_projected_dim_ls=None, n_layers_sent_cell_ls=None, word_embed_ls=None,
                               proportion_pred_train_ls=None, tasks_ls=None,
-                              grid_label="", gpu_mode="random", gpus_ls=None):
+                              grid_label="", gpu_mode="random", gpus_ls=None, printout_info_var=True):
 
   assert gpu_mode in GPU_MODE_SUPPORTED, "ERROR gpu_mode not in {}".format(str(GPU_MODE_SUPPORTED))
 
@@ -192,11 +193,11 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                                       param0["proportion_pred_train"] = proportion_pred_train
                                       param0["gpu"] = get_gpu_id(gpu_mode, gpus_ls, 1)
                                       params.append(param0)
-                                      labels.append("{}-model_{}".format(grid_label,ind_model))
-
+                                      labels.append("{}-model_{}".format(grid_label, ind_model))
 
   studied_vars = []
   fixed_vars = []
+
   for var, vals in dic_grid.items():
     if var == "proportion_pred_train":
       if None in vals:
@@ -207,6 +208,22 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
     else:
       print("FIXED", var, vals)
       fixed_vars.append((var, vals[0]))
-  
 
-  return params,labels, info_default, studied_vars, fixed_vars
+  # grid information
+  to_enrich = " ".join([a for a, _ in fixed_vars]) + " " + " ".join(studied_vars)
+  to_analysed = " ".join(studied_vars)
+  to_keep_only = " ".join([a + "," + str(b) for a, b in fixed_vars])
+
+
+  if printout_info_var:
+    metric_add_ls = []
+    for tasks in tasks_ls:
+      for task in tasks:
+        metric_add_ls.extend(TASKS_2_METRICS_STR[task])
+    metric_add = " ".join(list(set(metric_add_ls)))
+    print("GRID_INFO metric    =  ", metric_add)
+    print("GRID_INFO enrch vars=  ", to_enrich)
+    print("GRID_INFO analy vars=  ", to_analysed)
+    print("GRID_INFO fixed vals=   ", to_keep_only)
+
+  return params, labels, info_default, studied_vars, fixed_vars

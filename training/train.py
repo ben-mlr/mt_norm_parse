@@ -263,7 +263,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
         multi_task_mode, ponderation_normalize_loss, weight_binary_loss, weight_pos_loss = scheduling_policy(epoch=epoch, phases_ls=policy_dic, tasks=tasks)
 
         printing("TRAINING Tasks scheduling : ponderation_normalize_loss is {} weight_binary_loss is {} weight_pos_loss is {} mode is {} ",
-                 var=[ponderation_normalize_loss, weight_binary_loss, weight_pos_loss, multi_task_mode], verbose=verbose, verbose_level=1)
+                 var=[ponderation_normalize_loss, weight_binary_loss, weight_pos_loss, multi_task_mode], verbose=verbose, verbose_level=2)
 
         printing("TRAINING : Starting {} epoch out of {} ", var=(epoch+1, n_epochs), verbose= verbose, verbose_level=1)
         model.train()
@@ -277,7 +277,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
         start = time.time()
 
         printing("TRAINING : TEACHER FORCE : Schedule Sampling proportion of train on prediction is {} ", var=[proportion_pred_train],
-                 verbose=verbose, verbose_level=1)
+                 verbose=verbose, verbose_level=2)
         loss_train, loss_details_train, step_train = run_epoch(batchIter, model,
                                                                LossCompute(model.generator, opt=adam,
                                                                            auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
@@ -420,7 +420,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                    epoch_ls_1=epoch_ls_train, epoch_ls_2=epoch_ls_dev, label=label_train+"-train",
                                    label_2=label_dev+"-dev", save=True, dir=model.dir_model, verbose=verbose,
                                    verbose_level=1, lr=lr, prefix=model.model_full_name, show=False)
-            print("CHECKPOINTE ", epoch)
             model, _loss_dev, counter_no_deacrease, saved_epoch, checkpoint_dir_former = \
                     checkpoint(loss_saved=_loss_dev, loss=loss_dev, model=model, counter_no_decrease=counter_no_deacrease,
                                checkpoint_dir_former=checkpoint_dir_former,

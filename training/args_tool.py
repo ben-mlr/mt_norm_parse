@@ -17,6 +17,7 @@ def args_train(mode="command_line"):
     parser.add_argument("--char_embedding_dim", default=10, type=int, help="display a square of a given number")
 
     parser.add_argument("--batch_size", default=2, type=int, help="display a square of a given number")
+    parser.add_argument("--epochs", default=1, type=int, help="display a square of a given number")
 
     parser.add_argument("--dropout_sent_encoder", default=0, type=float, help="display a square of a given number")
     parser.add_argument("--dropout_word_encoder", default=0, type=float, help="display a square of a given number")
@@ -61,7 +62,7 @@ def args_train(mode="command_line"):
     parser.add_argument("--dense_dim_word_pred_3", type=int, default=0, help="display a square of a given number ")
 
     parser.add_argument("--word_embed_init", default=None,help="display a square of a given number")
-    parser.add_argument("--char_decoding",type=int, default=True, help="display a square of a given number")
+    parser.add_argument("--char_decoding", type=int, default=True, help="display a square of a given number")
 
     parser.add_argument("--dense_dim_auxilliary_pos",type=int, default=None, help="display a square of a given number")
     parser.add_argument("--dense_dim_auxilliary_pos_2",type=int, default=None, help="display a square of a given number")
@@ -72,7 +73,7 @@ def args_train(mode="command_line"):
 
     parser.add_argument("--train_path", required=mode == "command_line", help="display a square of a given number")
     parser.add_argument("--dev_path", required=mode == "command_line", help="display a square of a given number")
-    parser.add_argument("--test_paths", default=None, help="display a square of a given number")
+    parser.add_argument('--test_paths', nargs='+', help='<Required> Set flag', default=None)
 
     parser.add_argument("--pos_specific_path", default=None, type=str, help="display a square of a given number")
     parser.add_argument("--expand_vocab_dev_test", default=True, help="display a square of a given number")

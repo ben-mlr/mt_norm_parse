@@ -6,7 +6,7 @@ SEED_TORCH = 123
 
 # ENVIRONMENT VARIABLES
 PROJECT_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
-RUN_SCRIPTS_DIR = os.path.join(PROJECT_PATH,"run_scripts")
+RUN_SCRIPTS_DIR = os.path.join(PROJECT_PATH, "run_scripts")
 
 # MODELS
 # checkpoint dir if not checkpoint_dir as defined in args.json not found
@@ -19,7 +19,7 @@ LIST_ARGS = ["tasks"]
 NONE_ARGS = ["gpu"]
 BOOL_ARGS = ["word_embed", "teacher_force", "char_decoding", "unrolling_word", "init_context_decoder",
              "word_decoding", "stable_decoding_state", "char_src_attention"]
-GPU_AVAILABLE_DEFAULT_LS = ["0","1","2","3"]
+GPU_AVAILABLE_DEFAULT_LS = ["0", "1", "2", "3"]
 
 # architecture/model/training supported
 SUPPORED_WORD_ENCODER = ["LSTM", "GRU"]
@@ -28,7 +28,12 @@ SUPPORTED_STAT = ["sum"]
 LOSS_DETAIL_TEMPLATE = {"loss_overall": 0, "loss_seq_prediction": 0, "other": {}}
 LOSS_DETAIL_TEMPLATE_LS = {"loss_overall": [], "loss_seq_prediction": [], "other": {}}
 SCORE_AUX = ["norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recall", "norm_not_norm-accuracy"]
-AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm","pos"]
+AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm", "pos"]
+TASKS_2_METRICS_STR = {"all": ["accuracy-normalization","InV-accuracy-normalization","OOV-accuracy-normalization","npv-normalization","recall-normalization","precision-normalization","tnr-normalization","accuracy-pos"],
+                       "normalize": ["accuracy-normalization","InV-accuracy-normalization","OOV-accuracy-normalization","npv-normalization","recall-normalization","precision-normalization","tnr-normalization"],
+                       "pos": ["accuracy-pos"],
+                       "norm_not_norm": ["IoU-pred-normed","recall-norm_not_norm","accuracy-norm_not_norm","IoU-pred-need_norm","precision-norm_not_norm"]}
+
 AVAILABLE_OPTIMIZER = ["adam", "bahdanu-adadelta"]
 
 

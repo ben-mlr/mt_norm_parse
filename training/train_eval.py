@@ -189,7 +189,8 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                          batch_size=batch_size, debug=debug,
                          word_decoding=word_decoding, char_decoding=char_decoding,
                          dir_report=model_dir, verbose=1)
-        print("GRID : END EVAL", time.time()-start_eval)
+        printing("GRID : END EVAL", time.time()-start_eval, verbose=verbose, verbose_level=1)
+    printing("WARNING : no evaluation ", verbose=verbose, verbose_level=0)
 
     return model_full_name, model_dir
 

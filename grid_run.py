@@ -21,12 +21,12 @@ FINE_TUNE = 0
 GRID = 1
 
 
-def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_paths,epochs=50, test_before_run=False, warmup=False):
+def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_paths, epochs=50, test_before_run=False, warmup=False):
     i = 0
     for param, model_id_pref in zip(params, labels):
         i += 1
         printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-        epochs = epochs if not test_before_run else 2
+        epochs = epochs if not test_before_run else 1
         if warmup:
             train_path, dev_path = DEMO, DEMO2
             param["word_embed_init"] = None
@@ -140,19 +140,7 @@ if __name__ == "__main__":
                                                                                   )
 
 
-          # grid information
-          to_enrich = " ".join([a for a, _ in fixed])+" "+" ".join(analysed)
-          to_analysed = " ".join(analysed)
-          to_keep_only = " ".join([a+","+str(b) for a, b in fixed])
-          metric_add = ""
-          if "auxilliary_task_norm_not_norm " in to_analysed or "auxilliary_task_norm_not_norm,True" in to_keep_only :
-              metric_add+=" precision-norm_not_norm accuracy-norm_not_norm recall-norm_not_norm"
-          if "auxilliary_task_pos" in to_analysed  or "auxilliary_task_pos,True"  in to_keep_only:
-              metric_add += " accuracy-pos"
-          print("GRID_INFO metric    =  ", metric_add)
-          print("GRID_INFO enrch vars=  ", to_enrich)
-          print("GRID_INFO analy vars=  ", to_analysed)
-          print("GRID_INFO fixed vals=   ", to_keep_only)
+
           # only for cloud run :
 
       warmup = True
@@ -163,7 +151,7 @@ if __name__ == "__main__":
           args = parser.parse_args()
           test_before_run = args.test_before_run
           print("GRID : test_before_run set to {} ".format(test_before_run))
-          #warmup = False
+          warmup = False
           environment = "rioc"
           OAR = os.environ.get('OAR_JOB_ID') + "_rioc-" if os.environ.get('OAR_JOB_ID', None) is not None else ""
           print("OAR=", OAR)
@@ -189,52 +177,61 @@ if __name__ == "__main__":
           try:
               n_models = len(params) if not warmup else 1
               warmup_desc = "warmup" if warmup else ""
+              test_before_run_desc = "test_before_run" if test_before_run else ""
               description = "{} models : Analysing : {} with regard to {} fixed".format(n_models, to_analysed,
                                                                                         to_keep_only)
               row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=LABEL_GRID, description=description,
                                                 log_dir=log, target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR,
                                                                                                         "{}*".format(
                                                                                                             LABEL_GRID)),
-                                                env=environment, status="running {}".format(warmup_desc),
+                                                env=environment, status="running {}{}".format(warmup_desc,test_before_run_desc),
                                                 verbose=1)
-              train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+              train_path, dev_path = MTNT_TOK_TRAIN, MTNT_TOK_DEV  #EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
               run_grid(params=params, labels=labels, dir_grid=dir_grid, label_grid=LABEL_GRID,
-                       epochs=50,
+                       epochs=5,test_before_run=test_before_run,
                        train_path=train_path,
                        dev_path=dev_path,
-                       test_paths=[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
+                       test_paths=[TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
                        warmup=warmup)
               update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
           except Exception as e:
-              print("ERROR {}".format(e))
               update_status(row=row, new_status="failed {} (error {})".format(warmup_desc, e), verbose=1)
+              raise(e)
+
 
       else:
+          epochs=1
           train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
-          dir_script, row = script_generation(grid_label="0", init_param=params_dozat, warmup=False,
-                                         dir_grid=dir_grid, environment=environment, dir_log=log, label_grid=LABEL_GRID,
-                                         stable_decoding_state_ls=[False],
-                                         word_decoding_ls=[False],
-                                         batch_size_ls=[50, 100, 200, 400],
-                                         word_embed_ls=[False],
-                                         dir_sent_encoder_ls=[2], lr_ls=[0],
-                                         word_embed_init_ls=[None],
-                                         teacher_force_ls=[True],
-                                         proportion_pred_train_ls=[None],
-                                         shared_context_ls=["all"],
-                                         word_embedding_projected_dim_ls=[None],
-                                         tasks_ls=[["pos"]],
-                                         char_src_attention_ls=[True],
-                                         n_layers_sent_cell_ls=[2],
-                                         unrolling_word_ls=[True],
-                                         scale_ls=[1],
-                                         overall_report_dir=dir_grid, overall_label=LABEL_GRID,
-                                         train_path=DEV, dev_path=TEST, test_paths=None, gpu_mode="random",
-                                         gpus_ls=GPU_AVAILABLE_DEFAULT_LS,
-                                         write_to_dir=RUN_SCRIPTS_DIR)
+          dir_script, row = script_generation(grid_label=LABEL_GRID, init_param=params_dozat, warmup=test_before_run,
+                                              dir_grid=dir_grid, environment=environment, dir_log=log,
+                                              stable_decoding_state_ls=[False],
+                                              word_decoding_ls=[False],
+                                              epochs=epochs,
+                                              batch_size_ls=[50, 100, 200, 400],
+                                              word_embed_ls=[False],
+                                              dir_sent_encoder_ls=[2], lr_ls=[0],
+                                              word_embed_init_ls=[None],
+                                              teacher_force_ls=[True],
+                                              proportion_pred_train_ls=[None],
+                                              shared_context_ls=["all"],
+                                              word_embedding_projected_dim_ls=[None],
+                                              tasks_ls=[["pos"]],
+                                              char_src_attention_ls=[True],
+                                              n_layers_sent_cell_ls=[2],
+                                              unrolling_word_ls=[True],
+                                              scale_ls=[1],
+                                              overall_report_dir=dir_grid, overall_label=LABEL_GRID,
+                                              train_path=DEV, dev_path=TEST, test_paths=[DEV, EWT_DEV,TEST], gpu_mode="random",
+                                              gpus_ls=GPU_AVAILABLE_DEFAULT_LS,
+                                              write_to_dir=RUN_SCRIPTS_DIR)
           print("row:{}".format(row))
           print("dir_script:{}".format(dir_script))
 
+
+# WARNING : different behavior in warmup and test_before_run between DISTRIBUTED mode and SINGLE mode
+## in SINGLE mode only warmup means one mode train and evaluated in the grid search for 1 epoch
+    #  test_before models all models are run and evaluation
+## in DISTRIBUTED : they are merged and corresponds to test_before_run
 
 # oarsub -q gpu
 # -l /core=2,walltime=48:00:00

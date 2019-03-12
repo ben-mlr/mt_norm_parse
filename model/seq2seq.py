@@ -494,14 +494,14 @@ class LexNormalizer(nn.Module):
 
         if os.path.isfile(arguments_dir):
             printing("Overwriting argument file (checkpoint dir updated with {}  ) ", var=[checkpoint_dir],
-                     verbose=verbose, verbose_level=0)
+                     verbose=verbose, verbose_level=1)
         printing("Checkpoint info are now {} ", var=(model.arguments["info_checkpoint"]), verbose=verbose,
-                 verbose_level=1)
+                 verbose_level=3)
         torch.save(model.state_dict(), checkpoint_dir)
         printing(model.arguments, verbose=verbose, verbose_level=1)
         json.dump(model.arguments, open(arguments_dir, "w"))
         printing("Saving model weights and arguments as {}  and {} ", var=(checkpoint_dir, arguments_dir),
-                 verbose=verbose, verbose_level=0)
+                 verbose=verbose, verbose_level=1)
         return dir, model.model_full_name, checkpoint_dir
 
     @staticmethod

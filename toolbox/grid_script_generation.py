@@ -21,7 +21,7 @@ params_dozat = {"hidden_size_encoder": 200, "output_dim": 100, "char_embedding_d
                 "hidden_size_sent_encoder": 200, "hidden_size_decoder": 100, "batch_size": 500}
 
 
-def script_generation(grid_label, init_param, warmup,dir_grid, environment, dir_log, label_grid,
+def script_generation(grid_label, init_param, warmup,dir_grid, environment, dir_log,epochs,
                       train_path, dev_path, test_paths, overall_report_dir, overall_label,
                       stable_decoding_state_ls, word_decoding_ls, batch_size_ls,
                       word_embed_ls, dir_sent_encoder_ls, lr_ls, word_embed_init_ls,
@@ -30,6 +30,9 @@ def script_generation(grid_label, init_param, warmup,dir_grid, environment, dir_
                       tasks_ls, char_src_attention_ls,
                       n_layers_sent_cell_ls, unrolling_word_ls,
                       scale_ls, pos_specific_path=None, gpu_mode="random", gpus_ls=None,write_to_dir=None,):
+    if isinstance(test_paths, str):
+        test_paths = [test_paths]
+
     if write_to_dir is not None:
         script_dir = os.path.join(write_to_dir, "{}-run.sh".format(overall_label))
     warmup_desc = "warmup" if warmup else ""
@@ -56,9 +59,9 @@ def script_generation(grid_label, init_param, warmup,dir_grid, environment, dir_
     print(params, labels)
 
     description = "{} models : Analysing : {} with regard to {} fixed".format(len(params), analysed, fixed)
-    row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=label_grid, description=description,
+    row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=grid_label, description=description,
                                       log_dir=dir_log, target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR,
-                                                                                              "{}*".format(label_grid)),
+                                                                                              "{}*".format(grid_label)),
                                       env=environment, status="running {}".format(warmup_desc),
                                       verbose=1)
 
@@ -79,11 +82,12 @@ def script_generation(grid_label, init_param, warmup,dir_grid, environment, dir_
         script += " --{} {}".format("train_path", train_path)
         script += " --{} {}".format("dev_path", dev_path)
         if test_paths is not None:
-            script += " --{} {}".format("test_path", test_paths)
+            script += " --{} {}".format("test_path", " ".join(test_paths))
         if pos_specific_path is not None:
             script += " --{} {}".format("pos_specific_path", pos_specific_path)
         script += " --{} {}".format("overall_label", overall_label)
         script += " --{} {}".format("model_id_pref", model_id_pref)
+        script += " --{} {}".format("epochs", epochs)
         script += " --{} {}".format("overall_report_dir", overall_report_dir)
         #print(script)
         if write_to_dir is not None:
