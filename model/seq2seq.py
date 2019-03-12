@@ -297,8 +297,8 @@ class LexNormalizer(nn.Module):
                                            embedding_dim=word_embedding_dim) if word_embed else None
         if self.word_embedding is not None:
             self.word_embedding_project = nn.Linear(word_embedding_dim, word_embedding_projected_dim) if word_embed and word_embedding_projected_dim is not None else None
-
         if word_embed_dir is not None and not load:
+
             printing("W2V INFO : loading initialized embedding from {}  ", var=[word_embed_dir], verbose=verbose, verbose_level=1)
             word_embed_dic = load_emb(word_embed_dir, verbose)
             assert len(word_embed_dic["a"]) == word_embedding_dim, "ERROR : mismatch between word embedding definition and init"

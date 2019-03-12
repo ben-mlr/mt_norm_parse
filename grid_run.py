@@ -29,7 +29,7 @@ def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_pa
         epochs = epochs if not test_before_run else 1
         if warmup:
             train_path, dev_path = DEMO, DEMO2
-            param["word_embed_init"] = None
+            #param["word_embed_init"] = None
 
         model_id_pref = label_grid + model_id_pref + "-model_" + str(i)
         if warmup:
@@ -73,7 +73,8 @@ if __name__ == "__main__":
         assert os.environ.get("MODE_RUN") in ["DISTRIBUTED", "SINGLE"]
         run_standart = os.environ.get("MODE_RUN") != "DISTRIBUTED"
       else:
-          run_standart = False
+          run_standart = True
+          print("RUN STA")
 
 
       params = []
@@ -121,12 +122,12 @@ if __name__ == "__main__":
                                                                                   warmup=False,
                                                                                   grid_label="0",
                                                                                   stable_decoding_state_ls=[False],
-                                                                                  word_decoding_ls=[False],
+                                                                                  word_decoding_ls=[True],
                                                                                   batch_size_ls=[50, 100,200,400],
                                                                                   #auxilliary_task_pos_ls=[False],
-                                                                                  word_embed_ls=[False],
+                                                                                  word_embed_ls=[True],
                                                                                   dir_sent_encoder_ls=[2], lr_ls=[0.0001,0.001,0.05],
-                                                                                  word_embed_init_ls=[None],
+                                                                                  word_embed_init_ls=[DIR_TWEET_W2V],
                                                                                   teacher_force_ls=[True],
                                                                                   proportion_pred_train_ls=[None],
                                                                                   shared_context_ls=["all"],
@@ -178,8 +179,7 @@ if __name__ == "__main__":
               n_models = len(params) if not warmup else 1
               warmup_desc = "warmup" if warmup else ""
               test_before_run_desc = "test_before_run" if test_before_run else ""
-              description = "{} models : Analysing : {} with regard to {} fixed".format(n_models, to_analysed,
-                                                                                        to_keep_only)
+              description = "{} models ".format(n_models)
               row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=LABEL_GRID, description=description,
                                                 log_dir=log, target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR,
                                                                                                         "{}*".format(
@@ -221,7 +221,7 @@ if __name__ == "__main__":
                                               unrolling_word_ls=[True],
                                               scale_ls=[1],
                                               overall_report_dir=dir_grid, overall_label=LABEL_GRID,
-                                              train_path=DEV, dev_path=TEST, test_paths=[DEV, EWT_DEV,TEST], gpu_mode="random",
+                                              train_path=DEV, dev_path=TEST, test_paths=[DEV], gpu_mode="random",
                                               gpus_ls=GPU_AVAILABLE_DEFAULT_LS,
                                               write_to_dir=RUN_SCRIPTS_DIR)
           print("row:{}".format(row))

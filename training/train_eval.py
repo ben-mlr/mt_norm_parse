@@ -13,7 +13,7 @@ import torch
 from env.project_variables import CHECKPOINT_DIR, REPO_DATASET, SEED_NP, SEED_TORCH
 import time
 from training.args_tool import args_train
-
+from toolbox.gpu_related import use_gpu_
 from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, CP_WR_PASTE_TEST_269, \
     LIU_DEV, DEV, DIR_TWEET_W2V, TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, CP_PASTE_WR_TRAIN, \
     CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST, EWT_DEV, EWT_TEST, \
@@ -37,13 +37,15 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                gpu=None, use_gpu=None,
                verbose=0):
 
-    if gpu is not None:
+    if gpu is not None and use_gpu_(use_gpu):
         assert use_gpu or use_gpu is None, "ERROR : use_gpu should be neutral (None) or True as 'gpu' is defined"
         #assert os.environ.get("CUDA_VISIBLE_DEVICES") is not None, "ERROR : no CUDA_VISIBLE_DEVICES env variable (gpu should be None)"
         os.environ["CUDA_VISIBLE_DEVICES"] = gpu
         printing("ENV : CUDA_VISIBLE_DEVICES set to {}", var=[gpu], verbose=verbose, verbose_level=1)
+    else:
+        printing("CPU mode cause {} gpu arg or use_gpu detected {} ", var=(gpu, use_gpu_(use_gpu)), verbose_level=1, verbose=verbose)
 
-    print("WOARD_EMBED", args["word_embed"])
+    print("WORD_EMBED file ", args["word_embed"])
     hidden_size_encoder = args.get("hidden_size_encoder", 10)
     word_embed = args.get("word_embed", False)
     word_embedding_projected_dim = args.get("word_embedding_projected_dim", None)
@@ -189,7 +191,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                          batch_size=batch_size, debug=debug,
                          word_decoding=word_decoding, char_decoding=char_decoding,
                          dir_report=model_dir, verbose=1)
-        printing("GRID : END EVAL", time.time()-start_eval, verbose=verbose, verbose_level=1)
+        printing("GRID : END EVAL {} ".format(time.time()-start_eval), verbose=verbose, verbose_level=1)
     printing("WARNING : no evaluation ", verbose=verbose, verbose_level=0)
 
     return model_full_name, model_dir

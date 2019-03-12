@@ -1,3 +1,5 @@
+import sys
+
 from io_.info_print import printing
 from env.project_variables import CLIENT_GOOGLE_CLOUD, SHEET_NAME_DEFAULT, TAB_NAME_DEFAULT
 import gspread
@@ -50,12 +52,3 @@ completion = "running"
 #print(col, row)
 #update_status(row, "algright")
 
-
-# TODO
-# A
-## - add this in a try except to grid run so that it rights each grid analysis run
-###  --> except should be modifying cell from running to failed, add target dir and report dir to what it should
-## - add in reporting script update cell to point to report
-# B :  with taskfarm
-## - add a write update_row before the task farm script
-## add an update one at the end with report
