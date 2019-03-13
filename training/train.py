@@ -71,6 +71,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
           freezing_mode=False, freeze_ls_param_prefix=None,
           optimizer="adam",
           verbose=1):
+    
+
     assert optimizer in AVAILABLE_OPTIMIZER, "optimizer supported are {} ".format(AVAILABLE_OPTIMIZER)
     if teacher_force:
         assert proportion_pred_train is None, "proportion_pred_train should be None as teacher_force mode"

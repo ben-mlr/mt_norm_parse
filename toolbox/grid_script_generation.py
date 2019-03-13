@@ -7,7 +7,7 @@ from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, C
     LIU_DEV, DEV, DIR_TWEET_W2V, TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, CP_PASTE_WR_TRAIN, \
     CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST, EWT_DEV, EWT_TEST, \
     LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO, EN_LINES_EWT_TRAIN, EN_LINES_DEV, EN_LINES_EWT_TRAIN, \
-    MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, LIST_ARGS, NONE_ARGS, BOOL_ARGS, RUN_SCRIPTS_DIR
+    MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, LIST_ARGS, NONE_ARGS, BOOL_ARGS, RUN_SCRIPTS_DIR, GPU_AVAILABLE_DEFAULT_LS
 
 from toolbox.git_related import get_commit_id
 from tracking.reporting_google_sheet import append_reporting_sheet
@@ -21,7 +21,7 @@ params_dozat = {"hidden_size_encoder": 200, "output_dim": 100, "char_embedding_d
                 "hidden_size_sent_encoder": 200, "hidden_size_decoder": 100, "batch_size": 500}
 
 
-def script_generation(grid_label, init_param, warmup,dir_grid, environment, dir_log,epochs,
+def script_generation(grid_label, init_param, warmup,dir_grid, environment, dir_log, epochs,
                       train_path, dev_path, test_paths, overall_report_dir, overall_label,
                       stable_decoding_state_ls, word_decoding_ls, batch_size_ls,
                       word_embed_ls, dir_sent_encoder_ls, lr_ls, word_embed_init_ls,
@@ -39,7 +39,6 @@ def script_generation(grid_label, init_param, warmup,dir_grid, environment, dir_
 
     params, labels, default_all, analysed, fixed = grid_param_label_generate(
         init_param,
-        warmup=warmup,
         grid_label=grid_label,
         stable_decoding_state_ls=stable_decoding_state_ls,
         word_decoding_ls=word_decoding_ls,
@@ -56,17 +55,21 @@ def script_generation(grid_label, init_param, warmup,dir_grid, environment, dir_
         n_layers_sent_cell_ls=n_layers_sent_cell_ls,
         unrolling_word_ls=unrolling_word_ls,
         scale_ls=scale_ls, gpu_mode=gpu_mode, gpus_ls=gpus_ls)
-    print(params, labels)
-
+    if gpu_mode == "random":
+        if gpus_ls is None:
+            gpus_ls = GPU_AVAILABLE_DEFAULT_LS
+    if gpu_mode == "fixed":
+        if gpus_ls is None:
+            gpus_ls = ["0"]
     description = "{} models : Analysing : {} with regard to {} fixed".format(len(params), analysed, fixed)
-    row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=grid_label, description=description,
+    row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=os.environ.get("OAR_JOB_ID",grid_label), description=description,
                                       log_dir=dir_log, target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR,
                                                                                               "{}*".format(grid_label)),
                                       env=environment, status="running {}".format(warmup_desc),
                                       verbose=1)
 
     for ind, (param, model_id_pref) in enumerate(zip(params, labels)):
-        script = "/home/rioc/bemuller/miniconda3/envs/mt_norm_parse/bin/python {}".format(os.path.join(PROJECT_PATH, "train_evaluate_run.py"))
+        script = "CUDA_VISIBLE_DEVICES={} {} {}".format(ind % len(gpus_ls), os.environ.get("PYTHON_CONDA"), os.path.join(PROJECT_PATH, "train_evaluate_run.py"))
         for arg, val in param.items():
             # args in NONE ARGS ARE NOT ADDED TO THE SCRIPT MAKER (they will be handle by default behavior later in the code)
 
@@ -87,7 +90,7 @@ def script_generation(grid_label, init_param, warmup,dir_grid, environment, dir_
             script += " --{} {}".format("pos_specific_path", pos_specific_path)
         script += " --{} {}".format("overall_label", overall_label)
         script += " --{} {}".format("model_id_pref", model_id_pref)
-        script += " --{} {}".format("epochs", epochs)
+        script += " --{} {}".format("epochs", epochs if not warmup else 1)
         script += " --{} {}".format("overall_report_dir", overall_report_dir)
         #print(script)
         if write_to_dir is not None:

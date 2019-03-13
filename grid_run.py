@@ -6,7 +6,7 @@ from training.train_eval import train_eval
 from training.fine_tune import fine_tune
 from toolbox.grid_tool import grid_param_label_generate
 from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, CP_WR_PASTE_TEST_269, \
-    LIU_DEV, DEV, DIR_TWEET_W2V, TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, CP_PASTE_WR_TRAIN, \
+    LIU_DEV, DEV, DIR_TWEET_W2V, TEST, DIR_TWEET_W2V, DIR_FASTEXT_WIKI_NEWS_W2V, CHECKPOINT_DIR, DEMO, DEMO2, CP_PASTE_WR_TRAIN, \
     CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST, EWT_DEV, EWT_TEST, \
     LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO, EN_LINES_EWT_TRAIN, EN_LINES_DEV, EN_LINES_EWT_TRAIN, \
     MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, RUN_SCRIPTS_DIR, GPU_AVAILABLE_DEFAULT_LS
@@ -21,7 +21,7 @@ FINE_TUNE = 0
 GRID = 1
 
 
-def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_paths, epochs=50, test_before_run=False, warmup=False):
+def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_paths, epochs=50, test_before_run=False,debug=False, warmup=False):
     i = 0
     for param, model_id_pref in zip(params, labels):
         i += 1
@@ -54,7 +54,7 @@ def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_pa
                                                                      "norm_not_norm-Recall",
                                                                      "norm_not_norm-accuracy"],
                                                 warmup=warmup, args=param, use_gpu=None, n_epochs=epochs,
-                                                debug=False,
+                                                debug=debug,
                                                 verbose=1)
 
         run_dir = os.path.join(dir_grid, RUN_ID + "-run-log")
@@ -122,8 +122,8 @@ if __name__ == "__main__":
                                                                                   warmup=False,
                                                                                   grid_label="0",
                                                                                   stable_decoding_state_ls=[False],
-                                                                                  word_decoding_ls=[True],
-                                                                                  batch_size_ls=[50, 100,200,400],
+                                                                                  word_decoding_ls=[False],
+                                                                                  batch_size_ls=[2],
                                                                                   #auxilliary_task_pos_ls=[False],
                                                                                   word_embed_ls=[True],
                                                                                   dir_sent_encoder_ls=[2], lr_ls=[0.0001,0.001,0.05],
@@ -133,7 +133,7 @@ if __name__ == "__main__":
                                                                                   shared_context_ls=["all"],
                                                                                   word_embedding_projected_dim_ls=[None],
                                                                                   #auxilliary_task_norm_not_norm_ls=[True],
-                                                                                  tasks_ls=[["normalize"]],
+                                                                                  tasks_ls=[["pos"]],
                                                                                   char_src_attention_ls=[True],
                                                                                   n_layers_sent_cell_ls=[2],
                                                                                   unrolling_word_ls=[True],
@@ -153,7 +153,7 @@ if __name__ == "__main__":
           test_before_run = args.test_before_run
           print("GRID : test_before_run set to {} ".format(test_before_run))
           warmup = False
-          environment = "rioc"
+          environment = os.environ.get("ENV","NO ENV FOUND")
           OAR = os.environ.get('OAR_JOB_ID') + "_rioc-" if os.environ.get('OAR_JOB_ID', None) is not None else ""
           print("OAR=", OAR)
           log = "{}/logs/{}".format(os.getcwd(), os.environ.get('OAR_JOB_ID')+"-job.stdout")
@@ -180,7 +180,7 @@ if __name__ == "__main__":
               warmup_desc = "warmup" if warmup else ""
               test_before_run_desc = "test_before_run" if test_before_run else ""
               description = "{} models ".format(n_models)
-              row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=LABEL_GRID, description=description,
+              row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=OAR, description=description,
                                                 log_dir=log, target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR,
                                                                                                         "{}*".format(
                                                                                                             LABEL_GRID)),
@@ -190,7 +190,7 @@ if __name__ == "__main__":
               run_grid(params=params, labels=labels, dir_grid=dir_grid, label_grid=LABEL_GRID,
                        epochs=5,test_before_run=test_before_run,
                        train_path=train_path,
-                       dev_path=dev_path,
+                       dev_path=dev_path,debug=False,
                        test_paths=[TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
                        warmup=warmup)
               update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
@@ -200,28 +200,30 @@ if __name__ == "__main__":
 
 
       else:
-          epochs=1
-          train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
-          dir_script, row = script_generation(grid_label=LABEL_GRID, init_param=params_dozat, warmup=test_before_run,
+          epochs=150
+          train_path, dev_path = CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+          dir_script, row = script_generation(grid_label=LABEL_GRID, 
+                                              init_param=params_strong,#params_dozat,
+                                              warmup=test_before_run,
                                               dir_grid=dir_grid, environment=environment, dir_log=log,
                                               stable_decoding_state_ls=[False],
                                               word_decoding_ls=[False],
                                               epochs=epochs,
-                                              batch_size_ls=[50, 100, 200, 400],
+                                              batch_size_ls=[100],
                                               word_embed_ls=[False],
-                                              dir_sent_encoder_ls=[2], lr_ls=[0],
+                                              dir_sent_encoder_ls=[2], lr_ls=[0.001],
                                               word_embed_init_ls=[None],
                                               teacher_force_ls=[True],
                                               proportion_pred_train_ls=[None],
                                               shared_context_ls=["all"],
                                               word_embedding_projected_dim_ls=[None],
-                                              tasks_ls=[["pos"]],
+                                              tasks_ls=[["normalize"]],
                                               char_src_attention_ls=[True],
                                               n_layers_sent_cell_ls=[2],
                                               unrolling_word_ls=[True],
-                                              scale_ls=[1],
+                                              scale_ls=[1,2,3],
                                               overall_report_dir=dir_grid, overall_label=LABEL_GRID,
-                                              train_path=DEV, dev_path=TEST, test_paths=[DEV], gpu_mode="random",
+                                              train_path=train_path, dev_path=dev_path, test_paths=[CP_WR_PASTE_TEST_269, CP_WR_PASTE_DEV], gpu_mode="random",
                                               gpus_ls=GPU_AVAILABLE_DEFAULT_LS,
                                               write_to_dir=RUN_SCRIPTS_DIR)
           print("row:{}".format(row))

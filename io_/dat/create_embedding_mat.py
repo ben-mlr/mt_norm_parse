@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from io_.info_print import printing
 from io_.dat.constants import UNK_ID
 
 
@@ -20,22 +21,21 @@ def construct_word_embedding_table(word_dim, word_dictionary, word_embed_init_to
         if word in word_embed_init_toke2vec:
             embedding = word_embed_init_toke2vec[word]
             inv += 1
-            print("PRETRAINED VECTOR", index, word, embedding)
+            #print("PRETRAINED VECTOR", index, word, embedding)
             mean += np.mean(embedding)
             var += np.var(embedding)
         elif word.lower() in word_embed_init_toke2vec:
             embedding = word_embed_init_toke2vec[word.lower()]
-            print("LOWER PRETRAINED VECTOR", index, word, embedding)
+            #print("LOWER PRETRAINED VECTOR", index, word, embedding)
             inv += 1
             mean+= np.mean(embedding)
             var+=np.var(embedding)
         else:
             embedding = np.random.uniform(-scale, scale, [1, word_dim]).astype(np.float32)
-            print("RANDOMY GENERATED", index, word, embedding)
+            #print("RANDOMY GENERATED", index, word, embedding)
             oov += 1
         table[index, :] = embedding
-        print("repeat", table[index, :])
-    print("Mean of preloaded w2v {} var {}".format(mean/inv, var/inv))
-    print('word OOV: %d/%d (%f rate (percent)) in %d' % (
-    oov, len(word_dictionary) + 1, 100 * float(oov / (len(word_dictionary) + 1)), inv))
+        #print("repeat", table[index, :])
+    printing("W2V INFO : Mean of preloaded w2v {} var {}", var=[mean/inv, var/inv], verbose_level=1, verbose=verbose)
+    printing('W2V INFO  : OOV: %d/%d (%f rate (percent)) in %d' % (oov, len(word_dictionary) + 1, 100 * float(oov / (len(word_dictionary) + 1)), inv), verbose_level=1, verbose=verbose)
     return torch.from_numpy(table)

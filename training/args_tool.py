@@ -46,7 +46,7 @@ def args_train(mode="command_line"):
     parser.add_argument("--shared_context", default="all", help="display a square of a given number")
 
     parser.add_argument("--policy", default=None,type=int, help="display a square of a given number")
-    parser.add_argument("--lr", default=0.001, type=int,help="display a square of a given number")
+    parser.add_argument("--lr", default=0.001, type=float,help="display a square of a given number")
     parser.add_argument("--gradient_clipping", type=int,default=None, help="display a square of a given number")
     parser.add_argument("--teacher_force", type=int,default=1, help="display a square of a given number")
     parser.add_argument("--proportion_pred_train", type=int, default=None, help="display a square of a given number")

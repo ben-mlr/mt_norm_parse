@@ -1,17 +1,17 @@
 from io_.info_print import printing
-from env.project_variables import TASKS_2_METRICS_STR
+from env.project_variables import TASKS_2_METRICS_STR, GPU_AVAILABLE_DEFAULT_LS, REPO_W2V
 import numpy as np
 DEFAULT_BATCH_SIZE = 25
 DEFAULT_SCALE = 2
 DEFAULT_AUX_NORM_NOT_NORM = False
 GPU_MODE_SUPPORTED = ["random", "fixed", "CPU"]
-DEFAULT_VISIBLE_CUDA_GPU = [str(i) for i in range(3)]
+
 
 
 def get_gpu_id(gpu_mode, gpus_ls, verbose):
   if gpus_ls is None:
     if gpu_mode == "random":
-      gpus_ls = DEFAULT_VISIBLE_CUDA_GPU
+      gpus_ls = GPU_AVAILABLE_DEFAULT_LS
       printing("ENV : switch to default gpu_ls {} cause mode is {}".format(gpus_ls, gpu_mode),
                verbose=verbose, verbose_level=1)
     if gpu_mode == "fixed":
@@ -37,7 +37,7 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                               clipping_ls=None, unrolling_word_ls=None, teacher_force_ls=None,
                               word_decoding_ls=None,
                               #auxilliary_task_pos_ls=None,
-                              stable_decoding_state_ls=None, warmup=False,
+                              stable_decoding_state_ls=None,
                               word_embedding_projected_dim_ls=None, n_layers_sent_cell_ls=None, word_embed_ls=None,
                               proportion_pred_train_ls=None, tasks_ls=None,
                               grid_label="", gpu_mode="random", gpus_ls=None, printout_info_var=True):
@@ -123,24 +123,30 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
     #for aux in auxilliary_task_norm_not_norm_ls:
     for shared_context in shared_context_ls:
       for lr in lr_ls:
-        for word_embed_init in word_embed_init_ls:
-          for scale in scale_ls:
-            if shared_context == "sent":
-              scale_sent_context = 1
-              scale_word = 1
-              scaled_output_dim = 1
-            else:
-              scale_sent_context, scale_word, scaled_output_dim = 1, 1, 1
-            for dir_word_encoder in dir_word_encoder_ls:
-              for char_src_attention in char_src_attention_ls:
-                for dir_sent_encoder in dir_sent_encoder_ls:
-                  for clipping in clipping_ls :
-                    for unrolling_word in unrolling_word_ls:
-                      for word_decoding in word_decoding_ls:
-                      #for auxilliary_task_pos in auxilliary_task_pos_ls:
-                        for stable_decoding_state in stable_decoding_state_ls:
-                          for word_embedding_projected_dim in word_embedding_projected_dim_ls:
-                            for word_embed in word_embed_ls:
+        for scale in scale_ls:
+          if shared_context == "sent":
+            scale_sent_context = 1
+            scale_word = 1
+            scaled_output_dim = 1
+          else:
+            scale_sent_context, scale_word, scaled_output_dim = 1, 1, 1
+          for dir_word_encoder in dir_word_encoder_ls:
+            for char_src_attention in char_src_attention_ls:
+              for dir_sent_encoder in dir_sent_encoder_ls:
+                for clipping in clipping_ls:
+                  for unrolling_word in unrolling_word_ls:
+                    for word_decoding in word_decoding_ls:
+                    # for auxilliary_task_pos in auxilliary_task_pos_ls:
+                      for stable_decoding_state in stable_decoding_state_ls:
+                        for word_embed in word_embed_ls:
+                          if not word_embed:
+                            _word_embedding_projected_dim_ls = [None]
+                            _word_embed_init_ls = [None]
+                          else:
+                            _word_embed_init_ls = word_embed_init_ls
+                            _word_embedding_projected_dim_ls = word_embedding_projected_dim_ls
+                          for word_embed_init in _word_embed_init_ls :
+                            for word_embedding_projected_dim in _word_embedding_projected_dim_ls:
                               for n_layers_sent_cell in n_layers_sent_cell_ls:
                                 for proportion_pred_train in proportion_pred_train_ls:
                                   for tasks in tasks_ls:
@@ -181,9 +187,9 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                                       #param0["dropout_bridge"] = 0.1
                                       param0["word_embed"] = word_embed
                                       if word_embed_init is not None and word_embed:
-                                        param0["word_embedding_dim"] = 400
+                                        param0["word_embedding_dim"] = REPO_W2V[word_embed_init]["dim"]
                                       elif word_embed:
-                                        param0["word_embedding_dim"] = 50
+                                        param0["word_embedding_dim"] = 300
                                       else:
                                         param0["word_embedding_dim"] = 0
                                       param0["dense_dim_word_pred"] = 300 if word_decoding else None
@@ -197,7 +203,7 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
 
   studied_vars = []
   fixed_vars = []
-
+  print("HYPARAMETER BASE", param)
   for var, vals in dic_grid.items():
     if var == "proportion_pred_train":
       if None in vals:
@@ -208,7 +214,7 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
     else:
       print("FIXED", var, vals)
       fixed_vars.append((var, vals[0]))
-
+  print("SCALE LS ", scale_ls)
   # grid information
   to_enrich = " ".join([a for a, _ in fixed_vars]) + " " + " ".join(studied_vars)
   to_analysed = " ".join(studied_vars)

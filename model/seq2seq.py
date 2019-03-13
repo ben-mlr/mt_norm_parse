@@ -307,6 +307,7 @@ class LexNormalizer(nn.Module):
                                                               word_embed_init_toke2vec=word_embed_dic,verbose=verbose)
             printing("W2V INFO : intializing embedding matrix with tensor of shape {}  ", var=[word_embed_torch.size()], verbose=verbose, verbose_level=1)
             self.word_embedding.weight.data = word_embed_torch
+            #print("SANITY CHECK word : them", self.word_embedding())
 
         self.encoder = CharEncoder(self.char_embedding, input_dim=char_embedding_dim,
                                    hidden_size_encoder=hidden_size_encoder,
@@ -391,6 +392,7 @@ class LexNormalizer(nn.Module):
         start = time.time() if timing else None
 
         if self.word_embedding is not None:
+            pdb.set_trace()
             word_embed_input = self.word_embedding(word_embed_input)
             if self.word_embedding_project is not None:
                 word_embed_input = self.word_embedding_project(word_embed_input)

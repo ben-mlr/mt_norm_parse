@@ -9,7 +9,6 @@ from io_.info_print import printing
 import os
 from evaluate.evaluate_epoch import evaluate
 import numpy as np
-import torch
 from env.project_variables import CHECKPOINT_DIR, REPO_DATASET, SEED_NP, SEED_TORCH
 import time
 from training.args_tool import args_train
@@ -19,9 +18,8 @@ from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, C
     CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST, EWT_DEV, EWT_TEST, \
     LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO, EN_LINES_EWT_TRAIN, EN_LINES_DEV, EN_LINES_EWT_TRAIN, \
     MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST
-
-
-np.random.seed(SEED_NP+1)
+import torch
+np.random.seed(SEED_NP + 1)
 torch.manual_seed(SEED_TORCH)
 
 
@@ -40,11 +38,12 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
     if gpu is not None and use_gpu_(use_gpu):
         assert use_gpu or use_gpu is None, "ERROR : use_gpu should be neutral (None) or True as 'gpu' is defined"
         #assert os.environ.get("CUDA_VISIBLE_DEVICES") is not None, "ERROR : no CUDA_VISIBLE_DEVICES env variable (gpu should be None)"
-        os.environ["CUDA_VISIBLE_DEVICES"] = gpu
+        os.environ["CUDA_VISIBLE_DEVICES"] ="1"# gpu
         printing("ENV : CUDA_VISIBLE_DEVICES set to {}", var=[gpu], verbose=verbose, verbose_level=1)
+
     else:
         printing("CPU mode cause {} gpu arg or use_gpu detected {} ", var=(gpu, use_gpu_(use_gpu)), verbose_level=1, verbose=verbose)
-
+    
     print("WORD_EMBED file ", args["word_embed"])
     hidden_size_encoder = args.get("hidden_size_encoder", 10)
     word_embed = args.get("word_embed", False)
@@ -92,7 +91,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
 
     stable_decoding_state = args.get("stable_decoding_state", False)
     init_context_decoder = args.get("init_context_decoder", True)
-    optimizer = args.get("optimizer", "bahdanu-adadelta")
+    optimizer = args.get("optimizer", "adam")
 
     word_decoding = args.get("word_decoding", False)
     dense_dim_word_pred = args.get("dense_dim_word_pred", None)

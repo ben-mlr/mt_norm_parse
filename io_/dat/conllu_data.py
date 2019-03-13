@@ -231,7 +231,9 @@ def create_dict(dict_path, train_path, dev_path, test_path,
             pos = tokens[3] # if tokens[4]=='_' else tokens[3]+'$$$'+tokens[4]
             xpos = tokens[4]
             typ = tokens[7]
-            token_norm, _ = get_normalized_token(tokens[9], 0, verbose=0)
+            # TODO SOMEHITNG
+            if word_normalization:
+              token_norm, _ = get_normalized_token(tokens[9], 0, verbose=0)
             if word_normalization:
               # TODO : add word_norm_embed_dict to allow expansion !
               if word_norm not in vocab_norm_set and False:
