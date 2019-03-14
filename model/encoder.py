@@ -23,6 +23,7 @@ class CharEncoder(nn.Module):
         super(CharEncoder, self).__init__()
         self.char_embedding_ = char_embedding
         self.timing = timing
+        
         self.add_word_level = add_word_level
         word_embedding_dim_inputed = 0 if word_embedding_dim_inputed is None else word_embedding_dim_inputed
         # context level shared to the decoder (should prune a lot if context level word/or sent )
