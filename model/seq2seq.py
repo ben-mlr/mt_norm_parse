@@ -7,7 +7,7 @@ from model.encoder import CharEncoder
 from model.decoder import CharDecoder
 from model.pos_predictor import PosPredictor
 from model.normalize_not import BinaryPredictor
-from env.project_variables import CHECKPOINT_DIR, AVAILABLE_TASKS, REPO_DATASET
+from env.project_variables import CHECKPOINT_DIR, AVAILABLE_TASKS, REPO_DATASET, REPO_W2V
 import torch
 from io_.dat.create_embedding_mat import construct_word_embedding_table
 from torch.autograd import Variable
@@ -188,12 +188,12 @@ class LexNormalizer(nn.Module):
                                                    "word_embed": word_embed,  "word_embedding_dim": word_embedding_dim,
                                                    "word_embedding_projected_dim": word_embedding_projected_dim,
                                                    "n_layers_word_encoder": n_layers_word_encoder,
-                                                   "word_embed_init": REPO_DATASET.get(word_embed_dir),
+                                                   "word_embed_init": REPO_W2V.get(word_embed_dir,{"label":"?"}).get("label"),
                                                    "dir_sent_encoder": dir_sent_encoder,
                                                    "dir_word_encoder": dir_word_encoder,
                                                    "drop_out_sent_encoder_out": drop_out_sent_encoder_out,
                                                    "drop_out_word_encoder_out": drop_out_word_encoder_out,
-                                                   "dropout_word_encoder_cell": drop_out_word_decoder_cell,
+                                                   "dropout_word_encoder_cell": drop_out_word_encoder_cell,
                                                    "dropout_sent_encoder_cell": drop_out_sent_encoder_cell,
                                                  },
                                   "decoder_arch": {"cell_word": word_recurrent_cell_decoder, "cell_sentence": "none",

@@ -16,11 +16,12 @@ from model.attention import Attention
 EPSILON = 1e-6
 
 
+
 class CharDecoder(nn.Module):
 
     def __init__(self, char_embedding, input_dim, hidden_size_decoder, shared_context, word_recurrent_cell=None,
                  drop_out_word_cell=0, timing=False, drop_out_char_embedding_decoder=0,
-                 char_src_attention=False, unrolling_word=False,init_context_decoder=True,
+                 char_src_attention=False, unrolling_word=False, init_context_decoder=True,
                  hidden_size_src_word_encoder=None, generator=None, stable_decoding_state=False,
                  verbose=0):
         super(CharDecoder, self).__init__()
@@ -40,7 +41,11 @@ class CharDecoder(nn.Module):
         if word_recurrent_cell is not None:
             assert word_recurrent_cell in SUPPORED_WORD_ENCODER, \
                 "ERROR : word_recurrent_cell should be in {} ".format(SUPPORED_WORD_ENCODER)
-        word_recurrent_cell = nn.GRU if word_recurrent_cell is None else eval("nn."+word_recurrent_cell)
+        if word_recurrent_cell is None:
+            word_recurrent_cell = nn.GRU
+        else:
+            word_recurrent_cell = eval("nn."+word_recurrent_cell)
+
         if isinstance(word_recurrent_cell, nn.LSTM):
             printing("WARNING : in the case of LSTM : inital states defined as "
                      " h_0, c_0 = (zero tensor, source_conditioning) so far (cf. row 70 decoder.py) ",

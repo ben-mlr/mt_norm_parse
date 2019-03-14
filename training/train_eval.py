@@ -54,8 +54,8 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
     hidden_size_sent_encoder = args.get("hidden_size_sent_encoder", 10)
     hidden_size_decoder = args.get("hidden_size_decoder", 10)
     batch_size = args.get("batch_size", 2)
-    dropout_sent_encoder, dropout_word_encoder, dropout_word_decoder = args.get("dropout_sent_encoder",0), \
-    args.get("dropout_word_encoder", 0), args.get("dropout_word_decoder", 0)
+    dropout_sent_encoder, dropout_word_encoder_cell, dropout_word_decoder = args.get("dropout_sent_encoder",0), \
+    args.get("dropout_word_encoder_cell", 0), args.get("dropout_word_decoder", 0)
     n_layers_word_encoder = args.get("n_layers_word_encoder", 1)
     n_layers_sent_cell = args.get("n_layers_sent_cell", 1)
     dir_sent_encoder = args.get("dir_sent_encoder", 1)
@@ -125,7 +125,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                             dict_path=None, model_dir=None, add_start_char=1, freq_scoring=freq_scoring,
                             add_end_char=1, use_gpu=use_gpu, dir_sent_encoder=dir_sent_encoder,
                             dropout_sent_encoder_cell=dropout_sent_encoder,
-                            dropout_word_encoder_cell=dropout_word_encoder,
+                            dropout_word_encoder_cell=dropout_word_encoder_cell,
                             dropout_word_decoder_cell=dropout_word_decoder,
                             policy=schedule_training_policy,
                             dir_word_encoder=dir_word_encoder, compute_mean_score_per_sent=compute_mean_score_per_sent,

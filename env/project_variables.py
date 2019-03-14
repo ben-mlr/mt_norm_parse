@@ -22,7 +22,7 @@ BOOL_ARGS = ["word_embed", "teacher_force", "char_decoding", "unrolling_word", "
 GPU_AVAILABLE_DEFAULT_LS = ["0", "1", "2", "3"]
 
 # architecture/model/training supported
-SUPPORED_WORD_ENCODER = ["LSTM", "GRU"]
+SUPPORED_WORD_ENCODER = ["LSTM", "GRU", "WeightDropLSTM"]
 BREAKING_NO_DECREASE = 21
 SUPPORTED_STAT = ["sum"]
 LOSS_DETAIL_TEMPLATE = {"loss_overall": 0, "loss_seq_prediction": 0, "other": {}}

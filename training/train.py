@@ -1,6 +1,7 @@
 from io_.dat import conllu_data
 from model.seq2seq import LexNormalizer
-from model.generator import  Generator
+from model.generator import Generator
+
 from io_.data_iterator import data_gen_conllu
 from training.epoch_train import run_epoch
 from model.loss import LossCompute
@@ -71,7 +72,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
           freezing_mode=False, freeze_ls_param_prefix=None,
           optimizer="adam",
           verbose=1):
-    
 
     assert optimizer in AVAILABLE_OPTIMIZER, "optimizer supported are {} ".format(AVAILABLE_OPTIMIZER)
     if teacher_force:

@@ -4,9 +4,11 @@ import torch
 from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 from io_.info_print import printing
 import time
+from torchnlp.nn import WeightDropLSTM
 import pdb
 from env.project_variables import SUPPORED_WORD_ENCODER
 from io_.dat.constants import PAD_ID_CHAR
+from io_.dat.constants import MAX_CHAR_LENGTH
 
 class CharEncoder(nn.Module):
 
@@ -14,7 +16,7 @@ class CharEncoder(nn.Module):
                  word_recurrent_cell=None, dropout_sent_encoder_cell=0, dropout_word_encoder_cell=0,
                  n_layers_word_cell=1, timing=False, bidir_sent=True,context_level="all",
                  drop_out_word_encoder_out=0, drop_out_sent_encoder_out=0,
-                 n_layers_sent_cell=1,
+                 n_layers_sent_cell=1, attention_tagging=False,
                  dir_word_encoder=1, add_word_level=False,
                  word_embedding_dim_inputed=0,
                  verbose=2):
@@ -25,6 +27,8 @@ class CharEncoder(nn.Module):
         word_embedding_dim_inputed = 0 if word_embedding_dim_inputed is None else word_embedding_dim_inputed
         # context level shared to the decoder (should prune a lot if context level word/or sent )
         self.context_level = context_level
+        #self.attention_projection = nn.Linear(MAX_CHAR_LENGTH,1) if attention_tagging else None#attention_tagging
+        self.attention_projection = nn.Parameter(torch.FloatTensor(MAX_CHAR_LENGTH)) if attention_tagging else None#attention_tagging
         if dir_word_encoder == 2:
             assert hidden_size_encoder % 2 == 0, "ERROR = it will be divided by two and remultipy so need even number for simplicity"
         if bidir_sent:
@@ -32,7 +36,7 @@ class CharEncoder(nn.Module):
         self.sent_encoder = nn.LSTM(input_size=hidden_size_encoder*n_layers_word_cell*dir_word_encoder+word_embedding_dim_inputed,
                                     hidden_size=hidden_size_sent_encoder,
                                     num_layers=n_layers_sent_cell, bias=True, batch_first=True,
-                                    dropout=dropout_word_encoder_cell,
+                                    dropout=dropout_sent_encoder_cell,
                                     bidirectional=bidir_sent)
         self.drop_out_word_encoder_out = nn.Dropout(drop_out_word_encoder_out)
         self.drop_out_sent_encoder_out = nn.Dropout(drop_out_sent_encoder_out)
@@ -40,18 +44,23 @@ class CharEncoder(nn.Module):
         if word_recurrent_cell is not None:
             assert word_recurrent_cell in SUPPORED_WORD_ENCODER, \
                 "ERROR : word_recurrent_cell should be in {} ".format(SUPPORED_WORD_ENCODER)
-        word_recurrent_cell = nn.GRU if word_recurrent_cell is None else eval("nn."+word_recurrent_cell)
+        if word_recurrent_cell is None:
+            word_recurrent_cell = nn.GRU
+        elif word_recurrent_cell == "WeightDropLSTM":
+            word_recurrent_cell = eval(word_recurrent_cell)
+        else:
+            word_recurrent_cell = eval("nn."+word_recurrent_cell)
         self.word_recurrent_cell = word_recurrent_cell
         printing("MODEL Encoder : word_recurrent_cell has been set to {} ", var=([str(word_recurrent_cell)]),
                  verbose=verbose, verbose_level=1)
         self.seq_encoder = word_recurrent_cell(input_size=input_dim, hidden_size=hidden_size_encoder,
-                                               dropout=dropout_sent_encoder_cell,
+                                               dropout=dropout_word_encoder_cell,
                                                num_layers=n_layers_word_cell,#nonlinearity='tanh',
                                                bias=True, batch_first=True, bidirectional=bool(dir_word_encoder-1))
 
     def word_encoder_source(self, input, input_word_len=None):
         # input : [word batch dim, max character length],  input_word_len [word batch dim]
-        printing("SOURCE dim {} ", var=(input.size()),verbose= self.verbose, verbose_level=3)
+        printing("SOURCE dim {} ", var=(input.size()),verbose=self.verbose, verbose_level=3)
         printing("SOURCE DATA {} ", var=(input), verbose=self.verbose, verbose_level=5)
         printing("SOURCE Word lenght size {} ", var=(input_word_len.size()),verbose= self.verbose, verbose_level=5)
         printing("SOURCE : Word  length  {}  ", var=(input_word_len), verbose=self.verbose, verbose_level=3)
@@ -79,7 +88,13 @@ class CharEncoder(nn.Module):
         # last complete hidden state: [dir*n_layer, batch, dim encoding dim]
         output, h_n = self.seq_encoder(packed_char_vecs)
         # see if you really want that
-        h_n = h_n[0] if isinstance(self.seq_encoder, nn.LSTM) else h_n
+        # NB WeightDropLSTM is also a nn.LSTM instance
+        if isinstance(self.seq_encoder, nn.LSTM):
+            c_n = h_n[1]
+            h_n = h_n[0]
+        else:
+            c_n = None
+
         # TODO add attention out of the output (or maybe output the all output and define attention later)
         printing("SOURCE ENCODED all {}  , hidden {}  (output (includes all the "
                  "hidden states of last layers), last hidden hidden for each dir+layers)", var=(output.data.shape,
@@ -91,7 +106,20 @@ class CharEncoder(nn.Module):
 
         word_src_sizes = word_src_sizes[inverse_perm_idx]
         h_n = h_n[:, inverse_perm_idx, :]
-
+        if c_n is not None:
+            c_n = c_n[:, inverse_perm_idx, :]
+        if self.attention_projection is not None:
+            assert c_n is not None, "ERROR attention only supported when LSTM used (for layziness)"
+            # dim = 1 cause along sequence dimension
+            pdb.set_trace()
+            proj = self.attention_projection.dot(h_n)
+            # take care of padding for shorter sequence
+            # Variable length attention ?
+            pdb.set_trace()
+            attention_weights = nn.Softmax(dim=1)(proj)
+            pdb.set_trace()
+            new_h_n = torch.bmm(h_n, attention_weights)
+            pdb.set_trace()
         printing("SOURCE ENCODED UNPACKED {}  , hidden {}  (output (includes all the "
                  "hidden states of last layers), last hidden hidden for each dir+layers)", var=(output.data.shape, h_n.size()),
                  verbose=self.verbose, verbose_level=3)
@@ -145,7 +173,7 @@ class CharEncoder(nn.Module):
 
         h_w, char_seq_hidden, word_src_sizes = self.word_encoder_source(input=input_char_vecs, input_word_len=input_word_len)
         # [batch x max sent_len , packed max_char_length, hidden_size_encoder]
-
+        pdb.set_trace()
         h_w = h_w.transpose(1, 0)
 
         # n_dir x dim hidden

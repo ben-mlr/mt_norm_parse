@@ -27,6 +27,7 @@ def script_generation(grid_label, init_param, warmup,dir_grid, environment, dir_
                       word_embed_ls, dir_sent_encoder_ls, lr_ls, word_embed_init_ls,
                       teacher_force_ls, proportion_pred_train_ls, shared_context_ls,
                       word_embedding_projected_dim_ls,
+                      word_recurrent_cell_encoder_ls, dropout_word_encoder_cell_ls,
                       tasks_ls, char_src_attention_ls,
                       n_layers_sent_cell_ls, unrolling_word_ls,
                       scale_ls, pos_specific_path=None, gpu_mode="random", gpus_ls=None,write_to_dir=None,):
@@ -49,6 +50,8 @@ def script_generation(grid_label, init_param, warmup,dir_grid, environment, dir_
         teacher_force_ls=teacher_force_ls,
         proportion_pred_train_ls=proportion_pred_train_ls,
         shared_context_ls=shared_context_ls,
+        word_recurrent_cell_encoder_ls=word_recurrent_cell_encoder_ls,
+        dropout_word_encoder_cell_ls=dropout_word_encoder_cell_ls,
         word_embedding_projected_dim_ls=word_embedding_projected_dim_ls,
         tasks_ls=tasks_ls,
         char_src_attention_ls=char_src_attention_ls,
@@ -69,7 +72,7 @@ def script_generation(grid_label, init_param, warmup,dir_grid, environment, dir_
                                       verbose=1)
 
     for ind, (param, model_id_pref) in enumerate(zip(params, labels)):
-        script = "CUDA_VISIBLE_DEVICES={} {} {}".format(ind % len(gpus_ls), os.environ.get("PYTHON_CONDA"), os.path.join(PROJECT_PATH, "train_evaluate_run.py"))
+        script = "CUDA_VISIBLE_DEVICES={} {} {}".format(ind % len(gpus_ls), os.environ.get("PYTHON_CONDA","python"), os.path.join(PROJECT_PATH, "train_evaluate_run.py"))
         for arg, val in param.items():
             # args in NONE ARGS ARE NOT ADDED TO THE SCRIPT MAKER (they will be handle by default behavior later in the code)
 

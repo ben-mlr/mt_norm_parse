@@ -20,7 +20,7 @@ def args_train(mode="command_line"):
     parser.add_argument("--epochs", default=1, type=int, help="display a square of a given number")
 
     parser.add_argument("--dropout_sent_encoder", default=0, type=float, help="display a square of a given number")
-    parser.add_argument("--dropout_word_encoder", default=0, type=float, help="display a square of a given number")
+    parser.add_argument("--dropout_word_encoder_cell", default=0, type=float, help="display a square of a given number")
     parser.add_argument("--dropout_word_decoder", default=0, type=float, help="display a square of a given number")
     parser.add_argument("--drop_out_word_encoder_out", default=0, type=float, help="display a square of a given number")
     parser.add_argument("--drop_out_sent_encoder_out", default=0, type=float, help="display a square of a given number")
@@ -36,7 +36,7 @@ def args_train(mode="command_line"):
     parser.add_argument("--word_recurrent_cell_decoder", default="LSTM", help="display a square of a given number")
 
     parser.add_argument("--dense_dim_auxilliary", default=None,type=int, help="display a square of a given number")
-    parser.add_argument("--dense_dim_auxilliary_2", default=None,type=int, help="display a square of a given number")
+    parser.add_argument("--dense_dim_auxilliary_2", default=None,type=int, help="displaqy a square of a given number")
 
     parser.add_argument("--unrolling_word", default=True, type=int,help="display a square of a given number")
 
