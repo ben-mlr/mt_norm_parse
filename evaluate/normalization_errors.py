@@ -173,6 +173,9 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
     # output raw performance counting and formulas associated
     # to a metric name:(numerator/denominator) for higher level score just as to sum
 
+    # SHOULD MAKE DISTINCT CASES BETWEEN EXACT MATCH (as here) , EDIT, and BLUE (BLUE SCORE FORMULA ONly at the sentence ,
+    # word lebel()
+
     formulas = {
                 "accuracy-"+task+"": ("all-"+task+"-pred_correct-count", "all-"+task+"-gold-count"),
                 "accuracy-per_sent-"+task+"": ("all-"+task+"-pred_correct_per_sent-count", "all-"+task+"-n_sents"),

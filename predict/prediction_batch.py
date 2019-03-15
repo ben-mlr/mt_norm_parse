@@ -220,7 +220,8 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                             counter_correct[key] += 0
                             print(e)
                             print("EXXCEPTION WHEN updating counter_correct {} : val {} was therefore set to 0".format(key, val))
-                    if score_to_compute_ls is not None and not eval_new:
+                    # DEPRECIATED
+                    if score_to_compute_ls is not None and not eval_new and False:
                         for metric in score_to_compute_ls:
                             # TODO : DEPRECIATED : should be remove til
                             # ---- no more need t set the norm/need_norm : all is done by default

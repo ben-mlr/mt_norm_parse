@@ -36,7 +36,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
              model_specific_dictionary=True, label_report="", print_raw=False, model=None,
              compute_mean_score_per_sent=False,write_output=False,
              word_decoding=False, char_decoding=True,
-             extra_arg_specific_label="", scoring_func_sequence_pred="exact_match",
+             extra_arg_specific_label="", scoring_func_sequence_pred="BLUE",
              normalization=True, debug=False, force_new_dic=False, use_gpu=None, verbose=0):
     assert model_specific_dictionary, "ERROR : only model_specific_dictionary = True supported now"
     # NB : now : you have to load dictionary when evaluating (cannot recompute) (could add in the LexNormalizer ability)
@@ -268,7 +268,7 @@ if __name__ == "__main__":
                        mode_norm_ls=None,#score_to_compute_ls=["norm_not_norm-Recall"],
                        normalization=True, model_specific_dictionary=True, batch_size=batch_size,
                        debug=False, bucket=True,
-                       compute_mean_score_per_sent=False,
+                       compute_mean_score_per_sent=True,
                        word_decoding=False, char_decoding=True,
                        scoring_func_sequence_pred="BLUE",
                        get_batch_mode_evaluate=get_batch_mode_evaluate, write_output=False,
