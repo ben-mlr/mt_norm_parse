@@ -55,7 +55,9 @@ def args_train(mode="command_line"):
     parser.add_argument("--init_context_decoder", type=int, default=1, help="display a square of a given number")
     parser.add_argument("--optimizer", default="adam", help="display a square of a given number ")
 
-    parser.add_argument("--word_decoding", default=False, type=int, help="display a square of a given number ")
+    parser.add_argument("--word_decoding", default=0, type=int, help="display a square of a given number ")
+
+    parser.add_argument("--attention_tagging", default=0, type=int, help="display a square of a given number ")
 
     parser.add_argument("--dense_dim_word_pred", type=int, default=None, help="display a square of a given number ")
     parser.add_argument("--dense_dim_word_pred_2", type=int, default=None, help="display a square of a given number ")

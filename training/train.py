@@ -70,6 +70,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
           activation_word_decoder=None, activation_char_decoder=None,
           extra_arg_specific_label="",
           freezing_mode=False, freeze_ls_param_prefix=None,
+          attention_tagging=False,
           optimizer="adam",
           verbose=1):
 
@@ -182,7 +183,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                           word_embed=word_embed, word_embedding_dim=word_embedding_dim, word_embedding_projected_dim=word_embedding_projected_dim,
                           word_embed_dir=extern_emb_dir, word_voc_input_size=word_voc_input_size, teacher_force=teacher_force,
                           activation_char_decoder=activation_char_decoder, activation_word_decoder=activation_word_decoder,
-                          test_path=_test_path, extend_vocab_with_test=_test_path is not None, # if test is padded we extend
+                          test_path=_test_path, extend_vocab_with_test=_test_path is not None,
+                          attention_tagging=attention_tagging,
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
 
     pos_batch = auxilliary_task_pos

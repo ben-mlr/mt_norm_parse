@@ -40,7 +40,7 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                               dropout_word_encoder_cell_ls=None,
                               stable_decoding_state_ls=None,word_recurrent_cell_encoder_ls=None,
                               word_embedding_projected_dim_ls=None, n_layers_sent_cell_ls=None, word_embed_ls=None,
-                              proportion_pred_train_ls=None, tasks_ls=None,
+                              proportion_pred_train_ls=None, tasks_ls=None, attention_tagging_ls=None,
                               grid_label="", gpu_mode="random", gpus_ls=None, printout_info_var=True):
 
   assert gpu_mode in GPU_MODE_SUPPORTED, "ERROR gpu_mode not in {}".format(str(GPU_MODE_SUPPORTED))
@@ -77,6 +77,7 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
   if unrolling_word_ls is None:
     unrolling_word_ls = [True]
     default.append(("unrolling_word", unrolling_word_ls[0]))
+  assert unrolling_word_ls[0] and len(unrolling_word_ls)==1, "ERROR : only unrolling True allowed for Now (for loop nesting problem)"
   if teacher_force_ls is None:
     teacher_force_ls = [True]
     default.append(("teacher_force", teacher_force_ls[0]))
@@ -109,6 +110,9 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
   if dropout_word_encoder_cell_ls is None:
     dropout_word_encoder_cell_ls = [0.0]
     default.append(("drop_out_word_encoder", dropout_word_encoder_cell_ls[0]))
+  if attention_tagging_ls is None:
+    attention_tagging_ls = [False]
+    default.append(("attention_tagging", attention_tagging_ls[0]))
   for def_ in default:
     info_default.append((def_[0],def_[1])) #" "+str(def_[0])+","+str(def_[0])
     printing("GRID : {} argument defaulted to {} ", var=[str(def_)[:-6], def_], verbose=0, verbose_level=0)
@@ -123,6 +127,7 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
               "word_embedding_projected_dim": word_embedding_projected_dim_ls,
               "n_layers_sent_cell": n_layers_sent_cell_ls, "word_recurrent_cell_encoder": word_recurrent_cell_encoder_ls,
               "teacher_force": teacher_force_ls, "proportion_pred_train": proportion_pred_train_ls,"dropout_word_encoder_cell":dropout_word_encoder_cell_ls,
+              "attention_tagging": attention_tagging_ls,
               "tasks":tasks_ls,
               "word_embed": word_embed_ls}
   ind_model = 0
@@ -141,25 +146,26 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
             for char_src_attention in char_src_attention_ls:
               for dir_sent_encoder in dir_sent_encoder_ls:
                 for clipping in clipping_ls:
-                  for unrolling_word in unrolling_word_ls:
-                    for word_decoding in word_decoding_ls:
-                    # for auxilliary_task_pos in auxilliary_task_pos_ls:
-                      for stable_decoding_state in stable_decoding_state_ls:
-                        for word_embed in word_embed_ls:
-                          if not word_embed:
-                            _word_embedding_projected_dim_ls = [None]
-                            _word_embed_init_ls = [None]
-                          else:
-                            _word_embed_init_ls = word_embed_init_ls
-                            _word_embedding_projected_dim_ls = word_embedding_projected_dim_ls
-                          for word_embed_init in _word_embed_init_ls :
-                            for word_embedding_projected_dim in _word_embedding_projected_dim_ls:
-                              for n_layers_sent_cell in n_layers_sent_cell_ls:
-                                for proportion_pred_train in proportion_pred_train_ls:
-                                  for tasks in tasks_ls:
-                                    for teacher_force in teacher_force_ls:
-                                      for word_recurrent_cell_encoder in word_recurrent_cell_encoder_ls:
-                                        for dropout_word_encoder_cell in dropout_word_encoder_cell_ls:
+                  #for unrolling_word in unrolling_word_ls:
+                  for word_decoding in word_decoding_ls:
+                  # for auxilliary_task_pos in auxilliary_task_pos_ls:
+                    for stable_decoding_state in stable_decoding_state_ls:
+                      for word_embed in word_embed_ls:
+                        if not word_embed:
+                          _word_embedding_projected_dim_ls = [None]
+                          _word_embed_init_ls = [None]
+                        else:
+                          _word_embed_init_ls = word_embed_init_ls
+                          _word_embedding_projected_dim_ls = word_embedding_projected_dim_ls
+                        for word_embed_init in _word_embed_init_ls :
+                          for word_embedding_projected_dim in _word_embedding_projected_dim_ls:
+                            for n_layers_sent_cell in n_layers_sent_cell_ls:
+                              for proportion_pred_train in proportion_pred_train_ls:
+                                for tasks in tasks_ls:
+                                  for teacher_force in teacher_force_ls:
+                                    for word_recurrent_cell_encoder in word_recurrent_cell_encoder_ls:
+                                      for dropout_word_encoder_cell in dropout_word_encoder_cell_ls:
+                                        for attention_tagging in attention_tagging_ls:
                                           param0 = param.copy()
                                           ind_model += 1
                                           param0["batch_size"] = batch
@@ -177,7 +183,7 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                                           param0["output_dim"] *= int(scale * scaled_output_dim) + 1
                                           param0["dir_word_encoder"] = dir_word_encoder
                                           param0["char_src_attention"] = char_src_attention
-                                          param0["unrolling_word"] = unrolling_word
+                                          param0["unrolling_word"] = unrolling_word_ls[0]
                                           param0["dir_sent_encoder"] = dir_sent_encoder
                                           param0["n_layers_sent_cell"] = n_layers_sent_cell
                                           param0["gradient_clipping"] = clipping
@@ -209,6 +215,7 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                                           param0["word_embedding_projected_dim"] = word_embedding_projected_dim if param0["word_embed"] else None
                                           param0["proportion_pred_train"] = proportion_pred_train
                                           param0["gpu"] = get_gpu_id(gpu_mode, gpus_ls, 1)
+                                          param0["attention_tagging"] = attention_tagging
                                           params.append(param0)
                                           labels.append("{}-model_{}".format(grid_label, ind_model))
 

@@ -118,7 +118,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             printing("Feeding source pos {} ", var=[pos_display], verbose=_verbose, verbose_level=5)
             printing("TYPE {} char before batch chars_norm {} ", var=(char.is_cuda, chars_norm.is_cuda),
                      verbose=verbose, verbose_level=5)
-            pdb.set_trace()
+
             if NORM2NOISY:
                 print("WARNING !! NORM2NOISY ON ")
                 yield MaskBatch(chars_norm, char, output_word=word_norm,

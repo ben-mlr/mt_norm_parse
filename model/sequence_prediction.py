@@ -69,7 +69,7 @@ def decode_sequence_beam(model, max_len, src_seq, src_mask, src_len, char_dictio
 
         for candidate_ind in range(beam_size):
             # we decode the sequence for each beam
-            decoding_states, word_pred, pos_pred, norm_not_norm, attention = model.forward(input_seq=src_seq, output_seq=output_seq[:, :, :, candidate_ind],
+            decoding_states, word_pred, pos_pred, norm_not_norm, attention, _ = model.forward(input_seq=src_seq, output_seq=output_seq[:, :, :, candidate_ind],
                                                                                            input_word_len=src_len, output_word_len=output_len)
             scores = model.generator.forward(x=decoding_states)
             # we get the log sores
@@ -163,7 +163,7 @@ def decode_word(model, src_seq, src_len,
     """
     NB : could be more factorized (its exactly the same prediction the only difference is the dictionary
     """
-    _, word_pred, pos_pred, norm_not_norm, _ = model.forward(input_seq=src_seq,
+    _, word_pred, pos_pred, norm_not_norm, _, _ = model.forward(input_seq=src_seq,
                                                              input_word_len=src_len,
                                                              word_embed_input=input_word,
                                                              word_level_predict=True)
@@ -288,7 +288,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
             src_len = src_len.cuda()
             output_len = output_len.cuda()
         start = time.time() if timing else None
-        decoding_states, word_pred, pos_pred, norm_not_norm, attention = model.forward(input_seq=src_seq,
+        decoding_states, word_pred, pos_pred, norm_not_norm, attention, _ = model.forward(input_seq=src_seq,
                                                                                        output_seq=output_seq,
                                                                                        input_word_len=src_len,
                                                                                        output_word_len=output_len,

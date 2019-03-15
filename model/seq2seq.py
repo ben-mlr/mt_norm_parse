@@ -61,6 +61,7 @@ class LexNormalizer(nn.Module):
                  symbolic_end=False, symbolic_root=False,
                  extend_vocab_with_test=False, test_path=None,
                  extra_arg_specific_label="",
+                 attention_tagging=False,
                  activation_char_decoder=None, activation_word_decoder=None, expand_vocab_dev_test=False,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
@@ -191,6 +192,7 @@ class LexNormalizer(nn.Module):
                                                    "word_embed_init": REPO_W2V.get(word_embed_dir,{"label":"?"}).get("label"),
                                                    "dir_sent_encoder": dir_sent_encoder,
                                                    "dir_word_encoder": dir_word_encoder,
+                                                   "attention_tagging": attention_tagging,
                                                    "drop_out_sent_encoder_out": drop_out_sent_encoder_out,
                                                    "drop_out_word_encoder_out": drop_out_word_encoder_out,
                                                    "dropout_word_encoder_cell": drop_out_word_encoder_cell,
@@ -255,7 +257,7 @@ class LexNormalizer(nn.Module):
             word_decoding, char_decoding, auxilliary_task_pos, dense_dim_auxilliary_pos, dense_dim_auxilliary_pos_2, \
                 dense_dim_word_pred, dense_dim_word_pred_2,dense_dim_word_pred_3, \
                 symbolic_root, symbolic_end, word_embedding_dim, word_embed, word_embedding_projected_dim, \
-                activation_char_decoder, activation_word_decoder = get_args(args, False)
+                activation_char_decoder, activation_word_decoder, attention_tagging = get_args(args, False)
 
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
@@ -319,8 +321,10 @@ class LexNormalizer(nn.Module):
                                    hidden_size_sent_encoder=hidden_size_sent_encoder, bidir_sent=dir_sent_encoder-1,
                                    n_layers_word_cell=n_layers_word_encoder, timing=timing,
                                    n_layers_sent_cell=n_layers_sent_cell,
-                                   dir_word_encoder=dir_word_encoder,context_level=shared_context,
+                                   dir_word_encoder=dir_word_encoder,
+                                   context_level=shared_context,
                                    add_word_level=word_embed,
+                                   attention_tagging=attention_tagging,
                                    word_embedding_dim_inputed=word_embedding_projected_dim if word_embedding_projected_dim is not None else word_embedding_dim,
                                    verbose=verbose)
 
@@ -343,7 +347,6 @@ class LexNormalizer(nn.Module):
             = BinaryPredictor(input_dim=hidden_size_decoder,
                               dense_dim=dense_dim_auxilliary,
                               dense_dim_2=dense_dim_auxilliary_2) if self.auxilliary_task_norm_not_norm else None
-        #self.char_embedding_2 = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
         self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size,
                                    activation=activation_char_decoder,
                                    output_dim=output_dim, verbose=verbose)
@@ -392,13 +395,15 @@ class LexNormalizer(nn.Module):
         start = time.time() if timing else None
 
         if self.word_embedding is not None:
-            pdb.set_trace()
+            # remove padded by hand
+            word_embed_input = word_embed_input.view(-1)
+            word_embed_input = word_embed_input[word_embed_input!=1]
+            #
             word_embed_input = self.word_embedding(word_embed_input)
             if self.word_embedding_project is not None:
                 word_embed_input = self.word_embedding_project(word_embed_input)
 
-        context, sent_len_max_source, char_seq_hidden_encoder, word_src_sizes = self.encoder.forward(input_seq, input_word_len,
-                                                                                                     word_embed_input=word_embed_input)
+        context, sent_len_max_source, char_seq_hidden_encoder, word_src_sizes, attention_weights_char_tag = self.encoder.forward(input_seq, input_word_len, word_embed_input=word_embed_input)
 
         source_encoder, start = get_timing(start)
         # [] [batch, , hiden_size_decoder]
@@ -424,7 +429,6 @@ class LexNormalizer(nn.Module):
                                                                 char_seq_hidden_encoder=char_seq_hidden_encoder,
                                                                 proportion_pred_train=proportion_pred_train,
                                                                 sent_len_max_source=sent_len_max_source)
-
         else:
             output = None
             attention_weight_all = None
@@ -449,7 +453,7 @@ class LexNormalizer(nn.Module):
                 [("source_encoder", source_encoder), ("target_encoder", target_encoder), ("bridge", bridge)])
             print("time report {}".format(time_report))
 
-        return output, word_pred_state, pos_pred_state, norm_not_norm_hidden, attention_weight_all
+        return output, word_pred_state, pos_pred_state, norm_not_norm_hidden, attention_weight_all, attention_weights_char_tag
 
     @staticmethod
     def rm_checkpoint(checkpoint_dir_to_remove, verbose=0):

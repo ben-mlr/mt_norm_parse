@@ -108,6 +108,9 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
     activation_char_decoder = args.get("activation_char_decoder", None)
     activation_word_decoder = args.get("activation_word_decoder", None)
     tasks = args.get("tasks", ["normalize"])
+
+    attention_tagging = args.get("attention_tagging", False)
+
     n_epochs = 1 if warmup else n_epochs
 
     if warmup:
@@ -159,6 +162,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                             activation_char_decoder=activation_char_decoder,
                             activation_word_decoder=activation_word_decoder,
                             symbolic_end=symbolic_end, symbolic_root=symbolic_root,
+                            attention_tagging=attention_tagging,
                             stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                             test_path=test_path[0] if isinstance(test_path, list) else test_path,
                             checkpointing=True, verbose=verbose)
