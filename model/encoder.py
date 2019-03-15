@@ -152,7 +152,6 @@ class CharEncoder(nn.Module):
             h_n = torch.cat((c_n, new_h_n), dim=1)
             # TODO : could add projection to word_dim (or word_dim projected) so that we can sum and not concatanate to do Dozat
             h_n = self.attention_projection(h_n)
-        pdb.set_trace()
         printing("SOURCE ENCODED UNPACKED {}  , hidden {}  (output (includes all the "
                  "hidden states of last layers), last hidden hidden for each dir+layers)", var=(output.data.shape, h_n.size()),
                  verbose=self.verbose, verbose_level=3)

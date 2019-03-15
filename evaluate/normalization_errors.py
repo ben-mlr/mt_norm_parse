@@ -1,6 +1,3 @@
-
-
-
 from scipy.stats import hmean
 import numpy as np
 from nltk import edit_distance
@@ -10,7 +7,9 @@ from env.project_variables import SUPPORTED_STAT
 from collections import OrderedDict
 from io_.dat.constants import PAD_ID_CHAR
 import torch
+from nltk.translate.bleu_score import SmoothingFunction, sentence_bleu
 
+smoothing = SmoothingFunction()
 
 def exact_match(pred, gold):
     if pred == gold:
@@ -28,7 +27,7 @@ def edit_inverse(pred, gold):
         print("pred {} gold {}".format(pred, gold))
 
 
-SCORING_FUNC_AVAILABLE = {"exact_match": exact_match, "edit_inverse": edit_inverse}
+SCORING_FUNC_AVAILABLE = ["exact_match", "edit_inverse", "BLUE"]
 
 
 def score_ls(ls_pred, ls_gold, scoring_func, stat="mean", verbose=0):
@@ -113,11 +112,17 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
 
             sent_score = []
             for word_gold, word_pred in zip(gold_sent, pred_sent):
-                eval_func = eval(scoring_func)
-                score_word = eval_func(word_pred, word_gold)
-                sent_score.append(score_word)
-                scores.append(score_word)
-                printing("{} score ,  predicted word {} sentence predicted {} ".format(eval_func(word_pred, word_gold), word_pred, word_gold),
+                if scoring_func == "BLUE":
+                    word_pred = word_pred.split()
+                    word_gold = word_gold.split()
+                    score_word = sentence_bleu(references=[word_gold],hypothesis=word_pred, smoothing_function=smoothing.method3)
+                    pdb.set_trace()
+                else:
+                    eval_func = eval(scoring_func)
+                    score_word = eval_func(word_pred, word_gold)
+                    sent_score.append(score_word)
+                    scores.append(score_word)
+                printing("{} score ,  predicted word {} sentence predicted {} ".format(score_word, word_pred, word_gold),
                          verbose=verbose, verbose_level=6)
             sent_score_ls.append(sent_score)
 

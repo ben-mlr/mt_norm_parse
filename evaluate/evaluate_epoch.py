@@ -36,7 +36,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
              model_specific_dictionary=True, label_report="", print_raw=False, model=None,
              compute_mean_score_per_sent=False,write_output=False,
              word_decoding=False, char_decoding=True,
-             extra_arg_specific_label="",
+             extra_arg_specific_label="", scoring_func_sequence_pred="exact_match",
              normalization=True, debug=False, force_new_dic=False, use_gpu=None, verbose=0):
     assert model_specific_dictionary, "ERROR : only model_specific_dictionary = True supported now"
     # NB : now : you have to load dictionary when evaluating (cannot recompute) (could add in the LexNormalizer ability)
@@ -99,6 +99,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                                                   stat="sum", mode_norm_score_ls=mode_norm_ls,
                                                   label_data=REPO_DATASET[data_path],
                                                   batchIter=batchIter, model=model,
+                                                  scoring_func_sequence_pred=scoring_func_sequence_pred,
                                                   compute_mean_score_per_sent=compute_mean_score_per_sent,
                                                   batch_size=batch_size)
 
@@ -140,23 +141,24 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
     printing("NEW REPORT metric : {} ", var=[" ".join(list(formulas.keys()))], verbose=verbose, verbose_level=1)
     printing("NEW REPORT : model specific report saved {} ".format(over_all_report_dir), verbose=verbose, verbose_level=1)
     printing("NEW REPORT : overall report saved {} ".format(over_all_report_dir_all_models), verbose=verbose,verbose_level=1)
-
-    batchIter_2 = data_gen_conllu(data_read, model.word_dictionary, model.char_dictionary,
-                                  batch_size=batch_size,
-                                  get_batch_mode=get_batch_mode_evaluate,
-                                  normalization=normalization, pos_dictionary=model.pos_dictionary,
-                                  print_raw=print_raw,  verbose=verbose)
-
-    score_dic, _ = greedy_decode_batch(char_dictionary=model.char_dictionary, verbose=verbose, gold_output=True,
-                                       score_to_compute_ls=score_to_compute_ls, use_gpu=use_gpu,
-                                       write_output=write_output,
-                                       stat="sum", mode_norm_score_ls=mode_norm_ls,
-                                       label_data=REPO_DATASET[data_path],
-                                       batchIter=batchIter_2, model=model, eval_new=False,
-                                       compute_mean_score_per_sent=compute_mean_score_per_sent,
-                                       batch_size=batch_size)
     ### Depreciated
-    if True:
+    if False:
+        batchIter_2 = data_gen_conllu(data_read, model.word_dictionary, model.char_dictionary,
+                                      batch_size=batch_size,
+                                      get_batch_mode=get_batch_mode_evaluate,
+                                      normalization=normalization, pos_dictionary=model.pos_dictionary,
+                                      print_raw=print_raw,  verbose=verbose)
+
+        score_dic, _ = greedy_decode_batch(char_dictionary=model.char_dictionary, verbose=verbose, gold_output=True,
+                                           score_to_compute_ls=score_to_compute_ls, use_gpu=use_gpu,
+                                           write_output=write_output,
+                                           stat="sum", mode_norm_score_ls=mode_norm_ls,
+                                           label_data=REPO_DATASET[data_path],
+                                           batchIter=batchIter_2, model=model, eval_new=False,
+                                           scoring_func_sequence_pred="exact_match",
+                                           compute_mean_score_per_sent=compute_mean_score_per_sent,
+                                           batch_size=batch_size)
+
         for score in score_to_compute_ls:
             for mode_norm in mode_norm_ls:
                 try:
@@ -182,7 +184,8 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                             score_value = score_dic[score+"-"+mode_norm+stat_type]/score_dic[score+"-"+mode_norm+"-total_tokens"] if score_dic[score+"-"+mode_norm+"-total_tokens"] > 0 else None
                             # if score_dic[score+"-"+mode_norm+"-total_tokens"] > 0 else -0.001
                             if score_value is None:
-                              print("WARNING : score_value is None for stat_type ''   score {} and mode {}".format(score, mode_norm))
+                              print("WARNING : score_value is None for stat_type ''   score {} and mode {}".format(score,
+                                                                                                                   mode_norm))
                             n_tokens_score = score_dic[score + "-" + mode_norm + "-total_tokens"]
                     elif stat_type == "-mean_per_sent":
                         score_value = score_dic[score + "-" + mode_norm + stat_type]/score_dic[score+"-"+mode_norm+"-n_sents"] if score_dic[score+"-"+mode_norm+"-n_sents"] > 0 else None
@@ -228,7 +231,7 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
             printing("REPORT : overall report saved {} ".format(over_all_report_dir_all_models), verbose=verbose,
                      verbose_level=1)
 
-    return score_dic
+    return None
 
 #4538 , 4578
 
@@ -251,7 +254,7 @@ if __name__ == "__main__":
       for get_batch_mode_evaluate in [False]:
         for batch_size in [200]:
           #for data in [LIU, DEV, LEX_TEST]:
-          for data in [TEST]:
+          for data in [DEMO]:
             list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
             print("FOLDERS : ", list_)
             for folder_name in list_:
@@ -267,6 +270,7 @@ if __name__ == "__main__":
                        debug=False, bucket=True,
                        compute_mean_score_per_sent=False,
                        word_decoding=False, char_decoding=True,
+                       scoring_func_sequence_pred="BLUE",
                        get_batch_mode_evaluate=get_batch_mode_evaluate, write_output=False,
                        dir_report=os.path.join(PROJECT_PATH, "checkpoints", folder_name), verbose=1)
 

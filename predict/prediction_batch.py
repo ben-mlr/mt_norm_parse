@@ -97,6 +97,7 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                         compute_mean_score_per_sent=False,
                         mode_norm_score_ls=None,
                         label_data=None, eval_new=False,
+                        scoring_func_sequence_pred="exact_match",
                         write_output=False, write_to="conll", dir_normalized=None, dir_original=None,
 
                         verbose=0):
@@ -197,6 +198,7 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                                                                                  target_seq_gold=target_seq_gold,
                                                                                  pred_norm_not_norm=pred_norm,
                                                                                  gold_norm_not_norm=batch.output_norm_not_norm,
+                                                                                 scoring_func=scoring_func_sequence_pred,
                                                                                  ls_original=src_text_ls)
                     if pred_pos_ls is not None and src_text_pos is not None and gold_pos_seq_ls is not None:
 
@@ -226,7 +228,7 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                                 if metric not in ["norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recall", "norm_not_norm-accuracy"]:
                                     try:
                                         _score, _n_tokens = score_ls_(text_decoded_ls, gold_text_seq_ls, ls_original=src_text_ls,
-                                                                      score=metric, stat=stat,
+                                                                      score_func=metric, stat=stat,
                                                                       compute_mean_score_per_sent=compute_mean_score_per_sent,
                                                                       normalized_mode=mode_norm_score, verbose=verbose)
                                         if compute_mean_score_per_sent:
@@ -237,7 +239,7 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                                         score_dic[metric + "-" + mode_norm_score + "-" + "total_tokens"] += _n_tokens
 
                                     except Exception as e:
-                                        print("Exception {}".format(e))
+                                        print("Exception prediction batch {}".format(e))
                                         score_dic[metric + "-" + mode_norm_score] += 0
                                         #score_dic[metric + "-" + mode_norm_score + "-" + "total_tokens"] += 0
                                         if compute_mean_score_per_sent:
