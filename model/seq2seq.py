@@ -318,7 +318,8 @@ class LexNormalizer(nn.Module):
                                    drop_out_word_encoder_out=drop_out_word_encoder_out,
                                    dropout_sent_encoder_cell=drop_out_sent_encoder_cell,
                                    dropout_word_encoder_cell=drop_out_word_encoder_cell,
-                                   hidden_size_sent_encoder=hidden_size_sent_encoder, bidir_sent=dir_sent_encoder-1,
+                                   hidden_size_sent_encoder=hidden_size_sent_encoder,
+                                   bidir_sent=dir_sent_encoder-1,
                                    n_layers_word_cell=n_layers_word_encoder, timing=timing,
                                    n_layers_sent_cell=n_layers_sent_cell,
                                    dir_word_encoder=dir_word_encoder,
@@ -334,9 +335,15 @@ class LexNormalizer(nn.Module):
         p_word_emb = 1 if shared_context != "sent" else 0
         self.shared_context = shared_context
 
+        if attention_tagging:
+            # In this case : we force the char representation to be the same as the word representation
+            printing("MODEL : ATTENTION TAGGING ON : we force the char encoder to be outputed as {} dimension (= word level part)", verbose=verbose, verbose_level=1)
+            dim_char_encoding_output = word_embedding_projected_dim if word_embedding_projected_dim is not None else word_embedding_dim
+        else:
+            dim_char_encoding_output = hidden_size_encoder * dir_word_encoder * n_layers_word_encoder
         self.bridge = nn.Linear(
-            hidden_size_encoder * dir_word_encoder * n_layers_word_encoder*p_word + hidden_size_sent_encoder*dir_sent_encoder*p_sent
-            +(word_embedding_projected_dim if word_embedding_projected_dim is not None else word_embedding_dim )*p_word_emb,#*dir_sent_encoder : added diviion by 2 if dir 2
+            dim_char_encoding_output*p_word + hidden_size_sent_encoder*dir_sent_encoder*p_sent
+            +(word_embedding_projected_dim if word_embedding_projected_dim is not None else word_embedding_dim)*p_word_emb,#*dir_sent_encoder : added diviion by 2 if dir 2
             hidden_size_decoder)
         self.hidden_size_decoder = hidden_size_decoder
         #self.layer_norm = nn.LayerNorm(hidden_size_decoder, elementwise_affine=False) if True else None

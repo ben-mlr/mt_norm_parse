@@ -31,8 +31,8 @@ class CharEncoder(nn.Module):
         self.context_level = context_level
         if attention_tagging:
             self.attention_query = nn.Linear(hidden_size_encoder*n_layers_word_cell*dir_word_encoder, 1, bias=False)
-            self.attention_projection = nn.Linear(hidden_size_encoder * n_layers_word_cell * dir_word_encoder * 2,
-                                                  hidden_size_encoder * n_layers_word_cell * dir_word_encoder)
+            self.attention_projection = nn.Linear(hidden_size_encoder * n_layers_word_cell * dir_word_encoder * 2, word_embedding_dim_inputed)
+                                                  #hidden_size_encoder * n_layers_word_cell * dir_word_encoder)
         else:
             self.attention_query = None
             self.attention_projection = None
@@ -40,7 +40,11 @@ class CharEncoder(nn.Module):
             assert hidden_size_encoder % 2 == 0, "ERROR = it will be divided by two and remultipy so need even number for simplicity"
         if bidir_sent:
             assert hidden_size_sent_encoder % 2 == 0, "ERROR = it will be divided by two and remultipy so need even number for simplicity"
-        self.sent_encoder = nn.LSTM(input_size=hidden_size_encoder*n_layers_word_cell*dir_word_encoder+word_embedding_dim_inputed,
+        if attention_tagging:
+            dim_input_sentence_encoder = 2*word_embedding_dim_inputed
+        else:
+            dim_input_sentence_encoder = hidden_size_encoder*n_layers_word_cell*dir_word_encoder+word_embedding_dim_inputed
+        self.sent_encoder = nn.LSTM(input_size=dim_input_sentence_encoder,
                                     hidden_size=hidden_size_sent_encoder,
                                     num_layers=n_layers_sent_cell, bias=True, batch_first=True,
                                     dropout=dropout_sent_encoder_cell,
@@ -218,7 +222,8 @@ class CharEncoder(nn.Module):
             #word_embed_input = word_embed_input[:, :h_w.size(1), :]
             word_representation_agg = "cat"
             if word_representation_agg == "cat":
-                h_w = torch.cat((word_embed_input.float(), h_w), dim=-1)
+                h_w = torch.cat((word_embed_input, #.float(),
+                                 h_w), dim=-1)
                 sent_len_cumulated = [0]
                 cumu = 0
                 for len_sent in sent_len:
