@@ -1,3 +1,6 @@
+
+
+
 from scipy.stats import hmean
 import numpy as np
 from nltk import edit_distance
@@ -25,17 +28,18 @@ def edit_inverse(pred, gold):
         print("pred {} gold {}".format(pred, gold))
 
 
-METRIC_DIC = {"exact": exact_match, "edit": edit_inverse}
+SCORING_FUNC_AVAILABLE = {"exact_match": exact_match, "edit_inverse": edit_inverse}
 
 
-def score_ls(ls_pred, ls_gold, score, stat="mean", verbose=0):
+def score_ls(ls_pred, ls_gold, scoring_func, stat="mean", verbose=0):
     # give score sum of based on METRIC_DIC evaluator of list of words gold and pred
+    assert scoring_func in SCORING_FUNC_AVAILABLE
     assert stat in SUPPORTED_STAT ,"ERROR : metric should be in {} ".format(str(SUPPORTED_STAT))
     assert len(ls_gold) == len(ls_pred), "ERROR ls_gold is len {} while ls_pred is len {} ".format(len(ls_gold), len(ls_pred))
 
     scores = []
     for gold, pred in zip(ls_gold, ls_pred):
-        eval_func = METRIC_DIC[score]
+        eval_func = eval(scoring_func)
         scores.append(eval_func(pred, gold))
 
     if stat == "sum":
@@ -46,9 +50,11 @@ def score_ls(ls_pred, ls_gold, score, stat="mean", verbose=0):
 
 def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None, gold_norm_not_norm=None,
                          output_seq_n_hot=None, src_seq=None, target_seq_gold=None, task="normalization",
+                         scoring_func="exact_match",
                          in_vocab_ls=None, verbose=0):
     # only exact score here !!
     assert task in ["normalization", "pos"]
+    assert scoring_func in SCORING_FUNC_AVAILABLE
     dic = OrderedDict()
     assert len(ls_gold) == len(ls_pred), "ERROR ls_gold is len {} vs {} : {} while ls_pred is {} ".format(len(ls_gold),
                                                                                                           len(ls_pred),
@@ -107,7 +113,7 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
 
             sent_score = []
             for word_gold, word_pred in zip(gold_sent, pred_sent):
-                eval_func = METRIC_DIC["exact"]
+                eval_func = eval(scoring_func)
                 score_word = eval_func(word_pred, word_gold)
                 sent_score.append(score_word)
                 scores.append(score_word)
@@ -272,12 +278,12 @@ def score_norm_not_norm(norm_not_norm_pred, norm_not_norm_gold, output_seq_n_hot
             }, formulas
 
 
-def score_ls_(ls_pred, ls_gold, score, ls_original=None, stat="mean", normalized_mode="all",
+def score_ls_(ls_pred, ls_gold, score_func, ls_original=None, stat="mean", normalized_mode="all",
               compute_mean_score_per_sent=False, verbose=0):
 
     assert stat in SUPPORTED_STAT, "ERROR : metric should be in {} ".format(str(SUPPORTED_STAT))
     assert len(ls_gold) == len(ls_pred), "ERROR ls_gold is len {} vs {} : {} while ls_pred is {} ".format(len(ls_gold), len(ls_pred), ls_gold, ls_pred)
-
+    assert score_func in SCORING_FUNC_AVAILABLE
     scores = []
     sent_score_ls = []
     assert normalized_mode in ["NEED_NORM", "NORMED", "all"], \
@@ -295,7 +301,7 @@ def score_ls_(ls_pred, ls_gold, score, ls_original=None, stat="mean", normalized
         assert len(gold_sent) == len(pred_sent), "len : pred {}, gold {} - pred {} gold {} (normalized_mode is {}) ".format(len(pred_sent), len(gold_sent), pred_sent, gold_sent, normalized_mode)
         sent_score = []
         for word_gold, word_pred in zip(gold_sent, pred_sent):
-            eval_func = METRIC_DIC[score]
+            eval_func = eval(score_func)
             score_word = eval_func(word_pred, word_gold)
             sent_score.append(score_word)
             scores.append(score_word)
