@@ -31,7 +31,10 @@ class CharEncoder(nn.Module):
         self.context_level = context_level
         if attention_tagging:
             self.attention_query = nn.Linear(hidden_size_encoder*n_layers_word_cell*dir_word_encoder, 1, bias=False)
-            self.attention_projection = nn.Linear(hidden_size_encoder * n_layers_word_cell * dir_word_encoder * 2, word_embedding_dim_inputed)
+            if word_embedding_dim_inputed is not None and word_embedding_dim_inputed>0:
+                self.attention_projection = nn.Linear(hidden_size_encoder * n_layers_word_cell * dir_word_encoder * 2, word_embedding_dim_inputed)
+            else:
+                raise(Exception("word_embedding_dim_inputed null why it is used for attention"))
                                                   #hidden_size_encoder * n_layers_word_cell * dir_word_encoder)
         else:
             self.attention_query = None
@@ -207,7 +210,6 @@ class CharEncoder(nn.Module):
         # n_dir x dim hidden
         #hidden_dim = h_w.size(2) * h_w.size(1)
         #hidden_dim = h_w.size(1)
-
         #h_w = h_w.contiguous().view(shape_sent_seq[0], shape_sent_seq[1], hidden_dim)
         # [batch,  max sent_len , packed max_char_length, hidden_size_encoder]
         printing("SOURCE word encoding reshaped dim sent : {} ", var=[h_w.size()],
@@ -223,19 +225,21 @@ class CharEncoder(nn.Module):
             if word_representation_agg == "cat":
                 h_w = torch.cat((word_embed_input, #.float(),
                                  h_w), dim=-1)
-                sent_len_cumulated = [0]
-                cumu = 0
-                for len_sent in sent_len:
-                    cumu += int(len_sent)
-                    sent_len_cumulated.append(cumu)
-                # we want to pack the sequence so we tranqform it as a list
-                h_w_ls = [h_w[sent_len_cumulated[i]:sent_len_cumulated[i+1], :] for i in range(len(sent_len_cumulated)-1)]
-                h_w = pack_sequence(h_w_ls)
+
             elif word_representation_agg == "sum":
                 h_w = torch.sum((word_embed_input, h_w), dim=-1)
 
+        sent_len_cumulated = [0]
+        cumu = 0
+        for len_sent in sent_len:
+            cumu += int(len_sent)
+            sent_len_cumulated.append(cumu)
+        # we want to pack the sequence so we tranqform it as a list
+        h_w_ls = [h_w[sent_len_cumulated[i]:sent_len_cumulated[i + 1], :] for i in range(len(sent_len_cumulated) - 1)]
+        h_w = pack_sequence(h_w_ls)
         # TODO : not padded yet !!
         #h_w = pack_padded_sequence(h_w[perm_idx_input_sent, :, :], sent_len.squeeze().cpu().numpy(), batch_first=True)
+        pdb.set_trace()
         sent_encoded, _ = self.sent_encoder(h_w)
         # add contitioning
         sent_encoded, length_sent = pad_packed_sequence(sent_encoded, batch_first=True)
@@ -247,6 +251,7 @@ class CharEncoder(nn.Module):
         # concatanate
         sent_encoded = self.drop_out_sent_encoder_out(sent_encoded)
         h_w = self.drop_out_word_encoder_out(h_w)
+
         if context_level == "all":
             #" 'all' means word and sentence level "
             source_context_word_vector = torch.cat((sent_encoded, h_w), dim=2)

@@ -124,19 +124,19 @@ if __name__ == "__main__":
                                                                                   dropout_word_encoder_cell_ls=[0.0],
                                                                                   stable_decoding_state_ls=[False],
                                                                                   word_decoding_ls=[False],
-                                                                                  batch_size_ls=[2],
+                                                                                  batch_size_ls=[100],
                                                                                   #auxilliary_task_pos_ls=[False],
-                                                                                  word_embed_ls=[True],
-                                                                                  dir_sent_encoder_ls=[2], lr_ls=[0.0001, 0.001, 0.05],
+                                                                                  word_embed_ls=[False],
+                                                                                  dir_sent_encoder_ls=[2], lr_ls=[0.0005],
                                                                                   word_embed_init_ls=[None],
-                                                                                  attention_tagging_ls=[False],
+                                                                                  attention_tagging_ls=[0],
                                                                                   teacher_force_ls=[True],
                                                                                   proportion_pred_train_ls=[None],
                                                                                   shared_context_ls=["all"],
-                                                                                  word_embedding_projected_dim_ls=[50],
+                                                                                  word_embedding_projected_dim_ls=[None],
                                                                                   #auxilliary_task_norm_not_norm_ls=[True],
                                                                                   tasks_ls=[["pos"]],
-                                                                                  char_src_attention_ls=[True],
+                                                                                  char_src_attention_ls=[False],
                                                                                   n_layers_sent_cell_ls=[2],
                                                                                   unrolling_word_ls=[True],
                                                                                   scale_ls=[2]
@@ -190,10 +190,10 @@ if __name__ == "__main__":
                                                 verbose=1)
               train_path, dev_path = MTNT_TOK_TRAIN, MTNT_TOK_DEV  #EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
               run_grid(params=params, labels=labels, dir_grid=dir_grid, label_grid=LABEL_GRID,
-                       epochs=5,test_before_run=test_before_run,
+                       epochs=10, test_before_run=test_before_run,
                        train_path=train_path,
-                       dev_path=dev_path, debug=False,
-                       test_paths=[TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
+                       dev_path=dev_path, debug=True,
+                       test_paths=[TEST_SENT, MTNT_EN_FR_TEST],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
                        warmup=warmup)
               update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
           except Exception as e:
@@ -203,32 +203,32 @@ if __name__ == "__main__":
 
       else:
           epochs=150
-          train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+          train_path, dev_path = MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
           dir_script, row = script_generation(grid_label=LABEL_GRID, 
-                                              init_param=params_dozat,#params_strong,#params_dozat,
+                                              init_param=params_strong,#params_dozat,#params_strong,#params_dozat,
                                               warmup=test_before_run,
                                               dir_grid=dir_grid, environment=environment, dir_log=log,
                                               stable_decoding_state_ls=[False],
                                               word_decoding_ls=[False],
                                               epochs=epochs,
                                               batch_size_ls=[50],
-                                              word_embed_ls=[False, True],
+                                              word_embed_ls=[False],
                                               dir_sent_encoder_ls=[2], lr_ls=[0.0005],
-                                              word_embed_init_ls=[DIR_FASTEXT_WIKI_NEWS_W2V, DIR_TWEET_W2V, None],
+                                              word_embed_init_ls=[None],
                                               teacher_force_ls=[True],
                                               word_recurrent_cell_encoder_ls=["LSTM"],
                                               dropout_word_encoder_cell_ls=[0.],
                                               proportion_pred_train_ls=[None],
-                                              shared_context_ls=["all", "sent"],
-                                              word_embedding_projected_dim_ls=[50],
-                                              tasks_ls=[["pos"]],
-                                              char_src_attention_ls=[True],
+                                              shared_context_ls=["word"],
+                                              word_embedding_projected_dim_ls=[None],
+                                              tasks_ls=[["normalize"]],
+                                              char_src_attention_ls=[False],
                                               n_layers_sent_cell_ls=[2],
                                               unrolling_word_ls=[True],
                                               scale_ls=[1],
-                                              attention_tagging_ls=[1],
+                                              attention_tagging_ls=[0],
                                               overall_report_dir=dir_grid, overall_label=LABEL_GRID,
-                                              train_path=train_path, dev_path=dev_path, test_paths=[EWT_DEV,EWT_TEST,TEST], gpu_mode="random",
+                                              train_path=train_path, dev_path=dev_path, test_paths=[MTNT_EN_FR_TEST], gpu_mode="random",
                                               gpus_ls=GPU_AVAILABLE_DEFAULT_LS,
                                               write_to_dir=RUN_SCRIPTS_DIR)
           print("row:{}".format(row))

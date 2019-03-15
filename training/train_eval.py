@@ -182,6 +182,8 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
       eval_data_paths = list(set(eval_data_paths))
       start_eval = time.time()
       for get_batch_mode_evaluate in [False]:
+        scoring_func_sequence_pred = "BLUE"
+        print("EVALUATING WITH `{}`".format(scoring_func_sequence_pred))
         for eval_data in eval_data_paths:
                 eval_label = REPO_DATASET[eval_data]
                 evaluate(model_full_name=model_full_name, data_path=eval_data,
@@ -193,6 +195,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                          compute_mean_score_per_sent=compute_mean_score_per_sent,
                          batch_size=batch_size, debug=debug,
                          word_decoding=word_decoding, char_decoding=char_decoding,
+                         scoring_func_sequence_pred=scoring_func_sequence_pred,
                          dir_report=model_dir, verbose=1)
         printing("GRID : END EVAL {} ".format(time.time()-start_eval), verbose=verbose, verbose_level=1)
     printing("WARNING : no evaluation ", verbose=verbose, verbose_level=0)
