@@ -182,7 +182,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
       eval_data_paths = list(set(eval_data_paths))
       start_eval = time.time()
       for get_batch_mode_evaluate in [False]:
-        scoring_func_sequence_pred = "BLUE"
+        scoring_func_sequence_pred = "exact_match"
         print("EVALUATING WITH `{}`".format(scoring_func_sequence_pred))
         for eval_data in eval_data_paths:
                 eval_label = REPO_DATASET[eval_data]

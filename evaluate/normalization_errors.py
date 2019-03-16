@@ -116,6 +116,7 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
                     word_pred = word_pred.split()
                     word_gold = word_gold.split()
                     score_word = sentence_bleu(references=[word_gold],hypothesis=word_pred, smoothing_function=smoothing.method3)
+                    print("GOLD {} PRED {} BLEU ".format(word_gold, word_pred, score_word))
                     pdb.set_trace()
                 else:
                     eval_func = eval(scoring_func)

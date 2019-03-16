@@ -29,7 +29,7 @@ def script_generation(grid_label, init_param, warmup,dir_grid, environment, dir_
                       word_embedding_projected_dim_ls,
                       word_recurrent_cell_encoder_ls, dropout_word_encoder_cell_ls,
                       tasks_ls, char_src_attention_ls,
-                      n_layers_sent_cell_ls, unrolling_word_ls,attention_tagging_ls,
+                      n_layers_sent_cell_ls, unrolling_word_ls,attention_tagging_ls,n_layers_word_encoder_ls,
                       scale_ls, pos_specific_path=None, gpu_mode="random", gpus_ls=None,write_to_dir=None,):
     if isinstance(test_paths, str):
         test_paths = [test_paths]
@@ -57,7 +57,7 @@ def script_generation(grid_label, init_param, warmup,dir_grid, environment, dir_
         attention_tagging_ls=attention_tagging_ls,
         char_src_attention_ls=char_src_attention_ls,
         n_layers_sent_cell_ls=n_layers_sent_cell_ls,
-        unrolling_word_ls=unrolling_word_ls,
+        unrolling_word_ls=unrolling_word_ls, n_layers_word_encoder_ls=n_layers_word_encoder_ls,
         scale_ls=scale_ls, gpu_mode=gpu_mode, gpus_ls=gpus_ls)
     if gpu_mode == "random":
         if gpus_ls is None:

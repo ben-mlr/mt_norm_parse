@@ -51,7 +51,7 @@ def get_args(args, dropout_loading_strict=True, verbose=0):
         "dropout_word_encoder_cell", default_dropout), args["encoder_arch"].get("drop_out_sent_encoder_out", default_dropout), args[
                "encoder_arch"].get("drop_out_word_encoder_out", default_dropout), \
            args["encoder_arch"].get("n_layers_word_encoder"), args["encoder_arch"].get("n_layers_sent_cell",1),args["encoder_arch"].get("dir_sent_encoder"), \
-           args["encoder_arch"].get("cell_word", None), args["encoder_arch"].get("dir_word_encoder",1), \
+           args["encoder_arch"].get("word_recurrent_cell_encoder", None), args["encoder_arch"].get("dir_word_encoder",1), \
            args["hidden_size_decoder"], args["decoder_arch"].get("cell_word", None), args["decoder_arch"].get(
               "drop_out_word_decoder_cell", default_dropout), args["decoder_arch"].get("drop_out_char_embedding_decoder", default_dropout),\
             args.get("auxilliary_arch", {}).get("auxilliary_task_norm_not_norm", False), args["decoder_arch"].get("unrolling_word", False), args["decoder_arch"].get("char_src_attention", False),\

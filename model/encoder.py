@@ -47,6 +47,7 @@ class CharEncoder(nn.Module):
             dim_input_sentence_encoder = 2*word_embedding_dim_inputed
         else:
             dim_input_sentence_encoder = hidden_size_encoder*n_layers_word_cell*dir_word_encoder+word_embedding_dim_inputed
+
         self.sent_encoder = nn.LSTM(input_size=dim_input_sentence_encoder,
                                     hidden_size=hidden_size_sent_encoder,
                                     num_layers=n_layers_sent_cell, bias=True, batch_first=True,
@@ -60,6 +61,7 @@ class CharEncoder(nn.Module):
                 "ERROR : word_recurrent_cell should be in {} ".format(SUPPORED_WORD_ENCODER)
         if word_recurrent_cell is None:
             word_recurrent_cell = nn.GRU
+            printing("MODEL word_recurrent_cell as no argument passed was set to default {} ", var=[word_recurrent_cell], verbose_level=1, verbose=verbose)
         elif word_recurrent_cell == "WeightDropLSTM":
             word_recurrent_cell = eval(word_recurrent_cell)
         else:
@@ -130,8 +132,7 @@ class CharEncoder(nn.Module):
         h_n = h_n[:, inverse_perm_idx, :]
         h_n = h_n.transpose(1, 0)
         h_n = h_n.contiguous().view(h_n.size(0), h_n.size(1)*h_n.size(2))
-        if c_n is not None:
-            c_n = c_n[:, inverse_perm_idx, :]
+
         attention_weights_char_tag = None
         if self.attention_projection is not None:
             assert c_n is not None, "ERROR attention only supported when LSTM used (for layziness)"
@@ -146,7 +147,6 @@ class CharEncoder(nn.Module):
             proj[index_to_pad, :] = -float("Inf")
             attention_weights_char_tag = nn.Softmax(dim=1)(proj)
             ## SHOULD REMOVE THE PAD ENCODINg
-            # TODO !! setting to 0 all nan (nans means all weights are the same : specifically true for padded token
             #attention_weights_char_tag[attention_weights_char_tag!=attention_weights_char_tag] = 0
             output = output.transpose(2, 1)
             new_h_n = torch.bmm(output, attention_weights_char_tag)
@@ -169,48 +169,51 @@ class CharEncoder(nn.Module):
         printing("SOURCE : input size {}  length size {}",
                  var=(input.size(), input_word_len.size()),
                  verbose=verbose, verbose_level=4)
-
         _input_word_len = input_word_len.clone()
         # handle sentence that take the all sequence
-        # TODO : I think this case problem for sentence that take the all sequence : we are missing a word ! ??
         _input_word_len[:, -1, :] = 0
         # when input_word_len is 0 means we reached end of sentence
         # I think +1 is required : we want the lenght !! so if argmin --> 0 lenght should be 1 right
         sent_len = torch.argmin(_input_word_len, dim=1)
         # we add to sent len if the original src word was filling the entire sequence (i.e last len is not 0)
-        sent_len += (input_word_len[:, -1, :] != 0).long()
+        sent_len += (input_word_len[:, -1, :] != 0).long() # #handling (I guess) ODO : I think this case problem for sentence that take the all sequence : we are missing a word ! ??
         # sort batch based on sentence length
+        pdb.set_trace()
         sent_len, perm_idx_input_sent = sent_len.squeeze().sort(0, descending=True)
+        pdb.set_trace()
+        # get inverse permutation to reorder
         inverse_perm_idx_input_sent = torch.from_numpy(np.argsort(perm_idx_input_sent.cpu().numpy()))
         # we pack and padd the sentence to shorten and pad sentences
         # [batch x sent_len , dim hidden word level] # this remove empty words
-        packed_char_vecs_input = pack_padded_sequence(input[perm_idx_input_sent, :, :],
-                                                      sent_len.squeeze().cpu().numpy(), batch_first=True)
-        # unpacked for the word level representation
-
+        # --PERMUTE input so that it's sorted
+        packed_char_vecs_input = pack_padded_sequence(input[perm_idx_input_sent, :, :], sent_len.squeeze().cpu().numpy(), batch_first=True)
+        # unpacked for computing the word level representation
         input_char_vecs, input_sizes = pad_packed_sequence(packed_char_vecs_input, batch_first=True,
                                                            padding_value=PAD_ID_CHAR)
         # [batch, sent_len max, dim encoder] reorder the sequence
-        input_char_vecs = input_char_vecs[inverse_perm_idx_input_sent, :, :]
+        pdb.set_trace()
+        # permutation test
+        # assert (input[perm_idx_input_sent, :, :][inverse_perm_idx_input_sent,:,:] == input).all()
+        #input_char_vecs = input_char_vecs[inverse_perm_idx_input_sent, :, :]
+        # --PERMUTE : input_word_len : we align it with input_char that has been permuted
+        input_word_len = input_word_len[perm_idx_input_sent]
         # cut input_word_len so that it fits packed_padded sequence
         input_word_len = input_word_len[:, :input_char_vecs.size(1), :]
         sent_len_max_source = input_char_vecs.size(1)
-        input_word_len = input_word_len.contiguous()
         # reshape word_len and word_char_vecs matrix --> for feeding to word level encoding
-        input_word_len = input_word_len.view(input_word_len.size(0) * input_word_len.size(1))
-        shape_sent_seq = input_char_vecs.size()
-        input_char_vecs = input_char_vecs.view(input_char_vecs.size(0) * input_char_vecs.size(1),
-                                               input_char_vecs.size(2))
+        input_word_len = input_word_len.contiguous().view(input_word_len.size(0) * input_word_len.size(1))
+        #DEPRECIATED : shape_sent_seq = input_char_vecs.size()
+        input_char_vecs = input_char_vecs.contiguous().view(input_char_vecs.size(0) * input_char_vecs.size(1),input_char_vecs.size(2))
         # input_char_vecs : [batch x max sent_len , MAX_CHAR_LENGTH or bucket max_char_length]
         # input_word_len  [batch x max sent_len]
-        #pdb.set_trace()
-        h_w, char_seq_hidden, word_src_sizes, attention_weights_char_tag = self.word_encoder_source(input=input_char_vecs, input_word_len=input_word_len)
+        h_w, char_seq_hidden, word_src_sizes, attention_weights_char_tag = self.word_encoder_source(input=input_char_vecs,
+                                                                                                    input_word_len=input_word_len)
         # [batch x max sent_len , packed max_char_length, hidden_size_encoder]
-        #h_w = h_w.transpose(1, 0)
+        # DEP Ih_w = h_w.transpose(1, 0)
         # n_dir x dim hidden
-        #hidden_dim = h_w.size(2) * h_w.size(1)
-        #hidden_dim = h_w.size(1)
-        #h_w = h_w.contiguous().view(shape_sent_seq[0], shape_sent_seq[1], hidden_dim)
+        #DEP hidden_dim = h_w.size(2) * h_w.size(1)
+        #DEP hidden_dim = h_w.size(1)
+        #DEP h_w = h_w.contiguous().view(shape_sent_seq[0], shape_sent_seq[1], hidden_dim)
         # [batch,  max sent_len , packed max_char_length, hidden_size_encoder]
         printing("SOURCE word encoding reshaped dim sent : {} ", var=[h_w.size()],
                  verbose=verbose, verbose_level=3)
@@ -235,15 +238,19 @@ class CharEncoder(nn.Module):
             cumu += int(len_sent)
             sent_len_cumulated.append(cumu)
         # we want to pack the sequence so we tranqform it as a list
-        h_w_ls = [h_w[sent_len_cumulated[i]:sent_len_cumulated[i + 1], :] for i in range(len(sent_len_cumulated) - 1)]
-        h_w = pack_sequence(h_w_ls)
-        # TODO : not padded yet !!
-        #h_w = pack_padded_sequence(h_w[perm_idx_input_sent, :, :], sent_len.squeeze().cpu().numpy(), batch_first=True)
         pdb.set_trace()
+        # NB ; sent_len and sent_len_cumulated are aligned with permuted input and therefore input_char_vec and h_w
+        h_w_ls = [h_w[sent_len_cumulated[i]:sent_len_cumulated[i + 1], :] for i in range(len(sent_len_cumulated) - 1)]
+        pdb.set_trace()
+        h_w = pack_sequence(h_w_ls)
         sent_encoded, _ = self.sent_encoder(h_w)
         # add contitioning
         sent_encoded, length_sent = pad_packed_sequence(sent_encoded, batch_first=True)
         h_w, lengh_2 = pad_packed_sequence(h_w, batch_first=True)
+        # now we reorder it one time to get the original order
+        # --PERMUTE / reorder to original ordering so that it's consistent with output
+        h_w = h_w[inverse_perm_idx_input_sent, :, :]
+        sent_encoded = sent_encoded[inverse_perm_idx_input_sent, :, :]
         # sent_encoded : upper layer only but all time step, to get all the layers states of the last state get hidden
         # sent_encoded : [batch, max sent len ,hidden_size_sent_encoder]
         printing("SOURCE sentence encoder output dim sent : {} ", var=[sent_encoded.size()],
