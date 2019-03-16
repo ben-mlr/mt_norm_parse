@@ -148,8 +148,8 @@ class CharEncoder(nn.Module):
             attention_weights_char_tag = nn.Softmax(dim=1)(proj)
             ## SHOULD REMOVE THE PAD ENCODINg
             #attention_weights_char_tag[attention_weights_char_tag!=attention_weights_char_tag] = 0
-            output = output.transpose(2, 1)
-            new_h_n = torch.bmm(output, attention_weights_char_tag)
+            _output = output.transpose(2, 1)
+            new_h_n = torch.bmm(_output, attention_weights_char_tag)
             new_h_n = new_h_n.squeeze()
             #c_n = c_n.view(c_n.size(1), c_n.size(0)*c_n.size(2))
             h_n = torch.cat((c_n, new_h_n), dim=1)
@@ -178,9 +178,7 @@ class CharEncoder(nn.Module):
         # we add to sent len if the original src word was filling the entire sequence (i.e last len is not 0)
         sent_len += (input_word_len[:, -1, :] != 0).long() # #handling (I guess) ODO : I think this case problem for sentence that take the all sequence : we are missing a word ! ??
         # sort batch based on sentence length
-        pdb.set_trace()
         sent_len, perm_idx_input_sent = sent_len.squeeze().sort(0, descending=True)
-        pdb.set_trace()
         # get inverse permutation to reorder
         inverse_perm_idx_input_sent = torch.from_numpy(np.argsort(perm_idx_input_sent.cpu().numpy()))
         # we pack and padd the sentence to shorten and pad sentences
@@ -191,7 +189,6 @@ class CharEncoder(nn.Module):
         input_char_vecs, input_sizes = pad_packed_sequence(packed_char_vecs_input, batch_first=True,
                                                            padding_value=PAD_ID_CHAR)
         # [batch, sent_len max, dim encoder] reorder the sequence
-        pdb.set_trace()
         # permutation test
         # assert (input[perm_idx_input_sent, :, :][inverse_perm_idx_input_sent,:,:] == input).all()
         #input_char_vecs = input_char_vecs[inverse_perm_idx_input_sent, :, :]
@@ -238,10 +235,8 @@ class CharEncoder(nn.Module):
             cumu += int(len_sent)
             sent_len_cumulated.append(cumu)
         # we want to pack the sequence so we tranqform it as a list
-        pdb.set_trace()
         # NB ; sent_len and sent_len_cumulated are aligned with permuted input and therefore input_char_vec and h_w
         h_w_ls = [h_w[sent_len_cumulated[i]:sent_len_cumulated[i + 1], :] for i in range(len(sent_len_cumulated) - 1)]
-        pdb.set_trace()
         h_w = pack_sequence(h_w_ls)
         sent_encoded, _ = self.sent_encoder(h_w)
         # add contitioning
@@ -266,6 +261,7 @@ class CharEncoder(nn.Module):
             source_context_word_vector = sent_encoded
         elif context_level == "word":
             source_context_word_vector = h_w
+        pdb.set_trace()
         printing("SOURCE contextual for decoding: {} ", var=[source_context_word_vector.size() if source_context_word_vector is not None else 0],
                  verbose=verbose, verbose_level=3)
 

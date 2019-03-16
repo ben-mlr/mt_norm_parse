@@ -124,18 +124,19 @@ if __name__ == "__main__":
                                                                                   dropout_word_encoder_cell_ls=[0.3],
                                                                                   stable_decoding_state_ls=[False],
                                                                                   word_decoding_ls=[False],
-                                                                                  batch_size_ls=[4],
+                                                                                  batch_size_ls=[2],
                                                                                   word_embed_ls=[True],
                                                                                   dir_sent_encoder_ls=[2], lr_ls=[0.0005],
                                                                                   word_embed_init_ls=[None],
                                                                                   attention_tagging_ls=[0],
+                                                                                  char_src_attention_ls=[0],
                                                                                   teacher_force_ls=[True],
                                                                                   proportion_pred_train_ls=[None],
                                                                                   shared_context_ls=["word", "all", "sent"],
                                                                                   word_embedding_projected_dim_ls=[50],
-                                                                                  tasks_ls=[["pos"]],
-                                                                                  char_src_attention_ls=[0,1],
-                                                                                  n_layers_sent_cell_ls=[2], n_layers_word_encoder_ls=[2],
+                                                                                  tasks_ls=[["normalize"]],
+                                                                                  n_layers_sent_cell_ls=[2],
+                                                                                  n_layers_word_encoder_ls=[2],
                                                                                   unrolling_word_ls=[True],
                                                                                   scale_ls=[2]
                                                                                   )
@@ -189,7 +190,7 @@ if __name__ == "__main__":
               run_grid(params=params, labels=labels, dir_grid=dir_grid, label_grid=LABEL_GRID,
                        epochs=10, test_before_run=test_before_run,
                        train_path=train_path,
-                       dev_path=dev_path, debug=False,
+                       dev_path=dev_path, debug=True,
                        test_paths=[MTNT_EN_FR_TEST],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
                        warmup=warmup)
               update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)

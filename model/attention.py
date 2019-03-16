@@ -34,6 +34,7 @@ class Attention(nn.Module):
             energy = energy.unsqueeze(-1)
             encoder_output = encoder_output.squeeze(-1)#.unsqueeze(1)
             #energy = encoder_output.matmul(energy)
+            pdb.set_trace()
             energy = torch.bmm(encoder_output, energy)
             #energy = energy.squeeze(1).squeeze(1)
             energy = energy.squeeze(-1)

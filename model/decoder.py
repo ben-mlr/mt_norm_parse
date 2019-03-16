@@ -98,10 +98,12 @@ class CharDecoder(nn.Module):
         start_atten = time.time()
 
         if self.attn_layer is not None:
-
-            attention_weights = self.attn_layer(char_state_decoder=state_hiden.squeeze(0),# current_state,
-                                                word_src_sizes=char_vecs_sizes,
-                                                encoder_outputs=char_seq_hidden_encoder)
+            pdb.set_trace()
+            #TODO : make it generic (is there no problem also if not attention ?? (bug fix)
+            # we align what we decode
+            state_hiden = state_hiden[:, :char_seq_hidden_encoder.size(0), :]
+            pdb.set_trace()
+            attention_weights = self.attn_layer(char_state_decoder=state_hiden.squeeze(0),word_src_sizes=char_vecs_sizes,encoder_outputs=char_seq_hidden_encoder)
             printing("DECODER STEP : attention context {} char_seq_hidden_encoder {} ", var=[attention_weights.size(), char_seq_hidden_encoder.size()],
                      verbose_level=3, verbose=self.verbose)
 
@@ -127,6 +129,8 @@ class CharDecoder(nn.Module):
             else:
                 context = torch.cat((word_stable_context, attention_context), dim=2)
             context = self.context_proj(context)
+            pdb.set_trace()
+            # MIS ALGINEMNT BETWEEN SOURCE CHAR LEVEL CONTEXT PER WORD AND WORD THAT WE DECODE PER CHAR
             char_vec_current_batch = torch.cat((context, char_vec_current_batch), dim=2)
         else:
             # no word level context passed so --> char_vec_current is only the current character vector  
@@ -213,6 +217,7 @@ class CharDecoder(nn.Module):
                     printing("DECODER state_decoder_current {} ", var=[state_i[0].size()], verbose=self.verbose,
                              verbose_level=3)
                     printing("DECODER emb_char {} ", var=[emb_char.size()], verbose=self.verbose, verbose_level=3)
+                    pdb.set_trace()
                     all_states, state_i, attention_weights = self.word_encoder_target_step(
                         char_vec_current_batch=emb_char,
                         state_decoder_current=state_i,
@@ -292,7 +297,7 @@ class CharDecoder(nn.Module):
 
     def forward(self, output, conditioning, output_word_len,
                 char_seq_hidden_encoder=None,
-                word_src_sizes=None,proportion_pred_train=None,
+                word_src_sizes=None, proportion_pred_train=None,
                 sent_len_max_source=None, verbose=0):
         conditioning = conditioning.view(1, conditioning.size(0) * conditioning.size(1), -1)
         start = time.time() if self.timing else None
