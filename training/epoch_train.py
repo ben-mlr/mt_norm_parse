@@ -54,11 +54,11 @@ def run_epoch(data_iter, model, loss_compute,
         if not empty_run:
             start = time.time() if timing else None
             out, out_word, pos_pred_state, norm_not_norm_hidden, attention, attention_tag = model.forward(input_seq=batch.input_seq,
-                                                                                           output_seq=batch.output_seq_x,
-                                                                                           input_word_len=batch.input_seq_len,
-                                                                                           output_word_len=batch.output_seq_len,
-                                                                                           proportion_pred_train=proportion_pred_train,
-                                                                                           word_embed_input=batch.input_word)
+                                                                                                          output_seq=batch.output_seq_x,
+                                                                                                          input_word_len=batch.input_seq_len,
+                                                                                                          output_word_len=batch.output_seq_len,
+                                                                                                          proportion_pred_train=proportion_pred_train,
+                                                                                                          word_embed_input=batch.input_word)
             forward_time, start = get_timing(start)
         else:
             out = 0, _

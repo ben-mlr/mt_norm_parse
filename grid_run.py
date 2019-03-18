@@ -76,7 +76,7 @@ if __name__ == "__main__":
         assert os.environ.get("MODE_RUN") in ["DISTRIBUTED", "SINGLE"]
         run_standart = os.environ.get("MODE_RUN") != "DISTRIBUTED"
       else:
-          run_standart = True
+          run_standart = False
           print("LOCAL")
 
 
@@ -97,7 +97,7 @@ if __name__ == "__main__":
                             "word_recurrent_cell_encoder": "LSTM",
                             "hidden_size_sent_encoder": 24, "hidden_size_decoder": 30, "batch_size": 10}
       params_dozat = {"hidden_size_encoder": 200, "output_dim": 100, "char_embedding_dim": 100,
-                      "dropout_sent_encoder": 0.2 , "dropout_word_decoder": 0.3,
+                      "dropout_sent_encoder": 0.3 , "dropout_word_decoder": 0.3,
                       "drop_out_word_encoder_out": 0.2, "drop_out_sent_encoder_out": 0.1,
                       "drop_out_char_embedding_decoder": 0.1, "dropout_bridge": 0.1,
                       "n_layers_word_encoder": 1, "dir_sent_encoder": 2, "word_recurrent_cell_decoder": "LSTM",
@@ -154,9 +154,11 @@ if __name__ == "__main__":
           printing("ENV : running not from os x assuming we are in command shell run", verbose=0, verbose_level=0)
           parser = argparse.ArgumentParser()
           parser.add_argument("--test_before_run", help="test_before_run", action="store_true")
-          parser.add_argument("--desc", help="describe run for reporting", required=False, type=str)
+          parser.add_argument("--desc", help="describe run for reporting", default="", required=False, type=str)
+          parser.add_argument("--n_gpu", help="describe run for reporting", required=False, default=None, type=int)
           args = parser.parse_args()
           test_before_run = args.test_before_run
+          gpu_ls = GPU_AVAILABLE_DEFAULT_LS if args.n_gpu is None else GPU_AVAILABLE_DEFAULT_LS[:args.n_gpu]
           description_comment = args.desc
           print("GRID : test_before_run set to {} ".format(test_before_run))
           warmup = False
@@ -170,12 +172,13 @@ if __name__ == "__main__":
           log = "in the fly logs"
           test_before_run = False
           description_comment = "addslij"
+          gpu_ls = GPU_AVAILABLE_DEFAULT_LS
 
       RUN_ID = str(uuid4())[0:5]
       LABEL_GRID = grid_label if not warmup else "WARMUP-unrolling-False"
       LABEL_GRID = "test_before_run-"+LABEL_GRID if test_before_run else LABEL_GRID
       OAR = RUN_ID if OAR == "" else OAR
-      LABEL_GRID = OAR+ "-" + LABEL_GRID
+      LABEL_GRID = OAR+"-" + LABEL_GRID
       GRID_FOLDER_NAME = LABEL_GRID if len(LABEL_GRID) > 0 else RUN_ID
       GRID_FOLDER_NAME += "-summary"
       dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
@@ -226,17 +229,19 @@ if __name__ == "__main__":
                                               word_recurrent_cell_encoder_ls=["LSTM"],
                                               dropout_word_encoder_cell_ls=[0.],
                                               proportion_pred_train_ls=[None],
-                                              shared_context_ls=["all", "word"],
-                                              word_embedding_projected_dim_ls=[50],
+                                              shared_context_ls=["all", "sent"],
+                                              word_embedding_projected_dim_ls=[100],
+                                              char_level_embedding_projection_dim_ls=[100],
+                                              mode_word_encoding_ls=["sum", "cat"],
                                               tasks_ls=[["pos"]],
                                               char_src_attention_ls=[False],
                                               unrolling_word_ls=[True],
                                               scale_ls=[1],
                                               attention_tagging_ls=[1, 0],
-                                              overall_report_dir=dir_grid, overall_label=LABEL_GRID,
+                                              overall_report_dir=dir_grid, overall_label=LABEL_GRID,description_comment=description_comment,
                                               train_path=train_path, dev_path=dev_path, test_paths=[TEST, EWT_DEV, EN_LINES_EWT_TRAIN],
                                               gpu_mode="random",
-                                              gpus_ls=GPU_AVAILABLE_DEFAULT_LS,
+                                              gpus_ls=gpu_ls,
                                               write_to_dir=RUN_SCRIPTS_DIR)
           print("row:{}".format(row))
           print("dir_script:{}".format(dir_script))

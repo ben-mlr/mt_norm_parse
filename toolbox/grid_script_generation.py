@@ -28,9 +28,9 @@ def script_generation(grid_label, init_param, warmup,dir_grid, environment, dir_
                       teacher_force_ls, proportion_pred_train_ls, shared_context_ls,
                       word_embedding_projected_dim_ls,
                       word_recurrent_cell_encoder_ls, dropout_word_encoder_cell_ls,
-                      tasks_ls, char_src_attention_ls,
+                      tasks_ls, char_src_attention_ls, mode_word_encoding_ls, char_level_embedding_projection_dim_ls,
                       n_layers_sent_cell_ls, unrolling_word_ls,attention_tagging_ls,n_layers_word_encoder_ls,
-                      scale_ls, pos_specific_path=None, gpu_mode="random", gpus_ls=None,write_to_dir=None,):
+                      scale_ls, pos_specific_path=None, gpu_mode="random", description_comment="",gpus_ls=None,write_to_dir=None,):
     if isinstance(test_paths, str):
         test_paths = [test_paths]
 
@@ -57,6 +57,7 @@ def script_generation(grid_label, init_param, warmup,dir_grid, environment, dir_
         attention_tagging_ls=attention_tagging_ls,
         char_src_attention_ls=char_src_attention_ls,
         n_layers_sent_cell_ls=n_layers_sent_cell_ls,
+        mode_word_encoding_ls=mode_word_encoding_ls, char_level_embedding_projection_dim_ls=char_level_embedding_projection_dim_ls,
         unrolling_word_ls=unrolling_word_ls, n_layers_word_encoder_ls=n_layers_word_encoder_ls,
         scale_ls=scale_ls, gpu_mode=gpu_mode, gpus_ls=gpus_ls)
     if gpu_mode == "random":
@@ -65,7 +66,7 @@ def script_generation(grid_label, init_param, warmup,dir_grid, environment, dir_
     if gpu_mode == "fixed":
         if gpus_ls is None:
             gpus_ls = ["0"]
-    description = "{} models : Analysing : {} with regard to {} fixed".format(len(params), analysed, fixed)
+    description = "{} - {} : Analysing : {} with regard to {} fixed".format(len(params), description_comment, analysed, fixed)
     row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=os.environ.get("OAR_JOB_ID",grid_label), description=description,
                                       log_dir=dir_log, target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR,
                                                                                               "{}*".format(grid_label)),

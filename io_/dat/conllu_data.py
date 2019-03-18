@@ -208,7 +208,6 @@ def create_dict(dict_path, train_path, dev_path, test_path,
   printing("VOCABULARY INV added {} ".format(vocab_list), verbose_level=3, verbose=verbose)
   pos_dictionary = pos_specific_dic_builder(pos_specific_data_set, pos_dictionary)
 
-
   def expand_vocab(data_paths):
     counter_match_dev = 0
     expand = 0

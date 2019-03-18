@@ -99,7 +99,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
             "ERROR score_to_compute_ls and mode_norm_ls should not be None"
     use_gpu = use_gpu_(use_gpu)
     hardware_choosen = "GPU" if use_gpu else "CPU"
-    printing("{} mode ", var=([hardware_choosen]), verbose_level=0, verbose=verbose)
+    printing("{} hardware mode ", var=([hardware_choosen]), verbose_level=0, verbose=verbose)
     freq_checkpointing = int(n_epochs/10) if checkpointing and freq_checkpointing is None else freq_checkpointing
     assert add_start_char == 1, "ERROR : add_start_char must be activated due decoding behavior of output_text_"
     printing("WARNING : add_start_char is {} and add_end_char {}  ".format(add_start_char, add_end_char), verbose=verbose, verbose_level=0)
@@ -263,6 +263,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
         printing("WARNING : scoring epochs not regualr (more at the begining ", verbose_level=1, verbose=verbose)
         freq_scoring = 1
     checkpoint_dir_former = None
+
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
         assert policy in AVAILABLE_SCHEDULING_POLICIES
         policy_dic = eval(policy)(epoch) if policy is not None else None
@@ -279,7 +280,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                     normalization=normalization,
                                     get_batch_mode=get_batch_mode_all,
                                     batch_size=batch_size, extend_n_batch=extend_n_batch,
-                                    print_raw=print_raw,timing=timing, pos_dictionary=model.pos_dictionary,
+                                    print_raw=print_raw, timing=timing, pos_dictionary=model.pos_dictionary,
                                     verbose=verbose)
         start = time.time()
 

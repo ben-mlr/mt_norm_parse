@@ -16,6 +16,9 @@ def args_train(mode="command_line"):
     parser.add_argument("--output_dim", default=10, type=int, help="display a square of a given number")
     parser.add_argument("--char_embedding_dim", default=10, type=int, help="display a square of a given number")
 
+    parser.add_argument("--mode_word_encoding", default="cat", type=str, help="display a square of a given number")
+    parser.add_argument("--char_level_embedding_projection_dim", default=0, type=int, help="display a square of a given number")
+
     parser.add_argument("--batch_size", default=2, type=int, help="display a square of a given number")
     parser.add_argument("--epochs", default=1, type=int, help="display a square of a given number")
 
@@ -70,8 +73,9 @@ def args_train(mode="command_line"):
     parser.add_argument("--dense_dim_auxilliary_pos_2",type=int, default=None, help="display a square of a given number")
     parser.add_argument("--activation_char_decoder", default=None, help="display a square of a given number")
     parser.add_argument("--activation_word_decoder", default=None, help="display a square of a given number")
-    #parser.add_argument("--tasks", default=["normalize"], help="display a square of a given number")
     parser.add_argument('--tasks', nargs='+', help='<Required> Set flag', default=["normalize"])
+
+
 
     parser.add_argument("--train_path", required=mode == "command_line", help="display a square of a given number")
     parser.add_argument("--dev_path", required=mode == "command_line", help="display a square of a given number")

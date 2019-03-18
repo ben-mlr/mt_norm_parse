@@ -1,10 +1,12 @@
 from torch.autograd import Variable
+from env.project_variables import DEV, LIU_DEV
 import torch
 import numpy as np
 import pdb
 from io_.batch_generator import MaskBatch
 import sys
 from tqdm import tqdm
+from env.project_variables import EN_LINES_EWT_TRAIN, LIU_DEV, TRAINING, DEMO
 #sys.path.insert(0, "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/ELMoLex_sosweet/")
 from io_.dat import conllu_data
 from io_.info_print import printing, print_char_seq, disable_tqdm_level
@@ -24,7 +26,6 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
     n_sents = data[-1]
     if extend_n_batch != 1:
         assert get_batch_mode, "ERROR extending nbatch only makes sense in get_batch True (random iteration) "
-
     nbatch = n_sents//batch_size*extend_n_batch  # approximated lower approximation 1.9//2 == 0
 
     if nbatch == 0:
@@ -33,8 +34,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
     nbatch = 1 if nbatch == 0 else nbatch
     # deterministic run over all the dataset (for evaluation)
     if not normalization:
-        printing("WARNING : Normalisation is False : model is a autoencoder (BOTH iteration and get cases) --> {} ",
-             verbose=verbose, verbose_level=0)
+        printing("WARNING : Normalisation is False : model is a autoencoder (BOTH iteration and get cases) --> {} ", verbose=verbose, verbose_level=0)
     if not get_batch_mode:
         for batch in tqdm(conllu_data.iterate_batch_variable(data, batch_size=batch_size,
                                                              normalization=normalization),
@@ -49,8 +49,8 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                                 verbose=verbose), order_ids
             else:
                 yield MaskBatch(chars_norm, chars,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
-                output_word=word_norm, pos=pos, input_word=words,
-                verbose=verbose), order_ids
+                                output_word=word_norm, pos=pos, input_word=words,
+                                verbose=verbose), order_ids
 
 
     # get_batch randomly (for training purpose)
@@ -157,6 +157,85 @@ def data_gen(V, batch, nbatches,seq_len=10):
         yield MaskBatch(src, tgt, pad=1)
 
 
+
+
+import numpy as np
+tasks = ["normalize", "pos"]
+
+TASKS_PARAMETER = {"normalize": {"normalization": True}, "pos": {"normalization":False}}
+
+MODE_BATCH_SAMPLING_AVAILABLE = ["proportional", "uniform"]
+
+def sampling_proportion(task_n_sent, total_n_sents):
+    return task_n_sent/total_n_sents*100
+
+def data_gen_multi_task_sampling_batch(tasks, data_sets,
+                                       word_dictionary, word_dictionary_norm , char_dictionary,
+                                       pos_dictionary,xpos_dictionary, type_dictionary, use_gpu,
+                                       batch_size,
+                                       get_batch_mode=True, norm_not_norm=False, word_decoder=False,
+                                       add_start_char=1, add_end_char=1, symbolic_end=True, symbolic_root=True,
+                                       mode_batch_sampling="proportional", verbose=1):
+    "multitask learning iterator "
+    assert len(tasks) == len(data_set)
+    assert mode_batch_sampling in MODE_BATCH_SAMPLING_AVAILABLE
+    reader = {}
+    iterator = {}
+    end_task_flag = {}
+    n_sents_per_task_dataset_cumul = {}
+    cumul_n_sent = 0
+    for task, data in zip(tasks, data_sets):
+        reader[task] = conllu_data.read_data_to_variable(data, word_dictionary, char_dictionary,
+                                                         pos_dictionary,
+                                                         xpos_dictionary, type_dictionary,
+                                                         use_gpu=use_gpu,
+                                                         norm_not_norm=norm_not_norm,
+                                                         word_decoder=word_decoder,
+                                                         symbolic_end=symbolic_end, symbolic_root=symbolic_root,
+                                                         dry_run=0, lattice=False, verbose=1,
+                                                         normalization=TASKS_PARAMETER[task]["normalization"], bucket=False,
+                                                         add_start_char=add_start_char,
+                                                         add_end_char=add_end_char,
+                                                         word_norm_dictionary=word_dictionary_norm)
+
+        iterator[task] = data_gen_conllu(data=reader[task], word_dictionary=word_dictionary,
+                                         char_dictionary=char_dictionary, pos_dictionary=pos_dictionary,
+                                         batch_size=batch_size, extend_n_batch=extend_n_batch,
+                                         get_batch_mode=get_batch_mode,
+                                         print_raw=False, normalization=TASKS_PARAMETER[task]["normalization"],
+                                         verbose=verbose)
+        end_task_flag[task] = False
+        cumul_n_sent += reader[task][-1]
+        print("dataset ", data, reader[task][-1], cumul_n_sent)
+        n_sents_per_task_dataset_cumul[task] = cumul_n_sent
+    n_sents_per_task_dataset_cumul["all"] = n_sents_per_task_dataset_cumul[tasks[-1]]
+    printing("MT batch sampling iterator {} cumulated n_sent   ", var=[n_sents_per_task_dataset_cumul], verbose_level=1, verbose=verbose)
+    batch_iter = 0
+
+    while True:
+        n_sent_start = 0
+        random_sample_id = np.random.randint(0, 100)
+        print("ITER", batch_iter, "sum(end_task_flag.values()) is ", end_task_flag.values(), " while len(tasks) is ", tasks, random_sample_id)
+        for ind, task in enumerate(tasks):
+            #print("Sampling, for task ", task, " proportion is ", sampling_proportion(n_sents_per_task_dataset_cumul[task], n_sents_per_task_dataset_cumul["all"]),
+            #      " start is {} ".format(sampling_proportion(n_sent_start, n_sents_per_task_dataset_cumul["all"])), " random is ", random_sample_id)
+            if sampling_proportion(n_sent_start, n_sents_per_task_dataset_cumul["all"]) < random_sample_id < sampling_proportion(n_sents_per_task_dataset_cumul[task], n_sents_per_task_dataset_cumul["all"]) and not end_task_flag[task]:
+                try:
+                    batch = iterator[task].__next__()
+                    print("picking", task, ind)
+                    batch_iter += 1
+                    yield batch
+                except StopIteration:
+                    end_task_flag[task] = True
+                    print("END FLAG for task", task)
+                    break
+            else:
+                n_sent_start = n_sents_per_task_dataset_cumul[task]
+        if sum(end_task_flag.values()) == len(tasks):
+            break
+
+
+
 if __name__=="__main__":
     dummy, conll = False, True
     if dummy:
@@ -172,22 +251,102 @@ if __name__=="__main__":
         dict_path = "../dictionaries/"
         test_path = "/Users/bemuller/Documents/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo2"
         verbose = 2
-        batch_size = 10
-        nbatch = 50
+        batch_size = 200
         add_start_char = 1
         add_end_char = 1
-        normalization = True
+        extend_n_batch = 1
         word_dictionary,word_dictionary_norm , char_dictionary, pos_dictionary,\
         xpos_dictionary, type_dictionary = conllu_data.create_dict(dict_path=dict_path,
-                                                                   train_path=test_path,
-                                                                   dev_path=test_path,
+                                                                   train_path=LIU_DEV,
+                                                                   dev_path=LIU_DEV,
                                                                    test_path=None,
                                                                    word_embed_dict={},
-                                                                   dry_run=False,
-                                                                   vocab_trim=True, add_start_char=add_start_char)
-        batchIter = data_gen_conllu(test_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
-                                    type_dictionary,
-                                    print_raw=False, normalization=normalization,
-                                    verbose=verbose)
-        for i, batch in enumerate(batchIter):
-            print("Batch {} ".format(i))
+                                                                   dry_run=False, pos_specific_data_set=EN_LINES_EWT_TRAIN,
+                                                                   add_start_char=add_start_char)
+        if False:
+            data_reader_task_1 = conllu_data.read_data_to_variable(TRAINING, word_dictionary, char_dictionary,
+                                                                pos_dictionary,
+                                                                xpos_dictionary, type_dictionary,
+                                                                use_gpu=None,
+                                                                norm_not_norm=False,
+                                                                word_decoder=False,
+                                                                symbolic_end=True, symbolic_root=True,
+                                                                dry_run=0, lattice=False, verbose=1,
+                                                                normalization=False, bucket=False,
+                                                                add_start_char=add_start_char, add_end_char=add_end_char,
+                                                                word_norm_dictionary=word_dictionary_norm)
+
+            data_reader_task_2 = conllu_data.read_data_to_variable(LIU_DEV, word_dictionary, char_dictionary,
+                                                                 pos_dictionary,
+                                                                 xpos_dictionary, type_dictionary,
+                                                                 use_gpu=None,
+                                                                 norm_not_norm=False,
+                                                                 word_decoder=False,
+                                                                 symbolic_end=True, symbolic_root=True,
+                                                                 dry_run=0, lattice=False, verbose=1,
+                                                                 normalization=True, bucket=False,
+                                                                 add_start_char=add_start_char, add_end_char=add_end_char,
+                                                                 word_norm_dictionary=word_dictionary_norm)
+
+
+            batchIter_task_1 = data_gen_conllu(data=data_reader_task_1, word_dictionary=word_dictionary,
+                                               char_dictionary=char_dictionary, pos_dictionary=pos_dictionary,
+                                               batch_size=batch_size, extend_n_batch=extend_n_batch, get_batch_mode=True,
+                                               print_raw=False, normalization=False,
+                                               verbose=verbose)
+            batchIter_task_2 = data_gen_conllu(data=data_reader_task_2, word_dictionary=word_dictionary, char_dictionary=char_dictionary,
+                                               pos_dictionary=pos_dictionary,
+                                               batch_size=batch_size, extend_n_batch=extend_n_batch, get_batch_mode=True,
+                                               print_raw=False, normalization=True,
+                                               verbose=verbose)
+            #for i, batch in enumerate(batchIter):
+
+
+        data_set = [LIU_DEV, DEMO]
+
+        iterator_multi = data_gen_multi_task_sampling_batch(tasks, data_set,
+                                           word_dictionary, word_dictionary_norm, char_dictionary,
+                                           pos_dictionary, xpos_dictionary, type_dictionary, use_gpu=None,
+                                           batch_size=200,
+                                           get_batch_mode=True, norm_not_norm=False, word_decoder=False,
+                                           add_start_char=1, add_end_char=1, symbolic_end=True, symbolic_root=True,
+                                           mode_batch_sampling="proportional", verbose=1)
+        while True:
+            try:
+                print(iterator_multi.__next__())
+            except:
+                break
+
+
+        if False:
+            proportion_task_2 = data_reader_task_2[-1]/(data_reader_task_1[-1]+data_reader_task_2[-1])*100
+            proportion_sampling_batch_ls = [0] + [] + [100]
+            printing("MULTITASK : scheduling {:.2f}% of task 2 sample because n_sents : {} for task 1 , {} for task 2 ",
+                     var=[proportion_task_2, data_reader_task_1[-1], data_reader_task_2[-1]], verbose=1, verbose_level=1)
+            end_task_1 = False
+            end_task_2 = False
+            i = 0
+            while True:
+                if np.random.randint(0, 100) > proportion_task_2 and not end_task_1:
+                    try:
+                        batch = batchIter_task_1.__next__()
+                        task = "task 1 "
+                        print("Batch {} task on {} -->".format(i, task))
+                    except StopIteration:
+                        end_task_1 = True
+                    i += 1
+                    continue
+                elif not end_task_2:
+                    try:
+                        batch = batchIter_task_2.__next__()
+                        task = "task 2 "
+                        print("Batch {} task on {} ".format(i, task))
+                    except StopIteration:
+                        end_task_2 = True
+                    i += 1
+                    continue
+
+                print("breaking")
+                break
+
+
