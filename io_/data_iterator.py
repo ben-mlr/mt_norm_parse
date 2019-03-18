@@ -263,43 +263,6 @@ if __name__=="__main__":
                                                                    word_embed_dict={},
                                                                    dry_run=False, pos_specific_data_set=EN_LINES_EWT_TRAIN,
                                                                    add_start_char=add_start_char)
-        if False:
-            data_reader_task_1 = conllu_data.read_data_to_variable(TRAINING, word_dictionary, char_dictionary,
-                                                                pos_dictionary,
-                                                                xpos_dictionary, type_dictionary,
-                                                                use_gpu=None,
-                                                                norm_not_norm=False,
-                                                                word_decoder=False,
-                                                                symbolic_end=True, symbolic_root=True,
-                                                                dry_run=0, lattice=False, verbose=1,
-                                                                normalization=False, bucket=False,
-                                                                add_start_char=add_start_char, add_end_char=add_end_char,
-                                                                word_norm_dictionary=word_dictionary_norm)
-
-            data_reader_task_2 = conllu_data.read_data_to_variable(LIU_DEV, word_dictionary, char_dictionary,
-                                                                 pos_dictionary,
-                                                                 xpos_dictionary, type_dictionary,
-                                                                 use_gpu=None,
-                                                                 norm_not_norm=False,
-                                                                 word_decoder=False,
-                                                                 symbolic_end=True, symbolic_root=True,
-                                                                 dry_run=0, lattice=False, verbose=1,
-                                                                 normalization=True, bucket=False,
-                                                                 add_start_char=add_start_char, add_end_char=add_end_char,
-                                                                 word_norm_dictionary=word_dictionary_norm)
-
-
-            batchIter_task_1 = data_gen_conllu(data=data_reader_task_1, word_dictionary=word_dictionary,
-                                               char_dictionary=char_dictionary, pos_dictionary=pos_dictionary,
-                                               batch_size=batch_size, extend_n_batch=extend_n_batch, get_batch_mode=True,
-                                               print_raw=False, normalization=False,
-                                               verbose=verbose)
-            batchIter_task_2 = data_gen_conllu(data=data_reader_task_2, word_dictionary=word_dictionary, char_dictionary=char_dictionary,
-                                               pos_dictionary=pos_dictionary,
-                                               batch_size=batch_size, extend_n_batch=extend_n_batch, get_batch_mode=True,
-                                               print_raw=False, normalization=True,
-                                               verbose=verbose)
-            #for i, batch in enumerate(batchIter):
 
 
         data_set = [LIU_DEV, DEMO]
@@ -316,37 +279,4 @@ if __name__=="__main__":
                 print(iterator_multi.__next__())
             except:
                 break
-
-
-        if False:
-            proportion_task_2 = data_reader_task_2[-1]/(data_reader_task_1[-1]+data_reader_task_2[-1])*100
-            proportion_sampling_batch_ls = [0] + [] + [100]
-            printing("MULTITASK : scheduling {:.2f}% of task 2 sample because n_sents : {} for task 1 , {} for task 2 ",
-                     var=[proportion_task_2, data_reader_task_1[-1], data_reader_task_2[-1]], verbose=1, verbose_level=1)
-            end_task_1 = False
-            end_task_2 = False
-            i = 0
-            while True:
-                if np.random.randint(0, 100) > proportion_task_2 and not end_task_1:
-                    try:
-                        batch = batchIter_task_1.__next__()
-                        task = "task 1 "
-                        print("Batch {} task on {} -->".format(i, task))
-                    except StopIteration:
-                        end_task_1 = True
-                    i += 1
-                    continue
-                elif not end_task_2:
-                    try:
-                        batch = batchIter_task_2.__next__()
-                        task = "task 2 "
-                        print("Batch {} task on {} ".format(i, task))
-                    except StopIteration:
-                        end_task_2 = True
-                    i += 1
-                    continue
-
-                print("breaking")
-                break
-
 
