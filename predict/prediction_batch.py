@@ -171,9 +171,10 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
 
                 if write_output:
                     if dir_normalized is None:
-                        dir_normalized = os.path.join(WRITING_DIR, model.model_full_name+"-{}-normalized.conll".format(label_data))
-                        dir_original = os.path.join(WRITING_DIR, model.model_full_name+"-{}-original.conll".format(label_data))
-
+                        dir_normalized = os.path.join(WRITING_DIR, model.model_full_name +
+                                                      "-{}-normalized.conll".format(label_data))
+                        dir_original = os.path.join(WRITING_DIR, model.model_full_name +
+                                                    "-{}-original.conll".format(label_data))
                     write_normalization(format=write_to, dir_normalized=dir_normalized, dir_original=dir_original,
                                         ind_batch=step*batch_size,
                                         text_decoded_ls=text_decoded_ls, src_text_ls=src_text_ls, verbose=verbose)

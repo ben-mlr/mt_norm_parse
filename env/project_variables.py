@@ -36,6 +36,7 @@ TASKS_2_METRICS_STR = {"all": ["accuracy-normalization","InV-accuracy-normalizat
 
 AVAILABLE_OPTIMIZER = ["adam", "bahdanu-adadelta"]
 
+DEFAULT_SCORING_FUNCTION = "exact_match"
 
 # DATASETS
 TRAINING_LABEL, TRAINING = "en-ud-train", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-train.conllu")
@@ -88,6 +89,7 @@ MTNT_TOK_DEV_LABEL, MTNT_TOK_DEV= "mtnt_tok_dev", os.path.join(PROJECT_PATH, "./
 MTNT_EN_FR_TRAIN_LABEL, MTNT_EN_FR_TRAIN = "mtnt_train", os.path.join(PROJECT_PATH, "./data/MTNT/train/train.en-fr.conll")
 MTNT_EN_FR_DEV_LABEL, MTNT_EN_FR_DEV = "mtnt_valid", os.path.join(PROJECT_PATH, "./data/MTNT/valid/valid.en-fr.conll")
 MTNT_EN_FR_TEST_LABEL, MTNT_EN_FR_TEST = "mtnt_test", os.path.join(PROJECT_PATH, "./data/MTNT/test/test.en-fr.conll")
+MTNT_EN_FR_TEST_DEMO_LABEL, MTNT_EN_FR_TEST_DEMO = "mtnt_test.demo", os.path.join(PROJECT_PATH, "./data/MTNT/test/test.en-fr.demo.conll")
 
 
 
@@ -120,10 +122,11 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 EN_LINES_TRAIN: EN_LINES_TRAIN_LABEL, EN_LINES_DEV: EN_LINES_DEV_LABEL, EN_LINES_EWT_TRAIN: EN_LINES_EWT_TRAIN_LABEL,
                 MTNT_TOK_TRAIN: MTNT_TOK_TRAIN_LABEL, MTNT_TOK_DEV: MTNT_TOK_DEV_LABEL, MTNT_EN_FR_TRAIN: MTNT_EN_FR_TRAIN_LABEL,
                 MTNT_EN_FR_DEV: MTNT_EN_FR_DEV_LABEL, MTNT_EN_FR_TEST: MTNT_EN_FR_TEST_LABEL,
-                DIR_TWEET_W2V:TWEET_W2V_LABEL, FASTEXT_WIKI_NEWS_W2V_LABEL: DIR_FASTEXT_WIKI_NEWS_W2V
+                DIR_TWEET_W2V: TWEET_W2V_LABEL, FASTEXT_WIKI_NEWS_W2V_LABEL: DIR_FASTEXT_WIKI_NEWS_W2V,
+                MTNT_EN_FR_TEST_DEMO: MTNT_EN_FR_TEST_DEMO_LABEL
                 }
-REPO_W2V = {DIR_TWEET_W2V: {"label": TWEET_W2V_LABEL, "dim":400},
-            DIR_FASTEXT_WIKI_NEWS_W2V: {"label":FASTEXT_WIKI_NEWS_W2V_LABEL,"dim":300}
+REPO_W2V = {DIR_TWEET_W2V: {"label": TWEET_W2V_LABEL, "dim": 400},
+            DIR_FASTEXT_WIKI_NEWS_W2V: {"label": FASTEXT_WIKI_NEWS_W2V_LABEL, "dim": 300}
 }
 
 # output dir for writing

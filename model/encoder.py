@@ -19,10 +19,13 @@ class CharEncoder(nn.Module):
                  n_layers_word_cell=1, timing=False, bidir_sent=True,context_level="all",
                  drop_out_word_encoder_out=0, drop_out_sent_encoder_out=0,
                  n_layers_sent_cell=1, attention_tagging=False,
+                 char_level_embedding_projection_dim=0, word_embedding_dim_inputed=0,
                  dir_word_encoder=1, add_word_level=False,
-                 word_embedding_dim_inputed=0,
+                 mode_word_encoding="cat",
                  verbose=2):
         super(CharEncoder, self).__init__()
+        assert mode_word_encoding in ["cat", "sum"], "ERROR : only cat sum supported for aggregating word representation"
+        self.mode_word_encoding = mode_word_encoding
         self.char_embedding_ = char_embedding
         self.timing = timing
         self.add_word_level = add_word_level
@@ -31,7 +34,7 @@ class CharEncoder(nn.Module):
         self.context_level = context_level
         if attention_tagging:
             self.attention_query = nn.Linear(hidden_size_encoder*n_layers_word_cell*dir_word_encoder, 1, bias=False)
-            if word_embedding_dim_inputed is not None and word_embedding_dim_inputed>0:
+            if word_embedding_dim_inputed is not None and word_embedding_dim_inputed > 0:
                 self.attention_projection = nn.Linear(hidden_size_encoder * n_layers_word_cell * dir_word_encoder * 2, word_embedding_dim_inputed)
             else:
                 raise(Exception("word_embedding_dim_inputed null why it is used for attention"))
@@ -39,15 +42,24 @@ class CharEncoder(nn.Module):
         else:
             self.attention_query = None
             self.attention_projection = None
+        self.char_level_encoding_projection = nn.Linear(hidden_size_encoder * n_layers_word_cell * dir_word_encoder * (int(attention_tagging)+1),
+                                                        char_level_embedding_projection_dim) if char_level_embedding_projection_dim >0 else None
         if dir_word_encoder == 2:
             assert hidden_size_encoder % 2 == 0, "ERROR = it will be divided by two and remultipy so need even number for simplicity"
         if bidir_sent:
             assert hidden_size_sent_encoder % 2 == 0, "ERROR = it will be divided by two and remultipy so need even number for simplicity"
-        if attention_tagging:
-            dim_input_sentence_encoder = 2*word_embedding_dim_inputed
-        else:
-            dim_input_sentence_encoder = hidden_size_encoder*n_layers_word_cell*dir_word_encoder+word_embedding_dim_inputed
 
+        # if attention the state is concatanated with the cell state (*2)
+        char_level_rnn_output = hidden_size_encoder*n_layers_word_cell*dir_word_encoder if not attention_tagging else 2 * hidden_size_encoder * n_layers_word_cell*dir_word_encoder
+        char_level_embedding_input_dim = char_level_embedding_projection_dim if char_level_embedding_projection_dim > 0 else char_level_rnn_output
+
+        if mode_word_encoding == "sum":
+            assert char_level_embedding_input_dim == word_embedding_dim_inputed, \
+                "ERROR : in sum : they should be same dimension but are char:{} and word:{} ".format(
+                    char_level_embedding_input_dim, word_embedding_dim_inputed)
+            dim_input_sentence_encoder = char_level_embedding_projection_dim
+        elif mode_word_encoding == "cat":
+            dim_input_sentence_encoder = char_level_embedding_input_dim + word_embedding_dim_inputed
         self.sent_encoder = nn.LSTM(input_size=dim_input_sentence_encoder,
                                     hidden_size=hidden_size_sent_encoder,
                                     num_layers=n_layers_sent_cell, bias=True, batch_first=True,
@@ -71,8 +83,13 @@ class CharEncoder(nn.Module):
                  verbose=verbose, verbose_level=1)
         self.seq_encoder = word_recurrent_cell(input_size=input_dim, hidden_size=hidden_size_encoder,
                                                dropout=dropout_word_encoder_cell,
-                                               num_layers=n_layers_word_cell,#nonlinearity='tanh',
+                                               num_layers=n_layers_word_cell,
                                                bias=True, batch_first=True, bidirectional=bool(dir_word_encoder-1))
+        self.output_encoder_dim = 0
+        if self.context_level in ["sent", "all"]:
+            self.output_encoder_dim += hidden_size_sent_encoder*(int(bidir_sent)+1)
+        if self.context_level in ["word", "all"]:
+            self.output_encoder_dim += dim_input_sentence_encoder
 
     def word_encoder_source(self, input, input_word_len=None):
         # input : [word batch dim, max character length],  input_word_len [word batch dim]
@@ -154,7 +171,9 @@ class CharEncoder(nn.Module):
             #c_n = c_n.view(c_n.size(1), c_n.size(0)*c_n.size(2))
             h_n = torch.cat((c_n, new_h_n), dim=1)
             # TODO : could add projection to word_dim (or word_dim projected) so that we can sum and not concatanate to do Dozat
-            h_n = self.attention_projection(h_n)
+            #h_n = self.attention_projection(h_n)
+        if self.char_level_encoding_projection is not None:
+            h_n = self.char_level_encoding_projection(h_n)
         printing("SOURCE ENCODED UNPACKED {}  , hidden {}  (output (includes all the "
                  "hidden states of last layers), last hidden hidden for each dir+layers)", var=(output.data.shape, h_n.size()),
                  verbose=self.verbose, verbose_level=3)
@@ -221,13 +240,12 @@ class CharEncoder(nn.Module):
             # we trust h_w for padding
             # TODO / IS this concatanation CORRECT ??
             #word_embed_input = word_embed_input[:, :h_w.size(1), :]
-            word_representation_agg = "cat"
-            if word_representation_agg == "cat":
+            if self.mode_word_encoding == "cat":
                 h_w = torch.cat((word_embed_input, #.float(),
                                  h_w), dim=-1)
 
-            elif word_representation_agg == "sum":
-                h_w = torch.sum((word_embed_input, h_w), dim=-1)
+            elif self.mode_word_encoding == "sum":
+                h_w = word_embed_input+h_w
 
         sent_len_cumulated = [0]
         cumu = 0
@@ -238,6 +256,7 @@ class CharEncoder(nn.Module):
         # NB ; sent_len and sent_len_cumulated are aligned with permuted input and therefore input_char_vec and h_w
         h_w_ls = [h_w[sent_len_cumulated[i]:sent_len_cumulated[i + 1], :] for i in range(len(sent_len_cumulated) - 1)]
         h_w = pack_sequence(h_w_ls)
+        pdb.set_trace()
         sent_encoded, _ = self.sent_encoder(h_w)
         # add contitioning
         sent_encoded, length_sent = pad_packed_sequence(sent_encoded, batch_first=True)
@@ -253,7 +272,7 @@ class CharEncoder(nn.Module):
         # concatanate
         sent_encoded = self.drop_out_sent_encoder_out(sent_encoded)
         h_w = self.drop_out_word_encoder_out(h_w)
-
+        pdb.set_trace()
         if context_level == "all":
             #" 'all' means word and sentence level "
             source_context_word_vector = torch.cat((sent_encoded, h_w), dim=2)
@@ -262,6 +281,7 @@ class CharEncoder(nn.Module):
         elif context_level == "word":
             source_context_word_vector = h_w
         pdb.set_trace()
+
         printing("SOURCE contextual for decoding: {} ", var=[source_context_word_vector.size() if source_context_word_vector is not None else 0],
                  verbose=verbose, verbose_level=3)
 

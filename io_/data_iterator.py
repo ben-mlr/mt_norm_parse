@@ -12,6 +12,7 @@ import time
 from toolbox.sanity_check import get_timing
 NORM2NOISY=False
 
+
 def data_gen_conllu(data, word_dictionary, char_dictionary,
                     batch_size,
                     get_batch_mode=True,
@@ -31,7 +32,8 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
     print("Running {} batches of {} dim (nsent : {}) (if 0 will be set to 1) ".format(nbatch, batch_size, n_sents))
     nbatch = 1 if nbatch == 0 else nbatch
     # deterministic run over all the dataset (for evaluation)
-    printing("WARNING : Normalisation is False : model is a autoencoder (BOTH iteration and get cases) ",
+    if not normalization:
+        printing("WARNING : Normalisation is False : model is a autoencoder (BOTH iteration and get cases) --> {} ",
              verbose=verbose, verbose_level=0)
     if not get_batch_mode:
         for batch in tqdm(conllu_data.iterate_batch_variable(data, batch_size=batch_size,
@@ -42,7 +44,6 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             if not normalization:
                 chars_norm = chars.clone()
             if not NORM2NOISY:
-
                 yield MaskBatch(chars, chars_norm,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
                                 output_word=word_norm, pos=pos, input_word=words,
                                 verbose=verbose), order_ids

@@ -44,6 +44,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
           dropout_bridge=0, drop_out_word_encoder_out=0, drop_out_sent_encoder_out=0,
           dir_word_encoder=1,
           word_embed=False, word_embedding_dim=None, word_embedding_projected_dim=None,
+          mode_word_encoding="cat", char_level_embedding_projection_dim=0,
           word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,drop_out_char_embedding_decoder=0,
           hidden_size_encoder=None, output_dim=None, char_embedding_dim=None,
           hidden_size_decoder=None, hidden_size_sent_encoder=None, freq_scoring=5,
@@ -70,6 +71,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
           activation_word_decoder=None, activation_char_decoder=None,
           extra_arg_specific_label="",
           freezing_mode=False, freeze_ls_param_prefix=None,
+
           attention_tagging=False,
           optimizer="adam",
           verbose=1):
@@ -178,6 +180,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                           unrolling_word=unrolling_word, char_src_attention=char_src_attention,
                           word_decoding=word_decoding,  dense_dim_word_pred=dense_dim_word_pred, dense_dim_word_pred_2=dense_dim_word_pred_2,dense_dim_word_pred_3=dense_dim_word_pred_3,
                           char_decoding=char_decoding,
+                          mode_word_encoding=mode_word_encoding, char_level_embedding_projection_dim=char_level_embedding_projection_dim,
                           stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                           symbolic_root=symbolic_root, symbolic_end=symbolic_end,
                           word_embed=word_embed, word_embedding_dim=word_embedding_dim, word_embedding_projected_dim=word_embedding_projected_dim,

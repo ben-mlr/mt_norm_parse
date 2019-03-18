@@ -40,7 +40,7 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                               dropout_word_encoder_cell_ls=None,
                               stable_decoding_state_ls=None,word_recurrent_cell_encoder_ls=None,
                               word_embedding_projected_dim_ls=None, n_layers_sent_cell_ls=None, n_layers_word_encoder_ls=None,
-                              word_embed_ls=None,
+                              word_embed_ls=None, char_level_embedding_projection_dim_ls=None, mode_word_encoding_ls=None,
                               proportion_pred_train_ls=None, tasks_ls=None, attention_tagging_ls=None,
                               grid_label="", gpu_mode="random", gpus_ls=None, printout_info_var=True):
 
@@ -73,6 +73,7 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
   if dir_sent_encoder_ls is None:
     dir_sent_encoder_ls = [2]
     default.append(("dir_sent_encoder", dir_sent_encoder_ls[0]))
+  assert len(dir_sent_encoder_ls) == 1 and dir_sent_encoder_ls[0] == 2 , "ERROR : only dir_sent_encoder 2 allowed for Now (for loop nesting problem)"
   if clipping_ls is None:
     clipping_ls = [1]
     default.append(("gradient_clipping", clipping_ls[0]))
@@ -95,6 +96,7 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
   if stable_decoding_state_ls is None:
     stable_decoding_state_ls = [False]
     default.append(("stable_decoding_state", stable_decoding_state_ls[0]))
+  assert not stable_decoding_state_ls[0] and len(stable_decoding_state_ls)==1, "ERROR : only stable_decoding_state False allowed for Now (for loop nesting problem)"
   if word_embedding_projected_dim_ls is None:
     word_embedding_projected_dim_ls = [None]
     default.append(("word_embedding_projected_dim", word_embedding_projected_dim_ls[0]))
@@ -118,6 +120,10 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
   if n_layers_word_encoder_ls is None:
     n_layers_word_encoder_ls = [1]
     default.append(("n_layers_word_encoder", n_layers_word_encoder_ls[0]))
+  if mode_word_encoding_ls is None:
+    mode_word_encoding_ls = ["cat"] #"mode_word_encoding"
+  if char_level_embedding_projection_dim_ls  is None:
+    char_level_embedding_projection_dim_ls = [0]
   for def_ in default:
     info_default.append((def_[0],def_[1])) #" "+str(def_[0])+","+str(def_[0])
     printing("GRID : {} argument defaulted to {} ", var=[str(def_)[:-6], def_], verbose=0, verbose_level=0)
@@ -149,32 +155,39 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
             scale_sent_context, scale_word, scaled_output_dim = 1, 1, 1
           #for dir_word_encoder in dir_word_encoder_ls:
           for char_src_attention in char_src_attention_ls:
-            for dir_sent_encoder in dir_sent_encoder_ls:
-              for clipping in clipping_ls:
-                #for unrolling_word in unrolling_word_ls:
-                for word_decoding in word_decoding_ls:
-                # for auxilliary_task_pos in auxilliary_task_pos_ls:
-                  for stable_decoding_state in stable_decoding_state_ls:
-                    for word_embed in word_embed_ls:
-                      if not word_embed:
-                        _word_embedding_projected_dim_ls = [None]
-                        _word_embed_init_ls = [None]
-                      else:
-                        _word_embed_init_ls = word_embed_init_ls
-                        _word_embedding_projected_dim_ls = word_embedding_projected_dim_ls
-                      for word_embed_init in _word_embed_init_ls :
-                        for word_embedding_projected_dim in _word_embedding_projected_dim_ls:
-                          for n_layers_sent_cell in n_layers_sent_cell_ls:
-                            for proportion_pred_train in proportion_pred_train_ls:
-                              for tasks in tasks_ls:
-                                for teacher_force in teacher_force_ls:
-                                  for word_recurrent_cell_encoder in word_recurrent_cell_encoder_ls:
-                                    for dropout_word_encoder_cell in dropout_word_encoder_cell_ls:
-                                      for attention_tagging in attention_tagging_ls:
-                                        for n_layers_word_encoder in n_layers_word_encoder_ls:
+            #for dir_sent_encoder in dir_sent_encoder_ls:
+            for clipping in clipping_ls:
+              #for unrolling_word in unrolling_word_ls:
+              for word_decoding in word_decoding_ls:
+              # for auxilliary_task_pos in auxilliary_task_pos_ls:
+                #for stable_decoding_state in stable_decoding_state_ls:
+                for word_embed in word_embed_ls:
+                  if not word_embed:
+                    _word_embedding_projected_dim_ls = [None]
+                    _word_embed_init_ls = [None]
+                    _mode_word_encoding_ls = ["cat"]
+                    printing("GRID WARNING as word_embed False : argument word_embed projection, initialization argument mode word cat cause no word embed", verbose=1, verbose_level=1)
+                  else:
+                    _word_embed_init_ls = word_embed_init_ls
+                    _word_embedding_projected_dim_ls = word_embedding_projected_dim_ls
+                    _mode_word_encoding_ls = mode_word_encoding_ls
+                  for word_embed_init in _word_embed_init_ls:
+                    for word_embedding_projected_dim in _word_embedding_projected_dim_ls:
+                      for n_layers_sent_cell in n_layers_sent_cell_ls:
+                        for proportion_pred_train in proportion_pred_train_ls:
+                          for tasks in tasks_ls:
+                            for teacher_force in teacher_force_ls:
+                              for word_recurrent_cell_encoder in word_recurrent_cell_encoder_ls:
+                                for dropout_word_encoder_cell in dropout_word_encoder_cell_ls:
+                                  for attention_tagging in attention_tagging_ls:
+                                    for n_layers_word_encoder in n_layers_word_encoder_ls:
+                                      for char_level_embedding_projection_dim in char_level_embedding_projection_dim_ls:
+                                        for mode_word_encoding in _mode_word_encoding_ls:
                                           param0 = param.copy()
                                           ind_model += 1
                                           param0["batch_size"] = batch
+                                          param0["mode_word_encoding"] = mode_word_encoding
+                                          param0["char_level_embedding_projection_dim"] = char_level_embedding_projection_dim
                                           #param0["auxilliary_task_norm_not_norm"] = aux
                                           param0["shared_context"] = shared_context
                                           param0["word_recurrent_cell_encoder"] = word_recurrent_cell_encoder
@@ -190,7 +203,7 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                                           param0["dir_word_encoder"] = dir_word_encoder_ls[0]
                                           param0["char_src_attention"] = char_src_attention
                                           param0["unrolling_word"] = unrolling_word_ls[0]
-                                          param0["dir_sent_encoder"] = dir_sent_encoder
+                                          param0["dir_sent_encoder"] = dir_sent_encoder_ls[0]
                                           param0["n_layers_sent_cell"] = n_layers_sent_cell
                                           param0["gradient_clipping"] = clipping
                                           param0["teacher_force"] = teacher_force
@@ -200,7 +213,7 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                                           param0["dense_dim_auxilliary_pos"] = 0 #if not "pos" in tasks else 0
                                           param0["dense_dim_auxilliary_pos_2"] = 0 #if not "pos" in tasks else 100
 
-                                          param0["stable_decoding_state"] = stable_decoding_state
+                                          param0["stable_decoding_state"] = stable_decoding_state_ls[0]
                                           param0["init_context_decoder"] = not param0["stable_decoding_state"]
                                           param0["activation_char_decoder"] = "nn.LeakyReLU"
                                           param0["activation_word_decoder"] = "nn.LeakyReLU"

@@ -6,7 +6,8 @@ def write_normalization(format, dir_normalized, dir_original, src_text_ls, text_
     if format == "conll":
         with open(dir_normalized ,"a") as norm_file:
             with open(dir_original, "a") as original:
-                for ind_sent, (original_sent, normalized_sent) in enumerate(zip(src_text_ls ,text_decoded_ls)):
+                print("write_output", src_text_ls, text_decoded_ls)
+                for ind_sent, (original_sent, normalized_sent) in enumerate(zip(src_text_ls, text_decoded_ls)):
                     norm_file.write("#sent_id = {} \n".format(ind_sent+ind_batch))
                     original.write("#sent_id = {} \n".format(ind_sent+ind_batch))
                     for ind, (original_token, normalized_token) in enumerate(zip(original_sent,
@@ -17,5 +18,4 @@ def write_normalization(format, dir_normalized, dir_original, src_text_ls, text_
                                                                                  original_token))
                     norm_file.write("\n")
                     original.write("\n")
-            printing("WRITING predicted batch of {} original and {} normalized", var=[dir_original, dir_normalized],
-                     verbose=verbose, verbose_level=1)
+            printing("WRITING predicted batch of {} original and {} normalized", var=[dir_original, dir_normalized], verbose=verbose, verbose_level=1)

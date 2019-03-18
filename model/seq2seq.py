@@ -50,7 +50,8 @@ class LexNormalizer(nn.Module):
                  drop_out_bridge=0, drop_out_sent_encoder_out=0, drop_out_word_encoder_out=0,
                  drop_out_char_embedding_decoder=0,
                  dir_sent_encoder=1, word_recurrent_cell_encoder=None, word_recurrent_cell_decoder=None,
-                 word_voc_input_size=0, word_embedding_dim=0, word_embed=False, word_embed_dir=None, word_embedding_projected_dim= None,
+                 word_voc_input_size=0, word_embedding_dim=0, word_embed=0, word_embed_dir=None, word_embedding_projected_dim=0,
+                 attention_tagging=False, mode_word_encoding="cat", char_level_embedding_projection_dim=0,
                  unrolling_word=False,
                  dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None, pos_specific_path=None,
                  char_src_attention=False, shared_context="all", teacher_force=False,
@@ -61,7 +62,7 @@ class LexNormalizer(nn.Module):
                  symbolic_end=False, symbolic_root=False,
                  extend_vocab_with_test=False, test_path=None,
                  extra_arg_specific_label="",
-                 attention_tagging=False,
+
                  activation_char_decoder=None, activation_word_decoder=None, expand_vocab_dev_test=False,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
@@ -193,6 +194,8 @@ class LexNormalizer(nn.Module):
                                                    "dir_sent_encoder": dir_sent_encoder,
                                                    "dir_word_encoder": dir_word_encoder,
                                                    "attention_tagging": attention_tagging,
+                                                   "char_level_embedding_projection_dim": char_level_embedding_projection_dim,
+                                                   "mode_word_encoding": mode_word_encoding,
                                                    "drop_out_sent_encoder_out": drop_out_sent_encoder_out,
                                                    "drop_out_word_encoder_out": drop_out_word_encoder_out,
                                                    "dropout_word_encoder_cell": drop_out_word_encoder_cell,
@@ -257,7 +260,8 @@ class LexNormalizer(nn.Module):
             word_decoding, char_decoding, auxilliary_task_pos, dense_dim_auxilliary_pos, dense_dim_auxilliary_pos_2, \
                 dense_dim_word_pred, dense_dim_word_pred_2,dense_dim_word_pred_3, \
                 symbolic_root, symbolic_end, word_embedding_dim, word_embed, word_embedding_projected_dim, \
-                activation_char_decoder, activation_word_decoder, attention_tagging = get_args(args, False)
+                activation_char_decoder, activation_word_decoder, attention_tagging, char_level_embedding_projection_dim, mode_word_encoding \
+                = get_args(args, False)
 
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
@@ -326,6 +330,8 @@ class LexNormalizer(nn.Module):
                                    context_level=shared_context,
                                    add_word_level=word_embed,
                                    attention_tagging=attention_tagging,
+                                   char_level_embedding_projection_dim=char_level_embedding_projection_dim,
+                                   mode_word_encoding=mode_word_encoding,
                                    word_embedding_dim_inputed=word_embedding_projected_dim if word_embedding_projected_dim is not None else word_embedding_dim,
                                    verbose=verbose)
 
@@ -341,10 +347,8 @@ class LexNormalizer(nn.Module):
             dim_char_encoding_output = word_embedding_projected_dim if word_embedding_projected_dim is not None else word_embedding_dim
         else:
             dim_char_encoding_output = hidden_size_encoder * dir_word_encoder * n_layers_word_encoder
-        self.bridge = nn.Linear(
-            dim_char_encoding_output*p_word + hidden_size_sent_encoder*dir_sent_encoder*p_sent
-            +(word_embedding_projected_dim if word_embedding_projected_dim is not None else word_embedding_dim)*p_word_emb,#*dir_sent_encoder : added diviion by 2 if dir 2
-            hidden_size_decoder)
+        self.bridge = nn.Linear(self.encoder.output_encoder_dim, hidden_size_decoder)
+        #self.bridge = nn.Linear(dim_char_encoding_output*p_word + hidden_size_sent_encoder*dir_sent_encoder*p_sent+(word_embedding_projected_dim if word_embedding_projected_dim is not None else word_embedding_dim)*p_word_emb,hidden_size_decoder)
         self.hidden_size_decoder = hidden_size_decoder
         #self.layer_norm = nn.LayerNorm(hidden_size_decoder, elementwise_affine=False) if True else None
         self.dropout_bridge = nn.Dropout(p=drop_out_bridge)
@@ -404,7 +408,7 @@ class LexNormalizer(nn.Module):
         if self.word_embedding is not None:
             # remove padded by hand
             word_embed_input = word_embed_input.view(-1)
-            word_embed_input = word_embed_input[word_embed_input!=1]
+            word_embed_input = word_embed_input[word_embed_input != 1]
             #
             word_embed_input = self.word_embedding(word_embed_input)
             if self.word_embedding_project is not None:
@@ -416,6 +420,7 @@ class LexNormalizer(nn.Module):
         # [] [batch, , hiden_size_decoder]
         printing("DECODER hidden state before bridge size {}", var=[context.size() if context is not None else 0],
                  verbose=0, verbose_level=3)
+        pdb.set_trace()
         context = torch.tanh(self.bridge(context))
         #h = self.layer_norm(h) if self.layer_norm is not None else h
         context = self.dropout_bridge(context)

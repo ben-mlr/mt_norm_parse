@@ -17,7 +17,7 @@ from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, C
     LIU_DEV, DEV, DIR_TWEET_W2V, TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, CP_PASTE_WR_TRAIN, \
     CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST, EWT_DEV, EWT_TEST, \
     LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO, EN_LINES_EWT_TRAIN, EN_LINES_DEV, EN_LINES_EWT_TRAIN, \
-    MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST
+    MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, DEFAULT_SCORING_FUNCTION
 import torch
 np.random.seed(SEED_NP + 1)
 torch.manual_seed(SEED_TORCH)
@@ -28,11 +28,11 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                n_epochs=11, test_path=None, args=None,
                overall_report_dir=CHECKPOINT_DIR, overall_label="DEFAULT",
                get_batch_mode_all=True,
-               warmup=False, freq_checkpointing=1,debug=False,compute_scoring_curve=False,
-               compute_mean_score_per_sent=False,print_raw=False, freq_scoring=5, bucketing_train=True, freq_writer=None,
+               warmup=False, freq_checkpointing=1, debug=False,compute_scoring_curve=False,
+               compute_mean_score_per_sent=False, print_raw=False, freq_scoring=5, bucketing_train=True, freq_writer=None,
                extend_n_batch=1, score_to_compute_ls=None,
                symbolic_end=False, symbolic_root=False,
-               gpu=None, use_gpu=None,
+               gpu=None, use_gpu=None, scoring_func_sequence_pred=DEFAULT_SCORING_FUNCTION,
                verbose=0):
 
     if gpu is not None and use_gpu_(use_gpu):
@@ -49,6 +49,9 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
     word_embed = args.get("word_embed", False)
     word_embedding_projected_dim = args.get("word_embedding_projected_dim", None)
     word_embedding_dim  = args.get("word_embedding_dim", 0)
+    mode_word_encoding = args.get("mode_word_encoding", "cat")
+    char_level_embedding_projection_dim = args.get("char_level_embedding_projection_dim", 0)
+
     output_dim = args.get("output_dim", 10)
     char_embedding_dim = args.get("char_embedding_dim", 10)
     hidden_size_sent_encoder = args.get("hidden_size_sent_encoder", 10)
@@ -137,6 +140,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                             word_recurrent_cell_encoder=word_recurrent_cell_encoder, word_recurrent_cell_decoder=word_recurrent_cell_decoder,
                             drop_out_sent_encoder_out=drop_out_sent_encoder_out, drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
                             word_embedding_dim=word_embedding_dim, word_embed=word_embed, word_embedding_projected_dim=word_embedding_projected_dim,
+                            mode_word_encoding=mode_word_encoding, char_level_embedding_projection_dim=char_level_embedding_projection_dim,
                             drop_out_word_encoder_out=drop_out_word_encoder_out, dropout_bridge=dropout_bridge,
                             freq_checkpointing=freq_checkpointing, reload=False, model_id_pref=model_id_pref,
                             score_to_compute_ls=score_to_compute_ls, mode_norm_ls=["all", "NEED_NORM", "NORMED"],
@@ -182,8 +186,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
       eval_data_paths = list(set(eval_data_paths))
       start_eval = time.time()
       for get_batch_mode_evaluate in [False]:
-        scoring_func_sequence_pred = "exact_match"
-        print("EVALUATING WITH `{}`".format(scoring_func_sequence_pred))
+        print("EVALUATING WITH {}".format(scoring_func_sequence_pred))
         for eval_data in eval_data_paths:
                 eval_label = REPO_DATASET[eval_data]
                 evaluate(model_full_name=model_full_name, data_path=eval_data,

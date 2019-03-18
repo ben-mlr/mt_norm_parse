@@ -9,7 +9,7 @@ from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, C
     LIU_DEV, DEV, DIR_TWEET_W2V, TEST, DIR_TWEET_W2V, DIR_FASTEXT_WIKI_NEWS_W2V, CHECKPOINT_DIR, DEMO, DEMO2, CP_PASTE_WR_TRAIN, \
     CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST, EWT_DEV, EWT_TEST, \
     LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO, EN_LINES_EWT_TRAIN, EN_LINES_DEV, EN_LINES_EWT_TRAIN, \
-    MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, RUN_SCRIPTS_DIR, GPU_AVAILABLE_DEFAULT_LS
+    MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, RUN_SCRIPTS_DIR, GPU_AVAILABLE_DEFAULT_LS, DEFAULT_SCORING_FUNCTION
 from uuid import uuid4
 import argparse
 from sys import platform
@@ -21,7 +21,9 @@ FINE_TUNE = 0
 GRID = 1
 
 
-def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_paths, epochs=50, test_before_run=False,debug=False, warmup=False):
+def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_paths,
+             scoring_func_sequence_pred=DEFAULT_SCORING_FUNCTION,
+             epochs=50, test_before_run=False,debug=False, warmup=False):
     i = 0
     for param, model_id_pref in zip(params, labels):
         i += 1
@@ -49,6 +51,7 @@ def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_pa
                                                 symbolic_root=True, symbolic_end=True,
                                                 freq_writer=1 if not test_before_run else 1,
                                                 extend_n_batch=2,
+                                                scoring_func_sequence_pred=scoring_func_sequence_pred,
                                                 score_to_compute_ls=["exact", "norm_not_norm-F1",
                                                                      "norm_not_norm-Precision",
                                                                      "norm_not_norm-Recall",
@@ -118,26 +121,28 @@ if __name__ == "__main__":
       if run_standart:
           # default not used but could be
           params, labels, default_all, analysed, fixed = grid_param_label_generate(
-                                                                                  params_dozat,
+                                                                                  params_strong,
                                                                                   grid_label="0",
                                                                                   word_recurrent_cell_encoder_ls=["LSTM"],
                                                                                   dropout_word_encoder_cell_ls=[0.3],
                                                                                   stable_decoding_state_ls=[False],
                                                                                   word_decoding_ls=[False],
-                                                                                  batch_size_ls=[2],
+                                                                                  batch_size_ls=[200],
                                                                                   word_embed_ls=[True],
                                                                                   dir_sent_encoder_ls=[2], lr_ls=[0.0005],
                                                                                   word_embed_init_ls=[None],
-                                                                                  attention_tagging_ls=[0],
+                                                                                  attention_tagging_ls=[1],
                                                                                   char_src_attention_ls=[0],
                                                                                   teacher_force_ls=[True],
                                                                                   proportion_pred_train_ls=[None],
-                                                                                  shared_context_ls=["word", "all", "sent"],
-                                                                                  word_embedding_projected_dim_ls=[50],
+                                                                                  shared_context_ls=["all"],
+                                                                                  word_embedding_projected_dim_ls=[10],
                                                                                   tasks_ls=[["normalize"]],
-                                                                                  n_layers_sent_cell_ls=[2],
-                                                                                  n_layers_word_encoder_ls=[2],
+                                                                                  n_layers_sent_cell_ls=[1],
+                                                                                  n_layers_word_encoder_ls=[1, 2],
                                                                                   unrolling_word_ls=[True],
+                                                                                  mode_word_encoding_ls=["cat"],
+                                                                                  char_level_embedding_projection_dim_ls=[10],
                                                                                   scale_ls=[2]
                                                                                   )
 
@@ -149,12 +154,14 @@ if __name__ == "__main__":
           printing("ENV : running not from os x assuming we are in command shell run", verbose=0, verbose_level=0)
           parser = argparse.ArgumentParser()
           parser.add_argument("--test_before_run", help="test_before_run", action="store_true")
+          parser.add_argument("--desc", help="describe run for reporting", required=False, type=str)
           args = parser.parse_args()
           test_before_run = args.test_before_run
+          description_comment = args.desc
           print("GRID : test_before_run set to {} ".format(test_before_run))
           warmup = False
           environment = os.environ.get("ENV","NO ENV FOUND")
-          OAR = os.environ.get('OAR_JOB_ID') + "_rioc-" if os.environ.get('OAR_JOB_ID', None) is not None else ""
+          OAR = os.environ.get('OAR_JOB_ID', "")
           print("OAR=", OAR)
           log = "{}/logs/{}".format(os.getcwd(), os.environ.get('OAR_JOB_ID')+"-job.stdout")
       else:
@@ -162,12 +169,13 @@ if __name__ == "__main__":
           environment = "local"
           log = "in the fly logs"
           test_before_run = False
+          description_comment = "addslij"
 
       RUN_ID = str(uuid4())[0:5]
       LABEL_GRID = grid_label if not warmup else "WARMUP-unrolling-False"
       LABEL_GRID = "test_before_run-"+LABEL_GRID if test_before_run else LABEL_GRID
       OAR = RUN_ID if OAR == "" else OAR
-      LABEL_GRID = OAR+"-"+LABEL_GRID
+      LABEL_GRID = OAR+ "-" + LABEL_GRID
       GRID_FOLDER_NAME = LABEL_GRID if len(LABEL_GRID) > 0 else RUN_ID
       GRID_FOLDER_NAME += "-summary"
       dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
@@ -179,19 +187,19 @@ if __name__ == "__main__":
               n_models = len(params) if not warmup else 1
               warmup_desc = "warmup" if warmup else ""
               test_before_run_desc = "test_before_run" if test_before_run else ""
-              description = "{} models ".format(n_models)
-              row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=OAR, description=description,
-                                                log_dir=log, target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR,
-                                                                                                        "{}*".format(
-                                                                                                            LABEL_GRID)),
+              description = "{} - {} ".format(n_models, description_comment)
+              row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=OAR, description=description, log_dir=log,
+                                                target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR, "{}*".format(LABEL_GRID)),
                                                 env=environment, status="running {}{}".format(warmup_desc,test_before_run_desc),
                                                 verbose=1)
-              train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV  #MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
-              run_grid(params=params, labels=labels, dir_grid=dir_grid, label_grid=LABEL_GRID,
-                       epochs=10, test_before_run=test_before_run,
+              train_path, dev_path = CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV #MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+              run_grid(params=params, labels=labels,
+                       dir_grid=dir_grid, label_grid=LABEL_GRID,
+                       epochs=50, test_before_run=test_before_run,
                        train_path=train_path,
-                       dev_path=dev_path, debug=True,
-                       test_paths=[MTNT_EN_FR_TEST],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
+                       dev_path=dev_path, debug=False,
+                       scoring_func_sequence_pred="exact_match",
+                       test_paths=[CP_WR_PASTE_TEST_269],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
                        warmup=warmup)
               update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
           except Exception as e:
@@ -240,5 +248,5 @@ if __name__ == "__main__":
 ## in DISTRIBUTED : they are merged and corresponds to test_before_run
 
 # oarsub -q gpu
-# -l /core=2,walltime=48:00:00
+# -l /core=2, walltime=48:00:00
 # -p "host='gpu004'" -O ./logs/%jobid%-job.stdout -E ./logs/%jobid%-job.stderr ./train/train_mt_norm.sh

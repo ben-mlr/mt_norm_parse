@@ -1,6 +1,7 @@
 from training.args_tool import args_train
 
 from training.train_eval import train_eval
+from env.project_variables import DEFAULT_SCORING_FUNCTION
 
 import os 
 if __name__ == "__main__":
@@ -23,5 +24,6 @@ if __name__ == "__main__":
                                             gpu=args.gpu,
                                             verbose=args.verbose,
                                             warmup=args.warmup,
+                                            scoring_func_sequence_pred="BLUE",#DEFAULT_SCORING_FUNCTION,
                                             debug=args.debug)
     print("DISTRIBUTED : train_eval  thread on done of model {} dir {} ".format(model_full_name, model_dir))
