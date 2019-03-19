@@ -2,7 +2,7 @@ from io_.dat import conllu_data
 from model.seq2seq import LexNormalizer
 from model.generator import Generator
 
-from io_.data_iterator import data_gen_conllu
+from io_.data_iterator import data_gen_conllu, readers_load, data_gen_multi_task_sampling_batch
 from training.epoch_train import run_epoch
 from model.loss import LossCompute
 from tracking.plot_loss import simple_plot
@@ -132,7 +132,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                               test_path=test_path,
                               word_embed_dict={},
                               dry_run=False,
-                              vocab_trim=False,
                               force_new_dic=True,
                               add_start_char=add_start_char, verbose=1)
 
@@ -230,8 +229,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
     epoch_ls_dev = []
     epoch_ls_train = []
     x_axis_epochs_loss = []
-
-    data_read_train = conllu_data.read_data_to_variable(train_path, model.word_dictionary, model.char_dictionary,
+    if False:
+        data_read_train = conllu_data.read_data_to_variable(train_path, model.word_dictionary, model.char_dictionary,
                                                         model.pos_dictionary,
                                                         model.xpos_dictionary, model.type_dictionary,
                                                         use_gpu=use_gpu,
@@ -243,7 +242,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                         add_start_char=add_start_char, add_end_char=add_end_char,
                                                         word_norm_dictionary=model.word_nom_dictionary)
 
-    data_read_dev = conllu_data.read_data_to_variable(dev_path, model.word_dictionary, model.char_dictionary,
+        data_read_dev = conllu_data.read_data_to_variable(dev_path, model.word_dictionary, model.char_dictionary,
                                                       model.pos_dictionary, model.xpos_dictionary, model.type_dictionary,
                                                       use_gpu=use_gpu,
                                                       word_decoder=word_decoding,
@@ -252,7 +251,27 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                       dry_run=0, lattice=False,
                                                       normalization=normalization, bucket=bucketing,
                                                       add_start_char=add_start_char, add_end_char=add_end_char,
-                                                      word_norm_dictionary=model.word_nom_dictionary, verbose=verbose)
+                                                      word_norm_dictionary=model.word_nom_dictionary,
+                                                      verbose=verbose)
+    train_path = [train_path] if isinstance(train_path, str) else train_path
+    dev_path = [dev_path] if isinstance(dev_path, str) else dev_path
+    readers_train = readers_load(datasets=train_path, tasks=tasks, word_dictionary=model.word_dictionary,
+                                 word_dictionary_norm=model.word_nom_dictionary, char_dictionary=model.char_dictionary,
+                                 pos_dictionary=model.pos_dictionary, xpos_dictionary=model.xpos_dictionary,
+                                 type_dictionary=model.type_dictionary, use_gpu=use_gpu,
+                                 norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=word_decoding,
+                                 add_start_char=add_start_char, add_end_char=add_end_char, symbolic_end=symbolic_end,
+                                 symbolic_root=symbolic_root,
+                                 verbose=verbose)
+
+    readers_dev = readers_load(datasets=dev_path, tasks=tasks, word_dictionary=model.word_dictionary,
+                               word_dictionary_norm=model.word_nom_dictionary, char_dictionary=model.char_dictionary,
+                               pos_dictionary=model.pos_dictionary, xpos_dictionary=model.xpos_dictionary,
+                               type_dictionary=model.type_dictionary, use_gpu=use_gpu,
+                               norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=word_decoding,
+                               add_start_char=add_start_char, add_end_char=add_end_char, symbolic_end=symbolic_end,
+                               symbolic_root=symbolic_root,
+                               verbose=verbose)
 
     dir_writer = os.path.join(overall_report_dir, "runs", "{}-model".format(model.model_full_name))
     writer = SummaryWriter(log_dir=dir_writer)
@@ -267,23 +286,24 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
         assert policy in AVAILABLE_SCHEDULING_POLICIES
         policy_dic = eval(policy)(epoch) if policy is not None else None
-        #TODO : no need of reouptuting multi_task_mode : tasks should be harminized to read
+        #TODO : no need of re-ouptuting multi_task_mode : tasks should be harmonized to read
+        pdb.set_trace()
         multi_task_mode, ponderation_normalize_loss, weight_binary_loss, weight_pos_loss = scheduling_policy(epoch=epoch, phases_ls=policy_dic, tasks=tasks)
-
-        printing("TRAINING Tasks scheduling : ponderation_normalize_loss is {} weight_binary_loss is {} weight_pos_loss is {} mode is {} ",
+        printing("TRAINING Tasks scheduling : ponderation_normalize_loss is {} weight_binary_loss is {}"
+                 " weight_pos_loss is {} mode is {} ",
                  var=[ponderation_normalize_loss, weight_binary_loss, weight_pos_loss, multi_task_mode], verbose=verbose, verbose_level=2)
 
         printing("TRAINING : Starting {} epoch out of {} ", var=(epoch+1, n_epochs), verbose= verbose, verbose_level=1)
         model.train()
-        batchIter = data_gen_conllu(data_read_train,
-                                    model.word_dictionary, model.char_dictionary,
-                                    normalization=normalization,
-                                    get_batch_mode=get_batch_mode_all,
-                                    batch_size=batch_size, extend_n_batch=extend_n_batch,
-                                    print_raw=print_raw, timing=timing, pos_dictionary=model.pos_dictionary,
-                                    verbose=verbose)
+        #batchIter = data_gen_conllu(data_read_train,model.word_dictionary, model.char_dictionary,normalization=normalization,get_batch_mode=get_batch_mode_all,batch_size=batch_size, extend_n_batch=extend_n_batch,print_raw=print_raw, timing=timing, pos_dictionary=model.pos_dictionary,verbose=verbose)
+        batchIter = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_train, batch_size=batch_size,
+                                                       word_dictionary=model.word_dictionary,
+                                                       char_dictionary=model.char_dictionary,
+                                                       pos_dictionary=model.pos_dictionary,
+                                                       get_batch_mode=get_batch_mode_all,
+                                                       extend_n_batch=extend_n_batch,
+                                                       verbose=verbose)
         start = time.time()
-
         printing("TRAINING : TEACHER FORCE : Schedule Sampling proportion of train on prediction is {} ", var=[proportion_pred_train],
                  verbose=verbose, verbose_level=2)
         loss_train, loss_details_train, step_train = run_epoch(batchIter, model,
@@ -312,11 +332,12 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
         _train_ep_time, start = get_timing(start)
         model.eval()
         # TODO : should be added in the freq_checkpointing orhterwise useless
-        batchIter_eval = data_gen_conllu(data_read_dev,
-                                         model.word_dictionary, model.char_dictionary,
-                                         batch_size=batch_size, get_batch_mode=False,
-                                         normalization=normalization, extend_n_batch=1,
-                                         pos_dictionary=model.pos_dictionary, verbose=verbose)
+        #batchIter_eval = data_gen_conllu(data_read_dev,model.word_dictionary, model.char_dictionary,batch_size=batch_size, get_batch_mode=False,normalization=normalization, extend_n_batch=1,pos_dictionary=model.pos_dictionary, verbose=verbose)
+        batchIter_eval = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_dev, batch_size=batch_size,
+                                                            word_dictionary=model.word_dictionary,
+                                                            char_dictionary=model.char_dictionary,
+                                                            pos_dictionary=model.pos_dictionary,
+                                                            extend_n_batch=1, get_batch_mode=False, verbose=verbose)
         _create_iter_time, start = get_timing(start)
         # TODO : should be able o factorize this to have a single run_epoch() for train and dev (I think the computaiton would be same )
         # TODO : should not evaluate for each epoch : should evalaute every x epoch : check if it decrease and checkpoint

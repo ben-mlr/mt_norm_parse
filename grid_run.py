@@ -43,7 +43,7 @@ def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_pa
 
         model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
                                                 expand_vocab_dev_test=True,
-                                                test_path=test_paths if not warmup else DEMO,
+                                                test_path=test_paths ,#if not warmup else DEMO,
                                                 overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                 compute_mean_score_per_sent=True, print_raw=False,
                                                 get_batch_mode_all=True, compute_scoring_curve=False,
@@ -127,17 +127,17 @@ if __name__ == "__main__":
                                                                                   dropout_word_encoder_cell_ls=[0.3],
                                                                                   stable_decoding_state_ls=[False],
                                                                                   word_decoding_ls=[False],
-                                                                                  batch_size_ls=[200],
+                                                                                  batch_size_ls=[2],
                                                                                   word_embed_ls=[True],
                                                                                   dir_sent_encoder_ls=[2], lr_ls=[0.0005],
                                                                                   word_embed_init_ls=[None],
                                                                                   attention_tagging_ls=[1],
-                                                                                  char_src_attention_ls=[1],
+                                                                                  char_src_attention_ls=[0],
                                                                                   teacher_force_ls=[True],
                                                                                   proportion_pred_train_ls=[None],
                                                                                   shared_context_ls=["all"],
                                                                                   word_embedding_projected_dim_ls=[10],
-                                                                                  tasks_ls=[["pos"]],
+                                                                                  tasks_ls=[["normalize"]],
                                                                                   n_layers_sent_cell_ls=[2],
                                                                                   n_layers_word_encoder_ls=[2],
                                                                                   unrolling_word_ls=[True],
@@ -147,8 +147,7 @@ if __name__ == "__main__":
                                                                                   )
 
 
-
-          # only for cloud run :
+        # only for cloud run :
       warmup = True
       if platform != "darwin":
           printing("ENV : running not from os x assuming we are in command shell run", verbose=0, verbose_level=0)
@@ -191,21 +190,19 @@ if __name__ == "__main__":
               warmup_desc = "warmup" if warmup else ""
               test_before_run_desc = "test_before_run" if test_before_run else ""
               #description = "{} - {} ".format(n_models, description_comment)
-              description = "{} - {} : Analysing : {} with regard to {} fixed".format(len(params), description_comment,
-                                                                                      analysed, fixed)
-
+              description = "{} - {} : Analysing : {} with regard to {} fixed".format(len(params), description_comment,analysed, fixed)
               row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=OAR, description=description, log_dir=log,
                                                 target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR, "{}*".format(LABEL_GRID)),
                                                 env=environment, status="running {}{}".format(warmup_desc, test_before_run_desc),
                                                 verbose=1)
-              train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV #MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+              train_path, dev_path = EWT_DEV, EWT_TEST#MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
               run_grid(params=params, labels=labels,
                        dir_grid=dir_grid, label_grid=LABEL_GRID,
                        epochs=50, test_before_run=test_before_run,
                        train_path=train_path,
                        dev_path=dev_path, debug=False,
                        scoring_func_sequence_pred="exact_match",
-                       test_paths=[EWT_DEV],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
+                       test_paths=[EN_LINES_EWT_TRAIN],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
                        warmup=warmup)
               update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
           except Exception as e:

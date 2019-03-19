@@ -13,7 +13,6 @@ def get_normalized_token(norm_field, n_exception, verbose):
       n_exception += 1
       printing("Exception handled we match with {}".format(match_double_bar.group(1)), verbose=verbose, verbose_level=2)
     else:
-      print("Failed to handle exception with | on field {} ".format(norm_field))
-      raise (Exception)
+      raise(Exception("Failed to handle exception with | on field {} ".format(norm_field)))
   normalized_token = match.group(1)
   return normalized_token, n_exception

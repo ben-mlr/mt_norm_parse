@@ -140,7 +140,7 @@ def data_gen(V, batch, nbatches,seq_len=10):
 import numpy as np
 
 
-TASKS_PARAMETER = {"normalize": {"normalization": True}, "pos": {"normalization":False}}
+TASKS_PARAMETER = {"normalize": {"normalization": True}, "pos": {"normalization": False}, "all": {"normalization":True}}
 
 MODE_BATCH_SAMPLING_AVAILABLE = ["proportional", "uniform"]
 
@@ -150,12 +150,26 @@ def sampling_proportion(task_n_sent, total_n_sents):
 
 
 def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_dictionary,
-            pos_dictionary,xpos_dictionary, type_dictionary, use_gpu,
-            norm_not_norm=False, word_decoder=False,
-            add_start_char=1, add_end_char=1, symbolic_end=True, symbolic_root=True,
-            verbose=1):
+                 pos_dictionary,xpos_dictionary, type_dictionary, use_gpu,
+                 norm_not_norm=False, word_decoder=False,
+                 simultanuous_training=False,
+                 add_start_char=1, add_end_char=1, symbolic_end=True, symbolic_root=True,
+                 verbose=1):
 
     readers = {}
+    #assert not simultanuous_training, "ERROR : so far : "
+    assert "all" not in tasks, "ERROR not supported yet (pb for simultanuous training..) "
+    if not "all" in tasks and not simultanuous_training:
+        assert len(tasks) == len(datasets), "ERROR : as simultanuous_training is {} : " \
+                                            "we need 1 dataset per task but have only {}".format(simultanuous_training, datasets)
+    elif not simultanuous_training:
+        assert len(tasks) == 1, "ERROR : if all should have only all nothing else"
+        printing("TRAINING : MultiTask Iterator wit task 'all' ", verbose_level=1, verbose=verbose)
+    elif simultanuous_training:
+        printing("TRAINING : Training simulatnuously tasks provided in {} (should have all required labels in datasets)",
+                 verbose_level=1, verbose=verbose)
+        raise(Exception("Not supported yet --> should handle the loop "))
+
     for task, data in zip(tasks, datasets):
         readers[task] = conllu_data.read_data_to_variable(data, word_dictionary, char_dictionary,
                                                           pos_dictionary,
@@ -167,12 +181,12 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
                                                           dry_run=0, lattice=False,
                                                           normalization=TASKS_PARAMETER[task]["normalization"], bucket=False,
                                                           add_start_char=add_start_char,
-                                                          add_end_char=add_end_char,
+                                                          add_end_char=add_end_char, tasks=[task],
                                                           word_norm_dictionary=word_dictionary_norm, verbose=verbose)
     return readers
 
 
-def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary,  char_dictionary, pos_dictionary,extend_n_batch,
+def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary, char_dictionary, pos_dictionary,extend_n_batch,
                                        batch_size,  get_batch_mode=True, mode_batch_sampling="proportional", verbose=1):
     "multitask learning iterator "
     assert len(tasks) == len(readers)
@@ -206,7 +220,7 @@ def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary,  char_di
                                                                                                                                  n_sents_per_task_dataset_cumul["all"]) and not end_task_flag[task]:
                 try:
                     batch, order = iterator[task].__next__()
-                    print("picking", task, ind, batch)
+                    #sanity_check_batch_label(task, batch, verbose=verbose)
                     batch_iter += 1
                     yield batch
                 except StopIteration:
@@ -217,6 +231,20 @@ def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary,  char_di
                 n_sent_start = n_sents_per_task_dataset_cumul[task]
         if sum(end_task_flag.values()) == len(tasks):
             break
+
+def sanity_check_batch_label(task, batch, verbose=1):
+    print(batch.pos, batch.output_seq, batch.output_word, batch.output_norm_not_norm)
+    if task in ["all","normalize"]:
+        assert batch.output_seq is not None
+    if task in ["all", "pos"]:
+        assert batch.pos is not None
+    #else:
+        #raise(Exception("task provided {} could not be checked".format(task)))
+    printing("BATCH CHECKED ", verbose=verbose, verbose_level=1)
+
+
+
+
 
 # TODO :
 # - integrate to train.py for both train and validation

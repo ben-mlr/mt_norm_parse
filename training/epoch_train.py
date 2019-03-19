@@ -48,7 +48,14 @@ def run_epoch(data_iter, model, loss_compute,
     i_epoch = -1 if i_epoch is None else i_epoch
     n_epochs = -1 if n_epochs is None else n_epochs
     batch_time_start = time.time()
-    for i, (batch,_) in enumerate(data_iter):
+    #for i, (batch,_) in enumerate(data_iter):
+    i = 0
+    while True:
+        try:
+            batch = data_iter.__next__()
+            i += 1
+        except StopIteration:
+            break
         batch_time_, batch_time_start = get_timing(batch_time_start)
         printing("Starting {} batch out of {} batches", var=(i+1, n_batches), verbose= verbose, verbose_level=2)
         if not empty_run:

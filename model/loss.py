@@ -31,7 +31,6 @@ class LossCompute:
         self.multi_task_mode = multi_task_mode
         self.writer = writer
         self.loss_distance = nn.CrossEntropyLoss(reduce=True, ignore_index=pad) if char_decoding else None
-
         self.loss_binary = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_NORM_NOT_NORM) if auxilliary_task_norm_not_norm else None
         self.loss_distance_word_level = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_WORD) if word_decoding else None
         self.loss_distance_pos = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_TAG) if pos_pred else None
@@ -127,8 +126,10 @@ class LossCompute:
             multi_task_loss = loss
 
         loss_details["overall_loss"] = multi_task_loss.item()
-        loss_details["loss_seq_prediction"] = loss.item() if not isinstance(loss, int) else 0
-
+        if not isinstance(loss, int):
+            loss_details["loss_seq_prediction"] = loss.item()
+        else:
+            loss_details["loss_seq_prediction"] = 0
         if not isinstance(loss_binary,int):
             printing("LOSS BINARY loss size {} ", var=(str(loss_binary.size())), verbose=self.verbose, verbose_level=3)
             printing("TYPE  loss_binary {} is cuda ", var=(loss_binary.is_cuda), verbose=0, verbose_level=5)

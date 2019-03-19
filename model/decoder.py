@@ -165,6 +165,7 @@ class CharDecoder(nn.Module):
         inverse_perm_idx_output = torch.from_numpy(np.argsort(perm_idx_output.cpu().numpy()))
         # output : [  ]
         start = time.time() if self.timing else None
+        print(output)
         char_vecs = self.char_embedding_decoder(output)
         char_vecs = self.drop_out_char_embedding_decoder(char_vecs)
         char_embedding, start = get_timing(start)

@@ -7,7 +7,7 @@ from predict.prediction_batch import greedy_decode_batch#, decode_seq_str, decod
 import pdb
 from model.seq2seq import LexNormalizer
 from model.generator import Generator
-from io_.data_iterator import data_gen_conllu
+from io_.data_iterator import data_gen_conllu, readers_load, data_gen_multi_task_sampling_batch
 from io_.dat import conllu_data
 from io_.info_print import printing
 import os
@@ -29,7 +29,8 @@ np.random.seed(SEED_NP)
 torch.manual_seed(SEED_TORCH)
 
 
-def evaluate(batch_size, data_path, write_report=True, dir_report=None,
+def evaluate(batch_size, data_path, task,
+             write_report=True, dir_report=None,
              dict_path=None, model_full_name=None,
              score_to_compute_ls=None, mode_norm_ls=None, get_batch_mode_evaluate=True,
              overall_label="ALL_MODELS",overall_report_dir=CHECKPOINT_DIR, bucket = False,
@@ -72,7 +73,9 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
             score_to_compute_ls.extend(SCORE_AUX)
 
     printing("EVALUATION : Evaluating {} metric with details {}  ", var=[score_to_compute_ls, mode_norm_ls], verbose=verbose, verbose_level=3)
-    data_read = conllu_data.read_data_to_variable(data_path, model.word_dictionary, model.char_dictionary,
+
+    if False:
+        data_read = conllu_data.read_data_to_variable(data_path, model.word_dictionary, model.char_dictionary,
                                                   model.pos_dictionary,
                                                   model.xpos_dictionary, model.type_dictionary,
                                                   use_gpu=use_gpu,
@@ -83,13 +86,28 @@ def evaluate(batch_size, data_path, write_report=True, dir_report=None,
                                                   bucket=bucket,
                                                   add_start_char=1, add_end_char=1, word_decoder=word_decoding,
                                                   word_norm_dictionary=model.word_nom_dictionary)
-    batchIter = data_gen_conllu(data_read,
+        batchIter = data_gen_conllu(data_read,
                                 model.word_dictionary,
                                 model.char_dictionary,
                                 batch_size=batch_size,
                                 get_batch_mode=get_batch_mode_evaluate,
                                 normalization=normalization, pos_dictionary=model.pos_dictionary,
                                 print_raw=print_raw,  verbose=verbose)
+    readers_eval = readers_load(datasets=[data_path], tasks=[task], word_dictionary=model.word_dictionary,
+                                word_dictionary_norm=model.word_nom_dictionary, char_dictionary=model.char_dictionary,
+                                pos_dictionary=model.pos_dictionary, xpos_dictionary=model.xpos_dictionary,
+                                type_dictionary=model.type_dictionary, use_gpu=use_gpu,
+                                norm_not_norm=model.auxilliary_task_norm_not_norm, word_decoder=word_decoding,
+                                add_start_char=1, add_end_char=1, symbolic_end=model.symbolic_end, symbolic_root=model.symbolic_root,
+                                verbose=verbose)
+    batchIter = data_gen_multi_task_sampling_batch(tasks=[task], readers=readers_eval, batch_size=batch_size,
+                                                   word_dictionary=model.word_dictionary,
+                                                   char_dictionary=model.char_dictionary,
+                                                   pos_dictionary=model.pos_dictionary,
+                                                   get_batch_mode=get_batch_mode_evaluate,
+                                                   extend_n_batch=1,
+                                                   verbose=verbose)
+
 
     model.eval()
     # the formulas comes from normalization_erros functions

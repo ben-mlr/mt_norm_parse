@@ -158,6 +158,7 @@ def create_dict(dict_path, train_path, dev_path, test_path,
         char_dictionary.add(char)
       word = DIGIT_RE.sub(b"0", str.encode(tokens[1])).decode()
       pos = tokens[3]  #if tokens[4]=='_' else tokens[3]+'$$$'+tokens[4]
+      #assert pos != "_", "ERROR : no pos found in line {} : {} ".format(li+1, line)
       xpos = tokens[4]
       typ = tokens[7]
       if pos_specific_data_set is None:
@@ -308,7 +309,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
               word_norm_dictionary=None,
               normalize_digits=True, word_decoder=False, 
               normalization=False, bucket=False,
-              symbolic_root=False, symbolic_end=False, dry_run=False,
+              symbolic_root=False, symbolic_end=False, dry_run=False,tasks=None,
               verbose=0):
   """
   Given vocabularies , data_file :
@@ -332,7 +333,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
   reader = CoNLLReader(source_path, word_dictionary, char_dictionary, pos_dictionary, type_dictionary, xpos_dictionary,
                        lemma_dictionary=None, word_norm_dictionary=word_norm_dictionary)
   inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end,
-                        word_decoder=word_decoder, 
+                        word_decoder=word_decoder, tasks=tasks,
                         normalization=normalization)
 
   while inst is not None and (not dry_run or counter < 100):
@@ -359,7 +360,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
         break
 
     inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end, 
-                          word_decoder=word_decoder, 
+                          word_decoder=word_decoder, tasks=tasks,
                           normalization=normalization)
     counter += 1
     if inst is None or not (not dry_run or counter < 100):
@@ -374,6 +375,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
                           type_dictionary, max_size=None, normalize_digits=True, symbolic_root=False,word_norm_dictionary=None,
                           symbolic_end=False, use_gpu=False, volatile=False, dry_run=False, lattice=None,
                           verbose=0, normalization=False,bucket=True, norm_not_norm=False, word_decoder=False,
+                          tasks=None,
                           add_end_char=0, add_start_char=0):
   """
   Given data ovject form read_variable creates array-like  variables for character, word, pos, relation, heads ready to be fed to a network
@@ -385,7 +387,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
                                                   xpos_dictionary, type_dictionary, bucket=bucket,word_norm_dictionary=word_norm_dictionary,
                                                   verbose=verbose, max_size=max_size, normalization=normalization,
                                                   normalize_digits=normalize_digits, symbolic_root=symbolic_root,
-                                                  word_decoder=word_decoder,
+                                                  word_decoder=word_decoder,tasks=tasks,
                                                   symbolic_end=symbolic_end, dry_run=dry_run)
 
   max_char_length = max_char_length_dic["max_char_length"]

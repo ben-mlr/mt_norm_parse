@@ -211,7 +211,7 @@ if __name__=="__main__":
         if test_get_batch:
             _info_iterator_get_batch_mode_True_no_bucket(batch_size, verbose=3)
         if mt:
-            #_test_iterator_multi_task_get_batch_False()
-            _test_iterator_multi_task_get_batch_True()
+            _test_iterator_multi_task_get_batch_False()
+            #_test_iterator_multi_task_get_batch_True()
 
 

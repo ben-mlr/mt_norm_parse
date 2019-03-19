@@ -28,11 +28,14 @@ class CoNLLReader(object):
   def close(self):
     self.__source_file.close()
 
-  def getNext(self, normalize_digits=True, symbolic_root=False, symbolic_end=False,
+  def getNext(self, tasks,normalize_digits=True, symbolic_root=False, symbolic_end=False,
               normalization=False, word_decoder=False,
               verbose=0):
     line = self.__source_file.readline()
-
+    if tasks is None:
+      tasks = []
+    print("WARNING : tasks is {} ".format(tasks))
+    normalization = "normalize" in tasks or "all" in tasks
     # skip multiple blank lines.
     raw_text = []
 
@@ -158,6 +161,8 @@ class CoNLLReader(object):
       word_ids.append(self.__word_dictionary.get_index(word))
       #lemma_ids.append(self.__lemma_dictionary.get_index(tokens[2]))
       pos = tokens[3]# if tokens[4]=='_' else tokens[3]+'$$$'+tokens[4]
+      if "pos" in tasks or "all" in tasks:
+        assert pos != "_", "ERROR : pos not found for line {} ".format(lines)
       xpos = tokens[4]
       postags.append(pos)
       xpostags.append(xpos)

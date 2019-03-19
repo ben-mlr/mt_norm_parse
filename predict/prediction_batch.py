@@ -114,7 +114,14 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
         assert len(set(mode_norm_score_ls) & set(["all", "NEED_NORM", "NORMED"])) > 0
 
         with torch.no_grad():
-            for step, (batch, _) in enumerate(batchIter):
+            i = 0
+            while True:
+                try:
+                    batch = batchIter.__next__()
+                    i += 1
+                except StopIteration:
+                    break
+            #for step, (batch, _) in enumerate(batchIter):
                 # read src sequence
                 
                 src_seq = batch.input_seq
