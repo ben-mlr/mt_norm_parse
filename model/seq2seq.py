@@ -54,10 +54,10 @@ class LexNormalizer(nn.Module):
                  attention_tagging=False, mode_word_encoding="cat", char_level_embedding_projection_dim=0,
                  unrolling_word=False,
                  dict_path=None, model_specific_dictionary=False, train_path=None, dev_path=None, add_start_char=None, pos_specific_path=None,
-                 char_src_attention=False, shared_context="all", teacher_force=False,
+                 char_src_attention=False, shared_context="all", teacher_force=0,
                  stable_decoding_state=False, init_context_decoder=True,
-                 word_decoding=False, dense_dim_word_pred=None, dense_dim_word_pred_2=None, dense_dim_word_pred_3=None,
-                 char_decoding=True,
+                 word_decoding=0, dense_dim_word_pred=None, dense_dim_word_pred_2=None, dense_dim_word_pred_3=None,
+                 char_decoding=1,
                  n_layers_sent_cell=1,
                  symbolic_end=False, symbolic_root=False,
                  extend_vocab_with_test=False, test_path=None,
@@ -99,8 +99,8 @@ class LexNormalizer(nn.Module):
         assert len(set(tasks)) == len(tasks), "CORRUPTED tasks list"
         assert len(set(tasks) & set(AVAILABLE_TASKS)) == len(tasks), "ERROR : task should be in {} one of {} is not ".format(AVAILABLE_TASKS, tasks)
         if "normalize" not in tasks:
-            word_decoding = False
-            char_decoding = False
+            word_decoding = 0
+            char_decoding = 0
         # initialize dictionaries
         self.timing = timing
         self.dict_path, self.word_dictionary, self.word_nom_dictionary,  self.char_dictionary, self.pos_dictionary, self.xpos_dictionary, self.type_dictionary = None, None, None, None, None, None, None
@@ -212,7 +212,7 @@ class LexNormalizer(nn.Module):
                                                    "drop_out_word_decoder_cell": drop_out_word_decoder_cell,
                                                    "char_src_attention": char_src_attention,
                                                    "unrolling_word": unrolling_word,
-                                                   "teacher_force": teacher_force,
+                                                   " ce": teacher_force,
                                                    "stable_decoding_state": stable_decoding_state,
                                                    "init_context_decoder": init_context_decoder,
                                                    "activation_word_decoder": str(activation_word_decoder),

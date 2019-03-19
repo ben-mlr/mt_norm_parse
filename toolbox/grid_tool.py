@@ -1,11 +1,14 @@
 from io_.info_print import printing
 from env.project_variables import TASKS_2_METRICS_STR, GPU_AVAILABLE_DEFAULT_LS, REPO_W2V
+from env.default_hyperparameters import *
 import numpy as np
+
+
 DEFAULT_BATCH_SIZE = 25
 DEFAULT_SCALE = 2
-DEFAULT_AUX_NORM_NOT_NORM = False
-GPU_MODE_SUPPORTED = ["random", "fixed", "CPU"]
 
+#DEFAULT_AUX_NORM_NOT_NORM = False
+GPU_MODE_SUPPORTED = ["random", "fixed", "CPU"]
 
 
 def get_gpu_id(gpu_mode, gpus_ls, verbose):
@@ -53,93 +56,94 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
 
   if batch_size_ls is None:
     batch_size_ls = [DEFAULT_BATCH_SIZE]
-    default.append(("batch_size",batch_size_ls[0]))
+    default.append(("batch_size", batch_size_ls[0]))
   if lr_ls is None:
-    lr_ls = [0.001]
+    lr_ls = [DEFAULT_LR]
   if scale_ls is None:
     scale_ls = [DEFAULT_SCALE]
   if shared_context_ls is None:
-    shared_context_ls = ["all"]
+    shared_context_ls = [DEFAULT_SHARED_CONTEXT]
     default.append(("shared_context",shared_context_ls[0]))
   if word_embed_init_ls is None:
-    word_embed_init_ls = [None]
+    word_embed_init_ls = [DEFAULT_WORD_EMBED_INIT]
   if dir_word_encoder_ls is None:
-    dir_word_encoder_ls = [2]
+    dir_word_encoder_ls = [DEFAULT_DIR_WORD_ENCODER]
     default.append(("dir_word_encoder", dir_word_encoder_ls[0]))
   assert dir_word_encoder_ls[0] and len(dir_word_encoder_ls) == 1, "ERROR : only dir_word_encoder 2 allowed for Now (for loop nesting problem)"
   if char_src_attention_ls is None:
-    char_src_attention_ls = [True]
+    char_src_attention_ls = [DEFAULT_CHAR_SRC_ATTENTION]
     default.append(("char_src_attention", char_src_attention_ls[0]))
   if dir_sent_encoder_ls is None:
-    dir_sent_encoder_ls = [2]
+    dir_sent_encoder_ls = [DEFAULT_DIR_SENT_ENCODER]
     default.append(("dir_sent_encoder", dir_sent_encoder_ls[0]))
   assert len(dir_sent_encoder_ls) == 1 and dir_sent_encoder_ls[0] == 2 , "ERROR : only dir_sent_encoder 2 allowed for Now (for loop nesting problem)"
   if clipping_ls is None:
-    clipping_ls = [1]
+    clipping_ls = [DEFAULT_CLIPPING]
     default.append(("gradient_clipping", clipping_ls[0]))
   if unrolling_word_ls is None:
-    unrolling_word_ls = [True]
+    unrolling_word_ls = [DEFAULT_WORD_UNROLLING]
     default.append(("unrolling_word", unrolling_word_ls[0]))
   assert unrolling_word_ls[0] and len(unrolling_word_ls)==1, "ERROR : only unrolling True allowed for Now (for loop nesting problem)"
   if teacher_force_ls is None:
-    teacher_force_ls = [True]
+    teacher_force_ls = [DEFAULT_TEACHER_FORCE]
     default.append(("teacher_force", teacher_force_ls[0]))
   if word_decoding_ls is None:
-    word_decoding_ls = [False]
+    word_decoding_ls = [DEFAULT_WORD_DECODING]
     default.append(("word_decoding", word_decoding_ls[0]))
   if word_recurrent_cell_encoder_ls is None:
-    word_recurrent_cell_encoder_ls = ["LSTM"]
+    word_recurrent_cell_encoder_ls = [DEFAULT_WORD_RECURRENT_CELL]
     default.append(("word_recurrent_cell_encoder", word_recurrent_cell_encoder_ls[0]))
     #if auxilliary_task_pos_ls is None:
   ##  auxilliary_task_pos_ls = [False]
   # default.append(("auxilliary_task_pos", auxilliary_task_pos_ls[0]))
   if stable_decoding_state_ls is None:
-    stable_decoding_state_ls = [False]
+    stable_decoding_state_ls = [DEFAULT_STABLE_DECODING]
     default.append(("stable_decoding_state", stable_decoding_state_ls[0]))
   assert not stable_decoding_state_ls[0] and len(stable_decoding_state_ls)==1, "ERROR : only stable_decoding_state False allowed for Now (for loop nesting problem)"
   if word_embedding_projected_dim_ls is None:
-    word_embedding_projected_dim_ls = [None]
+    word_embedding_projected_dim_ls = [DEFAULT_WORD_EMBEDDING_PROJECTED]
     default.append(("word_embedding_projected_dim", word_embedding_projected_dim_ls[0]))
   if n_layers_sent_cell_ls is None:
-    n_layers_sent_cell_ls = [1]
+    n_layers_sent_cell_ls = [DEFAULT_LAYERS_SENT_CELL]
   if word_embed_ls is None:
-    word_embed_ls = [True]
-    default.append(("word_embed",word_embed_ls[0]))
+    word_embed_ls = [DEFAULT_WORD_EMBED]
+    default.append(("word_embed", word_embed_ls[0]))
   if proportion_pred_train_ls is None:
-    proportion_pred_train_ls = [None]
-    default.append(("proportion_pred_train",proportion_pred_train_ls[0]))
+    proportion_pred_train_ls = [DEFAULT_PROPORTION_PRED_TRAIN]
+    default.append(("proportion_pred_train", proportion_pred_train_ls[0]))
   if tasks_ls is None or len(tasks_ls) == 0:
-    tasks_ls = [["normalize"]]
+    tasks_ls = [DEFAULT_TASKS]
     default.append(("task", tasks_ls[0]))
   if dropout_word_encoder_cell_ls is None:
-    dropout_word_encoder_cell_ls = [0.0]
+    dropout_word_encoder_cell_ls = [DEFAULT_DROPOUT_WORD_ENCODER_CELL]
     default.append(("drop_out_word_encoder", dropout_word_encoder_cell_ls[0]))
   if attention_tagging_ls is None:
-    attention_tagging_ls = [False]
+    attention_tagging_ls = [DEFAULT_ATTENTION_TAGGING]
     default.append(("attention_tagging", attention_tagging_ls[0]))
   if n_layers_word_encoder_ls is None:
-    n_layers_word_encoder_ls = [1]
+    n_layers_word_encoder_ls = [DEFAULT_LAYER_WORD_ENCODER]
     default.append(("n_layers_word_encoder", n_layers_word_encoder_ls[0]))
   if mode_word_encoding_ls is None:
-    mode_word_encoding_ls = ["cat"] #"mode_word_encoding"
-  if char_level_embedding_projection_dim_ls  is None:
-    char_level_embedding_projection_dim_ls = [0]
+    mode_word_encoding_ls = [DEFAULT_MODE_WORD_ENCODING] #"mode_word_encoding"
+  if char_level_embedding_projection_dim_ls is None:
+    char_level_embedding_projection_dim_ls = [DEFAULT_CHAR_LEVEL_EMBEDDING_PROJECTION]
   for def_ in default:
-    info_default.append((def_[0],def_[1])) #" "+str(def_[0])+","+str(def_[0])
+    info_default.append((def_[0], def_[1])) #" "+str(def_[0])+","+str(def_[0])
     printing("GRID : {} argument defaulted to {} ", var=[str(def_)[:-6], def_], verbose=0, verbose_level=0)
 
   dic_grid = {"batch_size": batch_size_ls,# "auxilliary_task_norm_not_norm": auxilliary_task_norm_not_norm_ls,
               "shared_context": shared_context_ls,
               "lr": lr_ls, "word_embed_init": word_embed_init_ls, "dir_word_encoder": dir_word_encoder_ls,
-              "char_src_attention":char_src_attention_ls,
+              "char_src_attention": char_src_attention_ls,
               "dir_sent_encoder": dir_sent_encoder_ls, "gradient_clipping":clipping_ls, "unrolling_word": unrolling_word_ls,
               "word_decoding": word_decoding_ls, #"auxilliary_task_pos": auxilliary_task_pos_ls,
               "stable_decoding_state": stable_decoding_state_ls,
               "word_embedding_projected_dim": word_embedding_projected_dim_ls,
               "n_layers_sent_cell": n_layers_sent_cell_ls, "word_recurrent_cell_encoder": word_recurrent_cell_encoder_ls,
-              "teacher_force": teacher_force_ls, "proportion_pred_train": proportion_pred_train_ls,"dropout_word_encoder_cell":dropout_word_encoder_cell_ls,
-              "attention_tagging": attention_tagging_ls,
-              "tasks":tasks_ls,
+              "teacher_force": teacher_force_ls, "proportion_pred_train": proportion_pred_train_ls, "dropout_word_encoder_cell":dropout_word_encoder_cell_ls,
+              "attention_tagging": attention_tagging_ls, "mode_word_encoding":mode_word_encoding_ls, "char_level_embedding_projection_dim":char_level_embedding_projection_dim_ls,
+              "n_layers_word_encoder": n_layers_word_encoder_ls,
+              "tasks": tasks_ls,
               "word_embed": word_embed_ls}
   ind_model = 0
   for batch in batch_size_ls:

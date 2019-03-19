@@ -166,8 +166,10 @@ TASKS_PARAMETER = {"normalize": {"normalization": True}, "pos": {"normalization"
 
 MODE_BATCH_SAMPLING_AVAILABLE = ["proportional", "uniform"]
 
+
 def sampling_proportion(task_n_sent, total_n_sents):
     return task_n_sent/total_n_sents*100
+
 
 def data_gen_multi_task_sampling_batch(tasks, data_sets,
                                        word_dictionary, word_dictionary_norm , char_dictionary,
@@ -234,7 +236,12 @@ def data_gen_multi_task_sampling_batch(tasks, data_sets,
         if sum(end_task_flag.values()) == len(tasks):
             break
 
-
+# TODO :
+# - integrate to train.py for both train and validation
+# - checl if it works the same when iterate is used and not get_batch
+# - check if expand works properly : expands vocab for word and word norm also on POS dataset based on word embedding matrix
+# - check if there is not repetition
+# is there a test to do so
 
 if __name__=="__main__":
     dummy, conll = False, True
