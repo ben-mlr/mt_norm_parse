@@ -603,7 +603,7 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
       ones = Variable(single.data.new(bucket_size, bucket_length).fill_(1))
       noise = Variable(masks.data.new(bucket_size, bucket_length).bernoulli_(unk_replace).long())
       words = words * (ones - single * noise)
-
+    _word_norm = None
     for start_idx in range(0, bucket_size, batch_size):
       excerpt = slice(start_idx, start_idx + batch_size)
       if normalization:

@@ -80,8 +80,14 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             assert min(lenght.data) > 0, "ERROR : min(lenght.data) is {} ".format(min(lenght.data))
             # TODO : you want to correct that : you're missing word !!
 
+            if not normalization:
+                chars_norm = char.clone()
+
             __word_ind = 0
+
             if normalization:
+
+
                 if word_norm_not_norm is not None:
                     printing("norm not norm {} ", var=(word_norm_not_norm[:, __word_ind]), verbose=verbose,
                              verbose_level=5)
@@ -131,10 +137,8 @@ def data_gen(V, batch, nbatches,seq_len=10):
         yield MaskBatch(src, tgt, pad=1)
 
 
-
-
 import numpy as np
-tasks = ["normalize", "pos"]
+
 
 TASKS_PARAMETER = {"normalize": {"normalization": True}, "pos": {"normalization":False}}
 
@@ -168,7 +172,7 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
     return readers
 
 
-def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary,  char_dictionary, pos_dictionary,
+def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary,  char_dictionary, pos_dictionary,extend_n_batch,
                                        batch_size,  get_batch_mode=True, mode_batch_sampling="proportional", verbose=1):
     "multitask learning iterator "
     assert len(tasks) == len(readers)
@@ -201,8 +205,8 @@ def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary,  char_di
             if sampling_proportion(n_sent_start, n_sents_per_task_dataset_cumul["all"]) < random_sample_id < sampling_proportion(n_sents_per_task_dataset_cumul[task],
                                                                                                                                  n_sents_per_task_dataset_cumul["all"]) and not end_task_flag[task]:
                 try:
-                    batch = iterator[task].__next__()
-                    print("picking", task, ind)
+                    batch, order = iterator[task].__next__()
+                    print("picking", task, ind, batch)
                     batch_iter += 1
                     yield batch
                 except StopIteration:
@@ -250,6 +254,7 @@ if __name__=="__main__":
                                                                    add_start_char=add_start_char)
 
         data_set = [LIU_DEV, DEMO]
+        tasks = ["normalize"]
 
         readers = readers_load(datasets=data_set, tasks=tasks,word_dictionary= word_dictionary,
                                word_dictionary_norm=word_dictionary_norm, char_dictionary=char_dictionary,
@@ -257,9 +262,9 @@ if __name__=="__main__":
                                norm_not_norm=False, word_decoder=False,
                                add_start_char=1, add_end_char=1, symbolic_end=True, symbolic_root=True,
                                verbose=1)
-        iterator_multi = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers,batch_size=2,
+        iterator_multi = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers, batch_size=2,
                                                             word_dictionary=word_dictionary, char_dictionary=char_dictionary,
-                                                            pos_dictionary=pos_dictionary,
+                                                            pos_dictionary=pos_dictionary,extend_n_batch=1,
                                                             get_batch_mode=False,
                                                             verbose=1)
         while True:

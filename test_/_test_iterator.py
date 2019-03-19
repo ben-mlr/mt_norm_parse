@@ -1,10 +1,10 @@
 #sys.path.insert(0, "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/ELMoLex_sosweet/")
 from io_.dat import conllu_data
-from io_.data_iterator import data_gen_conllu
+from io_.data_iterator import data_gen_conllu, data_gen_multi_task_sampling_batch, readers_load
 import pdb
 import numpy as np
 import torch
-from env.project_variables import LIU, DEV
+from env.project_variables import LIU, DEV, DEMO, LIU_DEV
 
 
 def _test_iterator_get_batch_mode_False(batch_size, bucket, get_batch_mode, extend_n_batch=1,
@@ -126,13 +126,83 @@ def _info_iterator_get_batch_mode_True_no_bucket(batch_size, verbose):
     print(len(list(set(orders_1) & set(orders_2))))
 
 
+def _test_iterator_multi_task(batch_size, get_batch_mode, tasks):
+
+    data_set = [LIU_DEV, DEMO]
+    #tasks = ["normalize"]
+    norm_not_norm = False
+    word_decoder = False
+    extend_n_batch = 1
+
+    word_dictionary, word_dictionary_norm, char_dictionary, pos_dictionary, \
+    xpos_dictionary, type_dictionary = conllu_data.create_dict(dict_path="../dictionaries/",
+                                                               train_path=LIU_DEV,
+                                                               dev_path=LIU_DEV,
+                                                               test_path=None,
+                                                               word_embed_dict={},
+                                                               dry_run=False, pos_specific_data_set=DEMO,
+                                                               add_start_char=1)
+
+    readers = readers_load(datasets=data_set, tasks=tasks, word_dictionary=word_dictionary,
+                           word_dictionary_norm=word_dictionary_norm, char_dictionary=char_dictionary,
+                           pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
+                           type_dictionary=type_dictionary, use_gpu=None,
+                           norm_not_norm=norm_not_norm, word_decoder=word_decoder,
+                           add_start_char=1, add_end_char=1, symbolic_end=True, symbolic_root=True,
+                           verbose=1)
+    iterator_multi = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers, batch_size=batch_size,
+                                                        word_dictionary=word_dictionary,
+                                                        char_dictionary=char_dictionary,
+                                                        pos_dictionary=pos_dictionary,
+                                                        get_batch_mode=get_batch_mode,
+                                                        extend_n_batch=extend_n_batch,
+                                                        verbose=1)
+
+    counter_sent_input = 0
+    while True:
+        try:
+            batch = iterator_multi.__next__()
+            print(batch)
+            counter_sent_input += batch.input_seq.size(0)
+        except StopIteration:
+            break
+
+    return counter_sent_input, readers
+
+
+def _test_iterator_multi_task_get_batch_False():
+
+    tasks = ["normalize", "pos"]
+    get_batch_mode = False
+
+    counter, readers = _test_iterator_multi_task(tasks=tasks, get_batch_mode=get_batch_mode, batch_size=2)
+    total = 0
+    for task in tasks:
+        total += readers[task][-1]
+    print("Seen sentences : {} total {} with distinction per task {}".format(total, counter, [(readers[task][-1],task) for task in tasks]))
+
+
+def _test_iterator_multi_task_get_batch_True():
+
+    tasks = ["normalize", "pos"]
+    get_batch_mode = True
+
+    counter, readers = _test_iterator_multi_task(tasks=tasks, get_batch_mode=get_batch_mode, batch_size=5)
+    total = 0
+    for task in tasks:
+        total += readers[task][-1]
+    print("Seen sentences : {} total {} with distinction per task {}".format(total, counter, [(readers[task][-1], task) for task in tasks]))
+    # TODO ADD REAL TEST
+
+
 if __name__=="__main__":
      #should not be impacted by the seed
     torch.manual_seed(11)
     np.random.seed(11)
     #for batch_size in [2, 3, 4, 10, 100]:
-    test_get_batch = True
+    test_get_batch = False
     test_iterator = False
+    mt = True
     for batch_size in [10]:
         if test_iterator:
             _test_iterator_get_batch_mode_False_no_bucket(batch_size)
@@ -140,5 +210,8 @@ if __name__=="__main__":
             print("Test passed for batch_fsize both bucketted and not bucktete", batch_size)
         if test_get_batch:
             _info_iterator_get_batch_mode_True_no_bucket(batch_size, verbose=3)
+        if mt:
+            #_test_iterator_multi_task_get_batch_False()
+            _test_iterator_multi_task_get_batch_True()
 
 
