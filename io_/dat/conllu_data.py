@@ -152,11 +152,11 @@ def create_dict(dict_path, train_path, dev_path, test_path,
     train_path = [train_path]
 
   for train_dir, task in zip(train_path, tasks):
-    printing("WARNING : computing dictionary for word, char on {} for task {} ", var=[train_dir, task], verbose=verbose, verbose_level=1)
+    printing("VOCABULARY : computing dictionary for word, char on {} for task {} ", var=[train_dir, task], verbose=verbose, verbose_level=1)
     if task in ["normalize", "all"]:
-      printing("WARNING : computing dictionary for normalized word also {} ", verbose=verbose, verbose_level=1)
+      printing("VOCABULARY : computing dictionary for normalized word also {} ", var=[train_dir, task], verbose=verbose, verbose_level=1)
     elif task in ["pos", "all"]:
-      printing("WARNING : computing dictionary for pos word also ", verbose=verbose, verbose_level=1)
+      printing("VOCABULARY : computing dictionary for pos word also ", verbose=verbose, verbose_level=1)
     with codecs.open(train_dir, 'r', 'utf-8', errors='ignore') as file:
       li = 0
       for line in file:
@@ -258,6 +258,7 @@ def create_dict(dict_path, train_path, dev_path, test_path,
           #xpos_dictionary.add(xpos)
           #type_dictionary.add(typ)
           # if word not already in vocab_set (loaded as trained and each time expand_vocab was called :
+          # but found in new dataset and appear in word_embed_dict then we add it to vocab # otherwise not need to load them to vocab (they won't have any representation)
           # but found in new dataset and appear in word_embed_dict then we add it to vocab # otherwise not need to load them to vocab (they won't have any representation)
           if word not in vocab_set and (word in word_embed_dict or word.lower() in word_embed_dict):
             vocab_set.add(word)

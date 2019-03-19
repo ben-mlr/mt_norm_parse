@@ -29,14 +29,16 @@ class CoNLLReader(object):
   def close(self):
     self.__source_file.close()
 
-  def getNext(self, tasks,normalize_digits=True, symbolic_root=False, symbolic_end=False,
+  def getNext(self, tasks, normalize_digits=True,
+              symbolic_root=False, symbolic_end=False,
               normalization=False, word_decoder=False,
               verbose=0):
     line = self.__source_file.readline()
     if tasks is None:
       tasks = []
     else:
-      assert len(list(set(tasks) & set(AVAILABLE_TASKS))) > 0 , "ERROR tasks provided to iterator is not in AVAILABLE TASKS".format(tasks,AVAILABLE_TASKS)
+      assert len(list(set(tasks) & set(AVAILABLE_TASKS))) > 0,\
+        "ERROR tasks provided to iterator is not in AVAILABLE TASKS".format(tasks,AVAILABLE_TASKS)
     print("WARNING : tasks is {} ".format(tasks))
     normalization = "normalize" in tasks or "all" in tasks
     # skip multiple blank lines.
@@ -116,7 +118,8 @@ class CoNLLReader(object):
       n_exception = 0
       if normalization:
         # includes sequence level and word level
-        normalized_token, n_exception = get_normalized_token(norm_field=tokens[9], n_exception=n_exception,verbose=verbose)
+        normalized_token, n_exception = get_normalized_token(norm_field=tokens[9], n_exception=n_exception,
+                                                             verbose=verbose)
         # extracting normalized words as sequence of characters as string and ids, string and ids
         if word_decoder:
           normalized_token_id = self.__word_norm_dictionary.get_index(normalized_token)

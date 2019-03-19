@@ -135,21 +135,21 @@ if __name__ == "__main__":
                                                                                   word_recurrent_cell_encoder_ls=["LSTM"],
                                                                                   dropout_word_encoder_cell_ls=[0.3],
                                                                                   stable_decoding_state_ls=[False],
-                                                                                  word_decoding_ls=[False],
+                                                                                  word_decoding_ls=[0],
                                                                                   batch_size_ls=[2],
-                                                                                  word_embed_ls=[True],
+                                                                                  word_embed_ls=[1],
                                                                                   dir_sent_encoder_ls=[2], lr_ls=[0.0005],
-                                                                                  word_embed_init_ls=[None],
+                                                                                  word_embed_init_ls=[DIR_TWEET_W2V],
                                                                                   attention_tagging_ls=[1],
                                                                                   char_src_attention_ls=[0],
                                                                                   teacher_force_ls=[True],
                                                                                   proportion_pred_train_ls=[None],
                                                                                   shared_context_ls=["all"],
                                                                                   word_embedding_projected_dim_ls=[10],
-                                                                                  tasks_ls=[["normalize", "pos"]],
+                                                                                  tasks_ls=[["pos", "normalize"]],
                                                                                   n_layers_sent_cell_ls=[2],
                                                                                   n_layers_word_encoder_ls=[2],
-                                                                                  unrolling_word_ls=[True],
+                                                                                  unrolling_word_ls=[1],
                                                                                   mode_word_encoding_ls=["sum"],
                                                                                   char_level_embedding_projection_dim_ls=[10],
                                                                                   scale_ls=[2]
@@ -157,7 +157,7 @@ if __name__ == "__main__":
 
 
         # only for cloud run :
-      warmup = True
+      warmup = False
       if platform != "darwin":
           printing("ENV : running not from os x assuming we are in command shell run", verbose=0, verbose_level=0)
           parser = argparse.ArgumentParser()
@@ -227,14 +227,14 @@ if __name__ == "__main__":
                                               init_param=params_dozat,#params_dozat,#params_strong,#params_dozat,
                                               warmup=test_before_run,
                                               dir_grid=dir_grid, environment=environment, dir_log=log,
-                                              stable_decoding_state_ls=[False],
-                                              word_decoding_ls=[False],
+                                              stable_decoding_state_ls=[0],
+                                              word_decoding_ls=[0],
                                               epochs=epochs,
-                                              batch_size_ls=[25,50,200],
-                                              word_embed_ls=[True],
+                                              batch_size_ls=[50],
+                                              word_embed_ls=[1],
                                               dir_sent_encoder_ls=[2],
                                               n_layers_sent_cell_ls=[2], n_layers_word_encoder_ls=[1],
-                                              lr_ls=[0.0005,0.00025,0.001],
+                                              lr_ls=[0.0005],
                                               word_embed_init_ls=[DIR_FASTEXT_WIKI_NEWS_W2V, DIR_TWEET_W2V, None],
                                               teacher_force_ls=[True],
                                               word_recurrent_cell_encoder_ls=["LSTM"],
@@ -245,8 +245,8 @@ if __name__ == "__main__":
                                               char_level_embedding_projection_dim_ls=[100],
                                               mode_word_encoding_ls=["sum","cat"],
                                               tasks_ls=[["pos"]],
-                                              char_src_attention_ls=[False],
-                                              unrolling_word_ls=[True],
+                                              char_src_attention_ls=[0],
+                                              unrolling_word_ls=[1],
                                               scale_ls=[1],
                                               attention_tagging_ls=[1,0],
                                               overall_report_dir=dir_grid, overall_label=LABEL_GRID,description_comment=description_comment,

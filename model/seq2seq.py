@@ -62,7 +62,6 @@ class LexNormalizer(nn.Module):
                  symbolic_end=False, symbolic_root=False,
                  extend_vocab_with_test=False, test_path=None,
                  extra_arg_specific_label="",
-
                  activation_char_decoder=None, activation_word_decoder=None, expand_vocab_dev_test=False,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
@@ -127,6 +126,7 @@ class LexNormalizer(nn.Module):
             # create dictionary
         # we create/load model specific dictionary
         if model_specific_dictionary:
+            word_embed_loaded_ls = None
             if not load:
                 # as new model : we need data_path to create nex dictionary
                 assert train_path is not None and dev_path is not None and add_start_char is not None, \
@@ -137,17 +137,28 @@ class LexNormalizer(nn.Module):
                 os.mkdir(dict_path)
                 self.dict_path = dict_path
                 print("INFO making dict_path {} ".format(dict_path))
+                if word_embed_dir is not None:
+                    printing("W2V INFO : loading initialized embedding from {}  ", var=[word_embed_dir],
+                             verbose=verbose,
+                             verbose_level=1)
+                    word_embed_dic = load_emb(word_embed_dir, verbose)
+                    word_embed_loaded_ls = list(word_embed_dic.keys())
+
+                    assert len(word_embed_dic["a"]) == word_embedding_dim, \
+                        "ERROR : mismatch between word embedding definition and init"
             else:
                 assert train_path is None and dev_path is None and add_start_char is None
                 # we make sure the dictionary dir exists and is located in dict_path
                 assert dict_path is not None, "ERROR dict_path should be specified"
                 assert os.path.isdir(dict_path), "ERROR : dict_path {} does not exist".format(dict_path)
-            # we are loading the dictionary now because we need it to define the model
+
+
+                    # we are loading the dictionary now because we need it to define the model
             self.word_dictionary, self.word_nom_dictionary,  self.char_dictionary, \
             self.pos_dictionary, self.xpos_dictionary, self.type_dictionary =\
                 conllu_data.load_dict(dict_path=dict_path,
                                       train_path=train_path, dev_path=dev_path,
-                                      word_embed_dict=None, dry_run=False,
+                                      word_embed_dict=word_embed_loaded_ls, dry_run=False,
                                       expand_vocab=expand_vocab_dev_test, test_path=test_path,
                                       pos_specific_data_set=pos_specific_path, tasks=tasks,
                                       word_normalization=word_decoding, add_start_char=add_start_char, verbose=1)
@@ -225,6 +236,9 @@ class LexNormalizer(nn.Module):
                                   "word_voc_output_size": word_voc_output_size,
                                   "word_voc_input_size": word_voc_input_size,
                                  }}
+            # loading word_embedding
+
+
         # we load argument.json and define load weights
         else:
             assert model_full_name is not None and dir_model is not None, \
@@ -304,14 +318,12 @@ class LexNormalizer(nn.Module):
         if self.word_embedding is not None:
             self.word_embedding_project = nn.Linear(word_embedding_dim, word_embedding_projected_dim) if word_embed and word_embedding_projected_dim is not None else None
         if word_embed_dir is not None and not load:
-
-            printing("W2V INFO : loading initialized embedding from {}  ", var=[word_embed_dir], verbose=verbose, verbose_level=1)
-            word_embed_dic = load_emb(word_embed_dir, verbose)
-            assert len(word_embed_dic["a"]) == word_embedding_dim, "ERROR : mismatch between word embedding definition and init"
             word_embed_torch = construct_word_embedding_table(word_dim=len(word_embed_dic["a"]),
                                                               word_dictionary=self.word_dictionary.instance2index,
-                                                              word_embed_init_toke2vec=word_embed_dic,verbose=verbose)
-            printing("W2V INFO : intializing embedding matrix with tensor of shape {}  ", var=[word_embed_torch.size()], verbose=verbose, verbose_level=1)
+                                                              word_embed_init_toke2vec=word_embed_dic,
+                                                              verbose=verbose)
+            printing("W2V INFO : intializing embedding matrix with tensor of shape {}  ",
+                     var=[word_embed_torch.size()], verbose=verbose, verbose_level=1)
             self.word_embedding.weight.data = word_embed_torch
             #print("SANITY CHECK word : them", self.word_embedding())
 
