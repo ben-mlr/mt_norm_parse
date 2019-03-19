@@ -71,12 +71,12 @@ def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_pa
 if __name__ == "__main__":
 
       if platform != "darwin":
-        printing("RUN : running in rioc", verbose=1, verbose_level=1)
+        printing("RUN : running in rioc or neff", verbose=1, verbose_level=1)
         assert os.environ.get("MODE_RUN") is not None, "Running in rioc, MODE_RUN empty while it should not "
         assert os.environ.get("MODE_RUN") in ["DISTRIBUTED", "SINGLE"]
         run_standart = os.environ.get("MODE_RUN") != "DISTRIBUTED"
       else:
-          run_standart = False
+          run_standart = True
           print("LOCAL")
 
 
@@ -132,16 +132,16 @@ if __name__ == "__main__":
                                                                                   dir_sent_encoder_ls=[2], lr_ls=[0.0005],
                                                                                   word_embed_init_ls=[None],
                                                                                   attention_tagging_ls=[1],
-                                                                                  char_src_attention_ls=[0],
+                                                                                  char_src_attention_ls=[1],
                                                                                   teacher_force_ls=[True],
                                                                                   proportion_pred_train_ls=[None],
                                                                                   shared_context_ls=["all"],
                                                                                   word_embedding_projected_dim_ls=[10],
-                                                                                  tasks_ls=[["normalize"]],
-                                                                                  n_layers_sent_cell_ls=[1],
-                                                                                  n_layers_word_encoder_ls=[1, 2],
+                                                                                  tasks_ls=[["pos"]],
+                                                                                  n_layers_sent_cell_ls=[2],
+                                                                                  n_layers_word_encoder_ls=[2],
                                                                                   unrolling_word_ls=[True],
-                                                                                  mode_word_encoding_ls=["cat"],
+                                                                                  mode_word_encoding_ls=["sum"],
                                                                                   char_level_embedding_projection_dim_ls=[10],
                                                                                   scale_ls=[2]
                                                                                   )
@@ -190,19 +190,22 @@ if __name__ == "__main__":
               n_models = len(params) if not warmup else 1
               warmup_desc = "warmup" if warmup else ""
               test_before_run_desc = "test_before_run" if test_before_run else ""
-              description = "{} - {} ".format(n_models, description_comment)
+              #description = "{} - {} ".format(n_models, description_comment)
+              description = "{} - {} : Analysing : {} with regard to {} fixed".format(len(params), description_comment,
+                                                                                      analysed, fixed)
+
               row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=OAR, description=description, log_dir=log,
                                                 target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR, "{}*".format(LABEL_GRID)),
-                                                env=environment, status="running {}{}".format(warmup_desc,test_before_run_desc),
+                                                env=environment, status="running {}{}".format(warmup_desc, test_before_run_desc),
                                                 verbose=1)
-              train_path, dev_path = CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV #MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+              train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV #MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
               run_grid(params=params, labels=labels,
                        dir_grid=dir_grid, label_grid=LABEL_GRID,
                        epochs=50, test_before_run=test_before_run,
                        train_path=train_path,
                        dev_path=dev_path, debug=False,
                        scoring_func_sequence_pred="exact_match",
-                       test_paths=[CP_WR_PASTE_TEST_269],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
+                       test_paths=[EWT_DEV],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
                        warmup=warmup)
               update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
           except Exception as e:
@@ -222,22 +225,22 @@ if __name__ == "__main__":
                                               batch_size_ls=[50],
                                               word_embed_ls=[True],
                                               dir_sent_encoder_ls=[2],
-                                              n_layers_sent_cell_ls=[2], n_layers_word_encoder_ls=[2],
+                                              n_layers_sent_cell_ls=[2], n_layers_word_encoder_ls=[1],
                                               lr_ls=[0.0005],
                                               word_embed_init_ls=[DIR_FASTEXT_WIKI_NEWS_W2V, DIR_TWEET_W2V, None],
                                               teacher_force_ls=[True],
                                               word_recurrent_cell_encoder_ls=["LSTM"],
                                               dropout_word_encoder_cell_ls=[0.],
                                               proportion_pred_train_ls=[None],
-                                              shared_context_ls=["all", "sent"],
+                                              shared_context_ls=["all"],
                                               word_embedding_projected_dim_ls=[100],
                                               char_level_embedding_projection_dim_ls=[100],
-                                              mode_word_encoding_ls=["sum", "cat"],
+                                              mode_word_encoding_ls=["sum"],
                                               tasks_ls=[["pos"]],
                                               char_src_attention_ls=[False],
                                               unrolling_word_ls=[True],
                                               scale_ls=[1],
-                                              attention_tagging_ls=[1, 0],
+                                              attention_tagging_ls=[1],
                                               overall_report_dir=dir_grid, overall_label=LABEL_GRID,description_comment=description_comment,
                                               train_path=train_path, dev_path=dev_path, test_paths=[TEST, EWT_DEV, EN_LINES_EWT_TRAIN],
                                               gpu_mode="random",

@@ -32,17 +32,18 @@ class CharEncoder(nn.Module):
         word_embedding_dim_inputed = 0 if word_embedding_dim_inputed is None else word_embedding_dim_inputed
         # context level shared to the decoder (should prune a lot if context level word/or sent )
         self.context_level = context_level
-        if attention_tagging:
-            self.attention_query = nn.Linear(hidden_size_encoder*n_layers_word_cell*dir_word_encoder, 1, bias=False)
-            if word_embedding_dim_inputed is not None and word_embedding_dim_inputed > 0:
-                self.attention_projection = nn.Linear(hidden_size_encoder * n_layers_word_cell * dir_word_encoder * 2, word_embedding_dim_inputed)
-            else:
-                raise(Exception("word_embedding_dim_inputed null why it is used for attention"))
-                                                  #hidden_size_encoder * n_layers_word_cell * dir_word_encoder)
-        else:
-            self.attention_query = None
-            self.attention_projection = None
-        self.char_level_encoding_projection = nn.Linear(hidden_size_encoder * n_layers_word_cell * dir_word_encoder * (int(attention_tagging)+1),
+        # attention query is based on the last layer
+        self.attention_query = nn.Linear(hidden_size_encoder*1*dir_word_encoder, 1, bias=False) if attention_tagging else None
+        # attention projection project
+        dim_last_layer_state = hidden_size_encoder * n_layers_word_cell * dir_word_encoder
+        dim_attention = (hidden_size_encoder * dir_word_encoder) * int(attention_tagging)
+        if n_layers_word_cell>1:
+            printing("WARNING : ENCODER : n_layers_word_cell is {} : all layers of cell/hidden state "
+                     "are used", var=n_layers_word_cell, verbose=verbose, verbose_level=1)
+        if n_layers_sent_cell >1:
+            printing("WARNING : ENCODER : n_layers_sent_cell is {} : all layers of cell/hidden state "
+                     "are used", var=n_layers_sent_cell, verbose=verbose, verbose_level=1)
+        self.char_level_encoding_projection = nn.Linear(dim_attention+dim_last_layer_state,
                                                         char_level_embedding_projection_dim) if char_level_embedding_projection_dim >0 else None
         if dir_word_encoder == 2:
             assert hidden_size_encoder % 2 == 0, "ERROR = it will be divided by two and remultipy so need even number for simplicity"
@@ -151,7 +152,7 @@ class CharEncoder(nn.Module):
         h_n = h_n.contiguous().view(h_n.size(0), h_n.size(1)*h_n.size(2))
 
         attention_weights_char_tag = None
-        if self.attention_projection is not None:
+        if self.attention_query is not None:
             assert c_n is not None, "ERROR attention only supported when LSTM used (for layziness)"
             # we don't use c_n otherise so don't need to do this
             c_n = c_n[:, inverse_perm_idx, :]
