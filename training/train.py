@@ -228,31 +228,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
     x_axis_epochs = []
     epoch_ls_dev = []
     epoch_ls_train = []
-    x_axis_epochs_loss = []
-    if False:
-        data_read_train = conllu_data.read_data_to_variable(train_path, model.word_dictionary, model.char_dictionary,
-                                                        model.pos_dictionary,
-                                                        model.xpos_dictionary, model.type_dictionary,
-                                                        use_gpu=use_gpu,
-                                                        norm_not_norm=auxilliary_task_norm_not_norm,
-                                                        word_decoder=word_decoding,
-                                                        symbolic_end=symbolic_end, symbolic_root=symbolic_root,
-                                                        dry_run=0, lattice=False, verbose=verbose,
-                                                        normalization=normalization, bucket=bucketing,
-                                                        add_start_char=add_start_char, add_end_char=add_end_char,
-                                                        word_norm_dictionary=model.word_nom_dictionary)
 
-        data_read_dev = conllu_data.read_data_to_variable(dev_path, model.word_dictionary, model.char_dictionary,
-                                                      model.pos_dictionary, model.xpos_dictionary, model.type_dictionary,
-                                                      use_gpu=use_gpu,
-                                                      word_decoder=word_decoding,
-                                                      symbolic_end=symbolic_end, symbolic_root=symbolic_root,
-                                                      norm_not_norm=auxilliary_task_norm_not_norm,
-                                                      dry_run=0, lattice=False,
-                                                      normalization=normalization, bucket=bucketing,
-                                                      add_start_char=add_start_char, add_end_char=add_end_char,
-                                                      word_norm_dictionary=model.word_nom_dictionary,
-                                                      verbose=verbose)
     train_path = [train_path] if isinstance(train_path, str) else train_path
     dev_path = [dev_path] if isinstance(dev_path, str) else dev_path
     readers_train = readers_load(datasets=train_path, tasks=tasks, word_dictionary=model.word_dictionary,

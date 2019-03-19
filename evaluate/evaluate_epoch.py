@@ -74,25 +74,6 @@ def evaluate(batch_size, data_path, task,
 
     printing("EVALUATION : Evaluating {} metric with details {}  ", var=[score_to_compute_ls, mode_norm_ls], verbose=verbose, verbose_level=3)
 
-    if False:
-        data_read = conllu_data.read_data_to_variable(data_path, model.word_dictionary, model.char_dictionary,
-                                                  model.pos_dictionary,
-                                                  model.xpos_dictionary, model.type_dictionary,
-                                                  use_gpu=use_gpu,
-                                                  norm_not_norm=model.auxilliary_task_norm_not_norm,
-                                                  symbolic_end=model.symbolic_end, symbolic_root=model.symbolic_root,
-                                                  dry_run=0, lattice=False, verbose=verbose,
-                                                  normalization=normalization,
-                                                  bucket=bucket,
-                                                  add_start_char=1, add_end_char=1, word_decoder=word_decoding,
-                                                  word_norm_dictionary=model.word_nom_dictionary)
-        batchIter = data_gen_conllu(data_read,
-                                model.word_dictionary,
-                                model.char_dictionary,
-                                batch_size=batch_size,
-                                get_batch_mode=get_batch_mode_evaluate,
-                                normalization=normalization, pos_dictionary=model.pos_dictionary,
-                                print_raw=print_raw,  verbose=verbose)
     readers_eval = readers_load(datasets=[data_path], tasks=[task], word_dictionary=model.word_dictionary,
                                 word_dictionary_norm=model.word_nom_dictionary, char_dictionary=model.char_dictionary,
                                 pos_dictionary=model.pos_dictionary, xpos_dictionary=model.xpos_dictionary,
