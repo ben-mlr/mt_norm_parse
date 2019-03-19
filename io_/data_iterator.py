@@ -13,6 +13,7 @@ from io_.info_print import printing, print_char_seq, disable_tqdm_level
 import time
 from toolbox.sanity_check import get_timing
 NORM2NOISY=False
+from io_.printout_iterator_as_raw import outputing_raw_data_from_iterator
 
 
 def data_gen_conllu(data, word_dictionary, char_dictionary,
@@ -41,8 +42,13 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                           disable=disable_tqdm_level(verbose, verbose_level=2)):
 
             words, word_norm, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, lengths, order_ids, raw_word_inputs, raw_lines = batch
+
             if not normalization:
                 chars_norm = chars.clone()
+
+            outputing_raw_data_from_iterator(words, word_norm, chars, chars_norm, word_norm_not_norm, pos,word_dictionary=word_dictionary, pos_dictionary=pos_dictionary, char_dictionary=char_dictionary,
+                                             verbose=verbose, print_raw=print_raw, normalization=normalization)
+
             if not NORM2NOISY:
                 yield MaskBatch(chars, chars_norm,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
                                 output_word=word_norm, pos=pos, input_word=words,
@@ -75,7 +81,6 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             # TODO : you want to correct that : you're missing word !!
 
             __word_ind = 0
-            word_len = char.size(2)
             if normalization:
                 if word_norm_not_norm is not None:
                     printing("norm not norm {} ", var=(word_norm_not_norm[:, __word_ind]), verbose=verbose,
@@ -83,42 +88,11 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                 printing("Normalized sequence {} ", var=(chars_norm[:, __word_ind, :]), verbose=verbose, verbose_level=5)
             printing("Char {} word ind : word : {}  ", var=(__word_ind, char[:, __word_ind, :]), verbose=verbose,
                      verbose_level=5)
-            _verbose = 5 if print_raw else verbose
 
-            if _verbose >= 5:
-                character_display = [" ".join([char_dictionary.get_instance(char[sent, word_ind, char_i]) for char_i in range(word_len)]) + " | NORM : {} |SENT {} WORD {}| ".format(word_norm_not_norm[sent,word_ind],sent, word_ind) for ind_sent,sent in enumerate(range(char.size(0)))
-                                     for ind_w, word_ind in enumerate(range(char.size(1)))]
-
-                word_display = [word_dictionary.get_instance(word[batch, word_ind]) + " " for batch in range(char.size(0)) for word_ind in range(char.size(1))]
-
-                if pos_dictionary is not None:
-                    pos_display = [pos_dictionary.get_instance(pos[batch, __word_ind]) + " " for batch in
-                                   range(char.size(0))]
-                else:
-                    pos_display = None
-
-            else:
-                word_display = []
-                character_display = []
-                pos_display = []
-            if not normalization:
-                chars_norm = char.clone()
-
-            if _verbose >= 5:
-                character_norm_display = [" ".join([char_dictionary.get_instance(chars_norm[sent, word_ind, char_i])
-                                               for char_i in range(chars_norm.size(2))]) +
-                                          "|  NORM : {} |SENT {} WORD {}| \n ".format(word_norm_not_norm[sent,word_ind],sent, word_ind)
-                                     for ind_sent, sent in enumerate(range(chars_norm.size(0)))
-                                     for ind_w, word_ind in enumerate(range(chars_norm.size(1)))]
-            else:
-                character_norm_display = []
-            printing("Feeding source characters {} \n ------ Target characters {}  "
-                     "(NB : the character vocabulary is the same at input and output)", var=(character_display, character_norm_display),
-                     verbose=_verbose, verbose_level=5)
-            printing("Feeding source words {} ", var=[word_display], verbose=_verbose, verbose_level=5)
-            printing("Feeding source pos {} ", var=[pos_display], verbose=_verbose, verbose_level=5)
-            printing("TYPE {} char before batch chars_norm {} ", var=(char.is_cuda, chars_norm.is_cuda),
-                     verbose=verbose, verbose_level=5)
+            outputing_raw_data_from_iterator(word, word_norm, char, chars_norm, word_norm_not_norm, pos,
+                                             word_dictionary=word_dictionary, pos_dictionary=pos_dictionary,
+                                             char_dictionary=char_dictionary,
+                                             verbose=verbose, print_raw=print_raw, normalization=normalization)
 
             if NORM2NOISY:
                 print("WARNING !! NORM2NOISY ON ")
@@ -171,44 +145,47 @@ def sampling_proportion(task_n_sent, total_n_sents):
     return task_n_sent/total_n_sents*100
 
 
-def data_gen_multi_task_sampling_batch(tasks, data_sets,
-                                       word_dictionary, word_dictionary_norm , char_dictionary,
-                                       pos_dictionary,xpos_dictionary, type_dictionary, use_gpu,
-                                       batch_size,
-                                       get_batch_mode=True, norm_not_norm=False, word_decoder=False,
-                                       add_start_char=1, add_end_char=1, symbolic_end=True, symbolic_root=True,
-                                       mode_batch_sampling="proportional", verbose=1):
+def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_dictionary,
+            pos_dictionary,xpos_dictionary, type_dictionary, use_gpu,
+            norm_not_norm=False, word_decoder=False,
+            add_start_char=1, add_end_char=1, symbolic_end=True, symbolic_root=True,
+            verbose=1):
+
+    readers = {}
+    for task, data in zip(tasks, datasets):
+        readers[task] = conllu_data.read_data_to_variable(data, word_dictionary, char_dictionary,
+                                                          pos_dictionary,
+                                                          xpos_dictionary, type_dictionary,
+                                                          use_gpu=use_gpu,
+                                                          norm_not_norm=norm_not_norm,
+                                                          word_decoder=word_decoder,
+                                                          symbolic_end=symbolic_end, symbolic_root=symbolic_root,
+                                                          dry_run=0, lattice=False,
+                                                          normalization=TASKS_PARAMETER[task]["normalization"], bucket=False,
+                                                          add_start_char=add_start_char,
+                                                          add_end_char=add_end_char,
+                                                          word_norm_dictionary=word_dictionary_norm, verbose=verbose)
+    return readers
+
+
+def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary,  char_dictionary, pos_dictionary,
+                                       batch_size,  get_batch_mode=True, mode_batch_sampling="proportional", verbose=1):
     "multitask learning iterator "
-    assert len(tasks) == len(data_set)
+    assert len(tasks) == len(readers)
     assert mode_batch_sampling in MODE_BATCH_SAMPLING_AVAILABLE
-    reader = {}
     iterator = {}
     end_task_flag = {}
     n_sents_per_task_dataset_cumul = {}
     cumul_n_sent = 0
-    for task, data in zip(tasks, data_sets):
-        reader[task] = conllu_data.read_data_to_variable(data, word_dictionary, char_dictionary,
-                                                         pos_dictionary,
-                                                         xpos_dictionary, type_dictionary,
-                                                         use_gpu=use_gpu,
-                                                         norm_not_norm=norm_not_norm,
-                                                         word_decoder=word_decoder,
-                                                         symbolic_end=symbolic_end, symbolic_root=symbolic_root,
-                                                         dry_run=0, lattice=False, verbose=1,
-                                                         normalization=TASKS_PARAMETER[task]["normalization"], bucket=False,
-                                                         add_start_char=add_start_char,
-                                                         add_end_char=add_end_char,
-                                                         word_norm_dictionary=word_dictionary_norm)
-
-        iterator[task] = data_gen_conllu(data=reader[task], word_dictionary=word_dictionary,
+    for task in tasks:
+        iterator[task] = data_gen_conllu(data=readers[task], word_dictionary=word_dictionary,
                                          char_dictionary=char_dictionary, pos_dictionary=pos_dictionary,
                                          batch_size=batch_size, extend_n_batch=extend_n_batch,
                                          get_batch_mode=get_batch_mode,
                                          print_raw=False, normalization=TASKS_PARAMETER[task]["normalization"],
                                          verbose=verbose)
         end_task_flag[task] = False
-        cumul_n_sent += reader[task][-1]
-        print("dataset ", data, reader[task][-1], cumul_n_sent)
+        cumul_n_sent += readers[task][-1]
         n_sents_per_task_dataset_cumul[task] = cumul_n_sent
     n_sents_per_task_dataset_cumul["all"] = n_sents_per_task_dataset_cumul[tasks[-1]]
     printing("MT batch sampling iterator {} cumulated n_sent   ", var=[n_sents_per_task_dataset_cumul], verbose_level=1, verbose=verbose)
@@ -221,7 +198,8 @@ def data_gen_multi_task_sampling_batch(tasks, data_sets,
         for ind, task in enumerate(tasks):
             #print("Sampling, for task ", task, " proportion is ", sampling_proportion(n_sents_per_task_dataset_cumul[task], n_sents_per_task_dataset_cumul["all"]),
             #      " start is {} ".format(sampling_proportion(n_sent_start, n_sents_per_task_dataset_cumul["all"])), " random is ", random_sample_id)
-            if sampling_proportion(n_sent_start, n_sents_per_task_dataset_cumul["all"]) < random_sample_id < sampling_proportion(n_sents_per_task_dataset_cumul[task], n_sents_per_task_dataset_cumul["all"]) and not end_task_flag[task]:
+            if sampling_proportion(n_sent_start, n_sents_per_task_dataset_cumul["all"]) < random_sample_id < sampling_proportion(n_sents_per_task_dataset_cumul[task],
+                                                                                                                                 n_sents_per_task_dataset_cumul["all"]) and not end_task_flag[task]:
                 try:
                     batch = iterator[task].__next__()
                     print("picking", task, ind)
@@ -271,16 +249,19 @@ if __name__=="__main__":
                                                                    dry_run=False, pos_specific_data_set=EN_LINES_EWT_TRAIN,
                                                                    add_start_char=add_start_char)
 
-
         data_set = [LIU_DEV, DEMO]
 
-        iterator_multi = data_gen_multi_task_sampling_batch(tasks, data_set,
-                                           word_dictionary, word_dictionary_norm, char_dictionary,
-                                           pos_dictionary, xpos_dictionary, type_dictionary, use_gpu=None,
-                                           batch_size=200,
-                                           get_batch_mode=True, norm_not_norm=False, word_decoder=False,
-                                           add_start_char=1, add_end_char=1, symbolic_end=True, symbolic_root=True,
-                                           mode_batch_sampling="proportional", verbose=1)
+        readers = readers_load(datasets=data_set, tasks=tasks,word_dictionary= word_dictionary,
+                               word_dictionary_norm=word_dictionary_norm, char_dictionary=char_dictionary,
+                               pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary, type_dictionary=type_dictionary, use_gpu=None,
+                               norm_not_norm=False, word_decoder=False,
+                               add_start_char=1, add_end_char=1, symbolic_end=True, symbolic_root=True,
+                               verbose=1)
+        iterator_multi = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers,batch_size=2,
+                                                            word_dictionary=word_dictionary, char_dictionary=char_dictionary,
+                                                            pos_dictionary=pos_dictionary,
+                                                            get_batch_mode=False,
+                                                            verbose=1)
         while True:
             try:
                 print(iterator_multi.__next__())

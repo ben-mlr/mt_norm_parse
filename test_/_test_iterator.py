@@ -7,11 +7,12 @@ import torch
 from env.project_variables import LIU, DEV
 
 
-def _test_iterator_get_batch_mode_False(batch_size,bucket, get_batch_mode, extend_n_batch=1, verbose = 3):
+def _test_iterator_get_batch_mode_False(batch_size, bucket, get_batch_mode, extend_n_batch=1,
+                                        verbose = 3):
     path = "/Users/bemuller/Documents/Work/INRIA/dev/parsing/normpar/data/en-ud-dev.integrated"
     path = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/data/LiLiu/2577_tweets-li.conll"
-    path = DEV
-    print("test on {}".format(DEV))
+    path = LIU
+    print("test on {}".format(path))
     #pdb.set_trace = lambda: 1
 
     add_start_char = 1
@@ -25,7 +26,7 @@ def _test_iterator_get_batch_mode_False(batch_size,bucket, get_batch_mode, exten
                                                                test_path=None,
                                                                word_embed_dict={},
                                                                dry_run=False, word_normalization=True,
-                                                               vocab_trim=True, add_start_char=add_start_char)
+                                                               add_start_char=add_start_char)
 
     data = conllu_data.read_data_to_variable(path, word_dictionary, char_dictionary,
                                              pos_dictionary,
@@ -52,15 +53,18 @@ def _test_iterator_get_batch_mode_False(batch_size,bucket, get_batch_mode, exten
         n_sents_outputed += batch.input_seq.size(0)
         # we check that each batch is composed of non empty sentence
         sent_i = 0
-        print("sent {}  word 0 input seq {} output seq {}  , word tokens {} ntokens batch {} output_norm_not_norm : word pred {} ".format(
-            sent_i, batch.input_seq[sent_i, 1, :], batch.output_seq[sent_i, 1, :], batch.output_norm_not_norm[sent_i, 1], batch.ntokens, batch.output_word[sent_i, 0]))
-        print(
-            "sent {}  word 3 input seq {} output seq {}  , word tokens {} ntokens batch {} output_norm_not_norm : word pred {} ".format(
-                sent_i, batch.input_seq[sent_i, 3, :], batch.output_seq[sent_i, 3, :],
-                batch.output_norm_not_norm[sent_i, 3], batch.ntokens, batch.output_word[sent_i, 3]))
-        print("sent {}  word -1 input seq {} output seq {}  , word tokens {} ntokens batch {} output_norm_not_norm : word pred {} ".format(
-                sent_i,batch.input_seq[sent_i, -1, :], batch.output_seq[sent_i, -1, :], batch.output_norm_not_norm[sent_i, -1], batch.ntokens, batch.output_word[sent_i, -1]))
-        if False:
+        see_details = True if i == 0 else False
+        if see_details:
+            print("sent {}  word 0 input seq {} output seq {}  , word tokens {} ntokens batch {} output_norm_not_norm : word pred {} ".format(
+                sent_i, batch.input_seq[sent_i, 1, :], batch.output_seq[sent_i, 1, :], batch.output_norm_not_norm[sent_i, 1], batch.ntokens, batch.output_word[sent_i, 0]))
+            print(
+                "sent {}  word 3 input seq {} output seq {}  , word tokens {} ntokens batch {} output_norm_not_norm : word pred {} ".format(
+                    sent_i, batch.input_seq[sent_i, 3, :], batch.output_seq[sent_i, 3, :],
+                    batch.output_norm_not_norm[sent_i, 3], batch.ntokens, batch.output_word[sent_i, 3]))
+            print("sent {}  word -1 input seq {} output seq {}  , word tokens {} ntokens batch {} output_norm_not_norm : word pred {} ".format(
+                    sent_i, batch.input_seq[sent_i, -1, :], batch.output_seq[sent_i, -1, :], batch.output_norm_not_norm[sent_i, -1], batch.ntokens, batch.output_word[sent_i, -1]))
+        checking_out = False
+        if checking_out:
             for label, _batch in zip(["input", "output"],
                                      [batch.input_seq, batch.output_seq]):
                 for sent_i in range(_batch.size(0)):
@@ -83,18 +87,19 @@ def _test_iterator_get_batch_mode_False(batch_size,bucket, get_batch_mode, exten
         except:
             bucket_size = data[2]
             if not bucket and not get_batch_mode:
-                print("bucket is False : we should have skipped one max ")
-                raise(Exception)
+                raise(Exception("bucket is False : we should have skipped one max {} outputed and data {} ".format(n_sents_outputed, data[-1]-1)))
             elif not get_batch_mode:
                 assert abs(n_sents_outputed - data[-1]) < len(bucket_size), "ERROR {}".format(len(bucket_size))
-                print("TEST : {} sentences seen out of {} , due to skipping batch 1 ".format(n_sents_outputed, data[-1], len(bucket_size)))
-    #if not bucket:
+                print("TEST : {} sentences seen out of {} , due to skipping batch 1 ".format(n_sents_outputed, data[-1],
+                                                                                             len(bucket_size)))
     if not get_batch_mode:
         assert len(set(orders)) == len(orders)
         print("All {} sentences were different (so iterator doing the job) [len(set(orders):{} len(orders):{}".
           format(n_sents_outputed, len(set(orders)), len(orders)))
     else:
-        print("{} sentences were seen out of {} outputted ".format(len(set(orders)), n_sents_outputed))
+        print("{} unique sentences were seen out of {} outputted of data {} extended {} time".format(len(set(orders)),
+                                                                                                     n_sents_outputed, path, extend_n_batch))
+    return orders
 
 
 def _test_iterator_get_batch_mode_False_no_bucket(batch_size):
@@ -114,7 +119,11 @@ def _info_iterator_get_batch_mode_True_no_bucket(batch_size, verbose):
     bucket = True
     get_batch_mode = True
 
-    _test_iterator_get_batch_mode_False(batch_size, bucket=bucket, get_batch_mode=get_batch_mode, verbose=verbose, extend_n_batch=2)
+    orders_1 = _test_iterator_get_batch_mode_False(batch_size, bucket=bucket, get_batch_mode=get_batch_mode, verbose=verbose, extend_n_batch=2)
+
+    #checking common sentences from two runs in which we reload reader, iterator
+    orders_2 = _test_iterator_get_batch_mode_False(batch_size, bucket=bucket, get_batch_mode=get_batch_mode, verbose=verbose, extend_n_batch=2)
+    print(len(list(set(orders_1) & set(orders_2))))
 
 
 if __name__=="__main__":
@@ -128,7 +137,7 @@ if __name__=="__main__":
         if test_iterator:
             _test_iterator_get_batch_mode_False_no_bucket(batch_size)
             _test_iterator_get_batch_mode_False_bucket(batch_size)
-            print("Test passed for batch_size both bucketted and not bucktete", batch_size)
+            print("Test passed for batch_fsize both bucketted and not bucktete", batch_size)
         if test_get_batch:
             _info_iterator_get_batch_mode_True_no_bucket(batch_size, verbose=3)
 

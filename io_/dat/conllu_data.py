@@ -510,7 +510,6 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
         if word_dictionary.is_singleton(wid):
           single_inputs[i, j] = 1
       raw_lines.append(lines)
-
     words = Variable(torch.from_numpy(wid_inputs), requires_grad=False)
     chars = Variable(torch.from_numpy(cid_inputs), requires_grad=False)
     word_norm = Variable(torch.from_numpy(wid_norm_inputs), requires_grad=False) if normalization and word_decoder else None
@@ -610,7 +609,7 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
       if normalization:
         chars_norm_ = chars_norm[excerpt]
         if word_norm is not None:
-          word_norm = word_norm[excerpt]
+          _word_norm = word_norm[excerpt]
         if word_norm_not_norm is not None:
           _word_norm_not_norm = word_norm_not_norm[excerpt]
         else:
@@ -624,15 +623,13 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
         continue
       if normalization:
         if chars_norm_.size(0) <= 1:
-          print("WARNING : We are skipping a batch because size is "
-                " {} for char_nor  ".format(chars_norm_.size()))
+          print("WARNING : We are skipping a batch because size is {} for char_nor  ".format(chars_norm_.size()))
           continue
-
       if word_norm is not None:
         if word_norm.size(0) <= 0:
-          print("WARNING : We are skipping a batch because word_norm {} ".format(word_norm.size()))
+          print("WARNING : We are skipping a batch because word_norm {} {}".format(word_norm.size(), word_norm))
           continue
-      yield words[excerpt], word_norm, chars[excerpt], chars_norm_, _word_norm_not_norm, \
+      yield words[excerpt], _word_norm, chars[excerpt], chars_norm_, _word_norm_not_norm, \
             pos[excerpt], xpos[excerpt], heads[excerpt], \
             types[excerpt],  \
             masks[excerpt], lengths[excerpt], order_ids[excerpt], \
