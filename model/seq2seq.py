@@ -149,7 +149,7 @@ class LexNormalizer(nn.Module):
                                       train_path=train_path, dev_path=dev_path,
                                       word_embed_dict=None, dry_run=False,
                                       expand_vocab=expand_vocab_dev_test, test_path=test_path,
-                                      pos_specific_data_set=pos_specific_path,
+                                      pos_specific_data_set=pos_specific_path, tasks=tasks,
                                       word_normalization=word_decoding, add_start_char=add_start_char, verbose=1)
             
             voc_size = len(self.char_dictionary.instance2index) + 1

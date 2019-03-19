@@ -161,7 +161,7 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
     assert "all" not in tasks, "ERROR not supported yet (pb for simultanuous training..) "
     if not "all" in tasks and not simultanuous_training:
         assert len(tasks) == len(datasets), "ERROR : as simultanuous_training is {} : " \
-                                            "we need 1 dataset per task but have only {}".format(simultanuous_training, datasets)
+                                            "we need 1 dataset per task but have only {} for task {} ".format(simultanuous_training, datasets, tasks)
     elif not simultanuous_training:
         assert len(tasks) == 1, "ERROR : if all should have only all nothing else"
         printing("TRAINING : MultiTask Iterator wit task 'all' ", verbose_level=1, verbose=verbose)
@@ -206,41 +206,40 @@ def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary, char_dic
         cumul_n_sent += readers[task][-1]
         n_sents_per_task_dataset_cumul[task] = cumul_n_sent
     n_sents_per_task_dataset_cumul["all"] = n_sents_per_task_dataset_cumul[tasks[-1]]
-    printing("MT batch sampling iterator {} cumulated n_sent   ", var=[n_sents_per_task_dataset_cumul], verbose_level=1, verbose=verbose)
+    printing("TRAINING : MultiTask batch sampling iterator {} cumulated n_sent   ", var=[n_sents_per_task_dataset_cumul], verbose_level=1, verbose=verbose)
     batch_iter = 0
 
     while True:
         n_sent_start = 0
         random_sample_id = np.random.randint(0, 100)
-        print("ITER", batch_iter, "sum(end_task_flag.values()) is ", end_task_flag.values(), " while len(tasks) is ", tasks, random_sample_id)
+        #print("ITER", batch_iter, "sum(end_task_flag.values()) is ", end_task_flag.values(), " while len(tasks) is ", tasks, random_sample_id)
         for ind, task in enumerate(tasks):
             #print("Sampling, for task ", task, " proportion is ", sampling_proportion(n_sents_per_task_dataset_cumul[task], n_sents_per_task_dataset_cumul["all"]),
             #      " start is {} ".format(sampling_proportion(n_sent_start, n_sents_per_task_dataset_cumul["all"])), " random is ", random_sample_id)
-            if sampling_proportion(n_sent_start, n_sents_per_task_dataset_cumul["all"]) < random_sample_id < sampling_proportion(n_sents_per_task_dataset_cumul[task],
-                                                                                                                                 n_sents_per_task_dataset_cumul["all"]) and not end_task_flag[task]:
+            if sampling_proportion(n_sent_start, n_sents_per_task_dataset_cumul["all"]) < random_sample_id < sampling_proportion(n_sents_per_task_dataset_cumul[task], n_sents_per_task_dataset_cumul["all"]) and not end_task_flag[task]:
                 try:
                     batch, order = iterator[task].__next__()
-                    #sanity_check_batch_label(task, batch, verbose=verbose)
+                    sanity_check_batch_label(task, batch, verbose=verbose)
                     batch_iter += 1
                     yield batch
                 except StopIteration:
                     end_task_flag[task] = True
-                    print("END FLAG for task", task)
+                    printing("END FLAG for task", var=[task], verbose_level=1, verbose=1)
                     break
             else:
                 n_sent_start = n_sents_per_task_dataset_cumul[task]
         if sum(end_task_flag.values()) == len(tasks):
             break
 
+
 def sanity_check_batch_label(task, batch, verbose=1):
-    print(batch.pos, batch.output_seq, batch.output_word, batch.output_norm_not_norm)
-    if task in ["all","normalize"]:
-        assert batch.output_seq is not None
-    if task in ["all", "pos"]:
-        assert batch.pos is not None
-    #else:
-        #raise(Exception("task provided {} could not be checked".format(task)))
-    printing("BATCH CHECKED ", verbose=verbose, verbose_level=1)
+    if task in ["all", "normalize"]:
+        assert batch.output_seq is not None, "ERROR checking normalization output seq"
+    elif task in ["all", "pos"]:
+        assert batch.pos is not None, "ERROR checking pos "
+    else:
+        raise(Exception("task provided {} could not be checked".format(task)))
+    #printing("BATCH CHECKED ", verbose=verbose, verbose_level=1)
 
 
 

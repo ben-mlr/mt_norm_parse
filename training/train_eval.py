@@ -19,8 +19,17 @@ from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, C
     LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO, EN_LINES_EWT_TRAIN, EN_LINES_DEV, EN_LINES_EWT_TRAIN, \
     MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, DEFAULT_SCORING_FUNCTION
 import torch
+import pdb
 np.random.seed(SEED_NP + 1)
 torch.manual_seed(SEED_TORCH)
+
+
+def get_data_set_label(data_set):
+    if isinstance(data_set, str):
+        return REPO_DATASET[data_set]
+    elif isinstance(data_set, list):
+        label = "+".join([REPO_DATASET[data] for data in data_set])
+        return label
 
 
 def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
@@ -34,7 +43,6 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                symbolic_end=False, symbolic_root=False,
                gpu=None, use_gpu=None, scoring_func_sequence_pred=DEFAULT_SCORING_FUNCTION,
                verbose=0):
-
     if gpu is not None and use_gpu_(use_gpu):
         assert use_gpu or use_gpu is None, "ERROR : use_gpu should be neutral (None) or True as 'gpu' is defined"
         #assert os.environ.get("CUDA_VISIBLE_DEVICES") is not None, "ERROR : no CUDA_VISIBLE_DEVICES env variable (gpu should be None)"
@@ -136,7 +144,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                             policy=schedule_training_policy,
                             dir_word_encoder=dir_word_encoder, compute_mean_score_per_sent=compute_mean_score_per_sent,
                             overall_label=overall_label, overall_report_dir=overall_report_dir,
-                            label_train=REPO_DATASET[train_path], label_dev=REPO_DATASET[dev_path],
+                            label_train=get_data_set_label(train_path), label_dev=get_data_set_label(dev_path),
                             word_recurrent_cell_encoder=word_recurrent_cell_encoder, word_recurrent_cell_decoder=word_recurrent_cell_decoder,
                             drop_out_sent_encoder_out=drop_out_sent_encoder_out, drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
                             word_embedding_dim=word_embedding_dim, word_embed=word_embed, word_embedding_projected_dim=word_embedding_projected_dim,
@@ -185,6 +193,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
               eval_data_paths.append(test_path)
       eval_data_paths = list(set(eval_data_paths))
       start_eval = time.time()
+      assert len(eval_data_paths) == len(tasks), "ERROR : one test dataset per test so far"
       for get_batch_mode_evaluate in [False]:
         print("EVALUATING WITH {}".format(scoring_func_sequence_pred))
         for task, eval_data in zip(tasks, eval_data_paths):

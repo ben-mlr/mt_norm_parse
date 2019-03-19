@@ -116,7 +116,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
     loss_developing = []
     # was not able to use the template cause no more reinitialization of the variable
     loss_details_template = {'loss_seq_prediction': [], 'other': {}, 'loss_binary': [], 'loss_overall': []} if auxilliary_task_norm_not_norm else None
-    evaluation_set_reporting = list(set([train_path, dev_path]))
+    tt = train_path.copy()
+    tt.extend(dev_path)
+    evaluation_set_reporting = tt#list(set([train_path, dev_path]))
     curve_scores = {score + "-" + mode_norm+"-"+REPO_DATASET[data]: [] for score in score_to_compute_ls
                     for mode_norm in mode_norm_ls for data in evaluation_set_reporting} if compute_scoring_curve else None
 
@@ -144,7 +146,10 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
         word_voc_input_size = 0
         if not reload:
             # we need to feed the model the data so that it computes the model_specific_dictionary
-            _train_path, _dev_path, _test_path, _add_start_char = train_path, dev_path, test_path, add_start_char
+            _train_path = train_path
+            _dev_path = dev_path
+            _test_path = test_path
+            _add_start_char = add_start_char
         else:
             # as it reload : we don't need data
             _train_path, _dev_path, _test_path, _add_start_char = None, None, None, None
@@ -231,6 +236,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
 
     train_path = [train_path] if isinstance(train_path, str) else train_path
     dev_path = [dev_path] if isinstance(dev_path, str) else dev_path
+
     readers_train = readers_load(datasets=train_path, tasks=tasks, word_dictionary=model.word_dictionary,
                                  word_dictionary_norm=model.word_nom_dictionary, char_dictionary=model.char_dictionary,
                                  pos_dictionary=model.pos_dictionary, xpos_dictionary=model.xpos_dictionary,

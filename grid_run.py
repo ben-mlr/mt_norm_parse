@@ -16,6 +16,7 @@ from sys import platform
 from toolbox.git_related import get_commit_id
 from tracking.reporting_google_sheet import update_status, append_reporting_sheet
 from toolbox.grid_script_generation import script_generation
+import pdb as pdb
 
 FINE_TUNE = 0
 GRID = 1
@@ -30,8 +31,15 @@ def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_pa
         printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
         epochs = epochs if not test_before_run else 1
         if warmup:
-            train_path, dev_path = DEMO, DEMO2
+            if len(params[0]["tasks"]) >1:
+                train_path = [DEMO, DEMO]
+                dev_path = [DEMO2, DEMO2]
+                test_paths = [DEMO, DEMO2]
+            else:
+                train_path, dev_path = DEMO, DEMO2
+                test_paths = DEMO2
             #param["word_embed_init"] = None
+
 
         model_id_pref = label_grid + model_id_pref + "-model_" + str(i)
         if warmup:
@@ -43,7 +51,7 @@ def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_pa
 
         model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
                                                 expand_vocab_dev_test=True,
-                                                test_path=test_paths ,#if not warmup else DEMO,
+                                                test_path=test_paths,
                                                 overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                 compute_mean_score_per_sent=True, print_raw=False,
                                                 get_batch_mode_all=True, compute_scoring_curve=False,
@@ -65,6 +73,7 @@ def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_pa
         print("GRID : Log RUN is : {} to see model list ".format(run_dir))
         print("GRID RUN : DONE MODEL {} with param {} ".format(model_id_pref, param))
         if warmup:
+            # breaking after testing first modl
             break
 
 
@@ -137,7 +146,7 @@ if __name__ == "__main__":
                                                                                   proportion_pred_train_ls=[None],
                                                                                   shared_context_ls=["all"],
                                                                                   word_embedding_projected_dim_ls=[10],
-                                                                                  tasks_ls=[["normalize"]],
+                                                                                  tasks_ls=[["normalize", "pos"]],
                                                                                   n_layers_sent_cell_ls=[2],
                                                                                   n_layers_word_encoder_ls=[2],
                                                                                   unrolling_word_ls=[True],
@@ -195,7 +204,9 @@ if __name__ == "__main__":
                                                 target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR, "{}*".format(LABEL_GRID)),
                                                 env=environment, status="running {}{}".format(warmup_desc, test_before_run_desc),
                                                 verbose=1)
-              train_path, dev_path = EWT_DEV, EWT_TEST#MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+              #train_path, dev_path = EWT_DEV, EWT_TEST#MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+              train_path = [EN_LINES_EWT_TRAIN, LIU_TRAIN]
+              dev_path = [EWT_DEV, LIU_DEV]
               run_grid(params=params, labels=labels,
                        dir_grid=dir_grid, label_grid=LABEL_GRID,
                        epochs=50, test_before_run=test_before_run,

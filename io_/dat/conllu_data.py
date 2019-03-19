@@ -21,7 +21,7 @@ from io_.info_print import printing
 
 def load_dict(dict_path, train_path=None, dev_path=None, test_path=None,
               word_normalization=False, pos_specific_data_set=None,
-              word_embed_dict=None,
+              word_embed_dict=None,tasks=None,
               dry_run=0, expand_vocab=False, add_start_char=None,
                force_new_dic=False,verbose=1 ):
 
@@ -40,7 +40,7 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None,
     xpos_dictionary, type_dictionary = create_dict(dict_path, train_path, dev_path, test_path,  dry_run,
                                                    word_embed_dict=word_embed_dict,
                                                    expand_vocab_bool=expand_vocab, add_start_char=add_start_char,
-                                                   pos_specific_data_set=pos_specific_data_set,
+                                                   pos_specific_data_set=pos_specific_data_set,tasks=tasks,
                                                    word_normalization=word_normalization, verbose=verbose)
   else:
     # ??
@@ -91,6 +91,7 @@ def pos_specific_dic_builder(pos_specific_data_set, pos_dictionary):
 
 def create_dict(dict_path, train_path, dev_path, test_path,
                 dry_run, word_normalization=False, expand_vocab_bool=False, add_start_char=0,
+                tasks=None,
                 min_occurence=0, pos_specific_data_set=None,word_embed_dict=None, verbose=1,
                ):
   """
@@ -144,41 +145,53 @@ def create_dict(dict_path, train_path, dev_path, test_path,
   vocab_norm = dict()
   # read training file add to Vocab directly except for words (not word_norm)
   # ## for which we need filtering so we add them to vocab()
-  with codecs.open(train_path, 'r', 'utf-8', errors='ignore') as file:
-    li = 0
-    for line in file:
-      line = line.strip()
-      if len(line) == 0 or line[0]=='#':
-        continue
 
-      tokens = line.split('\t')
-      if '-' in tokens[0] or '.' in tokens[0]:
-        continue
-      for char in tokens[1]:
-        char_dictionary.add(char)
-      word = DIGIT_RE.sub(b"0", str.encode(tokens[1])).decode()
-      pos = tokens[3]  #if tokens[4]=='_' else tokens[3]+'$$$'+tokens[4]
-      #assert pos != "_", "ERROR : no pos found in line {} : {} ".format(li+1, line)
-      xpos = tokens[4]
-      typ = tokens[7]
-      if pos_specific_data_set is None:
+  if isinstance(train_path,list):
+    assert tasks is not None, "ERROR : we need tasks information along with dataset to know how to commute label dictionary"
+  else:
+    train_path = [train_path]
+
+  for train_dir, task in zip(train_path, tasks):
+    printing("WARNING : computing dictionary for word, char on {} for task {} ", var=[train_dir, task], verbose=verbose, verbose_level=1)
+    if task in ["normalize", "all"]:
+      printing("WARNING : computing dictionary for normalized word also {} ", verbose=verbose, verbose_level=1)
+    elif task in ["pos", "all"]:
+      printing("WARNING : computing dictionary for pos word also ", verbose=verbose, verbose_level=1)
+    with codecs.open(train_dir, 'r', 'utf-8', errors='ignore') as file:
+      li = 0
+      for line in file:
+        line = line.strip()
+        if len(line) == 0 or line[0] == '#':
+          continue
+        tokens = line.split('\t')
+        if '-' in tokens[0] or '.' in tokens[0]:
+          continue
+        for char in tokens[1]:
+          char_dictionary.add(char)
+        word = DIGIT_RE.sub(b"0", str.encode(tokens[1])).decode()
+        pos = tokens[3]  #if tokens[4]=='_' else tokens[3]+'$$$'+tokens[4]
+        xpos = tokens[4]
+        typ = tokens[7]
+        #if pos_specific_data_set is None:
         # otherwise : pos-dictionary will be build with pos_specific_data_set
-        pos_dictionary.add(pos)
-      xpos_dictionary.add(xpos)
-      type_dictionary.add(typ)
-      if word_normalization:
-        token_norm, _ = get_normalized_token(tokens[9], 0, verbose=verbose)
-        if token_norm in vocab_norm:
-          vocab_norm[token_norm] += 1
+        #  pos_dictionary.add(pos)
+        if task in ["all", "pos"]:
+          pos_dictionary.add(pos)
+          xpos_dictionary.add(xpos)
+          type_dictionary.add(typ)
+        if word_normalization and task in ["normalize", "all"]:
+          token_norm, _ = get_normalized_token(tokens[9], 0, verbose=verbose)
+          if token_norm in vocab_norm:
+            vocab_norm[token_norm] += 1
+          else:
+            vocab_norm[token_norm] = 1
+        if word in vocab:
+          vocab[word] += 1
         else:
-          vocab_norm[token_norm] = 1
-      if word in vocab:
-        vocab[word] += 1
-      else:
-        vocab[word] = 1
-      li = li + 1
-      if dry_run and li == 100:
-        break
+          vocab[word] = 1
+        li = li + 1
+        if dry_run and li == 100:
+          break
   # collect singletons
   singletons = set([word for word, count in vocab.items() if count <= min_occurence])
   # if a singleton is in pretrained embedding dict, set the count to min_occur + c
@@ -207,6 +220,7 @@ def create_dict(dict_path, train_path, dev_path, test_path,
     vocab_list = vocab_list[:max_vocabulary_size]
   word_dictionary.inv_ls = vocab_list
   printing("VOCABULARY INV added {} ".format(vocab_list), verbose_level=3, verbose=verbose)
+
   pos_dictionary = pos_specific_dic_builder(pos_specific_data_set, pos_dictionary)
 
   def expand_vocab(data_paths):
@@ -215,51 +229,56 @@ def create_dict(dict_path, train_path, dev_path, test_path,
     vocab_set = set(vocab_list)
     vocab_norm_set = set(vocab_norm_list)
     for data_path in data_paths:
-      if os.path.exists(data_path):
-        with codecs.open(data_path, 'r', 'utf-8', errors='ignore') as file:
-          li = 0
-          for line in file:
-            line = line.strip()
-            if len(line) == 0 or line[0] == '#':
-              continue
-            tokens = line.split('\t')
-            if '-' in tokens[0] or '.' in tokens[0]:
-              continue
-            for char in tokens[1]:
-              char_dictionary.add(char)
-            word = DIGIT_RE.sub(b"0", str.encode(tokens[1])).decode()
-            pos = tokens[3] # if tokens[4]=='_' else tokens[3]+'$$$'+tokens[4]
-            xpos = tokens[4]
-            typ = tokens[7]
-            # TODO SOMEHITNG
-            if word_normalization:
-              token_norm, _ = get_normalized_token(tokens[9], 0, verbose=0)
-            if word_normalization:
-              # TODO : add word_norm_embed_dict to allow expansion !
-              if word_norm not in vocab_norm_set and False:
-                vocab_norm_set.add(word_norm)
-                vocab_norm_list.append(word_norm)
-            if pos_specific_data_set is None:
-              pos_dictionary.add(pos)
-            xpos_dictionary.add(xpos)
-            type_dictionary.add(typ)
-            # if word not already in vocab_set (loaded as trained and each time expand_vocab was called :
-            # but found in new dataset and appear in word_embed_dict then we add it to vocab # otherwise not need to load them to vocab (they won't have any representation)
-            if word not in vocab_set and (word in word_embed_dict or word.lower() in word_embed_dict):
-              vocab_set.add(word)
-              expand += 1
-              vocab_list.append(word)
-            li = li + 1
-            if dry_run and li == 100:
-              break
+      with codecs.open(data_path, 'r', 'utf-8', errors='ignore') as file:
+        li = 0
+        for line in file:
+          line = line.strip()
+          if len(line) == 0 or line[0] == '#':
+            continue
+          tokens = line.split('\t')
+          if '-' in tokens[0] or '.' in tokens[0]:
+            continue
+          for char in tokens[1]:
+            char_dictionary.add(char)
+          word = DIGIT_RE.sub(b"0", str.encode(tokens[1])).decode()
+          pos = tokens[3] # if tokens[4]=='_' else tokens[3]+'$$$'+tokens[4]
+          xpos = tokens[4]
+          typ = tokens[7]
+          # TODO SOMEHITNG
+          if word_normalization:
+            token_norm, _ = get_normalized_token(tokens[9], 0, verbose=0)
+          if word_normalization:
+            # TODO : add word_norm_embed_dict to allow expansion !
+            if False and word_norm not in vocab_norm_set :
+              vocab_norm_set.add(word_norm)
+              vocab_norm_list.append(word_norm)
+          # TODO : ANswer : WHY WOULD WE LIKE TO EXPAND IT ON DEV, TEST ?
+          #if pos_specific_data_set is None:
+          #  pos_dictionary.add(pos)
+          #xpos_dictionary.add(xpos)
+          #type_dictionary.add(typ)
+          # if word not already in vocab_set (loaded as trained and each time expand_vocab was called :
+          # but found in new dataset and appear in word_embed_dict then we add it to vocab # otherwise not need to load them to vocab (they won't have any representation)
+          if word not in vocab_set and (word in word_embed_dict or word.lower() in word_embed_dict):
+            vocab_set.add(word)
+            expand += 1
+            vocab_list.append(word)
+          li = li + 1
+          if dry_run and li == 100:
+            break
         printing("VOCABULARY EXPAND word source vocabulary expanded of {} tokens based on {} ", var=[expand, data_path], verbose=verbose, verbose_level=0)
   if expand_vocab_bool:
-    expand_vocab([dev_path])
-    printing("VOCABULARY : expanding vocabulary with {} ", var=[dev_path], verbose_level=0, verbose=verbose)
+    assert len(word_embed_dict)>0, "ERROR : how do you want to expand if no wod embedding dict"
+    if isinstance(dev_path, str):
+      dev_path = [dev_path]
+    expand_vocab(dev_path)
+    printing("VOCABULARY : EXPANDING vocabulary on {} ", var=[dev_path], verbose_level=0, verbose=verbose)
     if test_path is not None:
-      expand_vocab([test_path])
+      if isinstance(test_path, str):
+        test_path = [test_path]
+      printing("VOCABULARY : EXPANDING vocabulary on {} ", var=[test_path], verbose_level=0, verbose=verbose)
+      expand_vocab(test_path)
       # TODO : word_norm should be handle spcecifically
-      printing("VOCABULARY : expanding vocabulary with {} ", var=[test_path], verbose_level=0, verbose=verbose)
   # TODO : what is singletons for ?
   singletons = []
   if word_norm_dictionary is not None:
