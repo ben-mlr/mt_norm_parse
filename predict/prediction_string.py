@@ -136,8 +136,8 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
                 pred_pos_ls, src_text_pos, gold_pos_seq_ls = None, None, None
 
         if attention is not None:
-            print("Attention shape", attention.size())
-            print("Attention", attention, src_seq, text_decoded)
+            printing("Attention {} ", var=[attention.size()], verbose=verbose, verbose_level=1)
+            printing("Attention {} {} {} ", var=[attention, src_seq, text_decoded], verbose=verbose, verbose_level=3)
             for pred_word, src_word, attention_word in zip(text_decoded, src_seq, attention):
 
                 show_attention(list(pred_word), src_word[:attention_word.size(1)],

@@ -345,9 +345,11 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                 printing("PREDICTION IS ONLY PAD or END SYMBOL SO BREAKING DECODING", verbose=verbose, verbose_level=1)
                 break
     # no need to do that in the loop
-    pred_word_count, text_decoded, decoded_ls = output_text_(output_seq,
+    print("WARNING : shfited output sequence of one character not to output START token")
+    pred_word_count, text_decoded, decoded_ls = output_text_(output_seq[:,:,1:],
                                                              char_dictionary, single_sequence=single_sequence,
-                                                             output_str=output_str, last=char_decode==(max_len-1),
+                                                             output_str=output_str,
+                                                             last=(char_decode==(max_len-1)),
                                                              debug=False)
     time_output_text, start = get_timing(start)
     time_decoding_all_seq, start  = get_timing(start_decode_sequence)

@@ -1,5 +1,5 @@
 import numpy as np
-from io_.dat.constants import END_CHAR, PAD_CHAR, CHAR_START, PAD_ID_WORD
+from io_.dat.constants import END_CHAR, PAD_CHAR, CHAR_START, PAD_ID_WORD, PRINTINT_OUT_TOKEN_UNK
 import pdb
 
 
@@ -27,6 +27,8 @@ def output_text(one_code_prediction, char_dic, start_symbol=CHAR_START ,
             str_decoded.append(word_to_print)
     return np.array(decoding), str_decoded
 
+
+# TODO : clean because it's a mess !
 
 def output_text_(one_code_prediction, char_dic=None, start_symbol=CHAR_START,
                  output_str=False, word_dic=None, word_decode=False, char_decode=True,
@@ -70,15 +72,22 @@ def output_text_(one_code_prediction, char_dic=None, start_symbol=CHAR_START,
                         break_word_to_print = True
                         #break
                     # we append word_to_print only starting the second decoding (we assume _START is here)
-                    if (not (char_decoded == start_symbol and i_char == 0) and not end_of_word) or empty_decoded_word: #and not break_word_to_print: useless I guess
+                    #if (not (char_decoded == start_symbol and i_char == 0) and not end_of_word) or empty_decoded_word: #and not break_word_to_print: useless I guess
+                    if (not end_of_word) or empty_decoded_word:  # and not break_word_to_print: useless I guess
+                        if char_decoded == "<_UNK>":
+                            char_decoded = PRINTINT_OUT_TOKEN_UNK
                         word_to_print += char_decoded
                         #if not break_word_to_print:
                         # if empty_decoded_word will appen spcial character
                         word.append(char_decoded)
-                    #if empty_decoded_word:
-                    #    word.append("")
+                        #if empty_decoded_word:
+                        #    word.append("")
                         word_as_list.append(char_decoded)
-                    # why is it here
+                        # why is it here
+                    if char_decoded == stop_symbol:
+                        word.append(char_decoded)
+                        word_to_print += char_decoded
+                        word_as_list.append(char_decoded)
                     #word_all_sequence.append(char_decoded)
             if word_decode:
                 #empty_decoded_word = False
