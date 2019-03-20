@@ -85,7 +85,7 @@ if __name__ == "__main__":
         assert os.environ.get("MODE_RUN") in ["DISTRIBUTED", "SINGLE"]
         run_standart = os.environ.get("MODE_RUN") != "DISTRIBUTED"
       else:
-          run_standart = True
+          run_standart = False
           print("LOCAL")
 
 
@@ -111,7 +111,7 @@ if __name__ == "__main__":
                       "drop_out_char_embedding_decoder": 0.3, "dropout_bridge": 0.0,
                       "n_layers_word_encoder": 1, "dir_sent_encoder": 2, "word_recurrent_cell_decoder": "LSTM",
                       "word_recurrent_cell_encoder": "LSTM",
-                      "hidden_size_sent_encoder": 400, "hidden_size_decoder": 100, "batch_size": 500}
+                      "hidden_size_sent_encoder": 400, "hidden_size_decoder": 200, "batch_size": 500}
 
       grid_label = "B"#"POS-2LSMT-2dense+no_aux_task-sent_only-EWT_DEV-PONDERATION-1pos-0_norm"
       # param["policy"] = policy
@@ -130,29 +130,29 @@ if __name__ == "__main__":
       if run_standart:
           # default not used but could be
           params, labels, default_all, analysed, fixed = grid_param_label_generate(
-                                                                                  params_strong,
+                                                                                  params_dozat,
                                                                                   grid_label="0",
                                                                                   word_recurrent_cell_encoder_ls=["LSTM"],
                                                                                   dropout_word_encoder_cell_ls=[0.3],
                                                                                   stable_decoding_state_ls=[False],
                                                                                   word_decoding_ls=[0],
-                                                                                  batch_size_ls=[2],
+                                                                                  batch_size_ls=[20],
                                                                                   word_embed_ls=[1],
                                                                                   dir_sent_encoder_ls=[2], lr_ls=[0.0005],
-                                                                                  word_embed_init_ls=[DIR_TWEET_W2V],
+                                                                                  word_embed_init_ls=[DIR_TWEET_W2V, DIR_FASTEXT_WIKI_NEWS_W2V, None],
                                                                                   attention_tagging_ls=[1],
                                                                                   char_src_attention_ls=[0],
                                                                                   teacher_force_ls=[True],
                                                                                   proportion_pred_train_ls=[None],
                                                                                   shared_context_ls=["all"],
-                                                                                  word_embedding_projected_dim_ls=[10],
+                                                                                  word_embedding_projected_dim_ls=[100],
                                                                                   tasks_ls=[["pos", "normalize"]],
                                                                                   n_layers_sent_cell_ls=[2],
-                                                                                  n_layers_word_encoder_ls=[2],
+                                                                                  n_layers_word_encoder_ls=[1],
                                                                                   unrolling_word_ls=[1],
                                                                                   mode_word_encoding_ls=["sum"],
-                                                                                  char_level_embedding_projection_dim_ls=[10],
-                                                                                  scale_ls=[2]
+                                                                                  char_level_embedding_projection_dim_ls=[100],
+                                                                                  scale_ls=[1]
                                                                                   )
 
 
@@ -213,7 +213,7 @@ if __name__ == "__main__":
                        train_path=train_path,
                        dev_path=dev_path, debug=False,
                        scoring_func_sequence_pred="exact_match",
-                       test_paths=[EN_LINES_EWT_TRAIN],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
+                       test_paths=[TEST, TEST],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
                        warmup=warmup)
               update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
           except Exception as e:
@@ -249,7 +249,8 @@ if __name__ == "__main__":
                                               unrolling_word_ls=[1],
                                               scale_ls=[1],
                                               attention_tagging_ls=[1,0],
-                                              overall_report_dir=dir_grid, overall_label=LABEL_GRID,description_comment=description_comment,
+                                              overall_report_dir=dir_grid, overall_label=LABEL_GRID,
+                                              description_comment=description_comment,
                                               train_path=train_path, dev_path=dev_path, test_paths=[TEST, EWT_DEV, EN_LINES_EWT_TRAIN],
                                               gpu_mode="random",
                                               gpus_ls=gpu_ls,

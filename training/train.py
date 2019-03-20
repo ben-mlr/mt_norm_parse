@@ -116,9 +116,11 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
     loss_developing = []
     # was not able to use the template cause no more reinitialization of the variable
     loss_details_template = {'loss_seq_prediction': [], 'other': {}, 'loss_binary': [], 'loss_overall': []} if auxilliary_task_norm_not_norm else None
-    tt = train_path.copy()
-    tt.extend(dev_path)
-    evaluation_set_reporting = tt#list(set([train_path, dev_path]))
+    if isinstance(train_path, list):
+        evaluation_set_reporting = train_path.copy()
+        evaluation_set_reporting.extend(dev_path)
+    else:
+        evaluation_set_reporting = list(set([train_path, dev_path]))
     curve_scores = {score + "-" + mode_norm+"-"+REPO_DATASET[data]: [] for score in score_to_compute_ls
                     for mode_norm in mode_norm_ls for data in evaluation_set_reporting} if compute_scoring_curve else None
 

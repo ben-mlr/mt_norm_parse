@@ -148,7 +148,7 @@ class LexNormalizer(nn.Module):
                         "ERROR : mismatch between word embedding definition and init"
             else:
                 assert train_path is None and dev_path is None and add_start_char is None
-                # we make sure the dictionary dir exists and is located in dict_path
+                # wess make sure the dictionary dir exists and is located in dict_path
                 assert dict_path is not None, "ERROR dict_path should be specified"
                 assert os.path.isdir(dict_path), "ERROR : dict_path {} does not exist".format(dict_path)
 
