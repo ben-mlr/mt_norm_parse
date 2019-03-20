@@ -1,8 +1,9 @@
 import torch.nn as nn
 import numpy as np
 import torch
-from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
+from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence, pack_sequence
 from io_.info_print import printing
+from toolbox.deep_learning_toolbox import get_cumulated_list
 import pdb
 import time
 from torch.autograd import Variable
@@ -112,7 +113,6 @@ class CharDecoder(nn.Module):
                 attention_weights = attention_weights.cuda()
             # TODO HOW IS MASKING TAKEN CARE OF IN THE TARGET ? WE PACKED AND PADDED SO SHORTED THE SEQUENCE
             attention_context = attention_weights.bmm(char_seq_hidden_encoder)
-            pdb.set_trace()
             # was context
         else:
             attention_context = None
@@ -130,7 +130,6 @@ class CharDecoder(nn.Module):
                 context = torch.cat((word_stable_context, attention_context), dim=2)
             context = self.context_proj(context)
             # MIS ALGINEMNT BETWEEN SOURCE CHAR LEVEL CONTEXT PER WORD AND WORD THAT WE DECODE PER CHAR
-            pdb.set_trace()
             char_vec_current_batch = torch.cat((context, char_vec_current_batch), dim=2)
         else:
             # no word level context passed so --> char_vec_current is only the current character vector  
@@ -156,29 +155,35 @@ class CharDecoder(nn.Module):
                             proportion_pred_train=None,
                             char_seq_hidden_encoder=None):
         # TODO DEAL WITH MASKING (padding and prediction oriented ?)
+
         printing("TARGET size {} ", var=output.size(), verbose=self.verbose, verbose_level=3)
         printing("TARGET data {} ", var=output, verbose=self.verbose, verbose_level=5)
         printing("TARGET  : Word  length  {}  ".format(output_word_len), self.verbose, verbose_level=5)
-
+        start = time.time() if self.timing else None
         output_word_len, perm_idx_output = output_word_len.squeeze().sort(0, descending=True)
-        output = output[perm_idx_output, :]
+        output = output[perm_idx_output]
+        # we made the choice to mask again the
+        conditioning = conditioning.view(1, conditioning.size(0) * conditioning.size(1), -1)
+        conditioning = conditioning[:, perm_idx_output, :]
+        reorder_conditioning, start = get_timing(start)
+        perm_idx_output = perm_idx_output[output_word_len != 0]
         inverse_perm_idx_output = torch.from_numpy(np.argsort(perm_idx_output.cpu().numpy()))
         # output : [  ]
-        start = time.time() if self.timing else None
+        # we remove empty token from the output_sequence and th input conditioning vector () (as we did in the input) ,
+        output = output[output_word_len != 0]
+        conditioning = conditioning[:, output_word_len !=0, :]
+        output_word_len = output_word_len[output_word_len != 0]
+
         char_vecs = self.char_embedding_decoder(output)
         char_vecs = self.drop_out_char_embedding_decoder(char_vecs)
         char_embedding, start = get_timing(start)
         printing("TARGET EMBEDDING size {} ", var=[char_vecs.size()], verbose=self.verbose, verbose_level=3) #if False else None
         printing("TARGET EMBEDDING data {} ", var=char_vecs, verbose=self.verbose, verbose_level=5)
         not_printing, start = get_timing(start)
-
-        conditioning = conditioning[:, perm_idx_output, :]
-        reorder_conditioning, start = get_timing(start)
-
         printing("TARGET  word lengths after  {} dim",
                  var=[output_word_len.size()], verbose=self.verbose, verbose_level=3)
         # same as target sequence and source ..
-        output_word_len[output_word_len == 0] = 1
+        #output_word_len[output_word_len == 0] = 1
         zero_last, start = get_timing(start)
         packed_char_vecs_output = pack_padded_sequence(char_vecs, output_word_len.squeeze().cpu().numpy(), batch_first=True)
         pack_time, start = get_timing(start)
@@ -197,15 +202,12 @@ class CharDecoder(nn.Module):
         # start new unrolling by had
         # we initiate with our same original context conditioning
         if self.unrolling_word:
-
             # we start with context sent + word as before
             state_i = conditioning
             _output = []
             attention_weight_all = []
             # we repad it straight away cause unrolling by hand
-            pdb.set_trace()
             char_vecs, char_vecs_sizes_target = pad_packed_sequence(packed_char_vecs_output, batch_first=True)
-            pdb.set_trace()
             printing("DECODER char_vecs re-paded {} ", var=[char_vecs.data.size()], verbose=self.verbose,
                      verbose_level=3)
             max_word_len = char_vecs.size(1)
@@ -220,11 +222,11 @@ class CharDecoder(nn.Module):
                              verbose_level=3)
                     printing("DECODER emb_char {} ", var=[emb_char.size()], verbose=self.verbose, verbose_level=3)
                     all_states, state_i, attention_weights = self.word_encoder_target_step(
-                        char_vec_current_batch=emb_char,
-                        state_decoder_current=state_i,
-                        char_vecs_sizes=word_src_sizes,
-                        step_char=char_i, word_stable_context=stable_decoding_word_state,
-                        char_seq_hidden_encoder=char_seq_hidden_encoder)
+                                                                    char_vec_current_batch=emb_char,
+                                                                    state_decoder_current=state_i,
+                                                                    char_vecs_sizes=word_src_sizes,
+                                                                    step_char=char_i, word_stable_context=stable_decoding_word_state,
+                                                                    char_seq_hidden_encoder=char_seq_hidden_encoder)
                 else:
                     assert self.generator is not None, "Generator must be passed in decoder for decodibg if not teacher_force"
                     # TODO based on state_i compute as generator : get id : lookup character embedding and that's it
@@ -290,7 +292,7 @@ class CharDecoder(nn.Module):
         all_recurrent_time, _ = get_timing(_start_recurrence)
         if self.timing:
             print("WORD TARGET {} ".format(OrderedDict([('char_embedding', char_embedding),
-                                                        ("reorder_conditioning", reorder_conditioning),
+                                                        ("reorder_all", reorder_conditioning),
                                                         ("zero_last", zero_last), ("not_printing", not_printing),
                                                         ("pack_time", pack_time), ("recurrent_cell_time", recurrent_cell_time),
                                                         ("all_recurrent_time", all_recurrent_time), ("pad_time", padd_time)])))
@@ -300,7 +302,7 @@ class CharDecoder(nn.Module):
                 char_seq_hidden_encoder=None,
                 word_src_sizes=None, proportion_pred_train=None,
                 sent_len_max_source=None, verbose=0):
-        conditioning = conditioning.view(1, conditioning.size(0) * conditioning.size(1), -1)
+
         start = time.time() if self.timing else None
         _output_word_len = output_word_len.clone()
         clone_len, start = get_timing(start)
@@ -309,7 +311,7 @@ class CharDecoder(nn.Module):
                  verbose_level=4)
         printing("TARGET : output  (before 0 last) : size {}", var=[output.size()], verbose=verbose, verbose_level=3)
         printing("TARGET : output  (before 0 last) :  data {} ", var=[output], verbose=verbose, verbose_level=5)
-
+        pdb.set_trace()
         _output_word_len[:, -1, :] = 0
         # when input_word_len is 0 means we reached end of sentence
         # TODO : WARNING : is +1 required : as sent with 1 ? WHY ALWAYS IS NOT WORKING
@@ -318,6 +320,7 @@ class CharDecoder(nn.Module):
         if (sent_len == 0).any() and False:
             printing("WARNING : WE ARE FORCING SENT_LEN in the SOURCE SIDE", verbose=verbose, verbose_level=3)
             sent_len[sent_len == 0] += 1
+        pdb.set_trace()
         # as encoder side : we handle words that take the all sequnence
         sent_len += (output_word_len[:, -1, :] != 0).long()
         # sort batch at the sentence length
@@ -326,6 +329,8 @@ class CharDecoder(nn.Module):
         inverse_perm_idx_input_sent = torch.from_numpy(np.argsort(perm_idx_input_sent.cpu().numpy()))
         sorting, start = get_timing(start)
         # [batch x sent_len , dim hidden word level] # this remove empty words
+        #reorder so that it aligns with input
+        conditioning = conditioning[perm_idx_input_sent]
         packed_char_vecs_output = pack_padded_sequence(output[perm_idx_input_sent, :, :],
                                                        sent_len.squeeze().cpu().numpy(), batch_first=True)
         packed_sent, start = get_timing(start)
@@ -338,13 +343,17 @@ class CharDecoder(nn.Module):
 
         # output_char_vecs : [batch ,  shorted sent_len, word len ] + .batch_sizes
         # output_char_vecs : [batch, sent_len max, dim encoder] reorder the sequence
-        output_char_vecs = output_char_vecs[inverse_perm_idx_input_sent, :, :]
-        # cut input_word_len so that it fits packed_padded sequence
+        #output_char_vecs = output_char_vecs[inverse_perm_idx_input_sent, :, :]
+        # reorder sent_len also
+        #sent_len = sent_len[inverse_perm_idx_input_sent]
+        # cut input_word_len so that it fits packed_padded sequence (based on output sequence)
         output_word_len = output_word_len[:, :output_char_vecs.size(1), :]
-        # cut again (should be done in one step I guess) to fit sent len source
-
+        # cut again (should be done in one step I guess) to fit source sequence (important at test time)
         output_word_len = output_word_len[:, :sent_len_max_source, :]
-        output_seq = output_char_vecs.view(output_char_vecs.size(0) * output_char_vecs.size(1), output_char_vecs.size(2))
+        # we cut output_char_vec based on ??
+        output_char_vecs = output_char_vecs[:, :sent_len_max_source, :]
+        pdb.set_trace()
+        output_seq = output_char_vecs.contiguous().view(output_char_vecs.size(0) * output_char_vecs.size(1), output_char_vecs.size(2))
         reshape_sent, start = get_timing(start)
         # output_seq : [ batch x max sent len, max word len  ]
         output_word_len = output_word_len.contiguous()
@@ -355,15 +364,26 @@ class CharDecoder(nn.Module):
                                                                           word_src_sizes=word_src_sizes,
                                                                           proportion_pred_train=proportion_pred_train,
                                                                           char_seq_hidden_encoder=char_seq_hidden_encoder)
+        # output_w_decoder
         word_encoders, start = get_timing(start)
-        # output_w_decoder : [ batch x max sent len, max word len , hidden_size_decoder ]
-        max_word = output_w_decoder.size(0)/output_char_vecs.size(0)
-        output_w_decoder = output_w_decoder.view(output_char_vecs.size(0),
-                                                 max_word, -1,
-                                                 output_w_decoder.size(2))
+        # we update sent len based on how it was cut (specifically useful at test time)
+        sent_len = torch.min(torch.ones_like(sent_len) * sent_len_max_source, sent_len)
+        sent_len_cumulated = get_cumulated_list(sent_len)
+        output_w_decoder_ls = [output_w_decoder[sent_len_cumulated[i]:sent_len_cumulated[i + 1]] for i in range(len(sent_len_cumulated) - 1)]
+        output_w_decoder = pack_sequence(output_w_decoder_ls)
+        output_w_decoder, _ = pad_packed_sequence(output_w_decoder, batch_first=True)
+        output_w_decoder = output_w_decoder[inverse_perm_idx_input_sent]
+        # output_w_decoder : [ n_sents  x max sent len, max word len , hidden_size_decoder ]
+        #max_word = output_w_decoder.size(0)/output_char_vecs.size(0)
+        #output_w_decoder = output_w_decoder.view(output_char_vecs.size(0), max_word, -1, output_w_decoder.size(2))
         if self.attn_layer is not None:
             attention_weight_all = torch.cat(attention_weight_all, dim=1)
-            attention_weight_all = attention_weight_all.view(output_char_vecs.size(0), max_word, attention_weight_all.size(1),attention_weight_all.size(2))
+            attention_weight_all_ls = [attention_weight_all[sent_len_cumulated[i]:sent_len_cumulated[i + 1]] for i in range(len(sent_len_cumulated) - 1)]
+            attention_weight_all = pack_sequence(attention_weight_all_ls)
+            attention_weight_all, _ = pad_packed_sequence(attention_weight_all, batch_first=True)
+            attention_weight_all = attention_weight_all[inverse_perm_idx_input_sent]
+            #attention_weight_all = torch.cat(attention_weight_all, dim=1)
+            #attention_weight_all = attention_weight_all.view(output_char_vecs.size(0), max_word, attention_weight_all.size(1),attention_weight_all.size(2))
         else:
             attention_weight_all = None
         reshape_attention, start = get_timing(start)

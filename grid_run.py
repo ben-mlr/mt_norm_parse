@@ -213,7 +213,7 @@ if __name__ == "__main__":
                        dir_grid=dir_grid, label_grid=LABEL_GRID,
                        epochs=100, test_before_run=test_before_run,
                        train_path=train_path,
-                       dev_path=dev_path, debug=True,
+                       dev_path=dev_path, debug=False,
                        scoring_func_sequence_pred="exact_match",
                        test_paths=[TEST, TEST],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
                        warmup=True)

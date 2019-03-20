@@ -441,7 +441,8 @@ class LexNormalizer(nn.Module):
                      verbose=0, verbose_level=4)
         if self.decoder is not None and not word_level_predict:
 
-            output, attention_weight_all = self.decoder.forward(output_seq, context, output_word_len,
+            output, attention_weight_all = self.decoder.forward(output=output_seq,
+                                                                conditioning=context, output_word_len=output_word_len,
                                                                 word_src_sizes=word_src_sizes,
                                                                 char_seq_hidden_encoder=char_seq_hidden_encoder,
                                                                 proportion_pred_train=proportion_pred_train,
