@@ -81,6 +81,7 @@ class CharDecoder(nn.Module):
         # char_vec_current_batch is the new input character read, state_decoder_current
         # is the state of the cell (h and possibly cell)
         # should torch.cat() char_vec_current_batch with attention based context computed on char_seq_hidden_encoder
+
         state_hiden, state_cell = state_decoder_current[0], state_decoder_current[1] if isinstance(self.seq_decoder, nn.LSTM) else (state_decoder_current, None)
         printing("DECODER STEP : target char_vec_current_batch {} size and state_decoder_current {} and {} size",
                  var=[char_vec_current_batch.size(), state_hiden.size(), state_cell.size()],
@@ -98,11 +99,9 @@ class CharDecoder(nn.Module):
         start_atten = time.time()
 
         if self.attn_layer is not None:
-            pdb.set_trace()
             #TODO : make it generic (is there no problem also if not attention ?? (bug fix)
             # we align what we decode
             state_hiden = state_hiden[:, :char_seq_hidden_encoder.size(0), :]
-            pdb.set_trace()
             attention_weights = self.attn_layer(char_state_decoder=state_hiden.squeeze(0),word_src_sizes=char_vecs_sizes,encoder_outputs=char_seq_hidden_encoder)
             printing("DECODER STEP : attention context {} char_seq_hidden_encoder {} ", var=[attention_weights.size(), char_seq_hidden_encoder.size()],
                      verbose_level=3, verbose=self.verbose)
@@ -113,6 +112,7 @@ class CharDecoder(nn.Module):
                 attention_weights = attention_weights.cuda()
             # TODO HOW IS MASKING TAKEN CARE OF IN THE TARGET ? WE PACKED AND PADDED SO SHORTED THE SEQUENCE
             attention_context = attention_weights.bmm(char_seq_hidden_encoder)
+            pdb.set_trace()
             # was context
         else:
             attention_context = None
@@ -129,8 +129,8 @@ class CharDecoder(nn.Module):
             else:
                 context = torch.cat((word_stable_context, attention_context), dim=2)
             context = self.context_proj(context)
-            pdb.set_trace()
             # MIS ALGINEMNT BETWEEN SOURCE CHAR LEVEL CONTEXT PER WORD AND WORD THAT WE DECODE PER CHAR
+            pdb.set_trace()
             char_vec_current_batch = torch.cat((context, char_vec_current_batch), dim=2)
         else:
             # no word level context passed so --> char_vec_current is only the current character vector  
@@ -203,7 +203,9 @@ class CharDecoder(nn.Module):
             _output = []
             attention_weight_all = []
             # we repad it straight away cause unrolling by hand
+            pdb.set_trace()
             char_vecs, char_vecs_sizes_target = pad_packed_sequence(packed_char_vecs_output, batch_first=True)
+            pdb.set_trace()
             printing("DECODER char_vecs re-paded {} ", var=[char_vecs.data.size()], verbose=self.verbose,
                      verbose_level=3)
             max_word_len = char_vecs.size(1)
@@ -217,7 +219,6 @@ class CharDecoder(nn.Module):
                     printing("DECODER state_decoder_current {} ", var=[state_i[0].size()], verbose=self.verbose,
                              verbose_level=3)
                     printing("DECODER emb_char {} ", var=[emb_char.size()], verbose=self.verbose, verbose_level=3)
-                    pdb.set_trace()
                     all_states, state_i, attention_weights = self.word_encoder_target_step(
                         char_vec_current_batch=emb_char,
                         state_decoder_current=state_i,

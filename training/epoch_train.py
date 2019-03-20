@@ -57,7 +57,7 @@ def run_epoch(data_iter, model, loss_compute,
         except StopIteration:
             break
         batch_time_, batch_time_start = get_timing(batch_time_start)
-        printing("Starting {} batch out of {} batches", var=(i+1, n_batches), verbose= verbose, verbose_level=2)
+        printing("Starting {} batch out of {} batches", var=(i+1, n_batches), verbose=verbose, verbose_level=2)
         if not empty_run:
             start = time.time() if timing else None
             out, out_word, pos_pred_state, norm_not_norm_hidden, attention, attention_tag = model.forward(input_seq=batch.input_seq,
@@ -73,7 +73,8 @@ def run_epoch(data_iter, model, loss_compute,
                      verbose=verbose, verbose_level=1)
         if not empty_run:
             loss, loss_details_current = loss_compute(x=out, y=batch.output_seq_y,
-                                                      x_norm_not_norm=norm_not_norm_hidden, y_norm_not_norm=batch.output_norm_not_norm,
+                                                      x_norm_not_norm=norm_not_norm_hidden,
+                                                      y_norm_not_norm=batch.output_norm_not_norm,
                                                       y_word=batch.output_word, x_word_pred=out_word,
                                                       y_pos=batch.pos,  x_pos=pos_pred_state, pos_batch=pos_batch,
                                                       clipping=clipping,

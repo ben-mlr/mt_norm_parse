@@ -39,7 +39,7 @@ class CoNLLReader(object):
     else:
       assert len(list(set(tasks) & set(AVAILABLE_TASKS))) > 0,\
         "ERROR tasks provided to iterator is not in AVAILABLE TASKS".format(tasks,AVAILABLE_TASKS)
-    print("WARNING : tasks is {} ".format(tasks))
+
     normalization = "normalize" in tasks or "all" in tasks
     # skip multiple blank lines.
     raw_text = []

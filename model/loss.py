@@ -28,6 +28,7 @@ class LossCompute:
         #assert (word_decoding or char_decoding) and not (word_decoding and char_decoding), \
         #    "ERROR : strictly one of the two (word,char) decoding should be True "
         self.generator = generator
+        assert (char_decoding and generator is not None) or (not char_decoding and generator is None), "ERROR : char_decoding {} generator {}".format(char_decoding, generator)
         self.multi_task_mode = multi_task_mode
         self.writer = writer
         self.loss_distance = nn.CrossEntropyLoss(reduce=True, ignore_index=pad) if char_decoding else None

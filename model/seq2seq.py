@@ -92,7 +92,7 @@ class LexNormalizer(nn.Module):
         # TODO factorize as args_checking
         #assert (word_decoding or char_decoding) and not (word_decoding and char_decoding), "ERROR sttricly  one of word,char decoding should be True"
         assert init_context_decoder or stable_decoding_state or char_src_attention, "ERROR : otherwise no information passes from the encoder to the decoder"
-        if tasks is None or len(tasks)==0:
+        if tasks is None or len(tasks) == 0:
             tasks = ["normalize"]
             printing("MODEL : Default task is {} ", var=[tasks[0]], verbose=verbose, verbose_level=1)
         assert len(set(tasks)) == len(tasks), "CORRUPTED tasks list"
@@ -366,7 +366,7 @@ class LexNormalizer(nn.Module):
                               dense_dim_2=dense_dim_auxilliary_2) if self.auxilliary_task_norm_not_norm else None
         self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size,
                                    activation=activation_char_decoder,
-                                   output_dim=output_dim, verbose=verbose)
+                                   output_dim=output_dim, verbose=verbose) if char_decoding else None
         self.decoder = CharDecoder(self.char_embedding, input_dim=char_embedding_dim,
                                    hidden_size_decoder=hidden_size_decoder,timing=timing,
                                    drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
@@ -426,7 +426,6 @@ class LexNormalizer(nn.Module):
         # [] [batch, , hiden_size_decoder]
         printing("DECODER hidden state before bridge size {}", var=[context.size() if context is not None else 0],
                  verbose=0, verbose_level=3)
-        pdb.set_trace()
         context = torch.tanh(self.bridge(context))
         #h = self.layer_norm(h) if self.layer_norm is not None else h
         context = self.dropout_bridge(context)

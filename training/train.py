@@ -263,7 +263,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
     step_train = 0
     step_dev = 0
     if ADAPTABLE_SCORING:
-        printing("WARNING : scoring epochs not regualr (more at the begining ", verbose_level=1, verbose=verbose)
+        printing("WARNING : scoring epochs not regular (more at the begining ", verbose_level=1, verbose=verbose)
         freq_scoring = 1
     checkpoint_dir_former = None
 
@@ -271,7 +271,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
         assert policy in AVAILABLE_SCHEDULING_POLICIES
         policy_dic = eval(policy)(epoch) if policy is not None else None
         #TODO : no need of re-ouptuting multi_task_mode : tasks should be harmonized to read
-        pdb.set_trace()
         multi_task_mode, ponderation_normalize_loss, weight_binary_loss, weight_pos_loss = scheduling_policy(epoch=epoch, phases_ls=policy_dic, tasks=tasks)
         printing("TRAINING Tasks scheduling : ponderation_normalize_loss is {} weight_binary_loss is {}"
                  " weight_pos_loss is {} mode is {} ",

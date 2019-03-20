@@ -352,6 +352,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
   counter = 0
   reader = CoNLLReader(source_path, word_dictionary, char_dictionary, pos_dictionary, type_dictionary, xpos_dictionary,
                        lemma_dictionary=None, word_norm_dictionary=word_norm_dictionary)
+  printing("DATA iterator based on {} tasks", var=tasks, verbose_level=1, verbose=verbose)
   inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end,
                         word_decoder=word_decoder, tasks=tasks,
                         normalization=normalization)

@@ -85,7 +85,7 @@ if __name__ == "__main__":
         assert os.environ.get("MODE_RUN") in ["DISTRIBUTED", "SINGLE"]
         run_standart = os.environ.get("MODE_RUN") != "DISTRIBUTED"
       else:
-          run_standart = False
+          run_standart = True
           print("LOCAL")
 
 
@@ -127,6 +127,7 @@ if __name__ == "__main__":
       # param["dense_dim_auxilliary_pos"] = None if not auxilliary_task_pos else 200
       # param["dense_dim_auxilliary_pos_2"] = None
 
+
       if run_standart:
           # default not used but could be
           params, labels, default_all, analysed, fixed = grid_param_label_generate(
@@ -136,17 +137,17 @@ if __name__ == "__main__":
                                                                                   dropout_word_encoder_cell_ls=[0.3],
                                                                                   stable_decoding_state_ls=[False],
                                                                                   word_decoding_ls=[0],
-                                                                                  batch_size_ls=[20],
+                                                                                  batch_size_ls=[25],
                                                                                   word_embed_ls=[1],
                                                                                   dir_sent_encoder_ls=[2], lr_ls=[0.0005],
-                                                                                  word_embed_init_ls=[DIR_TWEET_W2V, DIR_FASTEXT_WIKI_NEWS_W2V, None],
-                                                                                  attention_tagging_ls=[1],
-                                                                                  char_src_attention_ls=[0],
+                                                                                  word_embed_init_ls=[None, DIR_FASTEXT_WIKI_NEWS_W2V, DIR_TWEET_W2V],
+                                                                                  attention_tagging_ls=[0],
+                                                                                  char_src_attention_ls=[1],
                                                                                   teacher_force_ls=[True],
                                                                                   proportion_pred_train_ls=[None],
                                                                                   shared_context_ls=["all"],
                                                                                   word_embedding_projected_dim_ls=[100],
-                                                                                  tasks_ls=[["pos", "normalize"]],
+                                                                                  tasks_ls=[["normalize"]],
                                                                                   n_layers_sent_cell_ls=[2],
                                                                                   n_layers_word_encoder_ls=[1],
                                                                                   unrolling_word_ls=[1],
@@ -159,7 +160,7 @@ if __name__ == "__main__":
         # only for cloud run :
       warmup = False
       if platform != "darwin":
-          printing("ENV : running not from os x assuming we are in command shell run", verbose=0, verbose_level=0)
+          printing("GRID : ENV : running not from os x assuming we are in command shell run", verbose=0, verbose_level=0)
           parser = argparse.ArgumentParser()
           parser.add_argument("--test_before_run", help="test_before_run", action="store_true")
           parser.add_argument("--desc", help="describe run for reporting", default="", required=False, type=str)
@@ -204,24 +205,25 @@ if __name__ == "__main__":
                                                 target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR, "{}*".format(LABEL_GRID)),
                                                 env=environment, status="running {}{}".format(warmup_desc, test_before_run_desc),
                                                 verbose=1)
+              print("row:{}".format(row))
               #train_path, dev_path = EWT_DEV, EWT_TEST#MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
               train_path = [EN_LINES_EWT_TRAIN, LIU_TRAIN]
               dev_path = [EWT_DEV, LIU_DEV]
               run_grid(params=params, labels=labels,
                        dir_grid=dir_grid, label_grid=LABEL_GRID,
-                       epochs=50, test_before_run=test_before_run,
+                       epochs=100, test_before_run=test_before_run,
                        train_path=train_path,
-                       dev_path=dev_path, debug=False,
+                       dev_path=dev_path, debug=True,
                        scoring_func_sequence_pred="exact_match",
                        test_paths=[TEST, TEST],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
-                       warmup=warmup)
+                       warmup=True)
               update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
           except Exception as e:
               update_status(row=row, new_status="failed {} (error {})".format(warmup_desc, e), verbose=1)
               raise(e)
 
       else:
-          epochs=150
+          epochs=100
           train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV#MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
           dir_script, row = script_generation(grid_label=LABEL_GRID, 
                                               init_param=params_dozat,#params_dozat,#params_strong,#params_dozat,
@@ -235,7 +237,7 @@ if __name__ == "__main__":
                                               dir_sent_encoder_ls=[2],
                                               n_layers_sent_cell_ls=[2], n_layers_word_encoder_ls=[1],
                                               lr_ls=[0.0005],
-                                              word_embed_init_ls=[DIR_FASTEXT_WIKI_NEWS_W2V, DIR_TWEET_W2V, None],
+                                              word_embed_init_ls=[None,DIR_FASTEXT_WIKI_NEWS_W2V, DIR_TWEET_W2V],
                                               teacher_force_ls=[True],
                                               word_recurrent_cell_encoder_ls=["LSTM"],
                                               dropout_word_encoder_cell_ls=[0.],

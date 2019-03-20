@@ -221,7 +221,6 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                                           param0["init_context_decoder"] = not param0["stable_decoding_state"]
                                           param0["activation_char_decoder"] = "nn.LeakyReLU"
                                           param0["activation_word_decoder"] = "nn.LeakyReLU"
-
                                           param0["tasks"] = tasks
                                           # default
                                           #param0["dropout_bridge"] = 0.1
@@ -245,18 +244,18 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
 
   studied_vars = []
   fixed_vars = []
-  print("HYPARAMETER BASE", param)
+  printing("GRID HYPARAMETERS INIT {}", var=param, verbose=1, verbose_level=1)
   for var, vals in dic_grid.items():
     if var == "proportion_pred_train":
       if None in vals:
         vals[vals.index(None)] = 0
     if len(vals) > 1:
-      print("STUDIES", var, vals)
+      printing("GRID HYPERPARAMETERS : analysed variables ", var=[var, vals], verbose=1, verbose_level=1)
       studied_vars.append(var)
     else:
-      print("FIXED", var, vals)
+      printing("GRID HYPERPARAMETERS : fixed {} {} ", var=[var, vals], verbose=1, verbose_level=1)
       fixed_vars.append((var, vals[0]))
-  print("SCALE LS ", scale_ls)
+  print("GRID HYPERPARAMETERS : scale", scale_ls)
   # grid information
   to_enrich = " ".join([a for a, _ in fixed_vars]) + " " + " ".join(studied_vars)
   to_analysed = " ".join(studied_vars)

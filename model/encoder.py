@@ -116,7 +116,7 @@ class CharEncoder(nn.Module):
         perm_idx = perm_idx[input_word_len != 0]
         input = input[input_word_len != 0, :] # needed within attention only (and for sanity check)
         input_word_len = input_word_len[input_word_len != 0]
-
+        pdb.set_trace()
         packed_char_vecs = pack_padded_sequence(char_vecs, input_word_len.squeeze().cpu().numpy(), batch_first=True)
         # we can now inverse permutation(we permuted the sequence, we removed, now we want the inverse permutation
         inverse_perm_idx = torch.from_numpy(np.argsort(perm_idx.cpu().numpy()))
@@ -142,6 +142,7 @@ class CharEncoder(nn.Module):
                                                                                                 h_n.size()),
                  verbose=self.verbose, verbose_level=3)
         output, word_src_sizes = pad_packed_sequence(output, batch_first=True)
+        pdb.set_trace()
         # output : [batch, max word len, dim hidden_size_encoder]
         output = output[inverse_perm_idx, :, :]
         # TODO -> is the size correct here
@@ -204,10 +205,13 @@ class CharEncoder(nn.Module):
         # we pack and padd the sentence to shorten and pad sentences
         # [batch x sent_len , dim hidden word level] # this remove empty words
         # --PERMUTE input so that it's sorted
-        packed_char_vecs_input = pack_padded_sequence(input[perm_idx_input_sent, :, :], sent_len.squeeze().cpu().numpy(), batch_first=True)
+        pdb.set_trace()
+        packed_char_vecs_input = pack_padded_sequence(input[perm_idx_input_sent, :, :], sent_len.squeeze().cpu().numpy(),
+                                                      batch_first=True)
         # unpacked for computing the word level representation
         input_char_vecs, input_sizes = pad_packed_sequence(packed_char_vecs_input, batch_first=True,
                                                            padding_value=PAD_ID_CHAR)
+        pdb.set_trace()
         # [batch, sent_len max, dim encoder] reorder the sequence
         # permutation test
         # assert (input[perm_idx_input_sent, :, :][inverse_perm_idx_input_sent,:,:] == input).all()
@@ -220,7 +224,7 @@ class CharEncoder(nn.Module):
         # reshape word_len and word_char_vecs matrix --> for feeding to word level encoding
         input_word_len = input_word_len.contiguous().view(input_word_len.size(0) * input_word_len.size(1))
         #DEPRECIATED : shape_sent_seq = input_char_vecs.size()
-        input_char_vecs = input_char_vecs.contiguous().view(input_char_vecs.size(0) * input_char_vecs.size(1),input_char_vecs.size(2))
+        input_char_vecs = input_char_vecs.contiguous().view(input_char_vecs.size(0) * input_char_vecs.size(1), input_char_vecs.size(2))
         # input_char_vecs : [batch x max sent_len , MAX_CHAR_LENGTH or bucket max_char_length]
         # input_word_len  [batch x max sent_len]
         h_w, char_seq_hidden, word_src_sizes, attention_weights_char_tag = self.word_encoder_source(input=input_char_vecs,
@@ -257,7 +261,7 @@ class CharEncoder(nn.Module):
         # NB ; sent_len and sent_len_cumulated are aligned with permuted input and therefore input_char_vec and h_w
         h_w_ls = [h_w[sent_len_cumulated[i]:sent_len_cumulated[i + 1], :] for i in range(len(sent_len_cumulated) - 1)]
         h_w = pack_sequence(h_w_ls)
-        pdb.set_trace()
+        # sent_encoded last layer for each t (word) of the last layer
         sent_encoded, _ = self.sent_encoder(h_w)
         # add contitioning
         sent_encoded, length_sent = pad_packed_sequence(sent_encoded, batch_first=True)
@@ -273,7 +277,6 @@ class CharEncoder(nn.Module):
         # concatanate
         sent_encoded = self.drop_out_sent_encoder_out(sent_encoded)
         h_w = self.drop_out_word_encoder_out(h_w)
-        pdb.set_trace()
         if context_level == "all":
             #" 'all' means word and sentence level "
             source_context_word_vector = torch.cat((sent_encoded, h_w), dim=2)
@@ -281,10 +284,9 @@ class CharEncoder(nn.Module):
             source_context_word_vector = sent_encoded
         elif context_level == "word":
             source_context_word_vector = h_w
-        pdb.set_trace()
 
         printing("SOURCE contextual for decoding: {} ", var=[source_context_word_vector.size() if source_context_word_vector is not None else 0],
                  verbose=verbose, verbose_level=3)
-
+        pdb.set_trace()
         return source_context_word_vector, sent_len_max_source, char_seq_hidden, word_src_sizes, attention_weights_char_tag
 

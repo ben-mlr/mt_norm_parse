@@ -131,7 +131,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
     normalization = "normalize" in tasks or "norm_not_norm" in tasks
     printing("SANITY CHECK : normalization {} ", var=normalization, verbose=verbose, verbose_level=1)
     model_full_name = train(train_path, dev_path, pos_specific_path=pos_specific_path,
-                            expand_vocab_dev_test=expand_vocab_dev_test if word_embed_init is not None else False,
+                            expand_vocab_dev_test=expand_vocab_dev_test if word_embed_init is not None   else False,
                             #auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
                             dense_dim_auxilliary=dense_dim_auxilliary, dense_dim_auxilliary_2=dense_dim_auxilliary_2,
                             lr=lr,extend_n_batch=extend_n_batch,
@@ -184,7 +184,10 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
     if test_path is not None:
       dict_path = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder", "dictionaries")
       printing("GRID : START EVALUATION FINAL ", verbose_level=0, verbose=verbose)
-      eval_data_paths = [train_path, dev_path]
+      if isinstance(train_path, list) or isinstance(dev_path, list):
+          eval_data_paths = []
+      else:
+          eval_data_paths = [train_path, dev_path]
       if warmup:
           eval_data_paths = test_path if isinstance(test_path, list) else [test_path]
       else:
@@ -192,9 +195,10 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
               eval_data_paths.extend(test_path)
           else:
               eval_data_paths.append(test_path)
-      eval_data_paths = list(set(eval_data_paths))
+      #eval_data_paths = list(set(eval_data_paths))
       start_eval = time.time()
-      assert len(eval_data_paths) == len(tasks), "ERROR : one test dataset per test so far"
+      if len(tasks)>1:
+          assert len(eval_data_paths) == len(tasks), "ERROR : one test dataset per test so far {} tasks for {} set".format(eval_data_paths, tasks)
       for get_batch_mode_evaluate in [False]:
         print("EVALUATING WITH {}".format(scoring_func_sequence_pred))
         for task, eval_data in zip(tasks, eval_data_paths):
