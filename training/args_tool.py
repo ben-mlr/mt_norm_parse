@@ -85,6 +85,8 @@ def args_train(mode="command_line"):
     parser.add_argument("--pos_specific_path", default=None, type=str, help="display a square of a given number")
     parser.add_argument("--expand_vocab_dev_test", default=True, help="display a square of a given number")
 
+    parser.add_argument("--multi_task_loss_ponderation", type=str, default="all", help="display a square of a given number")
+
     parser.add_argument("--model_id_pref", required=mode == "command_line", help="display a square of a given number")
     parser.add_argument("--overall_label", default="DEFAULT", help="display a square of a given number")
     parser.add_argument("--overall_report_dir", required=mode == "command_line", help="display a square of a given number")
@@ -95,6 +97,7 @@ def args_train(mode="command_line"):
     parser.add_argument("--gpu", default=None, type=str, help="display a square of a given number")
 
     args = parser.parse_args()
+
     if not args.word_embed:
         args.word_embedding_dim = 0
 

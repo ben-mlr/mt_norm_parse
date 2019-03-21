@@ -395,7 +395,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
 def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
                           type_dictionary, max_size=None, normalize_digits=True, symbolic_root=False,word_norm_dictionary=None,
                           symbolic_end=False, use_gpu=False, volatile=False, dry_run=False, lattice=None,
-                          verbose=0, normalization=False,bucket=True, norm_not_norm=False, word_decoder=False,
+                          verbose=0, normalization=False, bucket=True, norm_not_norm=False, word_decoder=False,
                           tasks=None,
                           add_end_char=0, add_start_char=0):
   """

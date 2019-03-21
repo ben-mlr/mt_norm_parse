@@ -17,7 +17,7 @@ from env.project_variables import PROJECT_PATH, REPO_DATASET, SEED_TORCH, BREAKI
 from env.project_variables import SEED_NP, SEED_TORCH
 import time
 from toolbox.gpu_related import use_gpu_
-from toolbox.sanity_check import get_timing
+from toolbox.sanity_check import get_timing, sanity_check_loss_poneration
 from collections import OrderedDict
 from tracking.plot_loss import simple_plot_ls
 from evaluate.evaluate_epoch import evaluate
@@ -71,11 +71,12 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
           activation_word_decoder=None, activation_char_decoder=None,
           extra_arg_specific_label="",
           freezing_mode=False, freeze_ls_param_prefix=None,
-
+          multi_task_loss_ponderation=None,
           attention_tagging=False,
           optimizer="adam",
           verbose=1):
-
+    if multi_task_loss_ponderation is not None:
+        sanity_check_loss_poneration(multi_task_loss_ponderation, verbose=verbose)
     assert optimizer in AVAILABLE_OPTIMIZER, "optimizer supported are {} ".format(AVAILABLE_OPTIMIZER)
     if teacher_force:
         assert proportion_pred_train is None, "proportion_pred_train should be None as teacher_force mode"
@@ -194,6 +195,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                           activation_char_decoder=activation_char_decoder, activation_word_decoder=activation_word_decoder,
                           test_path=_test_path, extend_vocab_with_test=_test_path is not None,
                           attention_tagging=attention_tagging,
+                          multi_task_loss_ponderation=multi_task_loss_ponderation, # needed for save/reloading purposes
                           hidden_size_decoder=hidden_size_decoder, verbose=verbose, timing=timing)
 
     pos_batch = auxilliary_task_pos
@@ -245,7 +247,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                  type_dictionary=model.type_dictionary, use_gpu=use_gpu,
                                  norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=word_decoding,
                                  add_start_char=add_start_char, add_end_char=add_end_char, symbolic_end=symbolic_end,
-                                 symbolic_root=symbolic_root,
+                                 symbolic_root=symbolic_root,bucket=bucketing,
                                  verbose=verbose)
 
     readers_dev = readers_load(datasets=dev_path, tasks=tasks, word_dictionary=model.word_dictionary,
@@ -254,7 +256,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                type_dictionary=model.type_dictionary, use_gpu=use_gpu,
                                norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=word_decoding,
                                add_start_char=add_start_char, add_end_char=add_end_char, symbolic_end=symbolic_end,
-                               symbolic_root=symbolic_root,
+                               symbolic_root=symbolic_root,bucket=bucketing,
                                verbose=verbose)
 
     dir_writer = os.path.join(overall_report_dir, "runs", "{}-model".format(model.model_full_name))
@@ -291,6 +293,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                  verbose=verbose, verbose_level=2)
         loss_train, loss_details_train, step_train = run_epoch(batchIter, model,
                                                                LossCompute(model.generator, opt=adam,
+                                                                           multi_task_loss_ponderation=model.multi_task_loss_ponderation,
                                                                            auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
                                                                            model=model,
                                                                            writer=writer, use="train",
@@ -327,6 +330,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
         if (dev_report_loss and (epoch % freq_checkpointing == 0)) or (epoch + 1 == n_epochs):
             printing("EVALUATION : computing loss on dev epoch {}  ",var=epoch, verbose=verbose, verbose_level=1)
             loss_obj = LossCompute(model.generator, use_gpu=use_gpu, verbose=verbose,
+                                   multi_task_loss_ponderation=model.multi_task_loss_ponderation,
                                    writer=writer, use="dev",
                                    pos_pred=auxilliary_task_pos,
                                    char_decoding=char_decoding, word_decoding=word_decoding,
@@ -446,6 +450,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                 "train_data_path": train_path, "dev_data_path": dev_path,
                                                 "other": {"error_curves": dir_plot, "loss": _loss_dev,
                                                           "error_curves_details":dir_plot_detailed,
+                                                          "multi_task_loss_ponderation":multi_task_loss_ponderation,
                                                           "weight_binary_loss": weight_binary_loss*int(auxilliary_task_norm_not_norm),
                                                           "weight_pos_loss": weight_pos_loss*int(auxilliary_task_pos),
                                                           "ponderation_normalize_loss": ponderation_normalize_loss,

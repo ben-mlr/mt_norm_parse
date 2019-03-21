@@ -61,7 +61,7 @@ class LexNormalizer(nn.Module):
                  n_layers_sent_cell=1,
                  symbolic_end=False, symbolic_root=False,
                  extend_vocab_with_test=False, test_path=None,
-                 extra_arg_specific_label="",
+                 extra_arg_specific_label="", multi_task_loss_ponderation=None,
                  activation_char_decoder=None, activation_word_decoder=None, expand_vocab_dev_test=False,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
@@ -180,6 +180,7 @@ class LexNormalizer(nn.Module):
                               "hyperparameters": {
                                   "lr": None, "lr_policy": None, "extend_vocab_with_test": extend_vocab_with_test,
                                   "optimizer": None,
+                                  "multi_task_loss_ponderation": multi_task_loss_ponderation,
                                   "shared_context": shared_context,
                                   "symbolic_end": symbolic_end, "symbolic_root": symbolic_root,
                                   "gradient_clipping": None,
@@ -274,7 +275,7 @@ class LexNormalizer(nn.Module):
             word_decoding, char_decoding, auxilliary_task_pos, dense_dim_auxilliary_pos, dense_dim_auxilliary_pos_2, \
                 dense_dim_word_pred, dense_dim_word_pred_2,dense_dim_word_pred_3, \
                 symbolic_root, symbolic_end, word_embedding_dim, word_embed, word_embedding_projected_dim, \
-                activation_char_decoder, activation_word_decoder, attention_tagging, char_level_embedding_projection_dim, mode_word_encoding \
+                activation_char_decoder, activation_word_decoder, attention_tagging, char_level_embedding_projection_dim, mode_word_encoding, multi_task_loss_ponderation \
                 = get_args(args, False)
 
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
@@ -352,6 +353,7 @@ class LexNormalizer(nn.Module):
         # in sent case : the word embedding only ges int to the word encoder so no need of larger bridge
         p_word_emb = 1 if shared_context != "sent" else 0
         self.shared_context = shared_context
+        self.multi_task_loss_ponderation = multi_task_loss_ponderation
 
         self.bridge = nn.Linear(self.encoder.output_encoder_dim, hidden_size_decoder)
         #self.bridge = nn.Linear(dim_char_encoding_output*p_word + hidden_size_sent_encoder*dir_sent_encoder*p_sent+(word_embedding_projected_dim if word_embedding_projected_dim is not None else word_embedding_dim)*p_word_emb,hidden_size_decoder)
@@ -505,6 +507,7 @@ class LexNormalizer(nn.Module):
         model.arguments["hyperparameters"]["weight_pos_loss"] = info_checkpoint["other"]["weight_pos_loss"]
         model.arguments["hyperparameters"]["ponderation_normalize_loss"] = info_checkpoint["other"]["ponderation_normalize_loss"]
         model.arguments["info_checkpoint"] = info_checkpoint
+        model.arguments["multi_task_loss_ponderation"] = info_checkpoint["other"]["multi_task_loss_ponderation"]
         model.arguments["info_checkpoint"]["git_id"] = get_commit_id()
         model.arguments["checkpoint_dir"] = checkpoint_dir
         # the arguments dir does not change !

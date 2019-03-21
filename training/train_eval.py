@@ -122,6 +122,8 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
 
     attention_tagging = args.get("attention_tagging", False)
 
+    multi_task_loss_ponderation = args.get("multi_task_loss_ponderation", "all")
+
     n_epochs = 1 if warmup else n_epochs
 
     if warmup:
@@ -177,6 +179,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                             symbolic_end=symbolic_end, symbolic_root=symbolic_root,
                             attention_tagging=attention_tagging,
                             stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
+                            multi_task_loss_ponderation=multi_task_loss_ponderation,
                             test_path=test_path[0] if isinstance(test_path, list) else test_path,
                             checkpointing=True, verbose=verbose)
 
@@ -197,8 +200,10 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
               eval_data_paths.append(test_path)
       #eval_data_paths = list(set(eval_data_paths))
       start_eval = time.time()
-      if len(tasks)>1:
+      if len(tasks) > 1:
           assert len(eval_data_paths) == len(tasks), "ERROR : one test dataset per test so far {} tasks for {} set".format(eval_data_paths, tasks)
+      if len(tasks) == 1:
+          tasks = [tasks[0] for _ in eval_data_paths]
       for get_batch_mode_evaluate in [False]:
         print("EVALUATING WITH {}".format(scoring_func_sequence_pred))
         for task, eval_data in zip(tasks, eval_data_paths):

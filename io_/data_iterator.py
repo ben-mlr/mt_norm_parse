@@ -152,7 +152,7 @@ def sampling_proportion(task_n_sent, total_n_sents):
 def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_dictionary,
                  pos_dictionary,xpos_dictionary, type_dictionary, use_gpu,
                  norm_not_norm=False, word_decoder=False,
-                 simultanuous_training=False,
+                 simultanuous_training=False,bucket=True,
                  add_start_char=1, add_end_char=1, symbolic_end=True, symbolic_root=True,
                  verbose=1):
 
@@ -179,7 +179,8 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
                                                           word_decoder=word_decoder,
                                                           symbolic_end=symbolic_end, symbolic_root=symbolic_root,
                                                           dry_run=0, lattice=False,
-                                                          normalization=TASKS_PARAMETER[task]["normalization"], bucket=False,
+                                                          normalization=TASKS_PARAMETER[task]["normalization"],
+                                                          bucket=bucket,
                                                           add_start_char=add_start_char,
                                                           add_end_char=add_end_char, tasks=[task],
                                                           word_norm_dictionary=word_dictionary_norm, verbose=verbose)

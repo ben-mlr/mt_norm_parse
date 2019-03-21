@@ -22,14 +22,15 @@ class LossCompute:
                  char_decoding=True,
                  pos_pred=False,
                  opt=None, pad=1, use_gpu=False, timing=False,
-                 multi_task_mode="all", writer=None, model=None,
+                 multi_task_loss_ponderation ="all", writer=None, model=None,
                  use="", verbose=0):
 
         #assert (word_decoding or char_decoding) and not (word_decoding and char_decoding), \
         #    "ERROR : strictly one of the two (word,char) decoding should be True "
         self.generator = generator
         assert (char_decoding and generator is not None) or (not char_decoding and generator is None), "ERROR : char_decoding {} generator {}".format(char_decoding, generator)
-        self.multi_task_mode = multi_task_mode
+
+        self.multi_task_loss_ponderation = multi_task_loss_ponderation
         self.writer = writer
         self.loss_distance = nn.CrossEntropyLoss(reduce=True, ignore_index=pad) if char_decoding else None
         self.loss_binary = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_NORM_NOT_NORM) if auxilliary_task_norm_not_norm else None
@@ -88,14 +89,17 @@ class LossCompute:
         y = y[:, :x.size(1), :] if x is not None else None
         y_norm_not_norm = y_norm_not_norm[:, :x_norm_not_norm.size(1)] if y_norm_not_norm is not None else None
         y_word = y_word[:, :x_word_pred.size(1)] if y_word is not None and x_word_pred is not None else None
-
-        scheduling_norm_not_norm, scheduling_normalize, schedule_pos = schedule_training(multi_task_mode=self.multi_task_mode)
-
+        # WE PUT THAT HERE IN CASE LATER : WE WANT To ADAPT BATCH-WISE PONDERATION
+        loss_scheduler = schedule_training(multi_task_loss_ponderation=self.multi_task_loss_ponderation)
+        scheduling_normalize = loss_scheduler["normalize"]
+        schedule_pos = loss_scheduler["pos"]
+        scheduling_norm_not_norm = loss_scheduler["norm_not_norm"]
+        #print("sanitity", scheduling_normalize,  schedule_pos, scheduling_norm_not_norm)
         if y is not None:
             printing("TYPE  y {} is cuda ", var=(y.is_cuda), verbose=0, verbose_level=5)
         reshaping, start = get_timing(start)
         if self.loss_distance is not None:
-            loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1)) 
+            loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1))
         elif self.loss_distance_word_level is not None:
             loss = self.loss_distance_word_level(x_word_pred.contiguous().view(-1, x_word_pred.size(-1)), y_word.contiguous().view(-1))
             assert ponderation_normalize_loss is not None

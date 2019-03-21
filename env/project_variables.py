@@ -19,6 +19,7 @@ LIST_ARGS = ["tasks"]
 NONE_ARGS = ["gpu"]
 BOOL_ARGS = ["word_embed", "teacher_force", "char_decoding", "unrolling_word", "init_context_decoder",
              "word_decoding", "stable_decoding_state", "char_src_attention"]
+DIC_ARGS = ["multi_task_loss_ponderation"]
 GPU_AVAILABLE_DEFAULT_LS = ["0", "1", "2", "3"]
 
 # architecture/model/training supported
@@ -35,7 +36,7 @@ TASKS_2_METRICS_STR = {"all": ["accuracy-normalization","InV-accuracy-normalizat
                        "norm_not_norm": ["IoU-pred-normed","recall-norm_not_norm","accuracy-norm_not_norm","IoU-pred-need_norm","precision-norm_not_norm"]}
 
 AVAILABLE_OPTIMIZER = ["adam", "bahdanu-adadelta"]
-
+MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE = ["uniform", "normalization_100","pos_100","all","pos","normalize","norm_not_norm"]
 DEFAULT_SCORING_FUNCTION = "exact_match"
 
 # DATASETS

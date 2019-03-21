@@ -79,6 +79,7 @@ def evaluate(batch_size, data_path, task,
                                 pos_dictionary=model.pos_dictionary, xpos_dictionary=model.xpos_dictionary,
                                 type_dictionary=model.type_dictionary, use_gpu=use_gpu,
                                 norm_not_norm=model.auxilliary_task_norm_not_norm, word_decoder=word_decoding,
+                                bucket=bucket,
                                 add_start_char=1, add_end_char=1, symbolic_end=model.symbolic_end, symbolic_root=model.symbolic_root,
                                 verbose=verbose)
     batchIter = data_gen_multi_task_sampling_batch(tasks=[task], readers=readers_eval, batch_size=batch_size,

@@ -65,5 +65,5 @@ def get_args(args, dropout_loading_strict=True, verbose=0):
            args["encoder_arch"].get("word_embedding_dim", 0), args["encoder_arch"].get("word_embed", False), \
            args["encoder_arch"].get("word_embedding_projected_dim", None),  args["decoder_arch"].get("activation_char_decoder"), args["decoder_arch"].get("activation_word_decoder"), \
             args["encoder_arch"].get("attention_tagging", False), \
-           args["encoder_arch"].get("char_level_embedding_projection_dim",0), args["encoder_arch"].get("mode_word_encoding","cat")
+           args["encoder_arch"].get("char_level_embedding_projection_dim",0), args["encoder_arch"].get("mode_word_encoding","cat"), args.get("multi_task_loss_ponderation", "all")
 
