@@ -32,7 +32,7 @@ def output_text(one_code_prediction, char_dic, start_symbol=CHAR_START ,
 
 def output_text_(one_code_prediction, char_dic=None, start_symbol=CHAR_START,
                  output_str=False, word_dic=None, word_decode=False, char_decode=True,
-                 stop_symbol=END_CHAR, single_sequence=True, last=False, debug=False):
+                 stop_symbol=END_CHAR, single_sequence=True, last=False, debug=False, showing_attention=False):
 
     decoding = []
     str_decoded = []
@@ -72,8 +72,17 @@ def output_text_(one_code_prediction, char_dic=None, start_symbol=CHAR_START,
                         break_word_to_print = True
                         #break
                     # we append word_to_print only starting the second decoding (we assume _START is here)
-                    #if (not (char_decoded == start_symbol and i_char == 0) and not end_of_word) or empty_decoded_word: #and not break_word_to_print: useless I guess
-                    if (not end_of_word) or empty_decoded_word:  # and not break_word_to_print: useless I guess
+                    if not showing_attention and ((not (char_decoded == start_symbol and i_char == 0) and not end_of_word) or empty_decoded_word): #and not break_word_to_print: useless I guess
+                        if char_decoded == "<_UNK>":
+                            char_decoded = PRINTINT_OUT_TOKEN_UNK
+                        word_to_print += char_decoded
+                        # if not break_word_to_print:
+                        # if empty_decoded_word will appen spcial character
+                        word.append(char_decoded)
+                        # if empty_decoded_word:
+                        #    word.append("")
+                        word_as_list.append(char_decoded)
+                    if ((not end_of_word) or empty_decoded_word) and showing_attention:  # and not break_word_to_print: useless I guess
                         if char_decoded == "<_UNK>":
                             char_decoded = PRINTINT_OUT_TOKEN_UNK
                         word_to_print += char_decoded
@@ -84,7 +93,7 @@ def output_text_(one_code_prediction, char_dic=None, start_symbol=CHAR_START,
                         #    word.append("")
                         word_as_list.append(char_decoded)
                         # why is it here
-                    if char_decoded == stop_symbol:
+                    if char_decoded == stop_symbol and showing_attention:
                         word.append(char_decoded)
                         word_to_print += char_decoded
                         word_as_list.append(char_decoded)
