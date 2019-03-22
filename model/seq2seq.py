@@ -192,7 +192,8 @@ class LexNormalizer(nn.Module):
                                                   "auxilliary_task_norm_not_norm": self.auxilliary_task_norm_not_norm,
                                                   "auxilliary_task_norm_not_norm-dense_dim": dense_dim_auxilliary,
                                                   "auxilliary_task_norm_not_norm-dense_dim_2": dense_dim_auxilliary_2,
-                                                  "auxilliary_task_pos": auxilliary_task_pos, "dense_dim_auxilliary_pos": dense_dim_auxilliary_pos,
+                                                  "auxilliary_task_pos": auxilliary_task_pos,
+                                                  "dense_dim_auxilliary_pos": dense_dim_auxilliary_pos,
                                                   "dense_dim_auxilliary_pos_2": dense_dim_auxilliary_pos_2,
                                                       },
                                   "n_trainable_parameters": None,
@@ -224,7 +225,7 @@ class LexNormalizer(nn.Module):
                                                    "drop_out_word_decoder_cell": drop_out_word_decoder_cell,
                                                    "char_src_attention": char_src_attention,
                                                    "unrolling_word": unrolling_word,
-                                                   " ce": teacher_force,
+                                                   "teacher_force": teacher_force,
                                                    "stable_decoding_state": stable_decoding_state,
                                                    "init_context_decoder": init_context_decoder,
                                                    "activation_word_decoder": str(activation_word_decoder),
@@ -360,8 +361,11 @@ class LexNormalizer(nn.Module):
         self.hidden_size_decoder = hidden_size_decoder
         #self.layer_norm = nn.LayerNorm(hidden_size_decoder, elementwise_affine=False) if True else None
         self.dropout_bridge = nn.Dropout(p=drop_out_bridge)
-        dropout_char_encoder = 0.3
-        self.dropout_char_encoder = nn.Dropout(p=dropout_char_encoder )
+        dropout_char_encoder = 0.33
+        printing("WARNING dropout_char_encoder and  dropout_word_encoder are hardcoded with dropout_char_encoder {}  ",
+                 var=dropout_char_encoder, verbose=verbose, verbose_level=1)
+        self.dropout_char_encoder = nn.Dropout(p=dropout_char_encoder)
+        self.dropout_word_encoder = nn.Dropout(p=dropout_char_encoder)
         self.normalize_not_normalize \
             = BinaryPredictor(input_dim=hidden_size_decoder,
                               dense_dim=dense_dim_auxilliary,
@@ -385,7 +389,9 @@ class LexNormalizer(nn.Module):
                                         activation=activation_word_decoder,
                                         dense_dim_3=dense_dim_word_pred_3) if word_decoding else None
         voc_pos_size = len(self.pos_dictionary.instance2index)+1
-        self.pos_predictor = PosPredictor(voc_pos_size=voc_pos_size, input_dim=hidden_size_decoder, dense_dim=dense_dim_auxilliary_pos) if auxilliary_task_pos else None
+        self.pos_predictor = PosPredictor(voc_pos_size=voc_pos_size,
+                                          input_dim=hidden_size_decoder,
+                                          dense_dim=dense_dim_auxilliary_pos) if auxilliary_task_pos else None
         self.verbose = verbose
         # bridge between encoder hidden representation and decoder
         if load:
@@ -421,22 +427,24 @@ class LexNormalizer(nn.Module):
             word_embed_input = self.word_embedding(word_embed_input)
             if self.word_embedding_project is not None:
                 word_embed_input = self.word_embedding_project(word_embed_input)
+                word_embed_input = self.dropout_word_encoder(word_embed_input)
 
         context, sent_len_max_source, char_seq_hidden_encoder, word_src_sizes, attention_weights_char_tag = self.encoder.forward(input_seq, input_word_len, word_embed_input=word_embed_input)
 
         source_encoder, start = get_timing(start)
         # [] [batch, , hiden_size_decoder]
-        printing("DECODER hidden state before bridge size {}", var=[context.size() if context is not None else 0],
-                 verbose=0, verbose_level=3)
-        context = torch.tanh(self.bridge(context))
-        #h = self.layer_norm(h) if self.layer_norm is not None else h
+        printing("DECODER hidden state before bridge size {}", var=[context.size() if context is not None else 0], verbose=0, verbose_level=3)
+        context = self.bridge(context)
         context = self.dropout_bridge(context)
+        for_decoder = torch.tanh(context)
+        #h = self.layer_norm(h) if self.layer_norm is not None else h
+
         bridge, start = get_timing(start)
 
         printing("TYPE  encoder {} is cuda ", var=context.is_cuda, verbose=0, verbose_level=4)
         printing("DECODER hidden state after bridge size {}", var=[context.size()], verbose=0, verbose_level=3)
 
-        norm_not_norm_hidden = self.normalize_not_normalize(context) if self.auxilliary_task_norm_not_norm else None
+        norm_not_norm_hidden = self.normalize_not_normalize(nn.ReLU()(context)) if self.auxilliary_task_norm_not_norm else None
 
         if self.auxilliary_task_norm_not_norm:
             printing("DECODER hidden state after norm_not_norm_hidden size {}", var=[norm_not_norm_hidden.size()],
@@ -444,7 +452,7 @@ class LexNormalizer(nn.Module):
         if self.decoder is not None and not word_level_predict:
 
             output, attention_weight_all = self.decoder.forward(output=output_seq,
-                                                                conditioning=context, output_word_len=output_word_len,
+                                                                conditioning=for_decoder, output_word_len=output_word_len,
                                                                 word_src_sizes=word_src_sizes,
                                                                 char_seq_hidden_encoder=char_seq_hidden_encoder,
                                                                 proportion_pred_train=proportion_pred_train,
@@ -453,10 +461,10 @@ class LexNormalizer(nn.Module):
             output = None
             attention_weight_all = None
 
-        word_pred_state = self.word_decoder.forward(context) if self.word_decoder is not None else None
+        word_pred_state = self.word_decoder.forward(nn.ReLU()(context)) if self.word_decoder is not None else None
 
         if self.pos_predictor is not None:
-            pos_pred_state = self.pos_predictor.forward(context)
+            pos_pred_state = self.pos_predictor.forward(nn.ReLU()(context))
         else:
             pos_pred_state = None
 

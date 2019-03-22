@@ -13,7 +13,7 @@ class CoNLLReader(object):
 
   def __init__(self, file_path, word_dictionary,
                char_dictionary, pos_dictionary, type_dictionary, xpos_dictionary,
-               lemma_dictionary, word_norm_dictionary=None):
+               lemma_dictionary, word_norm_dictionary=None, max_char_len=MAX_CHAR_LENGTH):
     self.__source_file = codecs.open(file_path, 'r', 'utf-8', errors='ignore')
     self.__file_path = file_path
     self.__word_dictionary = word_dictionary
@@ -25,6 +25,10 @@ class CoNLLReader(object):
     self.__xpos_dictionary = xpos_dictionary
 
     self.__type_dictionary = type_dictionary
+    if max_char_len is None:
+      max_char_len = MAX_CHAR_LENGTH
+    printing("MODEL : max_char_len set to {} in CoNLLREADER ", var=max_char_len, verbose_level=1, verbose=1)
+    self.max_char_len = max_char_len
 
   def close(self):
     self.__source_file.close()
@@ -135,9 +139,9 @@ class CoNLLReader(object):
           char_norm_ids .append(self.__char_dictionary.get_index(char))
           char_norm_str.append(char)
 
-        if len(char_norm_ids) > MAX_CHAR_LENGTH:
-          char_norm_ids = char_norm_ids[:MAX_CHAR_LENGTH]
-          char_norm_str = char_norm_str[:MAX_CHAR_LENGTH]
+        if len(char_norm_ids) > self.max_char_len:
+          char_norm_ids = char_norm_ids[:self.max_char_len]
+          char_norm_str = char_norm_str[:self.max_char_len]
 
         char_norm_str_seq.append(char_norm_str)
         char_norm_id_seqs.append(char_norm_ids)
@@ -153,9 +157,9 @@ class CoNLLReader(object):
         chars.append(char)
         char_ids.append(self.__char_dictionary.get_index(char))
       # we cut the characters in regard to the GENERAL MAX_CHAR_LENGTH (not bucket specific)
-      if len(chars) > MAX_CHAR_LENGTH:
-        chars = chars[:MAX_CHAR_LENGTH]
-        char_ids = char_ids[:MAX_CHAR_LENGTH]
+      if len(chars) > self.max_char_len:
+        chars = chars[:self.max_char_len]
+        char_ids = char_ids[:self.max_char_len]
       char_seqs.append(chars)
       char_id_seqs.append(char_ids)
       #pdb.set_trace()

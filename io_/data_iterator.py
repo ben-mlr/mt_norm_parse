@@ -152,7 +152,7 @@ def sampling_proportion(task_n_sent, total_n_sents):
 def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_dictionary,
                  pos_dictionary,xpos_dictionary, type_dictionary, use_gpu,
                  norm_not_norm=False, word_decoder=False,
-                 simultanuous_training=False,bucket=True,
+                 simultanuous_training=False,bucket=True,max_char_len=None,
                  add_start_char=1, add_end_char=1, symbolic_end=True, symbolic_root=True,
                  verbose=1):
 
@@ -182,7 +182,7 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
                                                           normalization=TASKS_PARAMETER[task]["normalization"],
                                                           bucket=bucket,
                                                           add_start_char=add_start_char,
-                                                          add_end_char=add_end_char, tasks=[task],
+                                                          add_end_char=add_end_char, tasks=[task],max_char_len=max_char_len,
                                                           word_norm_dictionary=word_dictionary_norm, verbose=verbose)
     return readers
 
@@ -202,6 +202,7 @@ def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary, char_dic
                                          batch_size=batch_size, extend_n_batch=extend_n_batch,
                                          get_batch_mode=get_batch_mode,
                                          print_raw=False, normalization=TASKS_PARAMETER[task]["normalization"],
+
                                          verbose=verbose)
         end_task_flag[task] = False
         cumul_n_sent += readers[task][-1]

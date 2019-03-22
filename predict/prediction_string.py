@@ -14,6 +14,7 @@ TEST_SCORING_IN_CODE = False
 
 def decode_interacively(model, char_dictionary,  max_len, pad=1, sent_mode=False, save_attention=False,
                         show_attention=False, beam_decode=False,beam_size=None,
+                        showing_attention=False,
                         dir_attention=None, verbose=0):
     if char_dictionary is None:
         printing("INFO : dictionary is None so setting char_dictionary to model.char_dictionary",
@@ -36,6 +37,7 @@ def decode_interacively(model, char_dictionary,  max_len, pad=1, sent_mode=False
                 decode_seq_str(seq_string=sentence, model=model, char_dictionary=char_dictionary, pad=pad, max_len= max_len,
                                show_att=show_attention, beam_decode=beam_decode,beam_size=beam_size,
                                word_dictionary=word_dictionary, verbose=verbose, sent_mode=True,
+                               showing_attention=showing_attention,
                                dir_attention=dir_attention, save_attention=save_attention)
                 sentence = []
         elif seq_string == "END":
@@ -50,7 +52,7 @@ def decode_interacively(model, char_dictionary,  max_len, pad=1, sent_mode=False
 def decode_seq_str(seq_string, model, char_dictionary, pad=1,
                    dir_attention=None, save_attention=False,
                    show_att=False, beam_decode=False,beam_size=None,
-                   word_dictionary=None,
+                   word_dictionary=None,showing_attention=False,
                    max_len=20, verbose=2, sent_mode=False):
     assert sent_mode
     sent = seq_string.copy()
@@ -111,6 +113,7 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
                 (text_decoded, src_text, target, src_words_from_embed), _, (attention, src_seq), (pred_norm,_, _, _)  \
                     = decode_sequence(model=model, char_dictionary=char_dictionary,
                                       max_len=max_len, src_seq=batch, src_len=batch_lens, input_word=input_word,
+                                      showing_attention=showing_attention,
                                       src_mask=batch_masks, single_sequence=True, pad=pad, verbose=verbose)
             elif model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False):
 

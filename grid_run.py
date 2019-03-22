@@ -65,6 +65,7 @@ def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_pa
                                                                      "norm_not_norm-Recall",
                                                                      "norm_not_norm-accuracy"],
                                                 warmup=warmup, args=param, use_gpu=None, n_epochs=epochs,
+                                                max_char_len=100,
                                                 debug=debug,
                                                 verbose=1)
 
@@ -85,7 +86,7 @@ if __name__ == "__main__":
         assert os.environ.get("MODE_RUN") in ["DISTRIBUTED", "SINGLE"]
         run_standart = os.environ.get("MODE_RUN") != "DISTRIBUTED"
       else:
-          run_standart = False
+          run_standart = True
           print("LOCAL")
 
 
@@ -106,12 +107,12 @@ if __name__ == "__main__":
                             "word_recurrent_cell_encoder": "LSTM",
                             "hidden_size_sent_encoder": 24, "hidden_size_decoder": 30, "batch_size": 10}
       params_dozat = {"hidden_size_encoder": 400, "output_dim": 100, "char_embedding_dim": 100,
-                      "dropout_sent_encoder": 0.5 , "dropout_word_decoder": 0.3,
-                      "drop_out_word_encoder_out": 0.3, "drop_out_sent_encoder_out": 0.1,
-                      "drop_out_char_embedding_decoder": 0.3, "dropout_bridge": 0.0,
+                      "dropout_sent_encoder": 0.5, "dropout_word_decoder": 0.0,
+                      "drop_out_word_encoder_out": 0.3, "drop_out_sent_encoder_out": 0.5,
+                      "drop_out_char_embedding_decoder": 0.3, "dropout_bridge": 0.5,
                       "n_layers_word_encoder": 1, "dir_sent_encoder": 2, "word_recurrent_cell_decoder": "LSTM",
                       "word_recurrent_cell_encoder": "LSTM",
-                      "hidden_size_sent_encoder": 400, "hidden_size_decoder": 200, "batch_size": 500}
+                       "hidden_size_sent_encoder": 400, "hidden_size_decoder": 400, "batch_size": 500}
 
       grid_label = "B"#"POS-2LSMT-2dense+no_aux_task-sent_only-EWT_DEV-PONDERATION-1pos-0_norm"
       # param["policy"] = policy
@@ -208,8 +209,9 @@ if __name__ == "__main__":
               warmup_desc = "warmup" if warmup else ""
               test_before_run_desc = "test_before_run" if test_before_run else ""
               mode_run = "sing"
-              description = "{} - {} ({}) : Analysing : {} with regard to {} fixed".format(len(params) if not (warmup or test_before_run) else str(1)+"_WARMUP", mode_run,
-                                                                                           description_comment,analysed, fixed)
+              description = "{} - {} ({}) : Analysing : {} with regard to {} fixed".format(len(params) if not (warmup or test_before_run) else str(1)+"_WARMUP",
+                                                                                           description_comment,mode_run,
+                                                                                           analysed, fixed)
               row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=OAR, description=description, log_dir=log,
                                                 target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR, "{}*".format(LABEL_GRID)),
                                                 env=environment, status="running {}{}".format(warmup_desc, test_before_run_desc),
@@ -232,7 +234,7 @@ if __name__ == "__main__":
               raise(e)
 
       else:
-          epochs=100
+          epochs=1000
           train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV#MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
           dir_script, row = script_generation(grid_label=LABEL_GRID, 
                                               init_param=params_dozat,#params_dozat,#params_strong,#params_dozat,
@@ -241,32 +243,32 @@ if __name__ == "__main__":
                                               stable_decoding_state_ls=[0],
                                               word_decoding_ls=[0],
                                               epochs=epochs if not (test_before_run or warmup) else 1,
-                                              batch_size_ls=[50],
+                                              batch_size_ls=[5, 20, 50, 100],
                                               word_embed_ls=[1],
-                                              dir_sent_encoder_ls=[2],
+                                              dir_sent_encoder_ls=[2], dir_word_encoder_ls=[1],
                                               n_layers_sent_cell_ls=[2], n_layers_word_encoder_ls=[1],
-                                              lr_ls=[0.0005],
-                                              word_embed_init_ls=[None,DIR_FASTEXT_WIKI_NEWS_W2V, DIR_TWEET_W2V],
+                                              lr_ls=[0.003, 0.001, 0.0003],
+                                              word_embed_init_ls=[None, DIR_FASTEXT_WIKI_NEWS_W2V],
                                               teacher_force_ls=[1],
                                               word_recurrent_cell_encoder_ls=["LSTM"],
                                               dropout_word_encoder_cell_ls=[0.],
                                               proportion_pred_train_ls=[None],
-                                              shared_context_ls=["all"],
-                                              word_embedding_projected_dim_ls=[100],
-                                              char_level_embedding_projection_dim_ls=[100],
-                                              mode_word_encoding_ls=["sum","cat"],
+                                              shared_context_ls=["sent"],
+                                              word_embedding_projected_dim_ls=[125],
+                                              char_level_embedding_projection_dim_ls=[125],
+                                              mode_word_encoding_ls=["sum"],
                                               tasks_ls=[["pos"]],
                                               char_src_attention_ls=[0],
                                               unrolling_word_ls=[1],
                                               scale_ls=[1],
-                                              attention_tagging_ls=[1,0],
+                                              attention_tagging_ls=[1],
                                               overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                               description_comment=description_comment,
                                               train_path=train_path, dev_path=dev_path,
-                                              test_paths=[TEST, EWT_DEV, EN_LINES_EWT_TRAIN],
+                                              test_paths=[TEST, EWT_DEV, EWT_TEST,EN_LINES_EWT_TRAIN],
                                               gpu_mode="random",
                                               gpus_ls=gpu_ls,
-                                              multi_task_loss_ponderation_ls=[{"pos": 1, "normalize": 1,"norm_not_norm":0}],
+                                              multi_task_loss_ponderation_ls=[{"pos": 1, "normalize": 0,"norm_not_norm":0}],
                                               write_to_dir=RUN_SCRIPTS_DIR)
           print("row:{}".format(row))
           print("dir_script:{}".format(dir_script))

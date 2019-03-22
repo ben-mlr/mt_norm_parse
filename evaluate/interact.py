@@ -47,7 +47,7 @@ def interact(dic_path, model_full_name,
         dir_attention = None
     decode_interacively(max_len=MAX_LEN, model=model, char_dictionary=char_dictionary, sent_mode=True,
                         dir_attention=dir_attention, save_attention=save_attention, show_attention=show_attention,
-                        beam_decode=beam_decode, beam_size=beam_size,
+                        beam_decode=beam_decode, beam_size=beam_size, showing_attention=show_attention,
                         verbose=verbose)
     # /1eeb9-WARMUP-unrolling-False0-model_1-model_1_fd8c-folder/dictionaries/
     #1eeb9-WARMUP-unrolling-False0-model_1-model_1_fd8c-folder-50-False_get_batchNEW-repo-folder

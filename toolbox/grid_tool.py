@@ -69,7 +69,7 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
   if dir_word_encoder_ls is None:
     dir_word_encoder_ls = [DEFAULT_DIR_WORD_ENCODER]
     default.append(("dir_word_encoder", dir_word_encoder_ls[0]))
-  assert dir_word_encoder_ls[0] and len(dir_word_encoder_ls) == 1, "ERROR : only dir_word_encoder 2 allowed for Now (for loop nesting problem)"
+  assert len(dir_word_encoder_ls) == 1, "ERROR : only dir_word_encoder 2 allowed for Now (for loop nesting problem)"
   if char_src_attention_ls is None:
     char_src_attention_ls = [DEFAULT_CHAR_SRC_ATTENTION]
     default.append(("char_src_attention", char_src_attention_ls[0]))

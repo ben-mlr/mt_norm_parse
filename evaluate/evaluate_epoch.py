@@ -38,6 +38,7 @@ def evaluate(batch_size, data_path, task,
              compute_mean_score_per_sent=False,write_output=False,
              word_decoding=False, char_decoding=True,
              extra_arg_specific_label="", scoring_func_sequence_pred="BLUE",
+             max_char_len=None,
              normalization=True, debug=False, force_new_dic=False, use_gpu=None, verbose=0):
     assert model_specific_dictionary, "ERROR : only model_specific_dictionary = True supported now"
     # NB : now : you have to load dictionary when evaluating (cannot recompute) (could add in the LexNormalizer ability)
@@ -79,7 +80,7 @@ def evaluate(batch_size, data_path, task,
                                 pos_dictionary=model.pos_dictionary, xpos_dictionary=model.xpos_dictionary,
                                 type_dictionary=model.type_dictionary, use_gpu=use_gpu,
                                 norm_not_norm=model.auxilliary_task_norm_not_norm, word_decoder=word_decoding,
-                                bucket=bucket,
+                                bucket=bucket,max_char_len=max_char_len,
                                 add_start_char=1, add_end_char=1, symbolic_end=model.symbolic_end, symbolic_root=model.symbolic_root,
                                 verbose=verbose)
     batchIter = data_gen_multi_task_sampling_batch(tasks=[task], readers=readers_eval, batch_size=batch_size,

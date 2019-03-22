@@ -24,7 +24,6 @@ EPSILON = 0.000001
 TEST_SCORING_IN_CODE = False
 
 
-
 def decode_sequence_beam(model, max_len, src_seq, src_mask, src_len, char_dictionary,
                          pad=1, target_seq_gold=None,
                          use_gpu=False, beam_size=2,
@@ -199,6 +198,7 @@ def decode_word(model, src_seq, src_len,
                                                                       word_decode=True,
                                                                       word_dic=model.word_nom_dictionary,
                                                                       debug=False,
+                                                                      showing_attention=False,
                                                                       single_sequence=single_sequence, char_decode=False,
                                                                       output_str=True)
         else:
@@ -259,7 +259,7 @@ def decode_word(model, src_seq, src_len,
 
 def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                     pad=1, target_seq_gold=None, input_word=None,
-                    use_gpu=False,
+                    use_gpu=False, showing_attention=False,
                     single_sequence=False, eval_time=True, verbose=2,
                     timing=False):
 
@@ -349,17 +349,20 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
     pred_word_count, text_decoded, decoded_ls = output_text_(output_seq[:,:,1:],
                                                              char_dictionary, single_sequence=single_sequence,
                                                              output_str=output_str,
-                                                             last=(char_decode==(max_len-1)),
+                                                             last=(char_decode == (max_len-1)),
+                                                             showing_attention=showing_attention,
                                                              debug=False)
     time_output_text, start = get_timing(start)
     time_decoding_all_seq, start  = get_timing(start_decode_sequence)
     printing("PREDICTION : array text {} ", var=[text_decoded], verbose=verbose, verbose_level=5)
     src_word_count, src_text, src_all_ls = output_text_(src_seq, char_dictionary, single_sequence=single_sequence,
+                                                        showing_attention=showing_attention,
                                                         output_str=output_str)
     printing("SOURCE  : array text {} ", var=[src_text], verbose=verbose, verbose_level=5)
     src_text_ls.extend(src_text)
     if target_seq_gold is not None:
         target_word_count, target_text, _ = output_text_(target_seq_gold, char_dictionary,
+                                                         showing_attention=showing_attention,
                                                          single_sequence=single_sequence, output_str=output_str)
         target_seq_gold_ls.extend(target_text)
         printing("GOLD : array text {} ", var=[target_text], verbose=verbose, verbose_level=5)

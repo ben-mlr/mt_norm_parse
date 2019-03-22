@@ -72,6 +72,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
           extra_arg_specific_label="",
           freezing_mode=False, freeze_ls_param_prefix=None,
           multi_task_loss_ponderation=None,
+          max_char_len=None,
           attention_tagging=False,
           optimizer="adam",
           verbose=1):
@@ -92,9 +93,11 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
     printing("WARNING bucketing is {} ", var=bucketing, verbose=verbose, verbose_level=1)
     if freq_writer is None:
         freq_writer = freq_checkpointing
-        printing("REPORTING freq_writer set to freq_checkpointing {}", var=[freq_checkpointing], verbose=verbose, verbose_level=1)
+        printing("REPORTING freq_writer set to freq_checkpointing {}", var=[freq_checkpointing], verbose=verbose,
+                 verbose_level=1)
     if auxilliary_task_norm_not_norm:
-        printing("MODEL : training model with auxillisary task (loss weighted with {})", var=[weight_binary_loss], verbose=verbose, verbose_level=1)
+        printing("MODEL : training model with auxillisary task (loss weighted with {})", var=[weight_binary_loss],
+                 verbose=verbose, verbose_level=1)
     if compute_scoring_curve:
         assert score_to_compute_ls is not None and mode_norm_ls is not None and freq_scoring is not None, \
             "ERROR score_to_compute_ls and mode_norm_ls should not be None"
@@ -222,7 +225,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
 
     parameters = filter(lambda p: p.requires_grad, model.parameters())
     if optimizer == "adam":
-        adam = torch.optim.Adam(parameters, lr=lr, betas=(0.9, 0.98), eps=1e-9)
+        adam = torch.optim.Adam(parameters, lr=lr, betas=(0.9, 0.95), eps=1e-9)
     elif optimizer == "bahdanu-adadelta":
         adam = torch.optim.Adadelta(parameters, eps=10e-6, rho=0.95)
     _loss_dev = 1000
@@ -247,7 +250,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                  type_dictionary=model.type_dictionary, use_gpu=use_gpu,
                                  norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=word_decoding,
                                  add_start_char=add_start_char, add_end_char=add_end_char, symbolic_end=symbolic_end,
-                                 symbolic_root=symbolic_root,bucket=bucketing,
+                                 symbolic_root=symbolic_root,bucket=bucketing,max_char_len=max_char_len,
                                  verbose=verbose)
 
     readers_dev = readers_load(datasets=dev_path, tasks=tasks, word_dictionary=model.word_dictionary,
@@ -256,7 +259,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                type_dictionary=model.type_dictionary, use_gpu=use_gpu,
                                norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=word_decoding,
                                add_start_char=add_start_char, add_end_char=add_end_char, symbolic_end=symbolic_end,
-                               symbolic_root=symbolic_root,bucket=bucketing,
+                               symbolic_root=symbolic_root,bucket=bucketing,max_char_len=max_char_len,
                                verbose=verbose)
 
     dir_writer = os.path.join(overall_report_dir, "runs", "{}-model".format(model.model_full_name))

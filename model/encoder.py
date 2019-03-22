@@ -47,9 +47,11 @@ class CharEncoder(nn.Module):
         self.char_level_encoding_projection = nn.Linear(dim_attention+dim_last_layer_state,
                                                         char_level_embedding_projection_dim) if char_level_embedding_projection_dim >0 else None
         if dir_word_encoder == 2:
-            assert hidden_size_encoder % 2 == 0, "ERROR = it will be divided by two and remultipy so need even number for simplicity"
+            assert hidden_size_encoder % 2 == 0, "ERROR = it will be divided " \
+                                                 "by two and remultipy so need even number for simplicity"
         if bidir_sent:
-            assert hidden_size_sent_encoder % 2 == 0, "ERROR = it will be divided by two and remultipy so need even number for simplicity"
+            assert hidden_size_sent_encoder % 2 == 0, "ERROR = it will be divided by " \
+                                                      "two and remultipy so need even number for simplicity"
 
         # if attention the state is concatanated with the cell state (*2)
         char_level_rnn_output = hidden_size_encoder*n_layers_word_cell*dir_word_encoder if not attention_tagging else 2 * hidden_size_encoder * n_layers_word_cell*dir_word_encoder

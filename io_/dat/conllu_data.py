@@ -328,7 +328,7 @@ def create_dict(dict_path, train_path, dev_path, test_path,
 def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary, max_size=None,
               word_norm_dictionary=None,
               normalize_digits=True, word_decoder=False, 
-              normalization=False, bucket=False,
+              normalization=False, bucket=False, max_char_len=None,
               symbolic_root=False, symbolic_end=False, dry_run=False,tasks=None,
               verbose=0):
   """
@@ -337,6 +337,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
   - each bucket is a list of unicode encoded worrds, character, pos tags, relations, ... based on DependancyInstances()
    and Sentence() objects
   """
+
   if bucket:
     _buckets = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, -1]
   else:
@@ -351,6 +352,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
     print('Reading data from %s' % source_path)
   counter = 0
   reader = CoNLLReader(source_path, word_dictionary, char_dictionary, pos_dictionary, type_dictionary, xpos_dictionary,
+                       max_char_len=max_char_len,
                        lemma_dictionary=None, word_norm_dictionary=word_norm_dictionary)
   printing("DATA iterator based on {} tasks", var=tasks, verbose_level=1, verbose=verbose)
   inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end,
@@ -396,11 +398,13 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
                           type_dictionary, max_size=None, normalize_digits=True, symbolic_root=False,word_norm_dictionary=None,
                           symbolic_end=False, use_gpu=False, volatile=False, dry_run=False, lattice=None,
                           verbose=0, normalization=False, bucket=True, norm_not_norm=False, word_decoder=False,
-                          tasks=None,
+                          tasks=None,max_char_len=MAX_CHAR_LENGTH,
                           add_end_char=0, add_start_char=0):
   """
   Given data ovject form read_variable creates array-like  variables for character, word, pos, relation, heads ready to be fed to a network
   """
+  if max_char_len is None:
+    max_char_len = MAX_CHAR_LENGTH
   if norm_not_norm:
     assert normalization, "norm_not_norm can't be set without normalisation info"
   printing("WARNING symbolic root {} is and symbolic end is {} ", var=[symbolic_root, symbolic_end], verbose=verbose, verbose_level=1)
@@ -408,13 +412,13 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
                                                   xpos_dictionary, type_dictionary, bucket=bucket,word_norm_dictionary=word_norm_dictionary,
                                                   verbose=verbose, max_size=max_size, normalization=normalization,
                                                   normalize_digits=normalize_digits, symbolic_root=symbolic_root,
-                                                  word_decoder=word_decoder,tasks=tasks,
+                                                  word_decoder=word_decoder,tasks=tasks,max_char_len=max_char_len,
                                                   symbolic_end=symbolic_end, dry_run=dry_run)
 
   max_char_length = max_char_length_dic["max_char_length"]
   max_char_norm_length = max_char_length_dic["max_char_norm_length"]
 
-  printing("DATA MAX_CHAR_LENGTH set to {}".format(MAX_CHAR_LENGTH), verbose=verbose, verbose_level=1)
+  printing("DATA MAX_CHAR_LENGTH set to {}".format(max_char_len), verbose=verbose, verbose_level=1)
 
 
   bucket_sizes = [len(data[b]) for b in range(len(_buckets))]
@@ -430,7 +434,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       data_variable.append((1, 1))
       continue
     bucket_length = _buckets[bucket_id]
-    char_length = min(MAX_CHAR_LENGTH+NUM_CHAR_PAD, max_char_length[bucket_id] + NUM_CHAR_PAD)
+    char_length = min(max_char_len+NUM_CHAR_PAD, max_char_length[bucket_id] + NUM_CHAR_PAD)
     wid_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)
     cid_inputs = np.empty([bucket_size, bucket_length, char_length], dtype=np.int64)
     pid_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)
@@ -439,7 +443,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
     tid_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)
 
     if normalization:
-      char_norm_length = min(MAX_CHAR_LENGTH+NUM_CHAR_PAD, max_char_norm_length[bucket_id] + NUM_CHAR_PAD)
+      char_norm_length = min(max_char_len+NUM_CHAR_PAD, max_char_norm_length[bucket_id] + NUM_CHAR_PAD)
       cids_norm = np.empty([bucket_size, bucket_length, char_norm_length], dtype=np.int64)
       if word_decoder:
         wid_norm_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)

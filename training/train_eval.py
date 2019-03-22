@@ -42,6 +42,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                extend_n_batch=1, score_to_compute_ls=None,
                symbolic_end=False, symbolic_root=False,
                gpu=None, use_gpu=None, scoring_func_sequence_pred=DEFAULT_SCORING_FUNCTION,
+               max_char_len=None,
                verbose=0):
     if gpu is not None and use_gpu_(use_gpu):
         assert use_gpu or use_gpu is None, "ERROR : use_gpu should be neutral (None) or True as 'gpu' is defined"
@@ -181,6 +182,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                             stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                             multi_task_loss_ponderation=multi_task_loss_ponderation,
                             test_path=test_path[0] if isinstance(test_path, list) else test_path,
+                            max_char_len=max_char_len,
                             checkpointing=True, verbose=verbose)
 
     model_dir = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder")
@@ -219,7 +221,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                          batch_size=batch_size, debug=debug,
                          word_decoding=word_decoding, char_decoding=char_decoding,
                          scoring_func_sequence_pred=scoring_func_sequence_pred,
-                         task=task,
+                         task=task, max_char_len=max_char_len,
                          dir_report=model_dir, verbose=1)
         printing("GRID : END EVAL {} ".format(time.time()-start_eval), verbose=verbose, verbose_level=1)
     printing("WARNING : no evaluation ", verbose=verbose, verbose_level=0)
