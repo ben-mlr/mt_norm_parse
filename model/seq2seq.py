@@ -521,7 +521,7 @@ class LexNormalizer(nn.Module):
         model.arguments["multi_task_loss_ponderation"] = info_checkpoint["other"]["multi_task_loss_ponderation"]
         model.arguments["info_checkpoint"]["git_id"] = get_commit_id()
         model.arguments["checkpoint_dir"] = checkpoint_dir
-        model.arguments["dropout_input"] = info_checkpoint["other"]["dropout_input"]
+        model.arguments["hyperparameters"]["dropout_input"] = info_checkpoint["other"]["dropout_input"]
         # the arguments dir does not change !
         if len(extra_arg_specific_label) > 0:
             extra_arg_specific_label += "-"

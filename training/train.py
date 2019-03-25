@@ -327,7 +327,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
         batchIter_eval = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_dev, batch_size=batch_size,
                                                             word_dictionary=model.word_dictionary,
                                                             char_dictionary=model.char_dictionary,
-                                                            pos_dictionary=model.pos_dictionary,dropout_input=0,
+                                                            pos_dictionary=model.pos_dictionary, dropout_input=0,
                                                             extend_n_batch=1, get_batch_mode=False, verbose=verbose)
         _create_iter_time, start = get_timing(start)
         # TODO : should be able o factorize this to have a single run_epoch() for train and dev (I think the computaiton would be same )

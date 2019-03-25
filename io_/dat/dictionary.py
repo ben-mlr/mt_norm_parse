@@ -55,7 +55,7 @@ class Dictionary(object):
               "inv_ls": self.inv_ls}
     else:
       return {'instance2index': self.instance2index, 'instances': self.instances, 'singletions': list(self.singletons),
-              "inv_ls":self.inv_ls}
+              "inv_ls": self.inv_ls}
 
   def save(self, output_directory, name=None):
     saving_name = name if name else self.__name

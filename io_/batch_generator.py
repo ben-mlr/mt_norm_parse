@@ -7,6 +7,7 @@ from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 from io_.dat.constants import PAD_ID_CHAR 
 from io_.info_print import printing
 import time
+from io_.dat.constants import PAD_ID_CHAR, PAD_ID_WORD, CHAR_START_ID, CHAR_END_ID
 from toolbox.sanity_check import get_timing
 from collections import OrderedDict
 
@@ -31,17 +32,22 @@ class MaskBatch(object):
         self.pos = pos
         self.input_word = input_word
         if dropout_input>0:
-            print("DROPOUT", dropout_input)
             # we put it jere so that input_seq_mask computed based on droped input_seq # migh cause trouble for input_seq_len
             #pdb.set_trace()
-            #self.input_word = torch.mul(torch.zeros_like(input_word).bernoulli_(1-dropout_input), input_word)
-            #output_seq = torch.mul(torch.zeros_like(output_seq).bernoulli_(1 - dropout_input), output_seq)
-            multiplier = torch.zeros_like(input_seq).bernoulli_(1 - dropout_input)
-            #multiplier[0, :, :] = 1 # making sure first tokens are always untouched
-            self.input_seq = torch.mul(multiplier, input_seq)
+            droping_multiplier_word = torch.zeros_like(input_word).bernoulli_(1-dropout_input)
+            pdb.set_trace()
+            # NB : we can use this droping cause we replace by 0 character and word id which corresponds to UNK token
+            droping_multiplier_word[0, :] = 1
+            droping_multiplier_word[input_word == 3] = 1
+            droping_multiplier_word[input_word == PAD_ID_WORD] = 1
+            self.input_word = torch.mul(droping_multiplier_word, input_word)
+            droping_multiplier_char = torch.zeros_like(input_seq).bernoulli_(1 - dropout_input)
+            droping_multiplier_char[0, :, :] = 1 # making sure first tokens are always untouched
+            droping_multiplier_char[input_seq == PAD_ID_CHAR] = 1 # making sure padding are always untouched
+            droping_multiplier_char[input_seq == CHAR_END_ID] = 1  # making sure padding are always untouched
+            self.input_seq = torch.mul(droping_multiplier_char, input_seq)
+
             # TODO : add different drop out in output_seq_x and output_seq_y
-            # TODO : ad test mode --> remove drop out !!
-            #  word_input is a problem for drop out
             pdb.set_trace()
         self.output_norm_not_norm = output_norm_not_norm
         self.output_word = output_word
@@ -67,6 +73,11 @@ class MaskBatch(object):
         if output_seq is not None:
             ##- would be last dim also !
             self.output_seq_x = output_seq[:, :, :-1]
+            droping_multiplier_char_output_seq = torch.zeros_like(self.output_seq_x).bernoulli_(1 - dropout_input)
+            droping_multiplier_char_output_seq[0, :, :] = 1  # making sure first tokens are always untouched
+            droping_multiplier_char_output_seq[self.output_seq_x == PAD_ID_CHAR] = 1  # making sure padding are always untouched
+            droping_multiplier_char_output_seq[self.output_seq_x == CHAR_END_ID] = 1  # making sure padding are always untouched
+            self.output_seq_x = torch.mul(droping_multiplier_char_output_seq, self.output_seq_x)
             zero_last_output, start = get_timing(start)
             ##- ? what unsequeeze
             _output_mask_x = (self.output_seq_x != pad).unsqueeze(-2)

@@ -30,6 +30,10 @@ When any new features is implemented the impact the training process :
 - It's meant to be flexible
 -  
 
+## Conventions : 
+
+- id 0 in all dictionary is default one : UNK tokens
+
 
 ## Verbosity typology
 

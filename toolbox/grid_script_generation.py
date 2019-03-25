@@ -59,7 +59,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
         tasks_ls=tasks_ls,
         attention_tagging_ls=attention_tagging_ls,
         char_src_attention_ls=char_src_attention_ls,
-        n_layers_sent_cell_ls=n_layers_sent_cell_ls,dir_word_encoder_ls=dir_word_encoder_ls,
+        n_layers_sent_cell_ls=n_layers_sent_cell_ls, dir_word_encoder_ls=dir_word_encoder_ls,
         multi_task_loss_ponderation_ls=multi_task_loss_ponderation_ls,
         mode_word_encoding_ls=mode_word_encoding_ls, char_level_embedding_projection_dim_ls=char_level_embedding_projection_dim_ls,
         unrolling_word_ls=unrolling_word_ls, n_layers_word_encoder_ls=n_layers_word_encoder_ls, dropout_input_ls=dropout_input_ls,
@@ -73,7 +73,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
     mode_run = "dist"
     description = "{} - {} ({}) : Analysing : {} with regard to {} fixed".format(len(params) if not warmup else str(1)+"_WARMUP",
                                                                                  description_comment,mode_run, analysed, fixed)
-    row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=os.environ.get("OAR_JOB_ID",grid_label), description=description,
+    row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=os.environ.get("OAR_JOB_ID", grid_label), description=description,
                                       log_dir=dir_log, target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR,
                                                                                               "{}*".format(grid_label)),
                                       env=environment, status="running {}".format(warmup_desc),
