@@ -248,7 +248,7 @@ if __name__ == "__main__":
                                               stable_decoding_state_ls=[0],
                                               word_decoding_ls=[0],
                                               epochs=epochs if not (test_before_run or warmup) else 1,
-                                              batch_size_ls=[50, 70, 90],
+                                              batch_size_ls=[50],
                                               word_embed_ls=[1],
                                               dir_sent_encoder_ls=[2], dir_word_encoder_ls=[1],
                                               n_layers_sent_cell_ls=[2], n_layers_word_encoder_ls=[1],
@@ -274,7 +274,7 @@ if __name__ == "__main__":
                                               gpu_mode="random",
                                               gpus_ls=gpu_ls,
                                               scoring_func="exact_match",
-                                              dropout_input_ls=[0.1],
+                                              dropout_input_ls=[0., 0.000001, 0.1, 0.33, 0.5, 0.8],
                                               multi_task_loss_ponderation_ls=[{"pos": 1, "normalize": 0, "norm_not_norm":0}],
                                               write_to_dir=RUN_SCRIPTS_DIR)
           print("row:{}".format(row))

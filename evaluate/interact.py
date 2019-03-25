@@ -107,10 +107,10 @@ if __name__ == "__main__":
         dic_path = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder", "dictionaries")
         model_dir = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder")
         interact(dic_path=dic_path, dir_model=model_dir, model_full_name=model_full_name,
-                 beam_decode=True, beam_size=2,
+                 beam_decode=True, beam_size=10,
                  word_decoding=False,
                  save_attention=False, show_attention=False,
-                 max_len=5,
+                 max_len=8,
                  debug=0, verbose=1)
         #break
     #show_attention("[lekfezlfkh efj ", ["se", "mjfsemkfj"], torch.tensor([[0,.4], [1,0.6]]))
