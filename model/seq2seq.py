@@ -179,6 +179,7 @@ class LexNormalizer(nn.Module):
                                                   "git_id": git_commit_id},
                               "hyperparameters": {
                                   "lr": None, "lr_policy": None, "extend_vocab_with_test": extend_vocab_with_test,
+                                  "dropout_input": None,
                                   "optimizer": None,
                                   "multi_task_loss_ponderation": multi_task_loss_ponderation,
                                   "shared_context": shared_context,
@@ -203,7 +204,7 @@ class LexNormalizer(nn.Module):
                                                    "word_embed": word_embed,  "word_embedding_dim": word_embedding_dim,
                                                    "word_embedding_projected_dim": word_embedding_projected_dim,
                                                    "n_layers_word_encoder": n_layers_word_encoder,
-                                                   "word_embed_init": REPO_W2V.get(word_embed_dir, {"label": "none"}).get("label"),
+                                                   "word_embed_init": REPO_W2V[word_embed_dir]["label"],
                                                    "dir_sent_encoder": dir_sent_encoder,
                                                    "dir_word_encoder": dir_word_encoder,
                                                    "attention_tagging": attention_tagging,
@@ -429,7 +430,9 @@ class LexNormalizer(nn.Module):
                 word_embed_input = self.word_embedding_project(word_embed_input)
                 word_embed_input = self.dropout_word_encoder(word_embed_input)
 
-        context, sent_len_max_source, char_seq_hidden_encoder, word_src_sizes, attention_weights_char_tag = self.encoder.forward(input_seq, input_word_len, word_embed_input=word_embed_input)
+        context, sent_len_max_source, char_seq_hidden_encoder, word_src_sizes, attention_weights_char_tag = self.encoder.forward(input_seq,
+                                                                                                                                 input_word_len,
+                                                                                                                                 word_embed_input=word_embed_input)
 
         source_encoder, start = get_timing(start)
         # [] [batch, , hiden_size_decoder]
@@ -518,6 +521,7 @@ class LexNormalizer(nn.Module):
         model.arguments["multi_task_loss_ponderation"] = info_checkpoint["other"]["multi_task_loss_ponderation"]
         model.arguments["info_checkpoint"]["git_id"] = get_commit_id()
         model.arguments["checkpoint_dir"] = checkpoint_dir
+        model.arguments["dropout_input"] = info_checkpoint["other"]["dropout_input"]
         # the arguments dir does not change !
         if len(extra_arg_specific_label) > 0:
             extra_arg_specific_label += "-"

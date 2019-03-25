@@ -29,8 +29,9 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                       word_embedding_projected_dim_ls,
                       word_recurrent_cell_encoder_ls, dropout_word_encoder_cell_ls,
                       tasks_ls, char_src_attention_ls, mode_word_encoding_ls, char_level_embedding_projection_dim_ls,
-                      n_layers_sent_cell_ls, unrolling_word_ls,attention_tagging_ls,n_layers_word_encoder_ls,multi_task_loss_ponderation_ls,dir_word_encoder_ls,
-                      scale_ls, pos_specific_path=None, gpu_mode="random", description_comment="",gpus_ls=None,write_to_dir=None,test_before_run=False):
+                      n_layers_sent_cell_ls, unrolling_word_ls,attention_tagging_ls, n_layers_word_encoder_ls, multi_task_loss_ponderation_ls,dir_word_encoder_ls,
+                      dropout_input_ls,
+                      scale_ls, pos_specific_path=None, gpu_mode="random", description_comment="",gpus_ls=None,write_to_dir=None,test_before_run=False,scoring_func=None):
     if isinstance(test_paths, str):
         test_paths = [test_paths]
 
@@ -41,6 +42,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
         warmup_desc += " test_before_run"
     params, labels, default_all, analysed, fixed = grid_param_label_generate(
         init_param,
+        scoring_func=scoring_func,
         grid_label=grid_label,
         stable_decoding_state_ls=stable_decoding_state_ls,
         word_decoding_ls=word_decoding_ls,
@@ -60,7 +62,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
         n_layers_sent_cell_ls=n_layers_sent_cell_ls,dir_word_encoder_ls=dir_word_encoder_ls,
         multi_task_loss_ponderation_ls=multi_task_loss_ponderation_ls,
         mode_word_encoding_ls=mode_word_encoding_ls, char_level_embedding_projection_dim_ls=char_level_embedding_projection_dim_ls,
-        unrolling_word_ls=unrolling_word_ls, n_layers_word_encoder_ls=n_layers_word_encoder_ls,
+        unrolling_word_ls=unrolling_word_ls, n_layers_word_encoder_ls=n_layers_word_encoder_ls, dropout_input_ls=dropout_input_ls,
         scale_ls=scale_ls, gpu_mode=gpu_mode, gpus_ls=gpus_ls)
     if gpu_mode == "random":
         if gpus_ls is None:

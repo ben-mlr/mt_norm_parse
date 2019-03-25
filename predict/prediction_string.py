@@ -20,6 +20,7 @@ def decode_interacively(model, char_dictionary,  max_len, pad=1, sent_mode=False
         printing("INFO : dictionary is None so setting char_dictionary to model.char_dictionary",
                  verbose=verbose, verbose_level=0)
         char_dictionary = model.char_dictionary
+    printing("MAX_LEN {} ",var=max_len, verbose=verbose, verbose_level=1)
     if model.arguments["hyperparameters"]["encoder_arch"].get("word_embed",False):
         word_dictionary = model.word_dictionary
     else:
@@ -102,10 +103,13 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
         batch_lens = Variable(torch.from_numpy(np.array([sent_words_lens, sent_words_lens])), requires_grad=False)
         batch_lens = batch_lens.unsqueeze(dim=2)
         if beam_decode:
-            decode_sequence_beam(model=model, char_dictionary=char_dictionary,
+            (text_decoded, src_text, target, src_words_from_embed), _, (attention, src_seq), (pred_norm,_, _, _) = \
+                decode_sequence_beam(model=model, char_dictionary=char_dictionary,
                                  max_len=max_len, src_seq=batch, src_len=batch_lens,beam_size=beam_size,
+                                 input_word=input_word,
                                  src_mask=batch_masks, pad=pad,
                                  verbose=verbose)
+            pred_pos_ls, src_text_pos, gold_pos_seq_ls = None, None, None
         else:
 
             if model.arguments["hyperparameters"]["decoder_arch"].get("char_decoding", True):

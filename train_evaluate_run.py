@@ -31,8 +31,9 @@ if __name__ == "__main__":
 
     args = args_train()
     params = vars(args)
+
     params["multi_task_loss_ponderation"] = parse_argument_dictionary(params["multi_task_loss_ponderation"])
-    print("DISTRIBUTED : TRAINING EVALUATE STARTING thread on GPU {} ".format(os.environ.get("CUDA_VISIBLE_DEVICES","NO GPU FOUND")))
+    print("DISTRIBUTED : TRAINING EVALUATE STARTING thread on GPU {} ".format(os.environ.get("CUDA_VISIBLE_DEVICES", "NO GPU FOUND")))
     model_full_name, model_dir = train_eval(args=params,
                                             model_id_pref=args.model_id_pref,
                                             train_path=args.train_path,
@@ -47,7 +48,7 @@ if __name__ == "__main__":
                                             symbolic_end=True, symbolic_root=True, freq_writer=1, compute_scoring_curve=False,
                                             gpu=args.gpu,
                                             verbose=args.verbose,
-                                            warmup=args.warmup,
-                                            scoring_func_sequence_pred="BLUE",#DEFAULT_SCORING_FUNCTION,
+                                            warmup=args.warmup, max_char_len=20,
+                                            scoring_func_sequence_pred=params["scoring_func"], #DEFAULT_SCORING_FUNCTION,
                                             debug=args.debug)
     print("DISTRIBUTED : TRAINING EVALUATE DONE train_eval thread on done of model {} dir {} ".format(model_full_name, model_dir))

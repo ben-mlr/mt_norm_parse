@@ -20,7 +20,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                     batch_size,
                     get_batch_mode=True,
                     padding=1, print_raw=False, normalization=False, pos_dictionary=None,
-                    extend_n_batch=1,
+                    extend_n_batch=1,dropout_input=None,
                     timing=False,
                     verbose=0):
 
@@ -51,11 +51,11 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
 
             if not NORM2NOISY:
                 yield MaskBatch(chars, chars_norm,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
-                                output_word=word_norm, pos=pos, input_word=words,
+                                output_word=word_norm, pos=pos, input_word=words,dropout_input=dropout_input,
                                 verbose=verbose), order_ids
             else:
                 yield MaskBatch(chars_norm, chars,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
-                                output_word=word_norm, pos=pos, input_word=words,
+                                output_word=word_norm, pos=pos, input_word=words,dropout_input=dropout_input,
                                 verbose=verbose), order_ids
 
 
@@ -103,11 +103,11 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             if NORM2NOISY:
                 print("WARNING !! NORM2NOISY ON ")
                 yield MaskBatch(chars_norm, char, output_word=word_norm,
-                                output_norm_not_norm=word_norm_not_norm,
+                                output_norm_not_norm=word_norm_not_norm,dropout_input=dropout_input,
                                 pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose), order_ids
             else:
                 yield MaskBatch(char, chars_norm, output_word=word_norm,
-                                output_norm_not_norm=word_norm_not_norm,
+                                output_norm_not_norm=word_norm_not_norm,dropout_input=dropout_input,
                                 pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose), order_ids
 
 
@@ -188,7 +188,9 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
 
 
 def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary, char_dictionary, pos_dictionary,extend_n_batch,
-                                       batch_size,  get_batch_mode=True, mode_batch_sampling="proportional", verbose=1):
+                                       batch_size,  get_batch_mode=True, mode_batch_sampling="proportional",
+                                       dropout_input=None,
+                                       verbose=1):
     "multitask learning iterator "
     assert len(tasks) == len(readers)
     assert mode_batch_sampling in MODE_BATCH_SAMPLING_AVAILABLE
@@ -200,9 +202,8 @@ def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary, char_dic
         iterator[task] = data_gen_conllu(data=readers[task], word_dictionary=word_dictionary,
                                          char_dictionary=char_dictionary, pos_dictionary=pos_dictionary,
                                          batch_size=batch_size, extend_n_batch=extend_n_batch,
-                                         get_batch_mode=get_batch_mode,
+                                         get_batch_mode=get_batch_mode, dropout_input=dropout_input,
                                          print_raw=False, normalization=TASKS_PARAMETER[task]["normalization"],
-
                                          verbose=verbose)
         end_task_flag[task] = False
         cumul_n_sent += readers[task][-1]

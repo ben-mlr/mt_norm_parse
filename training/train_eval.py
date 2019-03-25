@@ -124,6 +124,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
     attention_tagging = args.get("attention_tagging", False)
 
     multi_task_loss_ponderation = args.get("multi_task_loss_ponderation", "all")
+    dropout_input = args.get("dropout_input", None)
 
     n_epochs = 1 if warmup else n_epochs
 
@@ -181,6 +182,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                             attention_tagging=attention_tagging,
                             stable_decoding_state=stable_decoding_state, init_context_decoder=init_context_decoder,
                             multi_task_loss_ponderation=multi_task_loss_ponderation,
+                            dropout_input=dropout_input,
                             test_path=test_path[0] if isinstance(test_path, list) else test_path,
                             max_char_len=max_char_len,
                             checkpointing=True, verbose=verbose)

@@ -21,7 +21,7 @@ def subsequent_mask(size):
 class MaskBatch(object):
     def __init__(self, input_seq, output_seq,
                  output_word=None, pos=None, input_word=None,
-                 output_norm_not_norm=None, pad=0, verbose=0, timing=False):
+                 output_norm_not_norm=None, pad=0, verbose=0, timing=False, dropout_input=0.):
         # input mask
         if not output_seq.size(0) >1:
             pdb.set_trace()
@@ -30,6 +30,19 @@ class MaskBatch(object):
         self.input_seq = input_seq
         self.pos = pos
         self.input_word = input_word
+        if dropout_input>0:
+            print("DROPOUT", dropout_input)
+            # we put it jere so that input_seq_mask computed based on droped input_seq # migh cause trouble for input_seq_len
+            #pdb.set_trace()
+            #self.input_word = torch.mul(torch.zeros_like(input_word).bernoulli_(1-dropout_input), input_word)
+            #output_seq = torch.mul(torch.zeros_like(output_seq).bernoulli_(1 - dropout_input), output_seq)
+            multiplier = torch.zeros_like(input_seq).bernoulli_(1 - dropout_input)
+            #multiplier[0, :, :] = 1 # making sure first tokens are always untouched
+            self.input_seq = torch.mul(multiplier, input_seq)
+            # TODO : add different drop out in output_seq_x and output_seq_y
+            # TODO : ad test mode --> remove drop out !!
+            #  word_input is a problem for drop out
+            pdb.set_trace()
         self.output_norm_not_norm = output_norm_not_norm
         self.output_word = output_word
         # unsqueeze add 1 dim between batch and word len ##- ?   ##- for commenting on context implementaiton

@@ -14,6 +14,7 @@ def interact(dic_path, model_full_name,
              word_decoding=False,
              extra_arg_specific_label="",
              save_attention=False, show_attention=False, beam_decode=False,
+             max_len=MAX_LEN,
              verbose=2):
     from model.seq2seq import LexNormalizer
 
@@ -45,7 +46,7 @@ def interact(dic_path, model_full_name,
         printing("Saving to {} {}", var=[info, dir_attention], verbose_level=1, verbose=verbose)
     else:
         dir_attention = None
-    decode_interacively(max_len=MAX_LEN, model=model, char_dictionary=char_dictionary, sent_mode=True,
+    decode_interacively(max_len=max_len, model=model, char_dictionary=char_dictionary, sent_mode=True,
                         dir_attention=dir_attention, save_attention=save_attention, show_attention=show_attention,
                         beam_decode=beam_decode, beam_size=beam_size, showing_attention=show_attention,
                         verbose=verbose)
@@ -98,7 +99,7 @@ if __name__ == "__main__":
     # word decode with word embed
     list_ = ["1f86c-WARMUP-unrolling-False0-model_1-model_1_57b7-folder"]
     # char decode
-    list_ = ["aa1bc-B0-model_1-model_1_1cb2-folder"]
+    list_ = ["9088021_rioc--B0-model_1-model_1_9fe6-folder"]
     for folder_name in list_:
         model_full_name = folder_name[:-7]
         print("Interatcing with new model : ", model_full_name)
@@ -106,9 +107,18 @@ if __name__ == "__main__":
         dic_path = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder", "dictionaries")
         model_dir = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder")
         interact(dic_path=dic_path, dir_model=model_dir, model_full_name=model_full_name,
-                 beam_decode=False, beam_size=1,
+                 beam_decode=True, beam_size=2,
                  word_decoding=False,
-                 save_attention=False, show_attention=True,
-                 debug=False, verbose=1)
+                 save_attention=False, show_attention=False,
+                 max_len=5,
+                 debug=0, verbose=1)
         #break
     #show_attention("[lekfezlfkh efj ", ["se", "mjfsemkfj"], torch.tensor([[0,.4], [1,0.6]]))
+
+# BEAM  - WHATS HAPPENING
+## It's dedcent beam
+## it works with beam_size 1
+## if beamSIze>1 they make no sense : and no related with first character
+#-- > CRITICAL POINT
+#           - index finding that does not work when bea size >1
+#            -

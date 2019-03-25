@@ -17,7 +17,6 @@ from model.attention import Attention
 EPSILON = 1e-6
 
 
-
 class CharDecoder(nn.Module):
 
     def __init__(self, char_embedding, input_dim, hidden_size_decoder, shared_context, word_recurrent_cell=None,
@@ -173,7 +172,6 @@ class CharDecoder(nn.Module):
         output = output[output_word_len != 0]
         conditioning = conditioning[:, output_word_len !=0, :]
         output_word_len = output_word_len[output_word_len != 0]
-
         char_vecs = self.char_embedding_decoder(output)
         char_vecs = self.drop_out_char_embedding_decoder(char_vecs)
         char_embedding, start = get_timing(start)
@@ -311,7 +309,6 @@ class CharDecoder(nn.Module):
                  verbose_level=4)
         printing("TARGET : output  (before 0 last) : size {}", var=[output.size()], verbose=verbose, verbose_level=3)
         printing("TARGET : output  (before 0 last) :  data {} ", var=[output], verbose=verbose, verbose_level=5)
-        pdb.set_trace()
         _output_word_len[:, -1, :] = 0
         # when input_word_len is 0 means we reached end of sentence
         # TODO : WARNING : is +1 required : as sent with 1 ? WHY ALWAYS IS NOT WORKING
@@ -320,7 +317,6 @@ class CharDecoder(nn.Module):
         if (sent_len == 0).any() and False:
             printing("WARNING : WE ARE FORCING SENT_LEN in the SOURCE SIDE", verbose=verbose, verbose_level=3)
             sent_len[sent_len == 0] += 1
-        pdb.set_trace()
         # as encoder side : we handle words that take the all sequnence
         sent_len += (output_word_len[:, -1, :] != 0).long()
         # sort batch at the sentence length
@@ -352,7 +348,6 @@ class CharDecoder(nn.Module):
         output_word_len = output_word_len[:, :sent_len_max_source, :]
         # we cut output_char_vec based on ??
         output_char_vecs = output_char_vecs[:, :sent_len_max_source, :]
-        pdb.set_trace()
         output_seq = output_char_vecs.contiguous().view(output_char_vecs.size(0) * output_char_vecs.size(1), output_char_vecs.size(2))
         reshape_sent, start = get_timing(start)
         # output_seq : [ batch x max sent len, max word len  ]

@@ -88,7 +88,7 @@ def evaluate(batch_size, data_path, task,
                                                    char_dictionary=model.char_dictionary,
                                                    pos_dictionary=model.pos_dictionary,
                                                    get_batch_mode=get_batch_mode_evaluate,
-                                                   extend_n_batch=1,
+                                                   extend_n_batch=1, dropout_input=0,
                                                    verbose=verbose)
 
 

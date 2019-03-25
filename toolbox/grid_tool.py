@@ -41,10 +41,13 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                               word_decoding_ls=None,
                               #auxilliary_task_pos_ls=None,
                               dropout_word_encoder_cell_ls=None,
+                              scoring_func=None,
                               stable_decoding_state_ls=None,word_recurrent_cell_encoder_ls=None,
                               word_embedding_projected_dim_ls=None, n_layers_sent_cell_ls=None, n_layers_word_encoder_ls=None,
                               word_embed_ls=None, char_level_embedding_projection_dim_ls=None, mode_word_encoding_ls=None,
+                              dropout_input_ls=None,
                               proportion_pred_train_ls=None, tasks_ls=None, attention_tagging_ls=None,multi_task_loss_ponderation_ls=None,
+
                               grid_label="", gpu_mode="random", gpus_ls=None, printout_info_var=True):
 
   assert gpu_mode in GPU_MODE_SUPPORTED, "ERROR gpu_mode not in {}".format(str(GPU_MODE_SUPPORTED))
@@ -130,9 +133,13 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
   if char_level_embedding_projection_dim_ls is None:
     char_level_embedding_projection_dim_ls = [DEFAULT_CHAR_LEVEL_EMBEDDING_PROJECTION]
     default.append(("char_level_embedding_projection_dim", char_level_embedding_projection_dim_ls[0]))
+  assert len(char_level_embedding_projection_dim_ls)==1, "ERROR : only supported 1 choice"
   if multi_task_loss_ponderation_ls is None:
     multi_task_loss_ponderation_ls = [DEFAULT_MULTI_TASK_LOSS_PONDERATION]
     default.append(("multi_task_loss_ponderation", multi_task_loss_ponderation_ls[0]))
+  if dropout_input_ls is None:
+    dropout_input_ls = [0]
+    default.append(("dropout_input", dropout_input_ls[0]))
   for def_ in default:
     info_default.append((def_[0], def_[1])) #" "+str(def_[0])+","+str(def_[0])
     printing("GRID : {} argument defaulted to {} ", var=[str(def_)[:-6], def_], verbose=0, verbose_level=0)
@@ -148,8 +155,8 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
               "n_layers_sent_cell": n_layers_sent_cell_ls, "word_recurrent_cell_encoder": word_recurrent_cell_encoder_ls,
               "teacher_force": teacher_force_ls, "proportion_pred_train": proportion_pred_train_ls, "dropout_word_encoder_cell":dropout_word_encoder_cell_ls,
               "attention_tagging": attention_tagging_ls, "mode_word_encoding":mode_word_encoding_ls, "char_level_embedding_projection_dim":char_level_embedding_projection_dim_ls,
-              "n_layers_word_encoder": n_layers_word_encoder_ls,
-              "tasks": tasks_ls,
+              "n_layers_word_encoder": n_layers_word_encoder_ls,"multi_task_loss_ponderation":multi_task_loss_ponderation_ls,
+              "tasks": tasks_ls, "dropout_input": dropout_input_ls,
               "word_embed": word_embed_ls}
   ind_model = 0
   for batch in batch_size_ls:
@@ -191,14 +198,16 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                               for dropout_word_encoder_cell in dropout_word_encoder_cell_ls:
                                 for attention_tagging in attention_tagging_ls:
                                   for n_layers_word_encoder in n_layers_word_encoder_ls:
-                                    for char_level_embedding_projection_dim in char_level_embedding_projection_dim_ls:
-                                      for mode_word_encoding in _mode_word_encoding_ls:
-                                        for multi_task_loss_ponderation in multi_task_loss_ponderation_ls:
+                                    #for char_level_embedding_projection_dim in char_level_embedding_projection_dim_ls:
+                                    for mode_word_encoding in _mode_word_encoding_ls:
+                                      for multi_task_loss_ponderation in multi_task_loss_ponderation_ls:
+                                        for dropout_input in dropout_input_ls:
                                           param0 = param.copy()
                                           ind_model += 1
+                                          param0["scoring_func"] = scoring_func
                                           param0["batch_size"] = batch
                                           param0["mode_word_encoding"] = mode_word_encoding
-                                          param0["char_level_embedding_projection_dim"] = char_level_embedding_projection_dim
+                                          param0["char_level_embedding_projection_dim"] = char_level_embedding_projection_dim_ls[0]
                                           #param0["auxilliary_task_norm_not_norm"] = aux
                                           param0["shared_context"] = shared_context
                                           param0["word_recurrent_cell_encoder"] = word_recurrent_cell_encoder
@@ -207,8 +216,7 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                                           param0["dropout_word_encoder_cell"] = dropout_word_encoder_cell
                                           param0["hidden_size_encoder"] = int(param0["hidden_size_encoder"] * scale *
                                                                               scale_word)
-                                          param0["hidden_size_sent_encoder"] = int(param0["hidden_size_sent_encoder"] *
-                                                                                   scale * scale_sent_context)
+                                          param0["hidden_size_sent_encoder"] = int(param0["hidden_size_sent_encoder"] * scale * scale_sent_context)
                                           param0["hidden_size_decoder"] = int(param0["hidden_size_decoder"] * scale)
                                           param0["output_dim"] *= int(scale * scaled_output_dim) + 1
                                           param0["dir_word_encoder"] = dir_word_encoder_ls[0]
@@ -247,9 +255,12 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                                           param0["attention_tagging"] = attention_tagging
                                           param0["n_layers_word_encoder"] = n_layers_word_encoder
                                           param0["multi_task_loss_ponderation"] = multi_task_loss_ponderation
+                                          param0["dropout_input"] = dropout_input
+
                                           params.append(param0)
                                           labels.append("{}-model_{}".format(grid_label, ind_model))
 
+  KEEP_ONLY_REMOVE = ["multi_task_loss_ponderation"]
   studied_vars = []
   fixed_vars = []
   printing("GRID HYPARAMETERS INIT {}", var=param, verbose=1, verbose_level=1)
@@ -257,17 +268,20 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
     if var == "proportion_pred_train":
       if None in vals:
         vals[vals.index(None)] = 0
-    if len(vals) > 1:
+    if len(vals) > 1 or var in KEEP_ONLY_REMOVE:
       printing("GRID HYPERPARAMETERS : analysed variables ", var=[var, vals], verbose=1, verbose_level=1)
       studied_vars.append(var)
     else:
       printing("GRID HYPERPARAMETERS : fixed {} {} ", var=[var, vals], verbose=1, verbose_level=1)
-      fixed_vars.append((var, vals[0]))
+      if var in KEEP_ONLY_REMOVE:
+        continue
+      fixed_vars.append((var, vals[0] if var != "word_embed_init" else REPO_W2V[vals[0]]["label"]))
   print("GRID HYPERPARAMETERS : scale", scale_ls)
   # grid information
   to_enrich = " ".join([a for a, _ in fixed_vars]) + " " + " ".join(studied_vars)
   to_analysed = " ".join(studied_vars)
   to_keep_only = " ".join([a + "," + str(b) for a, b in fixed_vars])
+
 
 
   if printout_info_var:

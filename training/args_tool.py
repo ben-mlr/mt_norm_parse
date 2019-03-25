@@ -94,6 +94,10 @@ def args_train(mode="command_line"):
     parser.add_argument("--warmup", action="store_true", help="display a square of a given number")
     parser.add_argument("--verbose", default=1, type=int,help="display a square of a given number")
 
+    parser.add_argument("--scoring_func", default="exact_match", type=str, help="display a square of a given number")
+
+    parser.add_argument("--dropout_input", default=0, type=float, help="display a square of a given number")
+
     parser.add_argument("--gpu", default=None, type=str, help="display a square of a given number")
 
     args = parser.parse_args()

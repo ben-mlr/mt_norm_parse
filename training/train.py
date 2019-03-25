@@ -74,6 +74,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
           multi_task_loss_ponderation=None,
           max_char_len=None,
           attention_tagging=False,
+          dropout_input=None,
           optimizer="adam",
           verbose=1):
     if multi_task_loss_ponderation is not None:
@@ -290,6 +291,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                        pos_dictionary=model.pos_dictionary,
                                                        get_batch_mode=get_batch_mode_all,
                                                        extend_n_batch=extend_n_batch,
+                                                       dropout_input=dropout_input,
                                                        verbose=verbose)
         start = time.time()
         printing("TRAINING : TEACHER FORCE : Schedule Sampling proportion of train on prediction is {} ", var=[proportion_pred_train],
@@ -325,7 +327,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
         batchIter_eval = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_dev, batch_size=batch_size,
                                                             word_dictionary=model.word_dictionary,
                                                             char_dictionary=model.char_dictionary,
-                                                            pos_dictionary=model.pos_dictionary,
+                                                            pos_dictionary=model.pos_dictionary,dropout_input=0,
                                                             extend_n_batch=1, get_batch_mode=False, verbose=verbose)
         _create_iter_time, start = get_timing(start)
         # TODO : should be able o factorize this to have a single run_epoch() for train and dev (I think the computaiton would be same )
@@ -453,6 +455,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                 "train_data_path": train_path, "dev_data_path": dev_path,
                                                 "other": {"error_curves": dir_plot, "loss": _loss_dev,
                                                           "error_curves_details":dir_plot_detailed,
+                                                          "dropout_input":dropout_input,
                                                           "multi_task_loss_ponderation":multi_task_loss_ponderation,
                                                           "weight_binary_loss": weight_binary_loss*int(auxilliary_task_norm_not_norm),
                                                           "weight_pos_loss": weight_pos_loss*int(auxilliary_task_pos),

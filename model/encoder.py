@@ -220,7 +220,6 @@ class CharEncoder(nn.Module):
         # cut input_word_len so that it fits packed_padded sequence
         input_word_len = input_word_len[:, :input_char_vecs.size(1), :]
         sent_len_max_source = input_char_vecs.size(1)
-        pdb.set_trace()
         # reshape word_len and word_char_vecs matrix --> for feeding to word level encoding
         input_word_len = input_word_len.contiguous().view(input_word_len.size(0) * input_word_len.size(1))
         #DEPRECIATED : shape_sent_seq = input_char_vecs.size()
@@ -250,6 +249,7 @@ class CharEncoder(nn.Module):
                                  h_w), dim=-1)
 
             elif self.mode_word_encoding == "sum":
+                pdb.set_trace()
                 h_w = word_embed_input+h_w
         sent_len_cumulated = get_cumulated_list(sent_len)
         # we want to pack the sequence so we tranqform it as a list
