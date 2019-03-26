@@ -11,6 +11,11 @@ DEFAULT_SCALE = 2
 GPU_MODE_SUPPORTED = ["random", "fixed", "CPU"]
 
 
+def get_experimented_tasks(params):
+  tasks_ls = ["+".join(param["tasks"]) for param in params]
+  return str((set(tasks_ls)))
+
+
 def get_gpu_id(gpu_mode, gpus_ls, verbose):
   if gpus_ls is None:
     if gpu_mode == "random":

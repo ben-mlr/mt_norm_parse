@@ -1,6 +1,6 @@
 
 from env.project_variables import PROJECT_PATH
-from toolbox.grid_tool import grid_param_label_generate
+from toolbox.grid_tool import grid_param_label_generate, get_experimented_tasks
 import os
 from io_.info_print import printing
 from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, CP_WR_PASTE_TEST_269, \
@@ -73,7 +73,8 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
     mode_run = "dist"
     description = "{} - {} ({}) : Analysing : {} with regard to {} fixed".format(len(params) if not warmup else str(1)+"_WARMUP",
                                                                                  description_comment,mode_run, analysed, fixed)
-    row, col = append_reporting_sheet(git_id=get_commit_id(), rioc_job=os.environ.get("OAR_JOB_ID", grid_label), description=description,
+    row, col = append_reporting_sheet(git_id=get_commit_id(),tasks=get_experimented_tasks(params),
+                                      rioc_job=os.environ.get("OAR_JOB_ID", grid_label), description=description,
                                       log_dir=dir_log, target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR,
                                                                                               "{}*".format(grid_label)),
                                       env=environment, status="running {}".format(warmup_desc),

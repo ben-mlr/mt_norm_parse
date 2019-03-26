@@ -21,13 +21,13 @@ def open_client(credientials=creds,sheet_name=SHEET_NAME_DEFAULT, tab_name=TAB_N
     return sheet, sheet_name, tab_name
 
 
-def append_reporting_sheet(git_id,rioc_job, description, log_dir, target_dir, env, status,
+def append_reporting_sheet(git_id, tasks, rioc_job, description, log_dir, target_dir, env, status,
                            verbose=1):
     sheet, sheet_name, tab_name = open_client()
     # Find a workbook by name and open the first sheet
     # Make sure you use the right name here.
     #worksheet_list = sheet.worksheets()
-    sheet.append_row([git_id, rioc_job, description, log_dir, target_dir, env, status, None, None, None, None,"-"])
+    sheet.append_row([git_id,  rioc_job, tasks, description, log_dir, target_dir, env, status, None, None, None, None,"-"])
     list_of_hashes = sheet.get_all_records()
     printing("REPORT : Appending report to page {} in sheet {} of {} rows and {} columns ",
              var=[tab_name, sheet_name, len(list_of_hashes)+1, len(list_of_hashes[0])],
@@ -36,7 +36,7 @@ def append_reporting_sheet(git_id,rioc_job, description, log_dir, target_dir, en
     return len(list_of_hashes)+1, len(list_of_hashes[0])
 
 
-def update_status(row, new_status, col_number=7, verbose=1):
+def update_status(row, new_status, col_number=8, verbose=1):
     sheet, sheet_name, tab_name = open_client()
     sheet.update_cell(row, col_number, new_status)
     printing("REPORT : job status updated in sheet with {} ", var=[new_status], verbose=verbose, verbose_level=1)
