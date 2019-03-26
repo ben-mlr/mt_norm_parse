@@ -90,7 +90,7 @@ class Dictionary(object):
       try:
         return self.instances[index - self.offset]
       except IndexError:
-        raise IndexError('unknown index: %d' % index)
+        raise IndexError('unknown index: %d' % index, " offset is {}".format(self.offset))
   
   def __from_json(self, data):
     self.instances = data["instances"]

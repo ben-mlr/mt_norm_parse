@@ -128,6 +128,10 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
 
     n_epochs = 1 if warmup else n_epochs
 
+    if test_path is not None:
+        assert isinstance(test_path, list),"ERROR test_path should be a list with one element per task "
+        assert isinstance(test_path[0], list), "ERROR : each element of test_path should be a list of dataset path even of len 1"
+    print("WARNING : only dataset that are in test_path will be evlauated (test_path:{}) ".format(test_path))
     if warmup:
         printing("Warm up : running 1 epoch ", verbose=verbose, verbose_level=0)
     printing("GRID : START TRAINING ", verbose_level=0, verbose=verbose)
@@ -191,31 +195,23 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
     if test_path is not None:
       dict_path = os.path.join(CHECKPOINT_DIR, model_full_name+"-folder", "dictionaries")
       printing("GRID : START EVALUATION FINAL ", verbose_level=0, verbose=verbose)
-      if isinstance(train_path, list) or isinstance(dev_path, list):
-          eval_data_paths = []
-      else:
-          eval_data_paths = [train_path, dev_path]
-      if warmup:
-          eval_data_paths = test_path if isinstance(test_path, list) else [test_path]
-      else:
-          if isinstance(test_path, list):
-              eval_data_paths.extend(test_path)
-          else:
-              eval_data_paths.append(test_path)
+      # you have to specify all data you want to evaluate !!
+      eval_data_paths = test_path
       #eval_data_paths = list(set(eval_data_paths))
       start_eval = time.time()
       if len(tasks) > 1:
-          assert len(eval_data_paths) == len(tasks), "ERROR : one test dataset per test so far {} tasks for {} set".format(eval_data_paths, tasks)
+          assert isinstance(eval_data_paths, list), "ERROR : on element per task"
+          assert isinstance(eval_data_paths[0], list), "ERROR : in multitask we want list of list for eval_data_paths {} one sublist per task {} ".format(eval_data_paths, tasks)
       if len(tasks) == 1:
           tasks = [tasks[0] for _ in eval_data_paths]
       for get_batch_mode_evaluate in [False]:
         print("EVALUATING WITH {}".format(scoring_func_sequence_pred))
         for task, eval_data in zip(tasks, eval_data_paths):
-                printing("EVALUATING task {} on dataset {}", var=[task, eval_data], verbose=verbose, verbose_level=1)
-                eval_label = REPO_DATASET[eval_data]
-                evaluate(model_full_name=model_full_name, data_path=eval_data,
+            for eval_data_set in eval_data:
+                printing("EVALUATING task {} on dataset {}", var=[task, eval_data_set], verbose=verbose, verbose_level=1)
+                evaluate(model_full_name=model_full_name, data_path=eval_data_set,
                          dict_path=dict_path, use_gpu=use_gpu,
-                         label_report=eval_label, overall_label=overall_label+"-last+bucket_True_eval-get_batch_"+str(get_batch_mode_evaluate),
+                         label_report=REPO_DATASET[eval_data_set], overall_label=overall_label+"-last+bucket_True_eval-get_batch_"+str(get_batch_mode_evaluate),
                          score_to_compute_ls=score_to_compute_ls, mode_norm_ls=["all", "NEED_NORM", "NORMED"],
                          normalization=normalization, print_raw=print_raw,
                          model_specific_dictionary=True, get_batch_mode_evaluate=get_batch_mode_evaluate, bucket=True,
