@@ -78,8 +78,8 @@ def args_train(mode="command_line"):
     parser.add_argument("--activation_word_decoder", default=None, help="display a square of a given number")
     parser.add_argument('--tasks', nargs='+', help='<Required> Set flag', default=DEFAULT_TASKS)
 
-    parser.add_argument("--train_path", required=mode == "command_line", help="display a square of a given number")
-    parser.add_argument("--dev_path", required=mode == "command_line", help="display a square of a given number")
+    parser.add_argument("--train_path", required=mode == "command_line", nargs='+', help='<Required> Set flag')
+    parser.add_argument("--dev_path", required=mode == "command_line", nargs='+', help='<Required> Set flag')
     parser.add_argument('--test_paths', nargs='+', help='<Required> Set flag', default=None)
 
     parser.add_argument("--pos_specific_path", default=None, type=str, help="display a square of a given number")
@@ -105,6 +105,8 @@ def args_train(mode="command_line"):
     if args.test_paths is not None:
         args.test_paths = [test_path_task.split(",") for test_path_task in args.test_paths]
     print("-------->", args.test_paths)
+    print("--------------", args.train_path)
+    print("--------------", args.dev_path)
     if not args.word_embed:
         args.word_embedding_dim = 0
 

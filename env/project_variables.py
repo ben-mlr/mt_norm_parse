@@ -105,7 +105,7 @@ DEMO_SENT_LABEL, DEMO_SENT = "lexnorm-Demo_sent", os.path.join(PROJECT_PATH, "..
 TEST_SENT_LABEL, TEST_SENT = "lexnorm_sent", os.path.join(PROJECT_PATH, "../parsing/normpar/data/lexnorm-sent.conll")
 DEV_SENT_LABEL, DEV_SENT = "owoputi_sent", os.path.join(PROJECT_PATH, "../parsing/normpar/data/owoputi-sent.conll")
 LIU_TRAIN_SENT_LABEL, LIU_TRAIN_SENT = "liu_train_sent" , os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-sent-train_2009.conll")
-LIU_DEV_SENT_LABEL, LIU_DEV_SENT = "liu_dev_sent" , os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-sent-dev_500.conll")
+LIU_DEV_SENT_LABEL, LIU_DEV_SENT = "liu_dev_sent", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-sent-dev_500.conll")
 
 
 REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO2: DEMO2_LABEL,TRAINING_DEMO:TRAINING_DEMO_LABEL,

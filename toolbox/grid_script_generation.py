@@ -35,7 +35,6 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
 
     test_paths = [",".join(test_path_task) for test_path_task in test_paths]
 
-
     if write_to_dir is not None:
         script_dir = os.path.join(write_to_dir, "{}-run.sh".format(overall_label))
     warmup_desc = "warmup" if warmup else ""
@@ -101,10 +100,9 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                 script += " --{} {}".format(arg, val)
             elif arg in LIST_ARGS:
                 script += " --{} {}".format(arg, " ".join(val))
-        script += " --{} {}".format("train_path", train_path)
-        script += " --{} {}".format("dev_path", dev_path)
+        script += " --{} {}".format("train_path", " ".join(train_path))
+        script += " --{} {}".format("dev_path", " ".join(dev_path))
         if test_paths is not None:
-
             script += " --{} {}".format("test_path", " ".join(test_paths))
         if pos_specific_path is not None:
             script += " --{} {}".format("pos_specific_path", pos_specific_path)

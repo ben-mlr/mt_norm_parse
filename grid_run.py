@@ -87,7 +87,7 @@ if __name__ == "__main__":
         assert os.environ.get("MODE_RUN") in ["DISTRIBUTED", "SINGLE"]
         run_standart = os.environ.get("MODE_RUN") != "DISTRIBUTED"
       else:
-          run_standart = True
+          run_standart = False
           print("LOCAL")
 
 
@@ -232,7 +232,7 @@ if __name__ == "__main__":
                        train_path=train_path,
                        dev_path=dev_path, debug=False,
                        scoring_func_sequence_pred="exact_match",
-                       test_paths=[[EWT_DEV, TEST], [LIU_DEV,TEST]],#[TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#[TEST, TEST],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
+                       test_paths=[[EWT_DEV, TEST], [LIU_DEV, TEST]],#[TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#[TEST, TEST],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
                        warmup=warmup)
               update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
           except Exception as e:
@@ -243,7 +243,7 @@ if __name__ == "__main__":
           epochs=1000
           train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV#MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
           POS_ABLATION = False
-          NORMALIZE = True
+          NORMALIZE = False
           if NORMALIZE:
               train_path, dev_path = CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
               dir_script, row = script_generation(grid_label=LABEL_GRID, 
@@ -283,6 +283,51 @@ if __name__ == "__main__":
                                                   multi_task_loss_ponderation_ls=[{"pos": 0, "normalize": 1, "norm_not_norm":0}],
                                                   write_to_dir=RUN_SCRIPTS_DIR)
           
+          MULTI_TASK = True
+          if MULTI_TASK:
+              train_path = [EN_LINES_EWT_TRAIN, LIU_TRAIN]
+              dev_path = [EWT_DEV, LIU_DEV]
+              test_paths = [[EWT_DEV, TEST], [LIU_DEV, TEST]]
+              dir_script, row = script_generation(init_param=params_dozat,
+                                                  grid_label=LABEL_GRID,
+                                                  word_recurrent_cell_encoder_ls=["LSTM"],
+                                                  dropout_word_encoder_cell_ls=[0.1],
+                                                  stable_decoding_state_ls=[False],
+                                                  word_decoding_ls=[0],
+                                                  batch_size_ls=[20],
+                                                  word_embed_ls=[1],
+                                                  dir_sent_encoder_ls=[2],dir_word_encoder_ls=[2],
+                                                  lr_ls=[0.001],
+                                                  word_embed_init_ls=[None],#, DIR_FASTEXT_WIKI_NEWS_W2V, DIR_TWEET_W2V],
+                                                  attention_tagging_ls=[1],
+                                                  char_src_attention_ls=[1],
+                                                  teacher_force_ls=[1],
+                                                  proportion_pred_train_ls=[None],
+                                                  shared_context_ls=["all"],
+                                                  word_embedding_projected_dim_ls=[125],
+                                                  char_level_embedding_projection_dim_ls=[125],
+                                                  tasks_ls=[["pos", "normalize"]],
+                                                  n_layers_sent_cell_ls=[2],
+                                                  n_layers_word_encoder_ls=[1],
+                                                  unrolling_word_ls=[1],
+                                                  scoring_func="exact_match",
+                                                  mode_word_encoding_ls=["sum"],
+                                                  dropout_input_ls=[0.1, 0.4],
+                                                  multi_task_loss_ponderation_ls=[{"pos": 1, "normalize": 1, "norm_not_norm": 0},
+                                                                                   {"pos": 0.5, "normalize": 1, "norm_not_norm": 0},
+                                                                                   {"pos": 1, "normalize": 0.1, "norm_not_norm": 0},
+                                                                                   {"pos": 1, "normalize": 0.01, "norm_not_norm": 0},
+                                                                                   {"pos": 1, "normalize": 0.0000001, "norm_not_norm": 0}],
+                                                  scale_ls=[1],
+                                                  # arguments that are specific to script generation
+                                                  overall_report_dir=dir_grid, overall_label=LABEL_GRID,
+                                                  train_path=train_path, dev_path=dev_path, test_paths=test_paths,
+                                                  warmup=test_before_run, test_before_run=test_before_run,
+                                                  dir_grid=dir_grid, environment=environment, dir_log=log,
+                                                  epochs=epochs if not (test_before_run or warmup) else 1,
+                                                  gpus_ls=gpu_ls, gpu_mode="random",
+                                                  write_to_dir=RUN_SCRIPTS_DIR
+                                                  )
 
 
           print("row:{}".format(row))
