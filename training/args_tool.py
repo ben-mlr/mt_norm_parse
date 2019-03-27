@@ -102,6 +102,9 @@ def args_train(mode="command_line"):
 
     args = parser.parse_args()
 
+    if args.test_paths is not None:
+        args.test_paths = [test_path_task.split(",") for test_path_task in args.test_paths]
+    print("-------->", args.test_paths)
     if not args.word_embed:
         args.word_embedding_dim = 0
 

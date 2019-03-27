@@ -249,7 +249,6 @@ class CharEncoder(nn.Module):
                                  h_w), dim=-1)
 
             elif self.mode_word_encoding == "sum":
-                pdb.set_trace()
                 h_w = word_embed_input+h_w
         sent_len_cumulated = get_cumulated_list(sent_len)
         # we want to pack the sequence so we tranqform it as a list

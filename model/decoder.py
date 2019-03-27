@@ -129,7 +129,13 @@ class CharDecoder(nn.Module):
                 context = torch.cat((word_stable_context, attention_context), dim=2)
             context = self.context_proj(context)
             # MIS ALGINEMNT BETWEEN SOURCE CHAR LEVEL CONTEXT PER WORD AND WORD THAT WE DECODE PER CHAR
-            char_vec_current_batch = torch.cat((context, char_vec_current_batch), dim=2)
+            # output_word_len is incorrect --> char_vec_current_batch incorrect to at test time were
+            try:
+                char_vec_current_batch = torch.cat((context, char_vec_current_batch), dim=2)
+            except:
+                pdb.set_trace()
+                char_vec_current_batch = torch.cat((context, char_vec_current_batch), dim=2)
+
         else:
             # no word level context passed so --> char_vec_current is only the current character vector  
             pass
@@ -169,6 +175,7 @@ class CharDecoder(nn.Module):
         inverse_perm_idx_output = torch.from_numpy(np.argsort(perm_idx_output.cpu().numpy()))
         # output : [  ]
         # we remove empty token from the output_sequence and th input conditioning vector () (as we did in the input) ,
+        pdb.set_trace()
         output = output[output_word_len != 0]
         conditioning = conditioning[:, output_word_len !=0, :]
         output_word_len = output_word_len[output_word_len != 0]
@@ -206,6 +213,7 @@ class CharDecoder(nn.Module):
             attention_weight_all = []
             # we repad it straight away cause unrolling by hand
             char_vecs, char_vecs_sizes_target = pad_packed_sequence(packed_char_vecs_output, batch_first=True)
+            pdb.set_trace()
             printing("DECODER char_vecs re-paded {} ", var=[char_vecs.data.size()], verbose=self.verbose,
                      verbose_level=3)
             max_word_len = char_vecs.size(1)
@@ -223,7 +231,8 @@ class CharDecoder(nn.Module):
                                                                     char_vec_current_batch=emb_char,
                                                                     state_decoder_current=state_i,
                                                                     char_vecs_sizes=word_src_sizes,
-                                                                    step_char=char_i, word_stable_context=stable_decoding_word_state,
+                                                                    step_char=char_i,
+                                                                    word_stable_context=stable_decoding_word_state,
                                                                     char_seq_hidden_encoder=char_seq_hidden_encoder)
                 else:
                     assert self.generator is not None, "Generator must be passed in decoder for decodibg if not teacher_force"

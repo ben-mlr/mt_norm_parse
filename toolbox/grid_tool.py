@@ -276,6 +276,9 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
     if len(vals) > 1 or var in KEEP_ONLY_REMOVE:
       printing("GRID HYPERPARAMETERS : analysed variables ", var=[var, vals], verbose=1, verbose_level=1)
       studied_vars.append(var)
+      print(vals)
+      if var not in KEEP_ONLY_REMOVE:
+        print("GRID_INFO values ",var, " ".join([str(val) for val in vals]))
     else:
       printing("GRID HYPERPARAMETERS : fixed {} {} ", var=[var, vals], verbose=1, verbose_level=1)
       if var in KEEP_ONLY_REMOVE:
@@ -286,8 +289,6 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
   to_enrich = " ".join([a for a, _ in fixed_vars]) + " " + " ".join(studied_vars)
   to_analysed = " ".join(studied_vars)
   to_keep_only = " ".join([a + "," + str(b) for a, b in fixed_vars])
-
-
 
   if printout_info_var:
     metric_add_ls = []

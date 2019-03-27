@@ -138,32 +138,31 @@ if __name__ == "__main__":
                                                                                   dropout_word_encoder_cell_ls=[0.1],
                                                                                   stable_decoding_state_ls=[False],
                                                                                   word_decoding_ls=[0],
-                                                                                  batch_size_ls=[2],
+                                                                                  batch_size_ls=[40],
                                                                                   word_embed_ls=[1],
-                                                                                  dir_sent_encoder_ls=[2], lr_ls=[0.0005],
+                                                                                  dir_sent_encoder_ls=[2], lr_ls=[0.001],
                                                                                   word_embed_init_ls=[None],#, DIR_FASTEXT_WIKI_NEWS_W2V, DIR_TWEET_W2V],
-                                                                                  attention_tagging_ls=[0,1],
-                                                                                  char_src_attention_ls=[0,1],
+                                                                                  attention_tagging_ls=[1],
+                                                                                  char_src_attention_ls=[1],
                                                                                   teacher_force_ls=[1],
                                                                                   proportion_pred_train_ls=[None],
-                                                                                  shared_context_ls=["all"],
-                                                                                  word_embedding_projected_dim_ls=[100],
-                                                                                  tasks_ls=[["pos","normalize"]],
+                                                                                  shared_context_ls=["sent"],
+                                                                                  word_embedding_projected_dim_ls=[125],
+                                                                                  char_level_embedding_projection_dim_ls=[125],
+                                                                                  tasks_ls=[["pos", "normalize"]],
                                                                                   n_layers_sent_cell_ls=[2],
                                                                                   n_layers_word_encoder_ls=[1],
                                                                                   unrolling_word_ls=[1],
                                                                                   scoring_func="exact_match",
                                                                                   mode_word_encoding_ls=["sum"],
-                                                                                  dropout_input_ls=[0.5],
-                                                                                  multi_task_loss_ponderation_ls=[{"pos": 1, "normalize": 1,
-                                                                                                                   "norm_not_norm": 0},{"pos": 0.5, "normalize": 1,
-                                                                                                                   "norm_not_norm": 0},
+                                                                                  dropout_input_ls=[0.1, 0.4],
+                                                                                  multi_task_loss_ponderation_ls=[{"pos": 1, "normalize": 1,"norm_not_norm": 0},
+                                                                                                                   {"pos": 0.5, "normalize": 1,"norm_not_norm": 0},
                                                                                                                    {"pos": 1, "normalize": 0.1,"norm_not_norm": 0},
                                                                                                                    {"pos": 1, "normalize": 0.01,"norm_not_norm": 0},
-                                                                                                                   {"pos": 1, "normalize": 0.001,"norm_not_norm": 0},
-                                                                                                                   {"pos": 1, "normalize": 0.0000001,"norm_not_norm": 0},#["uniform"],
-                                                                                                                   {"pos": 0.000001, "normalize": 1,"norm_not_norm": 0}],#["uniform"],
-                                                                                  char_level_embedding_projection_dim_ls=[100],
+                                                                                                                   {"pos": 1, "normalize": 0.0000001,"norm_not_norm": 0},
+                                                                                                                  ],
+
                                                                                   scale_ls=[1]
                                                                                   )
 
@@ -233,7 +232,7 @@ if __name__ == "__main__":
                        train_path=train_path,
                        dev_path=dev_path, debug=False,
                        scoring_func_sequence_pred="exact_match",
-                       test_paths=[[TEST], [TEST]],#[TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#[TEST, TEST],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
+                       test_paths=[[EWT_DEV, TEST], [LIU_DEV,TEST]],#[TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#[TEST, TEST],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
                        warmup=warmup)
               update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
           except Exception as e:

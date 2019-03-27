@@ -35,7 +35,6 @@ class MaskBatch(object):
             # we put it jere so that input_seq_mask computed based on droped input_seq # migh cause trouble for input_seq_len
             #pdb.set_trace()
             droping_multiplier_word = torch.zeros_like(input_word).bernoulli_(1-dropout_input)
-            pdb.set_trace()
             # NB : we can use this droping cause we replace by 0 character and word id which corresponds to UNK token
             droping_multiplier_word[0, :] = 1
             droping_multiplier_word[input_word == 3] = 1
@@ -48,7 +47,6 @@ class MaskBatch(object):
             self.input_seq = torch.mul(droping_multiplier_char, input_seq)
 
             # TODO : add different drop out in output_seq_x and output_seq_y
-            pdb.set_trace()
         self.output_norm_not_norm = output_norm_not_norm
         self.output_word = output_word
         # unsqueeze add 1 dim between batch and word len ##- ?   ##- for commenting on context implementaiton

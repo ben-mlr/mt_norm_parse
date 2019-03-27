@@ -32,8 +32,9 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                       n_layers_sent_cell_ls, unrolling_word_ls,attention_tagging_ls, n_layers_word_encoder_ls, multi_task_loss_ponderation_ls,dir_word_encoder_ls,
                       dropout_input_ls,
                       scale_ls, pos_specific_path=None, gpu_mode="random", description_comment="",gpus_ls=None,write_to_dir=None,test_before_run=False,scoring_func=None):
-    if isinstance(test_paths, str):
-        test_paths = [test_paths]
+
+    test_paths = [",".join(test_path_task) for test_path_task in test_paths]
+
 
     if write_to_dir is not None:
         script_dir = os.path.join(write_to_dir, "{}-run.sh".format(overall_label))
@@ -103,6 +104,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
         script += " --{} {}".format("train_path", train_path)
         script += " --{} {}".format("dev_path", dev_path)
         if test_paths is not None:
+
             script += " --{} {}".format("test_path", " ".join(test_paths))
         if pos_specific_path is not None:
             script += " --{} {}".format("pos_specific_path", pos_specific_path)
