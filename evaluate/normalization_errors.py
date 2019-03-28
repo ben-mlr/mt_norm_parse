@@ -110,8 +110,7 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
                 pdb.set_trace()
             sent_score = []
             for word_gold, word_pred in zip(gold_sent, pred_sent):
-                if word_gold in [ROOT_CHAR, END]:
-                    continue
+
                 if scoring_func == "BLUE":
                     word_pred = word_pred.split()
                     word_gold = word_gold.split()
@@ -122,11 +121,14 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
                     pdb.set_trace()
                 else:
                     eval_func = eval(scoring_func)
-                    score_word = eval_func(word_pred, word_gold)
-                    sent_score.append(score_word)
-                    scores.append(score_word)
-                printing("{} score ,  predicted word {} sentence predicted {} ".format(score_word, word_pred, word_gold),
-                         verbose=verbose, verbose_level=6)
+                    if word_gold not in [ROOT_CHAR, END, ROOT_POS, END_POS]:
+                        score_word = eval_func(word_pred, word_gold)
+                        sent_score.append(score_word)
+                        scores.append(score_word)
+                    else:
+                        score_word = "not given cause special char"
+                printing("{} score ,  predicted word {} sentence predicted {} with {} ".format(score_word, word_pred, word_gold, scoring_func),
+                         verbose=verbose, verbose_level=0)
             sent_score_ls.append(sent_score)
 
         score = np.sum(scores)
@@ -140,7 +142,7 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
             count_pred_number = len(scores)
         else:
             cond = False if normalized_mode == "NEED_NORM" else True
-            normalization_ls_flat = np.array([a for ls in normalization_prediction_by_seq  for a in ls])
+            normalization_ls_flat = np.array([a for ls in normalization_prediction_by_seq for a in ls])
             count_pred_number = len(normalization_ls_flat[normalization_ls_flat == cond])
 
         return_dic = {

@@ -581,6 +581,7 @@ class TestAlignment(unittest.TestCase):
         self._test_ok(["abcd a b c d"], ["ab a b", "cd c d"], 4)
         self._test_ok(["abc a b c", "de d e"], ["a", "bcd b c d", "e"], 5)
 
+
     def test_alignment(self):
         self._test_ok(["abcd"], ["a", "b", "c", "d"], 0)
         self._test_ok(["abc", "d"], ["a", "b", "c", "d"], 1)

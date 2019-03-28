@@ -162,7 +162,7 @@ if __name__ == "__main__":
     #for ablation_id in ["28aa3-schedule-policy_2"]:
       #for data in [DEMO,DEMO2]:
     #for ablation_id in ["97440_rioc-64c34-ATTbatch-aux-scale-shared_contex-Falseteach_Falseaux-model_2_61d6-folder"]:
-    PRED_AND_EVAL = False
+    PRED_AND_EVAL = True
     if PRED_AND_EVAL:
         for ablation_id in ["101089-B-model_55_32bb-folder"]:
           for get_batch_mode_evaluate in [False]:
@@ -193,7 +193,7 @@ if __name__ == "__main__":
                            dir_report=os.path.join(PROJECT_PATH, "checkpoints", folder_name), verbose=1
                            )
                   print("TIME with max len {} on data {}s ".format(time.time()-time_, data))
-    EVAL = True
+    EVAL = False
     if EVAL:
         from evaluate import conll18_ud_eval
         data = EWT_DEV
