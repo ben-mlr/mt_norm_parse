@@ -31,7 +31,7 @@ def output_text(one_code_prediction, char_dic, start_symbol=CHAR_START ,
 # TODO : clean because it's a mess !
 
 def output_text_(one_code_prediction, char_dic=None, start_symbol=CHAR_START,
-                 output_str=False, word_dic=None, word_decode=False, char_decode=True,
+                 output_str=False, word_dic=None, word_decode=False, char_decode=True,output_len=None,
                  stop_symbol=END_CHAR, single_sequence=True, last=False, debug=False, showing_attention=False):
 
     decoding = []
@@ -45,6 +45,11 @@ def output_text_(one_code_prediction, char_dic=None, start_symbol=CHAR_START,
         sent_all_sequence = []
         # for each word
         for word_i in range(one_code_prediction.size(1)):
+            if output_len is not None:
+                if bool(output_len[batch, word_i] == 0):
+                    # Required for predicted sentence cause not based on padding as for gold row : 69 (might be anything .. )
+                    print("BREAKING DECODING BASED ON OUTPUT SENTENCE LEN for batch {} word {} ".format(batch, word_i))
+                    break
             word = []
             word_to_print = ""
             word_all_sequence = []

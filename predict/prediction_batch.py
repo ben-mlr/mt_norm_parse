@@ -1,6 +1,6 @@
 import torch
 from io_.info_print import printing
-from io_.dat.normalized_writer import write_normalization
+from io_.dat.normalized_writer import write_conll
 from model.sequence_prediction import decode_sequence, decode_word
 import numpy as np
 from evaluate.normalization_errors import score_norm_not_norm
@@ -8,6 +8,7 @@ from evaluate.normalization_errors import score_ls_, correct_pred_counter
 from env.project_variables import WRITING_DIR
 import os
 from collections import OrderedDict
+import pdb
 # EPSILON for the test of edit distance
 EPSILON = 0.000001
 TEST_SCORING_IN_CODE = False
@@ -114,7 +115,7 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
         assert len(set(mode_norm_score_ls) & set(["all", "NEED_NORM", "NORMED"])) > 0
 
         with torch.no_grad():
-            i = 0
+            i = -1
             while True:
                 try:
                     batch = batchIter.__next__()
@@ -135,28 +136,28 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                 printing("WARNING : word max_len set to src_seq.size(-1) {} ", var=(max_len), verbose=verbose,
                          verbose_level=3)
                 # decoding one batch
-                if model.arguments["hyperparameters"]["decoder_arch"].get("char_decoding", True):
-                    assert not model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False), \
-                        "ERROR : only on type of decoding should be set (for now)"
-                    (text_decoded_ls, src_text_ls, gold_text_seq_ls, _), counts, _, \
-                    (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_sequence(model=model,
-                                                                                              char_dictionary=char_dictionary,
-                                                                                              single_sequence=False,
-                                                                                              target_seq_gold=target_gold,
-                                                                                              use_gpu=use_gpu,
-                                                                                              max_len=max_len,
-                                                                                              src_seq=src_seq,
-                                                                                              src_mask=src_mask,
-                                                                                              src_len=src_len,
+                if "normalize" in model.arguments["hyperparameters"].get("tasks",["normalize"]) or "norm_not_norm" in model.arguments["hyperparameters"].get("tasks",["normalize"]):
+                    if model.arguments["hyperparameters"]["decoder_arch"].get("char_decoding", True):
+                        assert not model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False), \
+                            "ERROR : only on type of decoding should be set (for now)"
+                        (text_decoded_ls, src_text_ls, gold_text_seq_ls, _), counts, _, \
+                        (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_sequence(model=model,
+                                                                                                  char_dictionary=char_dictionary,
+                                                                                                  single_sequence=False,
+                                                                                                  target_seq_gold=target_gold,
+                                                                                                  use_gpu=use_gpu,
+                                                                                                  max_len=max_len,
+                                                                                                  src_seq=src_seq,
+                                                                                                  src_mask=src_mask,
+                                                                                                  src_len=src_len,
+                                                                                                  input_word=batch.input_word,
+                                                                                                  pad=pad,
+                                                                                                  verbose=verbose)
+                    elif model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False):
+                        (text_decoded_ls, src_text_ls, gold_text_seq_ls, _), counts, _, \
+                        (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_word(model, src_seq, src_len,
                                                                                               input_word=batch.input_word,
-                                                                                              pad=pad,
-                                                                                              verbose=verbose)
-
-                elif model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False):
-                    (text_decoded_ls, src_text_ls, gold_text_seq_ls, _), counts, _, \
-                    (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_word(model, src_seq, src_len,
-                                                                                          input_word=batch.input_word,
-                                                                                          target_word_gold=target_word_gold)
+                                                                                              target_word_gold=target_word_gold)
                 else:
                     #TODO : should deal with this in another way as you're missing the norm_not_norm prediction
                     counts = None
@@ -167,7 +168,7 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                     target_seq_gold = None
                     pred_norm = None
                     batch.output_norm_not_norm = None
-                if model.arguments["hyperparameters"].get("auxilliary_arch", {}).get("auxilliary_task_pos", False):
+                if "pos" in model.arguments["hyperparameters"].get("tasks", ["normalize"]):
                     # decode pos
                     (pred_pos_ls, src_text_pos, gold_pos_seq_ls, _), counts_pos, _, \
                     (_, _, src_seq_pos, target_seq_gold_pos) = decode_word(model, src_seq, src_len,
@@ -182,9 +183,14 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                                                       "-{}-normalized.conll".format(label_data))
                         dir_original = os.path.join(WRITING_DIR, model.model_full_name +
                                                     "-{}-original.conll".format(label_data))
-                    write_normalization(format=write_to, dir_normalized=dir_normalized, dir_original=dir_original,
-                                        ind_batch=step*batch_size,
-                                        text_decoded_ls=text_decoded_ls, src_text_ls=src_text_ls, verbose=verbose)
+
+                    write_conll(format=write_to, dir_normalized=dir_normalized, dir_original=dir_original,
+                                ind_batch=i*batch_size,
+                                tasks=model.arguments["hyperparameters"].get("tasks", "normalize"),
+                                text_decoded_ls=text_decoded_ls, src_text_ls=src_text_ls,
+                                pred_pos_ls=pred_pos_ls, src_text_pos=src_text_pos,
+                                new_file=i==0,
+                                verbose=verbose)
                 if counts is not None:
                     total_count["src_word_count"] += counts["src_word_count"]
                     total_count["pred_word_count"] += counts["pred_word_count"]
@@ -198,6 +204,7 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                     printing("Gold {} ", var=[(gold_text_seq_ls)], verbose=verbose, verbose_level=5)
                     # output exact score only
                     # sent mean not yet supported for npv and tnr, precision
+
                     counter_correct_batch, score_formulas = correct_pred_counter(ls_pred=text_decoded_ls,
                                                                                  ls_gold=gold_text_seq_ls,
                                                                                  output_seq_n_hot=output_seq_n_hot,
@@ -208,6 +215,7 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                                                                                  gold_norm_not_norm=batch.output_norm_not_norm,
                                                                                  scoring_func=scoring_func_sequence_pred,
                                                                                  ls_original=src_text_ls)
+
                     if pred_pos_ls is not None and src_text_pos is not None and gold_pos_seq_ls is not None:
 
                         counter_correct_batch_pos, score_formulas_pos = correct_pred_counter(ls_pred=pred_pos_ls,

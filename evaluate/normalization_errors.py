@@ -5,7 +5,7 @@ from io_.info_print import printing
 import pdb
 from env.project_variables import SUPPORTED_STAT
 from collections import OrderedDict
-from io_.dat.constants import PAD_ID_CHAR
+from io_.dat.constants import PAD_ID_CHAR, ROOT_CHAR, END, ROOT_POS, END_POS
 import torch
 from nltk.translate.bleu_score import SmoothingFunction, sentence_bleu
 
@@ -72,7 +72,6 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
     normalized_mode_ls = ["all", "NEED_NORM", "NORMED"] if task == "normalization" else ["all"]
     if in_vocab_ls is not None:
         normalized_mode_ls.extend(["InV", "OOV"])
-    pdb.set_trace()
     for normalized_mode in normalized_mode_ls:
 
         scores = []
@@ -92,12 +91,12 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
             _ls_pred = ls_pred
         elif normalized_mode in ["InV", "OOV"]:
             if normalized_mode == "InV":
-                gold_pred = [[(token, normalization) for token,normalization in zip(batch, batch_pred) if token in in_vocab_ls] for batch, batch_pred in zip(ls_gold, ls_pred)]
+                gold_pred = [[(token, normalization) for token, normalization in zip(batch, batch_pred) if token in in_vocab_ls] for batch, batch_pred in zip(ls_gold, ls_pred)]
             else:
                 gold_pred = [[(token, normalization) for token, normalization in zip(batch, batch_pred) if token not in in_vocab_ls] for batch, batch_pred in zip(ls_gold, ls_pred)]
             _ls_gold = [[tup[0] for tup in batch] for batch in gold_pred]
             _ls_pred = [[tup[1] for tup in batch] for batch in gold_pred]
-            pdb.set_trace()
+            
         else:
             print("ERROR normalized_mode {} not supported".format(normalized_mode))
             raise(Exception)
@@ -109,9 +108,10 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
                 print("Assertion failed")
                 print(e)
                 pdb.set_trace()
-
             sent_score = []
             for word_gold, word_pred in zip(gold_sent, pred_sent):
+                if word_gold in [ROOT_CHAR, END]:
+                    continue
                 if scoring_func == "BLUE":
                     word_pred = word_pred.split()
                     word_gold = word_gold.split()

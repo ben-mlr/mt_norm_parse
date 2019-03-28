@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 from io_.info_print import printing
-from io_.dat.normalized_writer import write_normalization
 from io_.from_array_to_text import output_text, output_text_
 from io_.dat.constants import PAD_ID_CHAR, CHAR_END_ID
 import numpy as np
@@ -63,7 +62,7 @@ def decode_word(model, src_seq, src_len,
                                                          single_sequence=single_sequence, char_decode=False,
                                                          debug=False,
                                                          output_str=True)
-        pdb.set_trace()
+
         if target_word_gold is not None:
             assert model.word_nom_dictionary is not None, "ERROR : word_nom_dictionary is required"
             words_count_gold, target_word_gold_text, _ = output_text_(target_word_gold,#input_word,#target_word_gold,
@@ -160,10 +159,10 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
             src_len = src_len.cuda()
             output_len = output_len.cuda()
         start = time.time() if timing else None
-        pdb.set_trace()
+
         output_len = (src_len[:, :, 0] != 0).unsqueeze(dim=2)*char_decode
         printing("DECODER step {} output len {} ", var=(step, output_len), verbose=verbose, verbose_level=3)
-
+        #pdb.set_trace()
         decoding_states, word_pred, pos_pred, norm_not_norm, attention, _ = model.forward(input_seq=src_seq,
                                                                                           output_seq=output_seq,
                                                                                           input_word_len=src_len,
@@ -220,18 +219,20 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                 break
     # no need to do that in the loop
     print("WARNING : shfited output sequence of one character not to output START token")
-    pred_word_count, text_decoded, decoded_ls = output_text_(output_seq[:,:,1:],
+    pred_word_count, text_decoded, decoded_ls = output_text_(output_seq[:, :, 1:],
                                                              char_dictionary, single_sequence=single_sequence,
-                                                             output_str=output_str,
+                                                             output_str=output_str, output_len=output_len,
                                                              last=(char_decode == (max_len-1)),
                                                              showing_attention=showing_attention,
                                                              debug=False)
+    pdb.set_trace()
+
     time_output_text, start = get_timing(start)
+
     time_decoding_all_seq, start  = get_timing(start_decode_sequence)
     printing("PREDICTION : array text {} ", var=[text_decoded], verbose=verbose, verbose_level=5)
     src_word_count, src_text, src_all_ls = output_text_(src_seq, char_dictionary, single_sequence=single_sequence,
-                                                        showing_attention=showing_attention,
-                                                        output_str=output_str)
+                                                        showing_attention=showing_attention,output_str=output_str)
     printing("SOURCE  : array text {} ", var=[src_text], verbose=verbose, verbose_level=5)
     src_text_ls.extend(src_text)
     if target_seq_gold is not None:

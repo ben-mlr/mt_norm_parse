@@ -71,8 +71,8 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                                                unk_replace=0)
 
             if char.size(0) <= 1:
-                print("WARNING : Skip character ", char)
-                continue 
+                print("WARNING : NOT Skip character ", char)
+                #continue
             printing("TYPE {} word, char {} , chars_norm {} length {} ", var=(word.is_cuda, char.is_cuda,
                                                                               #chars_norm.is_cuda, lenght.is_cuda
                                                                               ),
@@ -140,7 +140,10 @@ def data_gen(V, batch, nbatches,seq_len=10):
 import numpy as np
 
 
-TASKS_PARAMETER = {"normalize": {"normalization": True}, "pos": {"normalization": False}, "all": {"normalization":True}}
+TASKS_PARAMETER = {"normalize": {"normalization": True},
+                   "norm_not_norm": {"normalization": True},
+                   "pos": {"normalization": False},
+                   "all": {"normalization": True}}
 
 MODE_BATCH_SAMPLING_AVAILABLE = ["proportional", "uniform"]
 
@@ -175,7 +178,7 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
                                                           pos_dictionary,
                                                           xpos_dictionary, type_dictionary,
                                                           use_gpu=use_gpu,
-                                                          norm_not_norm=norm_not_norm,
+                                                          norm_not_norm=norm_not_norm if task == "norm_not_norm" else False,
                                                           word_decoder=word_decoder,
                                                           symbolic_end=symbolic_end, symbolic_root=symbolic_root,
                                                           dry_run=0, lattice=False,
@@ -236,10 +239,13 @@ def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary, char_dic
 
 
 def sanity_check_batch_label(task, batch, verbose=1):
+    # NB : we can do this if elif only because we don't do simulatnuous stuff
     if task in ["all", "normalize"]:
         assert batch.output_seq is not None, "ERROR checking normalization output seq"
     elif task in ["all", "pos"]:
         assert batch.pos is not None, "ERROR checking pos "
+    elif task in ["all","norm_not_norm"]:
+        assert batch.output_norm_not_norm is not None, "ERROR checking norm_not_norm"
     else:
         raise(Exception("task provided {} could not be checked".format(task)))
     #printing("BATCH CHECKED ", verbose=verbose, verbose_level=1)

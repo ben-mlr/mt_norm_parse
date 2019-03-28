@@ -206,8 +206,18 @@ class CharEncoder(nn.Module):
         # we pack and padd the sentence to shorten and pad sentences
         # [batch x sent_len , dim hidden word level] # this remove empty words
         # --PERMUTE input so that it's sorted
-        packed_char_vecs_input = pack_padded_sequence(input[perm_idx_input_sent, :, :], sent_len.squeeze().cpu().numpy(),
-                                                      batch_first=True)
+        try:
+            ## WARNING / CHANGED sent_len.squeeze().cpu().numpy() into sent_len.cpu().numpy()
+            packed_char_vecs_input = pack_padded_sequence(input[perm_idx_input_sent, :, :], sent_len.cpu().numpy(), batch_first=True)
+
+        except:
+            print("EXCEPT ENCODER PACKING", [perm_idx_input_sent])
+            if len(perm_idx_input_sent.size()) == 0:
+                perm_idx_input_sent = [perm_idx_input_sent]
+                inverse_perm_idx_input_sent = [inverse_perm_idx_input_sent]
+                sent_len = sent_len.view(-1)
+            packed_char_vecs_input = pack_padded_sequence(input[perm_idx_input_sent, :, :], sent_len.cpu().numpy(), batch_first=True)
+            pdb.set_trace()
         # unpacked for computing the word level representation
         input_char_vecs, input_sizes = pad_packed_sequence(packed_char_vecs_input, batch_first=True,
                                                            padding_value=PAD_ID_CHAR)
@@ -216,7 +226,7 @@ class CharEncoder(nn.Module):
         # assert (input[perm_idx_input_sent, :, :][inverse_perm_idx_input_sent,:,:] == input).all()
         #input_char_vecs = input_char_vecs[inverse_perm_idx_input_sent, :, :]
         # --PERMUTE : input_word_len : we align it with input_char that has been permuted
-        input_word_len = input_word_len[perm_idx_input_sent]
+        input_word_len = input_word_len[perm_idx_input_sent,:,:]
         # cut input_word_len so that it fits packed_padded sequence
         input_word_len = input_word_len[:, :input_char_vecs.size(1), :]
         sent_len_max_source = input_char_vecs.size(1)

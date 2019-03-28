@@ -43,7 +43,9 @@ DEFAULT_SCORING_FUNCTION = "exact_match"
 TRAINING_LABEL, TRAINING = "en-ud-train", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-train.conllu")
 TRAINING_DEMO_LABEL, TRAINING_DEMO = "en-ud-train_demo", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-train_demo.conllu")
 
-EWT_TEST_LABEL, EWT_TEST = "ewt_dev", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-test.conllu")
+EWT_TEST_LABEL, EWT_TEST = "ewt_test", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-test.conllu")
+
+EWT_PRED_TOKEN_UDPIPE_LABEL, EWT_PRED_TOKEN_UDPIPE = "ud_pred_tokens-ewt_dev",os.path.join(PROJECT_PATH, "data", "udpipe_pred_tokens", "en_ewt-udpipe.conllu")
 
 EWT_DEV_LABEL, EWT_DEV = "ewt_dev", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-dev.integrated-po_as_norm")
 DEV_LABEL, DEV = "owoputi", os.path.join(PROJECT_PATH, "../parsing/normpar/data/owoputi.integrated_fixed")
@@ -124,7 +126,9 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 MTNT_TOK_TRAIN: MTNT_TOK_TRAIN_LABEL, MTNT_TOK_DEV: MTNT_TOK_DEV_LABEL, MTNT_EN_FR_TRAIN: MTNT_EN_FR_TRAIN_LABEL,
                 MTNT_EN_FR_DEV: MTNT_EN_FR_DEV_LABEL, MTNT_EN_FR_TEST: MTNT_EN_FR_TEST_LABEL,
                 DIR_TWEET_W2V: TWEET_W2V_LABEL, FASTEXT_WIKI_NEWS_W2V_LABEL: DIR_FASTEXT_WIKI_NEWS_W2V,
-                MTNT_EN_FR_TEST_DEMO: MTNT_EN_FR_TEST_DEMO_LABEL
+                MTNT_EN_FR_TEST_DEMO: MTNT_EN_FR_TEST_DEMO_LABEL,
+                EWT_PRED_TOKEN_UDPIPE:EWT_PRED_TOKEN_UDPIPE_LABEL
+
                 }
 
 

@@ -111,6 +111,8 @@ class LossCompute:
         #    raise(Exception)
         loss_distance_time, start = get_timing(start)
         if self.loss_binary is not None:
+            pdb.set_trace()
+            # PROBLEMS IN THE LABELS !!
             loss_binary = self.loss_binary(x_norm_not_norm.contiguous().view(-1, x_norm_not_norm.size(-1)), y_norm_not_norm.contiguous().view(-1))
             assert weight_binary_loss is not None
             assert scheduling_norm_not_norm is not None

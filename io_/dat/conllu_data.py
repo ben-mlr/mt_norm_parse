@@ -528,7 +528,11 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       # heads
       ONLY_PRED = False
       if not ONLY_PRED:
-        hid_inputs[i, :inst_size] = hids
+        try:
+            hid_inputs[i, :inst_size] = hids
+        except:
+            print("ASSIGNING 1 to head id cause hids is {} ".format(hids))
+            hid_inputs[i, :inst_size] = 1
         hid_inputs[i, inst_size:] = PAD_ID_TAG
       #  hid_inputs[i, :0] = None
       #  hid_inputs[i, inst_size:] = None
@@ -646,12 +650,12 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
         #TODO : should make _word_norm_not_norm  and char norm independant !!
         _word_norm_not_norm = None
       if chars[excerpt].size(0) <= 1:
-        print("WARNING : We are skipping a batch because size is {} char ".format(chars[excerpt].size()))
-        continue
+        print("WARNING : We are NOT skipping a batch because size is {} char ".format(chars[excerpt].size()))
+        #continue
       if normalization:
         if chars_norm_.size(0) <= 1:
-          print("WARNING : We are skipping a batch because size is {} for char_nor  ".format(chars_norm_.size()))
-          continue
+          print("WARNING : We are NOT skipping a batch because size is {} for char_nor  ".format(chars_norm_.size()))
+          #continue
       if word_norm is not None:
         if word_norm.size(0) <= 0:
           print("WARNING : We are skipping a batch because word_norm {} {}".format(word_norm.size(), word_norm))

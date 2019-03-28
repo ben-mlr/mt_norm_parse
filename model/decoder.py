@@ -175,7 +175,7 @@ class CharDecoder(nn.Module):
         inverse_perm_idx_output = torch.from_numpy(np.argsort(perm_idx_output.cpu().numpy()))
         # output : [  ]
         # we remove empty token from the output_sequence and th input conditioning vector () (as we did in the input) ,
-        pdb.set_trace()
+        #pdb.set_trace()
         output = output[output_word_len != 0]
         conditioning = conditioning[:, output_word_len !=0, :]
         output_word_len = output_word_len[output_word_len != 0]
@@ -213,7 +213,7 @@ class CharDecoder(nn.Module):
             attention_weight_all = []
             # we repad it straight away cause unrolling by hand
             char_vecs, char_vecs_sizes_target = pad_packed_sequence(packed_char_vecs_output, batch_first=True)
-            pdb.set_trace()
+            #pdb.set_trace()
             printing("DECODER char_vecs re-paded {} ", var=[char_vecs.data.size()], verbose=self.verbose,
                      verbose_level=3)
             max_word_len = char_vecs.size(1)

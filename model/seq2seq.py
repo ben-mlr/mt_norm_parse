@@ -453,9 +453,10 @@ class LexNormalizer(nn.Module):
             printing("DECODER hidden state after norm_not_norm_hidden size {}", var=[norm_not_norm_hidden.size()],
                      verbose=0, verbose_level=4)
         if self.decoder is not None and not word_level_predict:
-
+            #pdb.set_trace()
             output, attention_weight_all = self.decoder.forward(output=output_seq,
-                                                                conditioning=for_decoder, output_word_len=output_word_len,
+                                                                conditioning=for_decoder,
+                                                                output_word_len=output_word_len,
                                                                 word_src_sizes=word_src_sizes,
                                                                 char_seq_hidden_encoder=char_seq_hidden_encoder,
                                                                 proportion_pred_train=proportion_pred_train,

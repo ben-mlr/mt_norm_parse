@@ -18,7 +18,7 @@ import torch
 import re
 
 from scipy.stats import hmean
-from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, DEMO, DEMO2, LIU, LEX_TEST, REPO_DATASET, CHECKPOINT_DIR, SEED_TORCH, SEED_NP, LEX_TRAIN, LIU_TRAIN, LIU_DEV, CP_WR_PASTE_TEST, MTNT_EN_FR_TEST,MTNT_EN_FR_TEST_DEMO
+from env.project_variables import PROJECT_PATH, TRAINING, DEV,EWT_DEV,EWT_PRED_TOKEN_UDPIPE, EWT_TEST, TEST, DEMO, DEMO2, LIU, LEX_TEST, REPO_DATASET, CHECKPOINT_DIR, SEED_TORCH, SEED_NP, LEX_TRAIN, LIU_TRAIN, LIU_DEV, CP_WR_PASTE_TEST, MTNT_EN_FR_TEST,MTNT_EN_FR_TEST_DEMO
 from toolbox.gpu_related import use_gpu_
 sys.path.insert(0, os.path.join(PROJECT_PATH, "..", "experimental_pipe"))
 from reporting.write_to_performance_repo import report_template, write_dic
@@ -60,7 +60,7 @@ def evaluate(batch_size, data_path, task,
     voc_size = None
     if not debug:
         pdb.set_trace = lambda: 1
-    pdb.set_trace()
+
     model = LexNormalizer(generator=Generator, load=True, model_full_name=model_full_name,
                           word_decoding=word_decoding, char_decoding=char_decoding, # added for dictionary purposes : might be other ways
                           voc_size=voc_size, use_gpu=use_gpu, dict_path=dict_path, model_specific_dictionary=True,
@@ -162,31 +162,53 @@ if __name__ == "__main__":
     #for ablation_id in ["28aa3-schedule-policy_2"]:
       #for data in [DEMO,DEMO2]:
     #for ablation_id in ["97440_rioc-64c34-ATTbatch-aux-scale-shared_contex-Falseteach_Falseaux-model_2_61d6-folder"]:
-    for ablation_id in ["9087842_rioc--B0-model_1-model_1_d8b3-folder"]:
-      for get_batch_mode_evaluate in [False]:
-        for batch_size in [2]:
-          #for data in [LIU, DEV, LEX_TEST]:
-          for data in [MTNT_EN_FR_TEST_DEMO]:
-            list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
-            print("FOLDERS : ", list_)
-            for folder_name in list_:
-              model_full_name = folder_name[:-7]
-              print("MODEL_FULL_NAME : ", model_full_name)
-              print("0Evaluating {} ".format(model_full_name))
-              evaluate(
-                       model_full_name=model_full_name, data_path=data,#LIU,
-                       dict_path=os.path.join(PROJECT_PATH, "checkpoints", folder_name, "dictionaries"),
-                       label_report="eval_again", use_gpu=None,   
-                       overall_label=ablation_id+"-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch",#"f2f2-iterate+new_data-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch-validation_True",
-                       mode_norm_ls=None, #score_to_compute_ls=["norm_not_norm-Recall"],
-                       normalization=True, model_specific_dictionary=True, batch_size=batch_size,
-                       debug=False, bucket=True,
-                       compute_mean_score_per_sent=True,
-                       word_decoding=False, char_decoding=True,
-                       scoring_func_sequence_pred="BLUE",
-                       get_batch_mode_evaluate=get_batch_mode_evaluate, write_output=True,
-                       dir_report=os.path.join(PROJECT_PATH, "checkpoints", folder_name), verbose=1
-                       )
+    PRED_AND_EVAL = False
+    if PRED_AND_EVAL:
+        for ablation_id in ["101089-B-model_55_32bb-folder"]:
+          for get_batch_mode_evaluate in [False]:
+            for batch_size in [2]:
+              #for data in [LIU, DEV, LEX_TEST]:
+              for data in [EWT_TEST]:
+                list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
+                print("FOLDERS : ", list_)
+                for folder_name in list_:
+                  model_full_name = folder_name[:-7]
+                  print("MODEL_FULL_NAME : ", model_full_name)
+                  print("0Evaluating {} ".format(model_full_name))
+                  import time
+                  time_ = time.time()
+                  evaluate(
+                           model_full_name=model_full_name, data_path=data,#LIU,
+                           dict_path=os.path.join(PROJECT_PATH, "checkpoints", folder_name, "dictionaries"),
+                           label_report="eval_again", use_gpu=None,
+                           overall_label=ablation_id+"-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch",#"f2f2-iterate+new_data-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch-validation_True",
+                           mode_norm_ls=None, #score_to_compute_ls=["norm_not_norm-Recall"],
+                           normalization=True, model_specific_dictionary=True, batch_size=batch_size,
+                           debug=False, bucket=False,
+                           compute_mean_score_per_sent=True,
+                           word_decoding=False, char_decoding=True,
+                           scoring_func_sequence_pred="exact_match",task="pos",
+                           get_batch_mode_evaluate=get_batch_mode_evaluate, write_output=True,
+                           max_char_len=1000,
+                           dir_report=os.path.join(PROJECT_PATH, "checkpoints", folder_name), verbose=1
+                           )
+                  print("TIME with max len {} on data {}s ".format(time.time()-time_, data))
+    EVAL = True
+    if EVAL:
+        from evaluate import conll18_ud_eval
+        data = EWT_DEV
+        # predicted tags on gold tokens
+        sys_pred = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/../predictions/101089-B-model_55_32bb-lexnorm-normalized.conll"
+        sys_pred = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/../predictions/101089-B-model_55_32bb-ewt_dev-normalized.conll"
+        #sys_pred = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/../predictions/101089-B-model_55_32bb-ewt_test-normalized.conll"
+        # predicted tags on pred tokens tokens
+        #sys_pred = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/../predictions/101089-B-model_55_32bb-ud_pred_tokens-ewt_dev-normalized.conll"
+        gold = conll18_ud_eval.load_conllu(open(EWT_TEST,"r"))
+        sys = conll18_ud_eval.load_conllu(open(sys_pred,"r"))
+        results = conll18_ud_eval.evaluate(gold, sys)
+        for score, val in results.items():
+            print("METRIC {} is {} F1 ({} recall {} precision) ".format(score, results[score].f1, results[score].recall, results[score].precision))
+
 
 
 

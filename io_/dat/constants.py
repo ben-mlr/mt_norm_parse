@@ -42,3 +42,5 @@ DIGIT_RE = re.compile(br"\d")
 NUM_SYMBOLIC_TAGS = 3
 
 PRINTINT_OUT_TOKEN_UNK = "£" # needs to be len 1 so chose this one
+
+SPECIAL_TOKEN_LS = [ROOT_CHAR, END_CHAR, ROOT_POS, END_POS, END]

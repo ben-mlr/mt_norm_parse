@@ -24,9 +24,9 @@ class MaskBatch(object):
                  output_word=None, pos=None, input_word=None,
                  output_norm_not_norm=None, pad=0, verbose=0, timing=False, dropout_input=0.):
         # input mask
-        if not output_seq.size(0) >1:
-            pdb.set_trace()
-        assert output_seq.size(0) >1 , "ERROR  batch_size should be strictly above 1 but is {} ".format(output_seq.size())
+        #if not output_seq.size(0) >1:
+        #    pdb.set_trace()
+        #assert output_seq.size(0) >1 , "ERROR  batch_size should be strictly above 1 but is {} ".format(output_seq.size())
         # originnaly batch_size, word len
         self.input_seq = input_seq
         self.pos = pos
@@ -95,7 +95,7 @@ class MaskBatch(object):
             self.ntokens = (self.output_seq_y != pad).data.sum()
             get_n_token, start = get_timing(start)
             # dealing with bach_size == 1
-            if self.output_seq_len.size(0) > 1:
+            if self.output_seq_len.size(0) > 1 :
                 output_y_shape = self.output_seq_y.size()
                 self.output_seq_y = self.output_seq_y.view(self.output_seq_y.size(0)*self.output_seq_y.size(1), self.output_seq_y.size(2))
                 output_seq_len = self.output_seq_len.view(self.output_seq_len.size(0)*self.output_seq_len.size(1))
@@ -105,8 +105,19 @@ class MaskBatch(object):
                 inverse_perm_idx = torch.from_numpy(np.argsort(perm_idx.cpu().numpy()))
                 self.output_seq_y = self.output_seq_y[perm_idx, :]
                 reorder_output, start = get_timing(start)
+
             else:
-                raise Exception("self.output_seq_len.size(0) <=1 not suppoerted {}".format(self.output_seq_len.size(0)))
+                pdb.set_trace()
+                output_y_shape = self.output_seq_y.size()
+                self.output_seq_y = self.output_seq_y.view(self.output_seq_y.size(0) * self.output_seq_y.size(1),self.output_seq_y.size(2))
+                output_seq_len = self.output_seq_len.view(self.output_seq_len.size(0) * self.output_seq_len.size(1))
+                # self.output_seq_len = output_seq_len
+                reshape_output_seq_and_len, start = get_timing(start)
+                output_seq_len, perm_idx = output_seq_len.squeeze().sort(0, descending=True)
+                inverse_perm_idx = torch.from_numpy(np.argsort(perm_idx.cpu().numpy()))
+                self.output_seq_y = self.output_seq_y[perm_idx, :]
+                reorder_output, start = get_timing(start)
+                print(Exception("self.output_seq_len.size(0) <=1 not suppoerted {}".format(self.output_seq_len.size(0))))
             printing("BATCH : TARGET before packed true size {} ", var=(self.output_seq_y.size()),verbose=verbose,
                      verbose_level=4)
             printing("BATCH : TARGET before packed true {} ", var=(self.output_seq_y),verbose=verbose, verbose_level=5)
