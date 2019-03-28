@@ -147,7 +147,12 @@ class CharDecoder(nn.Module):
             ##https://github.com/spro/practical-pytorch/blob/master/seq2seq-translation/seq2seq-translation-batched.ipynb
             # the context is goes as input as the character embedding : we add the tranditional conditioning_other
         time_atten, start = get_timing(start_atten)
-        output, state = self.seq_decoder(char_vec_current_batch, state_decoder_current)
+        try:
+            output, state = self.seq_decoder(char_vec_current_batch, state_decoder_current)
+        except Exception as a:
+            print(Exception(a))
+            pdb.set_trace()
+            output, state = self.seq_decoder(char_vec_current_batch, state_decoder_current)
         time_step_decoder, _ = get_timing(start)
         if self.timing:
             print("Attention time {} ".format(OrderedDict([('time_attention', time_atten),
@@ -335,9 +340,24 @@ class CharDecoder(nn.Module):
         sorting, start = get_timing(start)
         # [batch x sent_len , dim hidden word level] # this remove empty words
         #reorder so that it aligns with input
-        conditioning = conditioning[perm_idx_input_sent]
-        packed_char_vecs_output = pack_padded_sequence(output[perm_idx_input_sent, :, :],
-                                                       sent_len.squeeze().cpu().numpy(), batch_first=True)
+
+        try:
+            ## WARNING / CHANGED sent_len.squeeze().cpu().numpy() into sent_len.cpu().numpy()
+            packed_char_vecs_output = pack_padded_sequence(output[perm_idx_input_sent, :, :],
+                                                           sent_len.cpu().numpy(), batch_first=True)
+        except:
+            print("EXCEPT DECODER PACKING", [perm_idx_input_sent])
+            if len(perm_idx_input_sent.size()) == 0:
+                perm_idx_input_sent = [perm_idx_input_sent]
+                inverse_perm_idx_input_sent = [inverse_perm_idx_input_sent]
+                sent_len = sent_len.view(-1)
+
+            packed_char_vecs_output = pack_padded_sequence(output[perm_idx_input_sent, :, :],
+                                                           sent_len.cpu().numpy(), batch_first=True)
+        # unpacked for computing the word level representation
+        #packed_char_vecs_output = pack_padded_sequence(output[perm_idx_input_sent, :, :],
+        #                                               sent_len.squeeze().cpu().numpy(), batch_first=True)
+        conditioning = conditioning[perm_idx_input_sent,:,:]
         packed_sent, start = get_timing(start)
         # unpacked for the word level representation
         # packed_char_vecs_output .data : [batch x shorted sent_lenS , word lens ] + .batch_sizes
@@ -364,10 +384,8 @@ class CharDecoder(nn.Module):
         output_word_len = output_word_len.view(output_word_len.size(0) * output_word_len.size(1))
         reshape_len, start = get_timing(start)
         printing("TARGET output before word encoder {}", var=[output_seq.size()], verbose=verbose, verbose_level=3)
-        output_w_decoder, attention_weight_all = self.word_encoder_target(output_seq, conditioning, output_word_len,
-                                                                          word_src_sizes=word_src_sizes,
-                                                                          proportion_pred_train=proportion_pred_train,
-                                                                          char_seq_hidden_encoder=char_seq_hidden_encoder)
+        output_w_decoder, attention_weight_all = self.word_encoder_target(output_seq, conditioning, output_word_len, word_src_sizes=word_src_sizes,proportion_pred_train=proportion_pred_train,char_seq_hidden_encoder=char_seq_hidden_encoder)
+
         # output_w_decoder
         word_encoders, start = get_timing(start)
         # we update sent len based on how it was cut (specifically useful at test time)
@@ -376,7 +394,7 @@ class CharDecoder(nn.Module):
         output_w_decoder_ls = [output_w_decoder[sent_len_cumulated[i]:sent_len_cumulated[i + 1]] for i in range(len(sent_len_cumulated) - 1)]
         output_w_decoder = pack_sequence(output_w_decoder_ls)
         output_w_decoder, _ = pad_packed_sequence(output_w_decoder, batch_first=True)
-        output_w_decoder = output_w_decoder[inverse_perm_idx_input_sent]
+        output_w_decoder = output_w_decoder[inverse_perm_idx_input_sent,:,:]
         # output_w_decoder : [ n_sents  x max sent len, max word len , hidden_size_decoder ]
         #max_word = output_w_decoder.size(0)/output_char_vecs.size(0)
         #output_w_decoder = output_w_decoder.view(output_char_vecs.size(0), max_word, -1, output_w_decoder.size(2))

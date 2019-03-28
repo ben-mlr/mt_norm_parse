@@ -225,7 +225,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                                                              last=(char_decode == (max_len-1)),
                                                              showing_attention=showing_attention,
                                                              debug=False)
-    pdb.set_trace()
+
 
     time_output_text, start = get_timing(start)
 

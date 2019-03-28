@@ -127,7 +127,7 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
                         scores.append(score_word)
                     else:
                         score_word = "not given cause special char"
-                printing("{} score ,  predicted word {} sentence predicted {} with {} ".format(score_word, word_pred, word_gold, scoring_func),
+                printing("{} score ,  predicted  pred : {} gold : {} with {} ".format(score_word, word_pred, word_gold, scoring_func),
                          verbose=verbose, verbose_level=0)
             sent_score_ls.append(sent_score)
 

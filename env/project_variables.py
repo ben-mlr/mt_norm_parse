@@ -39,7 +39,7 @@ AVAILABLE_OPTIMIZER = ["adam", "bahdanu-adadelta"]
 MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE = ["uniform", "normalization_100","pos_100","all","pos","normalize","norm_not_norm"]
 DEFAULT_SCORING_FUNCTION = "exact_match"
 
-# DATASETS
+# DATASETSproportion_pred_train_ls
 TRAINING_LABEL, TRAINING = "en-ud-train", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-train.conllu")
 TRAINING_DEMO_LABEL, TRAINING_DEMO = "en-ud-train_demo", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-train_demo.conllu")
 

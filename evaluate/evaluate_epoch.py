@@ -162,13 +162,15 @@ if __name__ == "__main__":
     #for ablation_id in ["28aa3-schedule-policy_2"]:
       #for data in [DEMO,DEMO2]:
     #for ablation_id in ["97440_rioc-64c34-ATTbatch-aux-scale-shared_contex-Falseteach_Falseaux-model_2_61d6-folder"]:
+    # tag : 101089-B-model_55_32bb-folder
+    # norm  9122945-B-model_1_b5fe-folder
     PRED_AND_EVAL = True
     if PRED_AND_EVAL:
-        for ablation_id in ["101089-B-model_55_32bb-folder"]:
+        for ablation_id in ["9122945-B-model_1_b5fe-folder"]:
           for get_batch_mode_evaluate in [False]:
             for batch_size in [2]:
               #for data in [LIU, DEV, LEX_TEST]:
-              for data in [EWT_TEST]:
+              for data in [LIU_TRAIN]:
                 list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
                 print("FOLDERS : ", list_)
                 for folder_name in list_:
@@ -187,7 +189,7 @@ if __name__ == "__main__":
                            debug=False, bucket=False,
                            compute_mean_score_per_sent=True,
                            word_decoding=False, char_decoding=True,
-                           scoring_func_sequence_pred="exact_match",task="pos",
+                           scoring_func_sequence_pred="exact_match", task="normalize",
                            get_batch_mode_evaluate=get_batch_mode_evaluate, write_output=True,
                            max_char_len=1000,
                            dir_report=os.path.join(PROJECT_PATH, "checkpoints", folder_name), verbose=1

@@ -226,7 +226,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
 
     parameters = filter(lambda p: p.requires_grad, model.parameters())
     if optimizer == "adam":
-        adam = torch.optim.Adam(parameters, lr=lr, betas=(0.9, 0.95), eps=1e-9)
+        adam = torch.optim.Adam(parameters, lr=lr,# betas=(0.9, 0.95),
+                                eps=1e-9)
     elif optimizer == "bahdanu-adadelta":
         adam = torch.optim.Adadelta(parameters, eps=10e-6, rho=0.95)
     _loss_dev = 1000

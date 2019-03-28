@@ -96,7 +96,7 @@ if __name__ == "__main__":
       ls_param = ["hidden_size_encoder", "hidden_size_sent_encoder","hidden_size_decoder", "output_dim", "char_embedding_dim"]
       params_strong = {"hidden_size_encoder": 100, "output_dim": 100, "char_embedding_dim": 50,
                          "dropout_sent_encoder": 0.3, "drop_out_word_encoder": 0.3, "dropout_word_decoder": 0.,
-                         "drop_out_word_encoder_out": 0.3, "drop_out_sent_encoder_out": 0.3, "drop_out_char_embedding_decoder":0.3, "dropout_bridge":0.01,
+                         "drop_out_word_encoder_out": 0.3, "drop_out_sent_encoder_out": 0.3, "drop_out_char_embedding_decoder":0.1, "dropout_bridge":0.01,
                          "n_layers_word_encoder": 1, "dir_sent_encoder": 2,"word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder":"LSTM",
                          "hidden_size_sent_encoder": 100, "hidden_size_decoder": 200, "batch_size": 10}
 
@@ -143,13 +143,13 @@ if __name__ == "__main__":
                                                                                   dir_sent_encoder_ls=[2], lr_ls=[0.001],
                                                                                   word_embed_init_ls=[None],#, DIR_FASTEXT_WIKI_NEWS_W2V, DIR_TWEET_W2V],
                                                                                   attention_tagging_ls=[1],
-                                                                                  char_src_attention_ls=[1],
+                                                                                  char_src_attention_ls=[0],
                                                                                   teacher_force_ls=[1],
                                                                                   proportion_pred_train_ls=[None],
                                                                                   shared_context_ls=["sent"],
                                                                                   word_embedding_projected_dim_ls=[125],
                                                                                   char_level_embedding_projection_dim_ls=[125],
-                                                                                  tasks_ls=[["normalize","pos"]],
+                                                                                  tasks_ls=[["normalize"]],
                                                                                   n_layers_sent_cell_ls=[2],
                                                                                   n_layers_word_encoder_ls=[1],
                                                                                   unrolling_word_ls=[1],
@@ -230,7 +230,7 @@ if __name__ == "__main__":
                        dir_grid=dir_grid, label_grid=LABEL_GRID,
                        epochs=100, test_before_run=test_before_run,
                        train_path=train_path,
-                       dev_path=dev_path, debug=False,
+                       dev_path=dev_path, debug=True,
                        scoring_func_sequence_pred="exact_match",
                        test_paths=[[EWT_DEV, TEST], [LIU_DEV, TEST]],#[TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#[TEST, TEST],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
                        warmup=warmup)
@@ -240,7 +240,7 @@ if __name__ == "__main__":
               raise(e)
 
       else:
-          epochs=1000
+          epochs=100 
           train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV#MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
           POS_ABLATION = False
           NORMALIZE = True
@@ -255,8 +255,8 @@ if __name__ == "__main__":
                                                   stable_decoding_state_ls=[0],
                                                   word_decoding_ls=[0],
                                                   epochs=epochs if not (test_before_run or warmup) else 1,
-                                                  batch_size_ls=[20,80],
-                                                  word_embed_ls=[1],
+                                                  batch_size_ls=[20],
+                                                  word_embed_ls=[1, 0],
                                                   dir_sent_encoder_ls=[2], dir_word_encoder_ls=[2],
                                                   n_layers_sent_cell_ls=[1], n_layers_word_encoder_ls=[1],
                                                   lr_ls=[0.0005],
@@ -265,14 +265,14 @@ if __name__ == "__main__":
                                                   word_recurrent_cell_encoder_ls=["LSTM"],
                                                   dropout_word_encoder_cell_ls=[0.],
                                                   proportion_pred_train_ls=[None],
-                                                  shared_context_ls=["all"],
+                                                  shared_context_ls=["word"],
                                                   word_embedding_projected_dim_ls=[100],
-                                                  char_level_embedding_projection_dim_ls=[300],
+                                                  char_level_embedding_projection_dim_ls=[400],
                                                   mode_word_encoding_ls=["cat"],
                                                   tasks_ls=[["normalize"]],
                                                   char_src_attention_ls=[0,1],
                                                   unrolling_word_ls=[1],
-                                                  scale_ls=[2],
+                                                  scale_ls=[3],
                                                   attention_tagging_ls=[0],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   description_comment=description_comment,
@@ -281,7 +281,7 @@ if __name__ == "__main__":
                                                   gpu_mode="random",
                                                   gpus_ls=gpu_ls,
                                                   scoring_func="exact_match",
-                                                  dropout_input_ls=[0.,0.4],
+                                                  dropout_input_ls=[0., 0.4],
                                                   multi_task_loss_ponderation_ls=[{"pos": 0, "normalize": 1, "norm_not_norm":0}],
                                                   write_to_dir=RUN_SCRIPTS_DIR)
           
