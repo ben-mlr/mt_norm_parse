@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 from io_.info_print import printing
-from io_.dat.normalized_writer import write_normalization
+from io_.dat.normalized_writer import write_conll
 from io_.from_array_to_text import output_text, output_text_
 from io_.dat.constants import PAD_ID_CHAR, CHAR_END_ID
 import numpy as np
