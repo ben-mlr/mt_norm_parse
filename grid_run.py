@@ -37,14 +37,14 @@ def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_pa
                 dev_path = [DEMO2, DEMO2]
                 test_paths = [[TEST], [TEST]]
             else:
-                train_path, dev_path = DEMO, DEMO2
-                test_paths = [[TEST]]
+                train_path, dev_path = DEMO2, DEMO2
+                test_paths = [[DEMO2]]
             #param["word_embed_init"] = None
 
 
         model_id_pref = label_grid + model_id_pref + "-model_" + str(i)
         if warmup:
-            epochs = 1
+
             print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
             print("GRID_INFO analy vars=    dense_dim_auxilliary_pos_2 dense_dim_auxilliary_pos")
             print("GRID_INFO fixed vars=  word_embed ")
@@ -146,7 +146,7 @@ if __name__ == "__main__":
                                                                                   char_src_attention_ls=[0],
                                                                                   teacher_force_ls=[1],
                                                                                   proportion_pred_train_ls=[None],
-                                                                                  shared_context_ls=["sent"],
+                                                                                  shared_context_ls=["all"],
                                                                                   word_embedding_projected_dim_ls=[125],
                                                                                   char_level_embedding_projection_dim_ls=[125],
                                                                                   tasks_ls=[["normalize"]],
@@ -217,24 +217,24 @@ if __name__ == "__main__":
               description = "{} - {} ({}) : Analysing : {} with regard to {} fixed".format(len(params) if not (warmup or test_before_run) else str(1)+"_WARMUP",
                                                                                            description_comment,mode_run,
                                                                                            analysed, fixed)
-
-              row, col = append_reporting_sheet(git_id=get_commit_id(), tasks=get_experimented_tasks(params),rioc_job=OAR, description=description, log_dir=log,
+              if False:
+                  row, col = append_reporting_sheet(git_id=get_commit_id(), tasks=get_experimented_tasks(params),rioc_job=OAR, description=description, log_dir=log,
                                                 target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR, "{}*".format(LABEL_GRID)),
                                                 env=environment, status="running {}{}".format(warmup_desc, test_before_run_desc),
                                                 verbose=1)
-              print("row:{}".format(row))
+              #print("row:{}".format(row))
               #train_path, dev_path = MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV#MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
               train_path = [EN_LINES_EWT_TRAIN, LIU_TRAIN]
               dev_path = [EWT_DEV, LIU_DEV]
-              run_grid(params=params, labels=labels,
-                       dir_grid=dir_grid, label_grid=LABEL_GRID,
-                       epochs=100, test_before_run=test_before_run,
-                       train_path=train_path,
-                       dev_path=dev_path, debug=True,
-                       scoring_func_sequence_pred="exact_match",
+              run_grid(params=params, labels=labels, dir_grid=dir_grid,
+                       label_grid=LABEL_GRID,
+                       epochs=100,
+                       test_before_run=test_before_run,
+                       train_path=train_path, dev_path=dev_path,
+                       debug=True, scoring_func_sequence_pred="exact_match",
                        test_paths=[[EWT_DEV, TEST], [LIU_DEV, TEST]],#[TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#[TEST, TEST],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
                        warmup=warmup)
-              update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
+              #update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
           except Exception as e:
               update_status(row=row, new_status="failed {} (error {})".format(warmup_desc, e), verbose=1)
               raise(e)

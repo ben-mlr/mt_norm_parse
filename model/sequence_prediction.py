@@ -160,14 +160,16 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
             output_len = output_len.cuda()
         start = time.time() if timing else None
 
-        output_len = (src_len[:, :, 0] != 0).unsqueeze(dim=2)*char_decode
-        printing("DECODER step {} output len {} ", var=(step, output_len), verbose=verbose, verbose_level=3)
         #pdb.set_trace()
         decoding_states, word_pred, pos_pred, norm_not_norm, attention, _ = model.forward(input_seq=src_seq,
                                                                                           output_seq=output_seq,
                                                                                           input_word_len=src_len,
                                                                                           output_word_len=output_len,
                                                                                           word_embed_input=input_word)
+
+        output_len = (src_len[:, :, 0] != 0).unsqueeze(dim=2) * char_decode
+        printing("DECODER step {} output len {} ", var=(step, output_len), verbose=verbose, verbose_level=3)
+
         time_forward, start = get_timing(start)
         # [batch, seq_len, V]
 

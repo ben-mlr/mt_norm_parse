@@ -166,11 +166,12 @@ if __name__ == "__main__":
     # norm  9122945-B-model_1_b5fe-folder
     PRED_AND_EVAL = True
     if PRED_AND_EVAL:
-        for ablation_id in ["9122945-B-model_1_b5fe-folder"]:
+        #
+        for ablation_id in ["70b87-test_before_run-WARMUP-unrolling-False0-model_1-model_1_bef5"]:
           for get_batch_mode_evaluate in [False]:
             for batch_size in [2]:
               #for data in [LIU, DEV, LEX_TEST]:
-              for data in [LIU_TRAIN]:
+              for data in [DEMO2]:
                 list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
                 print("FOLDERS : ", list_)
                 for folder_name in list_:

@@ -126,7 +126,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
     multi_task_loss_ponderation = args.get("multi_task_loss_ponderation", "all")
     dropout_input = args.get("dropout_input", None)
 
-    n_epochs = 1 if warmup else n_epochs
+    n_epochs = 30 if warmup else n_epochs
 
     if test_path is not None:
         assert isinstance(test_path, list),"ERROR test_path should be a list with one element per task "
