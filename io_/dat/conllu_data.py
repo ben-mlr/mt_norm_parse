@@ -1,6 +1,5 @@
 import sys
 import codecs
-import os
 import pdb
 from torch.autograd import Variable
 from io_.info_print import printing
@@ -12,8 +11,6 @@ from .conllu_reader import CoNLLReader
 from .dictionary import Dictionary
 import numpy as np
 from io_.dat.conllu_get_normalization import get_normalized_token
-
-
 import torch
 import os
 
@@ -25,18 +22,22 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None,
               word_normalization=False, pos_specific_data_set=None,
               word_embed_dict=None,tasks=None,
               dry_run=0, expand_vocab=False, add_start_char=None,
-               force_new_dic=False,verbose=1 ):
+              force_new_dic=False,verbose=1):
 
   to_create = False
 
   for dict_type in ["word", "character", "pos", "xpos", "type"]:
+
     if not os.path.isfile(os.path.join(dict_path, "{}.json".format(dict_type))):
+
       to_create = True
 
   to_create = True if force_new_dic else to_create
 
   if to_create:
+
     assert train_path is not None and dev_path is not None and add_start_char is not None
+
     printing("Creating dictionary in {} ".format(dict_path), verbose=verbose, verbose_level=1)
     word_dictionary, word_norm_dictionary, char_dictionary, pos_dictionary, \
     xpos_dictionary, type_dictionary = create_dict(dict_path, train_path, dev_path, test_path,  dry_run,

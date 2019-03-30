@@ -1,7 +1,6 @@
 from io_.dat import conllu_data
 from model.seq2seq import LexNormalizer
 from model.generator import Generator
-
 from io_.data_iterator import data_gen_conllu, readers_load, data_gen_multi_task_sampling_batch
 from training.epoch_train import run_epoch
 from model.loss import LossCompute
@@ -23,10 +22,12 @@ from tracking.plot_loss import simple_plot_ls
 from evaluate.evaluate_epoch import evaluate
 from model.schedule_training_policy import AVAILABLE_SCHEDULING_POLICIES
 from toolbox.norm_not_norm import scheduling_policy
+import toolbox.deep_learning_toolbox as dptx
 from toolbox.tensorboard_tools import writer_weights_and_grad
 from tensorboardX import SummaryWriter
-from env.project_variables import AVAILABLE_TASKS
-from model.schedule_training_policy import policy_1, policy_2
+
+# TODO : make imports more concise
+
 np.random.seed(SEED_NP)
 torch.manual_seed(SEED_TORCH)
 ADAPTABLE_SCORING = True
@@ -271,9 +272,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
     checkpoint_dir_former = None
 
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
-
-
-        opt = get_optimizer(parameters, lr=lr, optimizer="adam")
+        opt = dptx.get_optimizer(parameters, lr=lr, optimizer="adam")
         assert policy in AVAILABLE_SCHEDULING_POLICIES
         policy_dic = eval(policy)(epoch) if policy is not None else None
         #TODO : no need of re-ouptuting multi_task_mode : tasks should be harmonized to read
