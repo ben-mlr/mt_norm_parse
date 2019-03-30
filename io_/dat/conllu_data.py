@@ -2,6 +2,8 @@ import sys
 import codecs
 import os
 import pdb
+from torch.autograd import Variable
+from io_.info_print import printing
 from .constants import MAX_CHAR_LENGTH, NUM_CHAR_PAD, PAD_CHAR, PAD_POS, PAD_TYPE, ROOT_CHAR, ROOT_POS, PAD, \
   ROOT_TYPE, END_CHAR, END_POS, END_TYPE, _START_VOCAB, ROOT, PAD_ID_WORD, PAD_ID_CHAR, PAD_ID_TAG, DIGIT_RE, CHAR_START_ID, CHAR_START, CHAR_END_ID, PAD_ID_CHAR, PAD_ID_NORM_NOT_NORM, END,\
   MEAN_RAND_W2V, SCALE_RAND_W2V
@@ -11,12 +13,12 @@ from .dictionary import Dictionary
 import numpy as np
 from io_.dat.conllu_get_normalization import get_normalized_token
 
-np.random.seed(SEED_NP)
+
 import torch
 import os
+
+np.random.seed(SEED_NP)
 torch.manual_seed(SEED_TORCH)
-from torch.autograd import Variable
-from io_.info_print import printing
 
 
 def load_dict(dict_path, train_path=None, dev_path=None, test_path=None,

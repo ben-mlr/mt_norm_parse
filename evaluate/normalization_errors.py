@@ -11,6 +11,7 @@ from nltk.translate.bleu_score import SmoothingFunction, sentence_bleu
 
 smoothing = SmoothingFunction()
 
+
 def exact_match(pred, gold):
     if pred == gold:
         return 1
@@ -117,7 +118,7 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
                     score_word = sentence_bleu(references=[word_gold], hypothesis=word_pred, smoothing_function=smoothing.method3)
                     sent_score.append(score_word)
                     scores.append(score_word)
-                    print("GOLD {} PRED {} BLEU {} ".format(word_gold, word_pred, score_word))
+                    printing("GOLD {} PRED {} BLEU {} ".format(word_gold, word_pred, score_word), verbose_level=2, verbose=verbose)
                     pdb.set_trace()
                 else:
                     eval_func = eval(scoring_func)
@@ -125,10 +126,11 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
                         score_word = eval_func(word_pred, word_gold)
                         sent_score.append(score_word)
                         scores.append(score_word)
+                        printing("GOLD {} PRED {} exact_match {} ".format(word_gold, word_pred, score_word),
+                                 verbose_level=2, verbose=verbose)
                     else:
                         score_word = "not given cause special char"
-                printing("{} score ,  predicted  pred : {} gold : {} with {} ".format(score_word, word_pred, word_gold, scoring_func),
-                         verbose=verbose, verbose_level=0)
+
             sent_score_ls.append(sent_score)
 
         score = np.sum(scores)

@@ -1,19 +1,22 @@
 from torch.autograd import Variable
-from env.project_variables import DEV, LIU_DEV
+from env.project_variables import DEV, LIU_DEV, SEED_TORCH, SEED_NP
 import torch
+import time
 import numpy as np
 import pdb
 from io_.batch_generator import MaskBatch
-import sys
-from tqdm import tqdm
 from env.project_variables import EN_LINES_EWT_TRAIN, LIU_DEV, TRAINING, DEMO
-#sys.path.insert(0, "/Users/benjaminmuller/Desktop/Work/INRIA/dev/parsing/ELMoLex_sosweet/")
 from io_.dat import conllu_data
 from io_.info_print import printing, print_char_seq, disable_tqdm_level
-import time
+import sys
+from tqdm import tqdm
 from toolbox.sanity_check import get_timing
-NORM2NOISY=False
+
+NORM2NOISY = False
 from io_.printout_iterator_as_raw import outputing_raw_data_from_iterator
+
+torch.manual_seed(SEED_TORCH)
+np.random.seed(SEED_NP)
 
 
 def data_gen_conllu(data, word_dictionary, char_dictionary,

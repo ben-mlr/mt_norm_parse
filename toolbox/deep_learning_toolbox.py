@@ -1,3 +1,22 @@
+from env.project_variables import AVAILABLE_OPTIMIZER, SEED_TORCH
+import torch
+from io_.info_print import printing
+
+torch.manual_seed(SEED_TORCH)
+
+
+def get_optimizer(parameters, lr, optimizer="adam", betas=None, verbose=1):
+    assert optimizer in AVAILABLE_OPTIMIZER
+    if optimizer == "Adam":
+        if betas is None:
+            betas = (0.9, 0.999)
+        opt = torch.optim.Adam(parameters, lr=lr, betas=betas, eps=1e-9)
+    elif optimizer == "bahdanu-adadelta":
+        assert betas is None, "ERROR betas not supported for optimizer {}".format(optimizer)
+        opt = torch.optim.Adadelta(parameters, eps=10e-6, rho=0.95)
+    printing("TRAINING : optimizer {} has been reloaded with lr {} betas {} ", var=[optimizer, lr, betas], verbose=verbose, verbose_level=1)
+    return opt
+
 
 def count_trainable_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)

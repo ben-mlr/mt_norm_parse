@@ -1,8 +1,7 @@
-
 from io_.info_print import printing
 import os
-
 from training.train_eval import train_eval
+
 from training.fine_tune import fine_tune
 from toolbox.grid_tool import grid_param_label_generate, get_experimented_tasks
 from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, CP_WR_PASTE_TEST_269, \
@@ -25,7 +24,7 @@ GRID = 1
 
 def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_paths,
              scoring_func_sequence_pred=DEFAULT_SCORING_FUNCTION,
-             epochs=50, test_before_run=False,debug=False, warmup=False):
+             epochs=50, test_before_run=False, debug=False, warmup=False):
     i = 0
     for param, model_id_pref in zip(params, labels):
         i += 1
@@ -41,10 +40,9 @@ def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_pa
                 test_paths = [[DEMO2]]
             #param["word_embed_init"] = None
 
-
         model_id_pref = label_grid + model_id_pref + "-model_" + str(i)
-        if warmup:
 
+        if warmup:
             print("GRID RUN : MODEL {} with param {} ".format(model_id_pref, param))
             print("GRID_INFO analy vars=    dense_dim_auxilliary_pos_2 dense_dim_auxilliary_pos")
             print("GRID_INFO fixed vars=  word_embed ")
@@ -90,9 +88,7 @@ if __name__ == "__main__":
           run_standart = True
           print("LOCAL")
 
-
       params = []
-
       ls_param = ["hidden_size_encoder", "hidden_size_sent_encoder","hidden_size_decoder", "output_dim", "char_embedding_dim"]
       params_strong = {"hidden_size_encoder": 100, "output_dim": 100, "char_embedding_dim": 50,
                          "dropout_sent_encoder": 0.3, "drop_out_word_encoder": 0.3, "dropout_word_decoder": 0.,
@@ -107,6 +103,7 @@ if __name__ == "__main__":
                             "n_layers_word_encoder": 1, "dir_sent_encoder": 2, "word_recurrent_cell_decoder": "LSTM",
                             "word_recurrent_cell_encoder": "LSTM",
                             "hidden_size_sent_encoder": 24, "hidden_size_decoder": 30, "batch_size": 10}
+
       params_dozat = {"hidden_size_encoder": 400, "output_dim": 100, "char_embedding_dim": 100,
                       "dropout_sent_encoder": 0.5, "dropout_word_decoder": 0.0,
                       "drop_out_word_encoder_out": 0.3, "drop_out_sent_encoder_out": 0.5,
@@ -215,14 +212,13 @@ if __name__ == "__main__":
               test_before_run_desc = "test_before_run" if test_before_run else ""
               mode_run = "sing"
               description = "{} - {} ({}) : Analysing : {} with regard to {} fixed".format(len(params) if not (warmup or test_before_run) else str(1)+"_WARMUP",
-                                                                                           description_comment,mode_run,
+                                                                                           description_comment, mode_run,
                                                                                            analysed, fixed)
-              if False:
-                  row, col = append_reporting_sheet(git_id=get_commit_id(), tasks=get_experimented_tasks(params),rioc_job=OAR, description=description, log_dir=log,
+              row, col = append_reporting_sheet(git_id=get_commit_id(), tasks=get_experimented_tasks(params),rioc_job=OAR, description=description, log_dir=log,
                                                 target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR, "{}*".format(LABEL_GRID)),
                                                 env=environment, status="running {}{}".format(warmup_desc, test_before_run_desc),
                                                 verbose=1)
-              #print("row:{}".format(row))
+              print("row:{}".format(row))
               #train_path, dev_path = MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV#MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
               train_path = [EN_LINES_EWT_TRAIN, LIU_TRAIN]
               dev_path = [EWT_DEV, LIU_DEV]
@@ -234,7 +230,7 @@ if __name__ == "__main__":
                        debug=True, scoring_func_sequence_pred="exact_match",
                        test_paths=[[EWT_DEV, TEST], [LIU_DEV, TEST]],#[TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#[TEST, TEST],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
                        warmup=warmup)
-              #update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
+              update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
           except Exception as e:
               update_status(row=row, new_status="failed {} (error {})".format(warmup_desc, e), verbose=1)
               raise(e)
@@ -259,7 +255,7 @@ if __name__ == "__main__":
                                                   word_embed_ls=[1, 0],
                                                   dir_sent_encoder_ls=[2], dir_word_encoder_ls=[2],
                                                   n_layers_sent_cell_ls=[1], n_layers_word_encoder_ls=[1],
-                                                  lr_ls=[0.0001,0.0005],
+                                                  lr_ls=[0.0001, 0.0005],
                                                   word_embed_init_ls=[None],
                                                   teacher_force_ls=[1],
                                                   word_recurrent_cell_encoder_ls=["LSTM"],

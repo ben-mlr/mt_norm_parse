@@ -225,11 +225,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                     printing("TRAINING : freezing {} parameter ", var=[name], verbose=verbose, verbose_level=1)
 
     parameters = filter(lambda p: p.requires_grad, model.parameters())
-    if optimizer == "adam":
-        adam = torch.optim.Adam(parameters, lr=lr,# betas=(0.9, 0.95),
-                                eps=1e-9)
-    elif optimizer == "bahdanu-adadelta":
-        adam = torch.optim.Adadelta(parameters, eps=10e-6, rho=0.95)
+
     _loss_dev = 1000
     _loss_train = 1000
     counter_no_deacrease = 0
@@ -275,6 +271,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
     checkpoint_dir_former = None
 
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
+
+
+        opt = get_optimizer(parameters, lr=lr, optimizer="adam")
         assert policy in AVAILABLE_SCHEDULING_POLICIES
         policy_dic = eval(policy)(epoch) if policy is not None else None
         #TODO : no need of re-ouptuting multi_task_mode : tasks should be harmonized to read
@@ -298,7 +297,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
         printing("TRAINING : TEACHER FORCE : Schedule Sampling proportion of train on prediction is {} ", var=[proportion_pred_train],
                  verbose=verbose, verbose_level=2)
         loss_train, loss_details_train, step_train = run_epoch(batchIter, model,
-                                                               LossCompute(model.generator, opt=adam,
+                                                               LossCompute(model.generator, opt=opt,
                                                                            multi_task_loss_ponderation=model.multi_task_loss_ponderation,
                                                                            auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
                                                                            model=model,
