@@ -1,13 +1,21 @@
-# mt_norm_parse
+# Multitask learning 
 
-multitask learning model for normalization and dependency parsing
+Multitask learning framework for sequence prediction and sequence labelling 
 
+## Environment setup 
 
-### Dictionary 
+- Install conda environment with mt_norm_parse.yml 
+
+## Highlights
+
+- the main classes are in ./model . They allow architecture definition
+- the main command scripts are ./train_evaluate_run.py and ./grid_run.py to train and evaluate a single model or a several of them.
+
+### Vocabularies  
 
 2 modes :
 - one model specific : we create the dictionary inside the model folder
-- other is stanart
+- other is standard
 - TODO : should make the dict_path in argument.json 
 
 ## Test guidelines
@@ -18,19 +26,18 @@ When any new features is implemented the impact the training process :
 - train on normalization == True and see if it fits demo2 dataset
 - evaluate the model and get the metrics  
 
-## Evaluation pipeline
+## Evaluation pipeline : highlights
 
-- The evaluation code is/was a big mess
+- We tried to defined a task agnostic and score agnostic pipeline for evaluation  
 - Now the idea is : 
    - at the lower level 
         - you define : a scoring formula dictionary that gives a score name and how to get it (what fraction to do)
         - the numerators, denominator
-   - This is used toward upper level (after iterating over all batch) for summing all relevant stats and computing the score using the formula
-   
+   - This is used toward upper level (after iterating over all batch) for summing all relevant stats and computing the score using the formula   
 - It's meant to be flexible
--  
 
-## Conventions : 
+
+## Conventions 
 
 - id 0 in all dictionary is default one : UNK tokens
 
@@ -52,7 +59,9 @@ When any new features is implemented the impact the training process :
 verbose == 4 to see decoding
 
 
-### To document
+### TODO 
+
+#### To document
 
 - assumptions : 
     - should have word to word mapping between source and target sequence

@@ -8,7 +8,7 @@ from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, C
     LIU_DEV, DEV, DIR_TWEET_W2V, TEST, DIR_TWEET_W2V, DIR_FASTEXT_WIKI_NEWS_W2V, CHECKPOINT_DIR, DEMO, DEMO2, CP_PASTE_WR_TRAIN, \
     CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST, EWT_DEV, EWT_TEST, \
     LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO, EN_LINES_EWT_TRAIN, EN_LINES_DEV, EN_LINES_EWT_TRAIN, \
-    MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, RUN_SCRIPTS_DIR, GPU_AVAILABLE_DEFAULT_LS, DEFAULT_SCORING_FUNCTION
+    MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, RUN_SCRIPTS_DIR, GPU_AVAILABLE_DEFAULT_LS, DEFAULT_SCORING_FUNCTION, WARMUP_N_EPOCHS
 from uuid import uuid4
 import argparse
 from sys import platform
@@ -29,9 +29,9 @@ def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_pa
     for param, model_id_pref in zip(params, labels):
         i += 1
         printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-        epochs = epochs if not test_before_run else 1
+        epochs = epochs if not test_before_run else 30
         if warmup:
-            if len(params[0]["tasks"])>1:
+            if len(params[0]["tasks"]) > 1:
                 train_path = [DEMO, DEMO]
                 dev_path = [DEMO2, DEMO2]
                 test_paths = [[TEST], [TEST]]
@@ -214,11 +214,12 @@ if __name__ == "__main__":
               description = "{} - {} ({}) : Analysing : {} with regard to {} fixed".format(len(params) if not (warmup or test_before_run) else str(1)+"_WARMUP",
                                                                                            description_comment, mode_run,
                                                                                            analysed, fixed)
-              row, col = append_reporting_sheet(git_id=get_commit_id(), tasks=get_experimented_tasks(params),rioc_job=OAR, description=description, log_dir=log,
+              if False:
+                  row, col = append_reporting_sheet(git_id=get_commit_id(), tasks=get_experimented_tasks(params),rioc_job=OAR, description=description, log_dir=log,
                                                 target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR, "{}*".format(LABEL_GRID)),
                                                 env=environment, status="running {}{}".format(warmup_desc, test_before_run_desc),
                                                 verbose=1)
-              print("row:{}".format(row))
+              #print("row:{}".format(row))
               #train_path, dev_path = MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV#MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
               train_path = [EN_LINES_EWT_TRAIN, LIU_TRAIN]
               dev_path = [EWT_DEV, LIU_DEV]
@@ -230,7 +231,7 @@ if __name__ == "__main__":
                        debug=True, scoring_func_sequence_pred="exact_match",
                        test_paths=[[EWT_DEV, TEST], [LIU_DEV, TEST]],#[TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#[TEST, TEST],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
                        warmup=warmup)
-              update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
+              #update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
           except Exception as e:
               update_status(row=row, new_status="failed {} (error {})".format(warmup_desc, e), verbose=1)
               raise(e)
@@ -241,7 +242,7 @@ if __name__ == "__main__":
           POS_ABLATION = False
           NORMALIZE = True
           if NORMALIZE:
-              train_path, dev_path = LIU_TRAIN, LIU_DEV#MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+              train_path, dev_path = DEMO2, DEMO2#MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
               train_path = [train_path]
               dev_path = [dev_path]
               dir_script, row = script_generation(grid_label=LABEL_GRID, 
@@ -250,7 +251,7 @@ if __name__ == "__main__":
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
                                                   stable_decoding_state_ls=[0],
                                                   word_decoding_ls=[0],
-                                                  epochs=epochs if not (test_before_run or warmup) else 1,
+                                                  epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
                                                   batch_size_ls=[20],
                                                   word_embed_ls=[1, 0],
                                                   dir_sent_encoder_ls=[2], dir_word_encoder_ls=[2],
@@ -273,7 +274,7 @@ if __name__ == "__main__":
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   description_comment=description_comment,
                                                   train_path=train_path, dev_path=dev_path,
-                                                  test_paths=[[LIU_DEV, TEST, LIU_TRAIN]],
+                                                  test_paths=[[DEMO2, DEMO2, DEMO2]],
                                                   gpu_mode="random",
                                                   gpus_ls=gpu_ls,
                                                   scoring_func="exact_match",
@@ -322,7 +323,7 @@ if __name__ == "__main__":
                                                   train_path=train_path, dev_path=dev_path, test_paths=test_paths,
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
-                                                  epochs=epochs if not (test_before_run or warmup) else 1,
+                                                  epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
                                                   gpus_ls=gpu_ls, gpu_mode="random",
                                                   write_to_dir=RUN_SCRIPTS_DIR, description_comment=description_comment,
                                                   )

@@ -6,8 +6,9 @@ torch.manual_seed(SEED_TORCH)
 
 
 def get_optimizer(parameters, lr, optimizer="adam", betas=None, verbose=1):
-    assert optimizer in AVAILABLE_OPTIMIZER
-    if optimizer == "Adam":
+
+    assert optimizer in AVAILABLE_OPTIMIZER, "ERROR optimizers supported are {} ".format(AVAILABLE_OPTIMIZER)
+    if optimizer == "adam":
         if betas is None:
             betas = (0.9, 0.999)
         opt = torch.optim.Adam(parameters, lr=lr, betas=betas, eps=1e-9)
@@ -15,6 +16,7 @@ def get_optimizer(parameters, lr, optimizer="adam", betas=None, verbose=1):
         assert betas is None, "ERROR betas not supported for optimizer {}".format(optimizer)
         opt = torch.optim.Adadelta(parameters, eps=10e-6, rho=0.95)
     printing("TRAINING : optimizer {} has been reloaded with lr {} betas {} ", var=[optimizer, lr, betas], verbose=verbose, verbose_level=1)
+
     return opt
 
 

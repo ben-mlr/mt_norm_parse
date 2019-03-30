@@ -7,7 +7,7 @@ from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, C
     LIU_DEV, DEV, DIR_TWEET_W2V, TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, CP_PASTE_WR_TRAIN, \
     CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST, EWT_DEV, EWT_TEST, \
     LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO, EN_LINES_EWT_TRAIN, EN_LINES_DEV, EN_LINES_EWT_TRAIN, \
-    MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, LIST_ARGS, NONE_ARGS, BOOL_ARGS, RUN_SCRIPTS_DIR, GPU_AVAILABLE_DEFAULT_LS, DIC_ARGS
+    MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, LIST_ARGS, NONE_ARGS, BOOL_ARGS, RUN_SCRIPTS_DIR, GPU_AVAILABLE_DEFAULT_LS, DIC_ARGS, WARMUP_N_EPOCHS
 
 from toolbox.git_related import get_commit_id
 from tracking.reporting_google_sheet import append_reporting_sheet
@@ -108,7 +108,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
             script += " --{} {}".format("pos_specific_path", pos_specific_path)
         script += " --{} {}".format("overall_label", overall_label)
         script += " --{} {}".format("model_id_pref", model_id_pref)
-        script += " --{} {}".format("epochs", epochs if not (warmup or test_before_run) else 1)
+        script += " --{} {}".format("epochs", epochs if not (warmup or test_before_run) else WARMUP_N_EPOCHS)
         script += " --{} {}".format("overall_report_dir", overall_report_dir)
         #print(script)
         if write_to_dir is not None:

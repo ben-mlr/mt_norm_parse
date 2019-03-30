@@ -80,7 +80,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
           verbose=1):
     if multi_task_loss_ponderation is not None:
         sanity_check_loss_poneration(multi_task_loss_ponderation, verbose=verbose)
-    assert optimizer in AVAILABLE_OPTIMIZER, "optimizer supported are {} ".format(AVAILABLE_OPTIMIZER)
     if teacher_force:
         assert proportion_pred_train is None, "proportion_pred_train should be None as teacher_force mode"
     else:
@@ -225,7 +224,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                     param.requires_grad = False
                     printing("TRAINING : freezing {} parameter ", var=[name], verbose=verbose, verbose_level=1)
 
-    parameters = filter(lambda p: p.requires_grad, model.parameters())
 
     _loss_dev = 1000
     _loss_train = 1000
@@ -272,7 +270,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
     checkpoint_dir_former = None
 
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
-        opt = dptx.get_optimizer(parameters, lr=lr, optimizer="adam")
+        parameters = filter(lambda p: p.requires_grad, model.parameters())
+        opt = dptx.get_optimizer(parameters, lr=lr, optimizer=optimizer)
         assert policy in AVAILABLE_SCHEDULING_POLICIES
         policy_dic = eval(policy)(epoch) if policy is not None else None
         #TODO : no need of re-ouptuting multi_task_mode : tasks should be harmonized to read

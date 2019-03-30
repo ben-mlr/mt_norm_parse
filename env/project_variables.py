@@ -139,3 +139,5 @@ REPO_W2V = {DIR_TWEET_W2V: {"label": TWEET_W2V_LABEL, "dim": 400},
 
 # output dir for writing
 WRITING_DIR = os.path.join(PROJECT_PATH, "predictions")
+
+WARMUP_N_EPOCHS = 30

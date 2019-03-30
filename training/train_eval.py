@@ -17,7 +17,7 @@ from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, C
     LIU_DEV, DEV, DIR_TWEET_W2V, TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, CP_PASTE_WR_TRAIN, \
     CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST, EWT_DEV, EWT_TEST, \
     LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO, EN_LINES_EWT_TRAIN, EN_LINES_DEV, EN_LINES_EWT_TRAIN, \
-    MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, DEFAULT_SCORING_FUNCTION
+    MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, DEFAULT_SCORING_FUNCTION, WARMUP_N_EPOCHS
 import torch
 import pdb
 np.random.seed(SEED_NP + 1)
@@ -126,7 +126,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
     multi_task_loss_ponderation = args.get("multi_task_loss_ponderation", "all")
     dropout_input = args.get("dropout_input", None)
 
-    n_epochs = 30 if warmup else n_epochs
+    n_epochs = WARMUP_N_EPOCHS if warmup else n_epochs
 
     if test_path is not None:
         assert isinstance(test_path, list),"ERROR test_path should be a list with one element per task "
