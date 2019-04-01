@@ -63,7 +63,6 @@ def predict(batch_size, data_path,
     greedy_decode_batch(char_dictionary=model.char_dictionary, verbose=verbose,
                         gold_output=False,
                         use_gpu=use_gpu,
-
                         write_output=True,
                         label_data=REPO_DATASET[data_path],
                         batchIter=batchIter, model=model, dir_normalized=dir_normalized, dir_original=dir_original,

@@ -173,16 +173,6 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size,task_simul
                                                                                               mode="word",
                                                                                               target_word_gold=target_word_gold)
 
-                elif False:
-                    #TODO : should deal with this in another way as you're missing the norm_not_norm prediction
-                    counts = None
-                    src_text_ls = ""
-                    text_decoded_ls = ""
-                    gold_text_seq_ls = ""
-                    output_seq_n_hot = None
-                    target_seq_gold = None
-                    pred_norm = None
-                    batch.output_norm_not_norm = None
 
                 if "pos" in model.arguments["hyperparameters"].get("tasks", ["normalize"]):
                     # decode pos
@@ -225,7 +215,7 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size,task_simul
 
                     counter_correct_batch = dict()
                     score_formulas = dict()
-                    for task in task_simultaneous_eval:#model.arguments["hyperparameters"].get("tasks", ["normalize"]):
+                    for task in task_simultaneous_eval:
                         # TODO should factorize even more adding assertion on what we evaluate
                         if task == "pos":
                             target_seq_gold = gold_pos_seq_ls
@@ -247,7 +237,6 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size,task_simul
                             gold_norm_not_norm = batch.output_norm_not_norm
                             ls_original = src_text_ls
                         print("-------------- EVALUATING task {}".format(task))
-                        pdb.set_trace()
                         _counter_correct_batch, _score_formulas = correct_pred_counter(ls_pred=ls_pred,
                                                                                        ls_gold=ls_gold,
                                                                                        output_seq_n_hot=output_seq_n_hot,
@@ -262,19 +251,6 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size,task_simul
                         counter_correct_batch.update(_counter_correct_batch)
                         score_formulas.update(_score_formulas)
 
-                    if pred_pos_ls is not None and src_text_pos is not None and gold_pos_seq_ls is not None and False:
-
-                        counter_correct_batch_pos, score_formulas_pos = correct_pred_counter(ls_pred=pred_pos_ls,
-                                                                                             ls_gold=gold_pos_seq_ls,
-                                                                                             output_seq_n_hot=None,
-                                                                                             src_seq=src_seq,
-                                                                                             target_seq_gold=gold_pos_seq_ls,
-                                                                                             ls_original=src_text_pos, task="pos")
-                        counter_correct_batch.update(counter_correct_batch_pos)
-                        score_formulas.update(score_formulas_pos)
-
-
-                    pdb.set_trace()
                     for key, val in counter_correct_batch.items():
                         try:
                             counter_correct[key] += val
@@ -283,43 +259,6 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size,task_simul
                             counter_correct[key] += 0
                             print(e)
                             print("EXXCEPTION WHEN updating counter_correct {} : val {} was therefore set to 0".format(key, val))
-                    # DEPRECIATED
-                    if score_to_compute_ls is not None and not eval_new and False:
-                        for metric in score_to_compute_ls:
-                            # TODO : DEPRECIATED : should be remove til
-                            # ---- no more need t set the norm/need_norm : all is done by default
-                            for mode_norm_score in mode_norm_score_ls:
-                                if metric not in ["norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recall", "norm_not_norm-accuracy"]:
-                                    try:
-                                        _score, _n_tokens = score_ls_(text_decoded_ls, gold_text_seq_ls, ls_original=src_text_ls,
-                                                                      score_func=metric, stat=stat,
-                                                                      compute_mean_score_per_sent=compute_mean_score_per_sent,
-                                                                      normalized_mode=mode_norm_score, verbose=verbose)
-                                        if compute_mean_score_per_sent:
-                                            score_dic[metric + "-" + mode_norm_score + "-n_sents"] += _score["n_sents"]
-                                            score_dic[metric + "-" + mode_norm_score + "-n_word_per_sent"] += _score["n_word_per_sent"]
-                                            score_dic[metric + "-" + mode_norm_score+"-mean_per_sent"] += _score["mean_per_sent"]
-                                        score_dic[metric + "-" + mode_norm_score] += _score["sum"]
-                                        score_dic[metric + "-" + mode_norm_score + "-" + "total_tokens"] += _n_tokens
-
-                                    except Exception as e:
-                                        print("Exception prediction batch {}".format(e))
-                                        score_dic[metric + "-" + mode_norm_score] += 0
-                                        #score_dic[metric + "-" + mode_norm_score + "-" + "total_tokens"] += 0
-                                        if compute_mean_score_per_sent:
-                                            score_dic[metric + "-" + mode_norm_score + "-n_sents"] += 0
-                                            score_dic[metric + "-" + mode_norm_score + "-n_word_per_sent"] += 0
-                                            score_dic[metric + "-" + mode_norm_score+"-mean_per_sent"] += 0
-
-                            if batch.output_norm_not_norm is not None:
-                                batch.output_norm_not_norm = batch.output_norm_not_norm[:, :pred_norm.size(1)]  # not that clean : we cut gold norm_not_norm sequence
-                                _score, _ = score_norm_not_norm(pred_norm, batch.output_norm_not_norm)
-                                # means : aux task is on
-                                for token in ["all", "need_norm"]:
-                                    for type_ in ["pred", "gold","pred_correct"]:
-                                        if token == "all" and type_ == "pred":
-                                            continue
-                                        score_dic[token+"-norm_not_norm-"+type_+"-count"] += _score[token+"-norm_not_norm-"+type_+"-count"]
                     test_scoring = TEST_SCORING_IN_CODE
                     if test_scoring:
                         assert len(list((set(mode_norm_score_ls)& set(["NEED_NORM", "NORMED","all"])))) == 3, "ERROR : to perform test need all normalization mode "
@@ -343,7 +282,7 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size,task_simul
                     print("Assertion failed count tokens")
                     print(e)
 
-            if eval_new:
-                return counter_correct, score_formulas
-            else:
-                return score_dic, None
+            if not eval_new:
+                score_formulas = None
+
+            return counter_correct, score_formulas
