@@ -28,9 +28,11 @@ def construct_word_embedding_table(word_dim, word_dictionary, word_embed_init_to
             embedding = word_embed_init_toke2vec[word.lower()]
             #print("LOWER PRETRAINED VECTOR", index, word, embedding)
             inv += 1
-            mean+= np.mean(embedding)
-            var+=np.var(embedding)
+            mean += np.mean(embedding)
+            var += np.var(embedding)
         else:
+            if word == "the":
+                print("word ", word, " --> not accounted")
             embedding = np.random.uniform(-scale, scale, [1, word_dim]).astype(np.float32)
             #print("RANDOMY GENERATED", index, word, embedding)
             oov += 1
@@ -38,4 +40,6 @@ def construct_word_embedding_table(word_dim, word_dictionary, word_embed_init_to
         #print("repeat", table[index, :])
     printing("W2V INFO : Mean of preloaded w2v {} var {}", var=[mean/inv, var/inv], verbose_level=1, verbose=verbose)
     printing('W2V INFO  : OOV: %d/%d (%f rate (percent)) in %d' % (oov, len(word_dictionary) + 1, 100 * float(oov / (len(word_dictionary) + 1)), inv), verbose_level=1, verbose=verbose)
+    word = "the"
+    print("word {} of index {} has vector {} ".format(word, index, embedding))
     return torch.from_numpy(table)

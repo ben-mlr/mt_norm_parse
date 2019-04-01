@@ -32,26 +32,29 @@ def _init_metric_report(score_to_compute_ls, mode_norm_score_ls):
 
 def _init_metric_report_2():
 
-    formulas = {"recall-normalization": ("NEED_NORM-normalization-pred_correct-count", "NEED_NORM-normalization-gold-count"),
-                "tnr-normalization": ("NORMED-normalization-pred_correct-count", "NORMED-normalization-gold-count"),
-                "precision-normalization": ("NEED_NORM-normalization-pred_correct-count", "NEED_NORM-normalization-pred-count"),
-                "npv-normalization": ("NORMED-normalization-pred_correct-count", "NORMED-normalization-pred-count"),
-                "accuracy-normalization": ("all-normalization-pred_correct-count", "all-normalization-gold-count"),
-                "accuracy-per_sent-normalization": ("all-normalization-pred_correct_per_sent-count", "all-normalization-n_sents"),
-                "info-all-per_sent": ("all-normalization-n_word_per_sent-count", "all-normalization-n_sents"),
-                "info-NORMED-per_sent": ("NORMED-normalization-n_word_per_sent-count", "NORMED-n_sents"),
-                "recall-per_sent-normalization": ("NEED_NORM-normalization-pred_correct_per_sent-count", "NEED_NORM-n_sents"),
-                "info-NEED_NORM-per_sent": ("NEED_NORM-normalization-n_word_per_sent-count", "NEED_NORM-normalization-n_sents"),
-                "tnr-per_sent-normalization": ("NORMED-normalization-pred_correct_per_sent-count", "NORMED-normalization-n_sents"),
+    # TODO : factorize
+
+    task = "normalize"
+    formulas = {"recall-"+task+"": ("NEED_NORM-"+task+"-pred_correct-count", "NEED_NORM-"+task+"-gold-count"),
+                "tnr-"+task+"": ("NORMED-"+task+"-pred_correct-count", "NORMED-"+task+"-gold-count"),
+                "precision-"+task+"": ("NEED_NORM-"+task+"-pred_correct-count", "NEED_NORM-"+task+"-pred-count"),
+                "npv-"+task+"": ("NORMED-"+task+"-pred_correct-count", "NORMED-"+task+"-pred-count"),
+                "accuracy-"+task+"": ("all-"+task+"-pred_correct-count", "all-"+task+"-gold-count"),
+                "accuracy-per_sent-"+task+"": ("all-"+task+"-pred_correct_per_sent-count", "all-"+task+"-n_sents"),
+                "info-all-per_sent": ("all-"+task+"-n_word_per_sent-count", "all-"+task+"-n_sents"),
+                "info-NORMED-per_sent": ("NORMED-"+task+"-n_word_per_sent-count", "NORMED-n_sents"),
+                "recall-per_sent-"+task+"": ("NEED_NORM-"+task+"-pred_correct_per_sent-count", "NEED_NORM-n_sents"),
+                "info-NEED_NORM-per_sent": ("NEED_NORM-"+task+"-n_word_per_sent-count", "NEED_NORM-"+task+"-n_sents"),
+                "tnr-per_sent-"+task+"": ("NORMED-"+task+"-pred_correct_per_sent-count", "NORMED-"+task+"-n_sents"),
                 "aa": ("n_sents", "n_sents"),
-                "InV_accuracy-normalization": ("InV-normalization-pred_correct-count", "InV-normalization-gold-count"),
-                "info-InV-per_sent": ("InV-normalization-n_word_per_sent-count", "InV-normalization-n_sents"),
-                #"INV_accuracy-normalization": ("InV-normalization-pred_correct-count", "InV-normalization-gold-count"),
-                "InV_accuracy-per_sent-normalization": ("InV-normalization-pred_correct_per_sent-count", "InV-normalization-n_sents"),
-                #"OOV_accuracy-normalization": ("OOV-normalization-pred_correct-count", "OOV-normalization-gold-count"),
-                "info-OOV-per_sent": ("OOV-normalization-n_word_per_sent-count", "OOV-normalization-n_sents"),
-                "OOV_accuracy-normalization": ("OOV-normalization-pred_correct-count", "OOV-normalization-gold-count"),
-                "OOV_accuracy-per_sent-normalization": ("OOV-normalization-pred_correct_per_sent-count", "OOV-normalization-n_sents")
+                "InV_accuracy-"+task+"": ("InV-"+task+"-pred_correct-count", "InV-"+task+"-gold-count"),
+                "info-InV-per_sent": ("InV-"+task+"-n_word_per_sent-count", "InV-"+task+"-n_sents"),
+                #"INV_accuracy-"+task+"": ("InV-"+task+"-pred_correct-count", "InV-"+task+"-gold-count"),
+                "InV_accuracy-per_sent-"+task+"": ("InV-"+task+"-pred_correct_per_sent-count", "InV-"+task+"-n_sents"),
+                #"OOV_accuracy-"+task+"": ("OOV-"+task+"-pred_correct-count", "OOV-"+task+"-gold-count"),
+                "info-OOV-per_sent": ("OOV-"+task+"-n_word_per_sent-count", "OOV-"+task+"-n_sents"),
+                "OOV_accuracy-"+task+"": ("OOV-"+task+"-pred_correct-count", "OOV-"+task+"-gold-count"),
+                "OOV_accuracy-per_sent-"+task+"": ("OOV-"+task+"-pred_correct_per_sent-count", "OOV-"+task+"-n_sents")
                 }
 
     formulas_2 = {
@@ -88,11 +91,12 @@ def _init_metric_report_2():
             dic[tupl[1]] = 0
         elif len(tupl) == 1:
             dic[tupl[0]] = 0
-    dic["all-normalization-pred-count"] = 0
+
+    dic["all-normalize-pred-count"] = 0
     return dic
 
 
-def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
+def greedy_decode_batch(batchIter, model, char_dictionary, batch_size,task_simultaneous_eval, pad=1,
                         gold_output=False, score_to_compute_ls=None, stat=None,
                         use_gpu=False,
                         compute_mean_score_per_sent=False,
@@ -102,7 +106,7 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                         write_output=False, write_to="conll", dir_normalized=None, dir_original=None,
 
                         verbose=0):
-
+        "We decode batch by batch simultaneous ls of tasks at a time "
         score_dic = _init_metric_report(score_to_compute_ls, mode_norm_score_ls)
 
         counter_correct = _init_metric_report_2()
@@ -122,9 +126,6 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                     i += 1
                 except StopIteration:
                     break
-            #for step, (batch, _) in enumerate(batchIter):
-                # read src sequence
-                
                 src_seq = batch.input_seq
                 src_len = batch.input_seq_len
                 src_mask = batch.input_seq_mask
@@ -136,8 +137,19 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                 printing("WARNING : word max_len set to src_seq.size(-1) {} ", var=(max_len), verbose=verbose,
                          verbose_level=3)
                 # decoding one batch
-                if "normalize" in model.arguments["hyperparameters"].get("tasks",["normalize"]) or "norm_not_norm" in model.arguments["hyperparameters"].get("tasks",["normalize"]):
+                src_text_ls = ""
+                text_decoded_ls = ""
+                gold_text_seq_ls = ""
+                if "norm_not_norm" in model.arguments["hyperparameters"].get("tasks", ["normalize"]):
+                    (text_decoded_ls, src_text_ls, gold_text_seq_ls, _), counts, _, \
+                    (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_word(model, src_seq, src_len,
+                                                                                          input_word=batch.input_word,
+                                                                                          mode="norm_not_norm"
+                                                                                         )
+                if "normalize" in model.arguments["hyperparameters"].get("tasks", ["normalize"]):
+
                     if model.arguments["hyperparameters"]["decoder_arch"].get("char_decoding", True):
+                        # TODO : should be able to merge word_decoding and char_decoding
                         assert not model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False), \
                             "ERROR : only on type of decoding should be set (for now)"
                         (text_decoded_ls, src_text_ls, gold_text_seq_ls, _), counts, _, \
@@ -153,12 +165,15 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                                                                                                   input_word=batch.input_word,
                                                                                                   pad=pad,
                                                                                                   verbose=verbose)
-                    elif model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False):
+
+                    if model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False):
                         (text_decoded_ls, src_text_ls, gold_text_seq_ls, _), counts, _, \
                         (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_word(model, src_seq, src_len,
                                                                                               input_word=batch.input_word,
+                                                                                              mode="word",
                                                                                               target_word_gold=target_word_gold)
-                else:
+
+                elif False:
                     #TODO : should deal with this in another way as you're missing the norm_not_norm prediction
                     counts = None
                     src_text_ls = ""
@@ -168,6 +183,7 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                     target_seq_gold = None
                     pred_norm = None
                     batch.output_norm_not_norm = None
+
                 if "pos" in model.arguments["hyperparameters"].get("tasks", ["normalize"]):
                     # decode pos
                     (pred_pos_ls, src_text_pos, gold_pos_seq_ls, _), counts_pos, _, \
@@ -191,6 +207,7 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                                 pred_pos_ls=pred_pos_ls, src_text_pos=src_text_pos,
                                 new_file=i==0,
                                 verbose=verbose)
+                counts = None
                 if counts is not None:
                     total_count["src_word_count"] += counts["src_word_count"]
                     total_count["pred_word_count"] += counts["pred_word_count"]
@@ -201,22 +218,51 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                         total_count["target_word_count"] += counts["target_word_count"]
 
                     # we can score
-                    printing("Gold {} ", var=[(gold_text_seq_ls)], verbose=verbose, verbose_level=5)
+                    printing("Gold {} ", var=[(gold_text_seq_ls)],
+                             verbose=verbose, verbose_level=5)
                     # output exact score only
                     # sent mean not yet supported for npv and tnr, precision
 
-                    counter_correct_batch, score_formulas = correct_pred_counter(ls_pred=text_decoded_ls,
-                                                                                 ls_gold=gold_text_seq_ls,
-                                                                                 output_seq_n_hot=output_seq_n_hot,
-                                                                                 src_seq=src_seq,
-                                                                                 in_vocab_ls=model.word_dictionary.inv_ls ,
-                                                                                 target_seq_gold=target_seq_gold,
-                                                                                 pred_norm_not_norm=pred_norm,
-                                                                                 gold_norm_not_norm=batch.output_norm_not_norm,
-                                                                                 scoring_func=scoring_func_sequence_pred,
-                                                                                 ls_original=src_text_ls)
+                    counter_correct_batch = dict()
+                    score_formulas = dict()
+                    for task in task_simultaneous_eval:#model.arguments["hyperparameters"].get("tasks", ["normalize"]):
+                        # TODO should factorize even more adding assertion on what we evaluate
+                        if task == "pos":
+                            target_seq_gold = gold_pos_seq_ls
+                            ls_gold = gold_pos_seq_ls
+                            ls_pred = pred_pos_ls
+                            ls_original = src_text_pos
+                            output_seq_n_hot = None
+                            pred_norm_not_norm = None
+                            in_vocab_ls = None
+                            gold_norm_not_norm = None
+                        elif task in ["normalize", "norm_not_norm"]:
+                            ls_pred = text_decoded_ls
+                            ls_gold = gold_text_seq_ls
+                            output_seq_n_hot = output_seq_n_hot
+                            src_seq = src_seq
+                            in_vocab_ls = model.word_dictionary.inv_ls
+                            target_seq_gold = target_seq_gold
+                            pred_norm_not_norm = pred_norm
+                            gold_norm_not_norm = batch.output_norm_not_norm
+                            ls_original = src_text_ls
+                        print("-------------- EVALUATING task {}".format(task))
+                        pdb.set_trace()
+                        _counter_correct_batch, _score_formulas = correct_pred_counter(ls_pred=ls_pred,
+                                                                                       ls_gold=ls_gold,
+                                                                                       output_seq_n_hot=output_seq_n_hot,
+                                                                                       src_seq=src_seq,
+                                                                                       in_vocab_ls=in_vocab_ls,
+                                                                                       target_seq_gold=target_seq_gold,
+                                                                                       pred_norm_not_norm=pred_norm_not_norm,
+                                                                                       task=task,
+                                                                                       gold_norm_not_norm=gold_norm_not_norm,
+                                                                                       scoring_func=scoring_func_sequence_pred,
+                                                                                       ls_original=ls_original)
+                        counter_correct_batch.update(_counter_correct_batch)
+                        score_formulas.update(_score_formulas)
 
-                    if pred_pos_ls is not None and src_text_pos is not None and gold_pos_seq_ls is not None:
+                    if pred_pos_ls is not None and src_text_pos is not None and gold_pos_seq_ls is not None and False:
 
                         counter_correct_batch_pos, score_formulas_pos = correct_pred_counter(ls_pred=pred_pos_ls,
                                                                                              ls_gold=gold_pos_seq_ls,
@@ -227,7 +273,8 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                         counter_correct_batch.update(counter_correct_batch_pos)
                         score_formulas.update(score_formulas_pos)
 
-                    #for key, val in zip(counter_correct.keys(), counter_correct_batch.value()):
+
+                    pdb.set_trace()
                     for key, val in counter_correct_batch.items():
                         try:
                             counter_correct[key] += val
@@ -275,7 +322,7 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, pad=1,
                                         score_dic[token+"-norm_not_norm-"+type_+"-count"] += _score[token+"-norm_not_norm-"+type_+"-count"]
                     test_scoring = TEST_SCORING_IN_CODE
                     if test_scoring:
-                        assert len(list((set(mode_norm_score_ls)&set(["NEED_NORM", "NORMED","all"])))) == 3, "ERROR : to perform test need all normalization mode "
+                        assert len(list((set(mode_norm_score_ls)& set(["NEED_NORM", "NORMED","all"])))) == 3, "ERROR : to perform test need all normalization mode "
                             #print("Scoring with mode {}".format(mode_norm_score))
                         for metric in score_to_compute_ls:
                             assert score_dic[metric + "-NEED_NORM-total_tokens"]+score_dic[metric + "-NORMED-total_tokens"] == score_dic[metric + "-all-total_tokens"], \

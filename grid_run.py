@@ -32,11 +32,11 @@ def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_pa
         epochs = epochs if not test_before_run else 30
         if warmup:
             if len(params[0]["tasks"]) > 1:
-                train_path = [DEMO, DEMO]
-                dev_path = [DEMO2, DEMO2]
-                test_paths = [[TEST], [TEST]]
+                train_path = [DEMO, DEMO, DEMO]
+                dev_path = [DEMO2, DEMO2, DEMO]
+                test_paths = [[DEMO2], [DEMO2], [DEMO2]]
             else:
-                train_path, dev_path = DEMO2, DEMO2
+                train_path, dev_path = DEMO, DEMO2
                 test_paths = [[DEMO2]]
             #param["word_embed_init"] = None
 
@@ -65,7 +65,7 @@ def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_pa
                                                                      "norm_not_norm-accuracy"],
                                                 warmup=warmup, args=param, use_gpu=None, n_epochs=epochs,
                                                 max_char_len=20,
-                                                debug=debug,
+                                                debug=False,
                                                 verbose=1)
 
         run_dir = os.path.join(dir_grid, RUN_ID + "-run-log")
@@ -89,7 +89,7 @@ if __name__ == "__main__":
           print("LOCAL")
 
       params = []
-      ls_param = ["hidden_size_encoder", "hidden_size_sent_encoder","hidden_size_decoder", "output_dim", "char_embedding_dim"]
+      ls_param = ["hidden_size_encoder", "hidden_size_sent_encoder", "hidden_size_decoder", "output_dim", "char_embedding_dim"]
       params_strong = {"hidden_size_encoder": 100, "output_dim": 100, "char_embedding_dim": 50,
                          "dropout_sent_encoder": 0.3, "drop_out_word_encoder": 0.3, "dropout_word_decoder": 0.,
                          "drop_out_word_encoder_out": 0.3, "drop_out_sent_encoder_out": 0.3, "drop_out_char_embedding_decoder":0.1, "dropout_bridge":0.01,
@@ -146,7 +146,7 @@ if __name__ == "__main__":
                                                                                   shared_context_ls=["all"],
                                                                                   word_embedding_projected_dim_ls=[125],
                                                                                   char_level_embedding_projection_dim_ls=[125],
-                                                                                  tasks_ls=[["normalize"]],
+                                                                                  tasks_ls=[["pos", "norm_not_norm", "normalize"]],
                                                                                   n_layers_sent_cell_ls=[2],
                                                                                   n_layers_word_encoder_ls=[1],
                                                                                   unrolling_word_ls=[1],
@@ -207,34 +207,34 @@ if __name__ == "__main__":
                    var=[warmup, test_before_run], verbose=0, verbose_level=0)
 
       if run_standart:
+          warmup_desc = "warmup" if warmup else ""
+          test_before_run_desc = "test_before_run" if test_before_run else ""
+          mode_run = "sing"
+          description = "{} - {} ({}) : Analysing : {} with regard to {} fixed".format(len(params) if not (warmup or test_before_run) else str(1)+"_WARMUP",
+                                                                                       description_comment, mode_run,
+                                                                                       analysed, fixed)
           try:
-              warmup_desc = "warmup" if warmup else ""
-              test_before_run_desc = "test_before_run" if test_before_run else ""
-              mode_run = "sing"
-              description = "{} - {} ({}) : Analysing : {} with regard to {} fixed".format(len(params) if not (warmup or test_before_run) else str(1)+"_WARMUP",
-                                                                                           description_comment, mode_run,
-                                                                                           analysed, fixed)
-              if False:
-                  row, col = append_reporting_sheet(git_id=get_commit_id(), tasks=get_experimented_tasks(params),rioc_job=OAR, description=description, log_dir=log,
-                                                target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR, "{}*".format(LABEL_GRID)),
-                                                env=environment, status="running {}{}".format(warmup_desc, test_before_run_desc),
-                                                verbose=1)
-              #print("row:{}".format(row))
-              #train_path, dev_path = MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV#MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
-              train_path = [EN_LINES_EWT_TRAIN, LIU_TRAIN]
-              dev_path = [EWT_DEV, LIU_DEV]
-              run_grid(params=params, labels=labels, dir_grid=dir_grid,
-                       label_grid=LABEL_GRID,
-                       epochs=100,
-                       test_before_run=test_before_run,
-                       train_path=train_path, dev_path=dev_path,
-                       debug=True, scoring_func_sequence_pred="exact_match",
-                       test_paths=[[EWT_DEV, TEST], [LIU_DEV, TEST]],#[TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#[TEST, TEST],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
-                       warmup=warmup)
-              #update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
-          except Exception as e:
-              update_status(row=row, new_status="failed {} (error {})".format(warmup_desc, e), verbose=1)
-              raise(e)
+              row, col = append_reporting_sheet(git_id=get_commit_id(), tasks=get_experimented_tasks(params),rioc_job=OAR, description=description, log_dir=log,
+                                            target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR, "{}*".format(LABEL_GRID)),
+                                            env=environment, status="running {}{}".format(warmup_desc, test_before_run_desc),
+                                            verbose=1)
+          except:
+              row = None
+          print("row:{}".format(row))
+          #train_path, dev_path = MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV#MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+          train_path = [EN_LINES_EWT_TRAIN, LIU_TRAIN]
+          dev_path = [EWT_DEV, LIU_DEV]
+          run_grid(params=params, labels=labels, dir_grid=dir_grid,
+                   label_grid=LABEL_GRID,
+                   epochs=100,
+                   test_before_run=test_before_run,
+                   train_path=train_path, dev_path=dev_path,
+                   debug=True,
+                   scoring_func_sequence_pred="exact_match",
+                   test_paths=[[EWT_DEV, TEST], [LIU_DEV, TEST]],#[TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#[TEST, TEST],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
+                   warmup=warmup)
+          if row is not None:
+              update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
 
       else:
           epochs=100 
@@ -242,9 +242,10 @@ if __name__ == "__main__":
           POS_ABLATION = False
           NORMALIZE = True
           if NORMALIZE:
-              train_path, dev_path = DEMO2, DEMO2#MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+              train_path, dev_path = CP_PASTE_TRAIN, CP_PASTE_DEV#MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
               train_path = [train_path]
               dev_path = [dev_path]
+              test_path = [[CP_PASTE_TEST, LIU_DEV, TEST]]
               dir_script, row = script_generation(grid_label=LABEL_GRID, 
                                                   init_param=params_strong,#params_dozat,#params_strong,#params_dozat,
                                                   warmup=test_before_run, test_before_run=test_before_run,
@@ -252,19 +253,19 @@ if __name__ == "__main__":
                                                   stable_decoding_state_ls=[0],
                                                   word_decoding_ls=[0],
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
-                                                  batch_size_ls=[20],
-                                                  word_embed_ls=[1, 0],
+                                                  batch_size_ls=[40],
+                                                  word_embed_ls=[1],
                                                   dir_sent_encoder_ls=[2], dir_word_encoder_ls=[2],
                                                   n_layers_sent_cell_ls=[1], n_layers_word_encoder_ls=[1],
-                                                  lr_ls=[0.0001, 0.0005],
+                                                  lr_ls=[0.001],
                                                   word_embed_init_ls=[None],
                                                   teacher_force_ls=[1],
                                                   word_recurrent_cell_encoder_ls=["LSTM"],
                                                   dropout_word_encoder_cell_ls=[0.],
                                                   proportion_pred_train_ls=[None],
-                                                  shared_context_ls=["word"],
+                                                  shared_context_ls=["all"],
                                                   word_embedding_projected_dim_ls=[100],
-                                                  char_level_embedding_projection_dim_ls=[400],
+                                                  char_level_embedding_projection_dim_ls=[300],
                                                   mode_word_encoding_ls=["cat"],
                                                   tasks_ls=[["normalize"]],
                                                   char_src_attention_ls=[0],
@@ -274,11 +275,11 @@ if __name__ == "__main__":
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   description_comment=description_comment,
                                                   train_path=train_path, dev_path=dev_path,
-                                                  test_paths=[[DEMO2, DEMO2, DEMO2]],
+                                                  test_paths=test_path,
                                                   gpu_mode="random",
                                                   gpus_ls=gpu_ls,
                                                   scoring_func="exact_match",
-                                                  dropout_input_ls=[0.],
+                                                  dropout_input_ls=[0.,0.4],
                                                   multi_task_loss_ponderation_ls=[{"pos": 0, "normalize": 1, "norm_not_norm":0}],
                                                   write_to_dir=RUN_SCRIPTS_DIR)
           
@@ -293,7 +294,7 @@ if __name__ == "__main__":
                                                   dropout_word_encoder_cell_ls=[0.1],
                                                   stable_decoding_state_ls=[0],
                                                   word_decoding_ls=[0],
-                                                  batch_size_ls=[60],
+                                                  batch_size_ls=[20],
                                                   word_embed_ls=[0],
                                                   dir_sent_encoder_ls=[2],dir_word_encoder_ls=[2],
                                                   lr_ls=[0.001],
@@ -316,7 +317,7 @@ if __name__ == "__main__":
                                                                                    {"pos": 0.5, "normalize": 1, "norm_not_norm": 0},
                                                                                    {"pos": 1, "normalize": 0.1, "norm_not_norm": 0},
                                                                                    {"pos": 1, "normalize": 0.01, "norm_not_norm": 0},
-                                                                                   {"pos": 1, "normalize": 0.0000001, "norm_not_norm": 0}],
+                                                                                 ],
                                                   scale_ls=[1],
                                                   # arguments that are specific to script generation
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,

@@ -49,149 +49,157 @@ def score_ls(ls_pred, ls_gold, scoring_func, stat="mean", verbose=0):
 
 
 def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None, gold_norm_not_norm=None,
-                         output_seq_n_hot=None, src_seq=None, target_seq_gold=None, task="normalization",
+                         output_seq_n_hot=None, src_seq=None, target_seq_gold=None, task="normalize",
                          scoring_func="exact_match",
                          in_vocab_ls=None, verbose=0):
     # only exact score here !!
-    assert task in ["normalization", "pos"]
+    assert task in ["normalize", "pos", "norm_not_norm"]
     assert scoring_func in SCORING_FUNC_AVAILABLE
     dic = OrderedDict()
-    assert len(ls_gold) == len(ls_pred), "ERROR ls_gold is len {} vs {} : {} while ls_pred is {} ".format(len(ls_gold),
-                                                                                                          len(ls_pred),
-                                                                                                          ls_gold,
-                                                                                                          ls_pred)
-    assert len(ls_gold) == len(ls_original), "ERROR ls_gold is len {} vs {} : {} while src is {} ".format(len(ls_gold),
-                                                                                                          len(ls_original),
-                                                                                                          ls_gold,
-                                                                                                          ls_original)
-    normalization_ls = [[src_token == gold_token for src_token, gold_token in zip(batch_src, batch_gold)] for batch_src, batch_gold in zip(ls_original, ls_gold)]
-    # if False : sequence predictor predicts NEED_NORM otherwise NORMED
-    normalization_prediction_by_seq = [[src_token == pred_token for src_token, pred_token in zip(batch_src, batch_pred)] for batch_src, batch_pred in zip(ls_original, ls_pred)]
-    #normalization_prediction_by_seq_norm = len(normalization_prediction_by_seq[normalization_prediction_by_seq == True])
-    #normalization_prediction_by_seq_need_norm = len(normalization_prediction_by_seq[normalization_prediction_by_seq == False])
-    #assert len(normalization_prediction_by_seq) == len(normalization_ls)
-    normalized_mode_ls = ["all", "NEED_NORM", "NORMED"] if task == "normalization" else ["all"]
-    if in_vocab_ls is not None:
-        normalized_mode_ls.extend(["InV", "OOV"])
-    for normalized_mode in normalized_mode_ls:
+    normalized_mode_ls = []
+    if task == "normalize":
 
-        scores = []
-        sent_score_ls = []
-        try:
-            assert ls_original is not None, "ERROR : need to provide original sequence to compute NORMED/NEED_NORM analysis"
-            assert len(ls_original) == len(ls_gold), "ERROR ls_original sizes provided does not fit pred and gold"
-        except Exception as e:
-            print(e)
-            print("ERROR len(ls_original) != len(ls_gold) ", len(ls_original) , len(ls_gold))
-        if normalized_mode in ["NEED_NORM", "NORMED"]:
-            norm_mode = 1 if normalized_mode == "NORMED" else 0
-            _ls_gold = [[token for token, normed in zip(batch, batch_norm) if normed == norm_mode] for batch, batch_norm in zip(ls_gold, normalization_ls)]
-            _ls_pred = [[token for token, normed in zip(batch, batch_norm) if normed == norm_mode] for batch, batch_norm in zip(ls_pred, normalization_ls)]
-        elif normalized_mode == "all":
-            _ls_gold = ls_gold
-            _ls_pred = ls_pred
-        elif normalized_mode in ["InV", "OOV"]:
-            if normalized_mode == "InV":
-                gold_pred = [[(token, normalization) for token, normalization in zip(batch, batch_pred) if token in in_vocab_ls] for batch, batch_pred in zip(ls_gold, ls_pred)]
-            else:
-                gold_pred = [[(token, normalization) for token, normalization in zip(batch, batch_pred) if token not in in_vocab_ls] for batch, batch_pred in zip(ls_gold, ls_pred)]
-            _ls_gold = [[tup[0] for tup in batch] for batch in gold_pred]
-            _ls_pred = [[tup[1] for tup in batch] for batch in gold_pred]
-            
-        else:
-            print("ERROR normalized_mode {} not supported".format(normalized_mode))
-            raise(Exception)
-        for ind, (gold_sent, pred_sent) in enumerate(zip(_ls_gold, _ls_pred)):
+        assert len(ls_gold) == len(ls_pred), "ERROR ls_gold is len {} vs {} : {} while ls_pred is {} ".format(len(ls_gold),
+                                                                                                              len(ls_pred),
+                                                                                                              ls_gold,
+                                                                                                              ls_pred)
+        assert len(ls_gold) == len(ls_original), "ERROR ls_gold is len {} vs {} : {} while src is {} ".format(len(ls_gold),
+                                                                                                              len(ls_original),
+                                                                                                              ls_gold,
+                                                                                                              ls_original)
+        normalization_ls = [[src_token == gold_token for src_token, gold_token in zip(batch_src, batch_gold)] for batch_src, batch_gold in zip(ls_original, ls_gold)]
+        # if False : sequence predictor predicts NEED_NORM otherwise NORMED
+        normalization_prediction_by_seq = [[src_token == pred_token for src_token, pred_token in zip(batch_src, batch_pred)] for batch_src, batch_pred in zip(ls_original, ls_pred)]
+        #normalization_prediction_by_seq_norm = len(normalization_prediction_by_seq[normalization_prediction_by_seq == True])
+        #normalization_prediction_by_seq_need_norm = len(normalization_prediction_by_seq[normalization_prediction_by_seq == False])
+        #assert len(normalization_prediction_by_seq) == len(normalization_ls)
+        normalized_mode_ls = ["all", "NEED_NORM", "NORMED"] if task == "normalize" else ["all"]
+        if in_vocab_ls is not None:
+            normalized_mode_ls.extend(["InV", "OOV"])
+        for normalized_mode in normalized_mode_ls:
+
+            scores = []
+            sent_score_ls = []
             try:
-                assert len(gold_sent) == len(pred_sent), "len : pred {}, gold {} - pred {} gold {} " \
-                                                         "(normalized_mode is {})".format(len(pred_sent), len(gold_sent), pred_sent, gold_sent, normalized_mode)
+                assert ls_original is not None, "ERROR : need to provide original sequence to compute NORMED/NEED_NORM analysis"
+                assert len(ls_original) == len(ls_gold), "ERROR ls_original sizes provided does not fit pred and gold"
             except Exception as e:
-                print("Assertion failed")
                 print(e)
-                pdb.set_trace()
-            sent_score = []
-            for word_gold, word_pred in zip(gold_sent, pred_sent):
-
-                if scoring_func == "BLUE":
-                    word_pred = word_pred.split()
-                    word_gold = word_gold.split()
-                    score_word = sentence_bleu(references=[word_gold], hypothesis=word_pred, smoothing_function=smoothing.method3)
-                    sent_score.append(score_word)
-                    scores.append(score_word)
-                    printing("GOLD {} PRED {} BLEU {} ".format(word_gold, word_pred, score_word), verbose_level=2, verbose=verbose)
-                    pdb.set_trace()
+                print("ERROR len(ls_original) != len(ls_gold) ", len(ls_original) , len(ls_gold))
+            if normalized_mode in ["NEED_NORM", "NORMED"]:
+                norm_mode = 1 if normalized_mode == "NORMED" else 0
+                _ls_gold = [[token for token, normed in zip(batch, batch_norm) if normed == norm_mode] for batch, batch_norm in zip(ls_gold, normalization_ls)]
+                _ls_pred = [[token for token, normed in zip(batch, batch_norm) if normed == norm_mode] for batch, batch_norm in zip(ls_pred, normalization_ls)]
+            elif normalized_mode == "all":
+                _ls_gold = ls_gold
+                _ls_pred = ls_pred
+            elif normalized_mode in ["InV", "OOV"]:
+                if normalized_mode == "InV":
+                    gold_pred = [[(token, normalization) for token, normalization in zip(batch, batch_pred) if token in in_vocab_ls] for batch, batch_pred in zip(ls_gold, ls_pred)]
                 else:
-                    eval_func = eval(scoring_func)
-                    if word_gold not in [ROOT_CHAR, END, ROOT_POS, END_POS]:
-                        score_word = eval_func(word_pred, word_gold)
+                    gold_pred = [[(token, normalization) for token, normalization in zip(batch, batch_pred) if token not in in_vocab_ls] for batch, batch_pred in zip(ls_gold, ls_pred)]
+                _ls_gold = [[tup[0] for tup in batch] for batch in gold_pred]
+                _ls_pred = [[tup[1] for tup in batch] for batch in gold_pred]
+
+            else:
+                print("ERROR normalized_mode {} not supported".format(normalized_mode))
+                raise(Exception)
+            for ind, (gold_sent, pred_sent) in enumerate(zip(_ls_gold, _ls_pred)):
+                try:
+                    assert len(gold_sent) == len(pred_sent), "len : pred {}, gold {} - pred {} gold {} " \
+                                                             "(normalized_mode is {})".format(len(pred_sent), len(gold_sent), pred_sent, gold_sent, normalized_mode)
+                except Exception as e:
+                    print("Assertion failed")
+                    print(e)
+                    pdb.set_trace()
+                sent_score = []
+                for word_gold, word_pred in zip(gold_sent, pred_sent):
+
+                    if scoring_func == "BLUE":
+                        word_pred = word_pred.split()
+                        word_gold = word_gold.split()
+                        score_word = sentence_bleu(references=[word_gold], hypothesis=word_pred, smoothing_function=smoothing.method3)
                         sent_score.append(score_word)
                         scores.append(score_word)
-                        printing("GOLD {} PRED {} exact_match {} ".format(word_gold, word_pred, score_word),
-                                 verbose_level=2, verbose=verbose)
+                        printing("GOLD {} PRED {} BLEU {} ".format(word_gold, word_pred, score_word), verbose_level=2, verbose=verbose)
+                        pdb.set_trace()
                     else:
-                        score_word = "not given cause special char"
+                        eval_func = eval(scoring_func)
+                        if word_gold not in [ROOT_CHAR, END, ROOT_POS, END_POS]:
+                            score_word = eval_func(word_pred, word_gold)
+                            sent_score.append(score_word)
+                            scores.append(score_word)
+                            printing("GOLD {} PRED {} exact_match {} ".format(word_gold, word_pred, score_word),
+                                     verbose_level=0, verbose=verbose)
+                        else:
+                            score_word = "not given cause special char"
 
-            sent_score_ls.append(sent_score)
+                sent_score_ls.append(sent_score)
 
-        score = np.sum(scores)
+            score = np.sum(scores)
 
-        n_mode_words_per_sent = np.sum([len(scores_sent) for scores_sent in sent_score_ls])
-        n_sents = len([a for a in sent_score_ls if len(a) > 0])
-        normalized_sent_error_out_of_overall_sent_len = [np.sum(scores_sent)/len(scores_sent) if len(scores_sent) else 0  for scores_sent in sent_score_ls]
-        mean_score_per_sent = np.sum(normalized_sent_error_out_of_overall_sent_len)
+            n_mode_words_per_sent = np.sum([len(scores_sent) for scores_sent in sent_score_ls])
+            n_sents = len([a for a in sent_score_ls if len(a) > 0])
+            normalized_sent_error_out_of_overall_sent_len = [np.sum(scores_sent)/len(scores_sent) if len(scores_sent) else 0  for scores_sent in sent_score_ls]
+            mean_score_per_sent = np.sum(normalized_sent_error_out_of_overall_sent_len)
 
-        if normalized_mode == "all":
-            count_pred_number = len(scores)
-        else:
-            cond = False if normalized_mode == "NEED_NORM" else True
-            normalization_ls_flat = np.array([a for ls in normalization_prediction_by_seq for a in ls])
-            count_pred_number = len(normalization_ls_flat[normalization_ls_flat == cond])
-
-        return_dic = {
-                      normalized_mode+"-"+task+"-pred_correct-count": score,
-                      normalized_mode+"-"+task+"-n_word_per_sent-count": n_mode_words_per_sent,
-                      normalized_mode+"-"+task+"-pred_correct_per_sent-count": mean_score_per_sent,
-                      normalized_mode+"-"+task+"-gold-count": len(scores),
-                      normalized_mode+"-"+task+"-n_sents": n_sents
-                     }
-        if task == "normalization" and normalized_mode not in ["InV", "OOV"]:
-            return_dic[normalized_mode + "-" + task + "-pred-count"] = count_pred_number
-        dic.update(return_dic)
-
-    if pred_norm_not_norm is not None and gold_norm_not_norm is not None and task == "normalization":
-        pdb.set_trace()
-        score_binary, formulas_bin = score_norm_not_norm(pred_norm_not_norm, gold_norm_not_norm[:, :pred_norm_not_norm.size(1)], output_seq_n_hot, src_seq, target_seq_gold)
-        # testing consistency in counting
-        try:
-            assert score_binary["all-norm_not_norm-gold-count"] == dic["all-normalization-gold-count"], \
-                "ERROR : inconsistency between score binary gold count on all and on sequence prediction"
-            assert score_binary["need_norm-norm_not_norm-gold-count"] == dic["NEED_NORM-normalization-gold-count"], \
-                "ERROR : inconsistency between score binary gold count on NEED_NORM and on sequence prediction"
-        except Exception as e:
+            if normalized_mode == "all":
+                count_pred_number = len(scores)
+            else:
+                cond = False if normalized_mode == "NEED_NORM" else True
+                normalization_ls_flat = np.array([a for ls in normalization_prediction_by_seq for a in ls])
+                count_pred_number = len(normalization_ls_flat[normalization_ls_flat == cond])
+            return_dic = {
+                          normalized_mode+"-"+task+"-pred_correct-count": score,
+                          normalized_mode+"-"+task+"-n_word_per_sent-count": n_mode_words_per_sent,
+                          normalized_mode+"-"+task+"-pred_correct_per_sent-count": mean_score_per_sent,
+                          normalized_mode+"-"+task+"-gold-count": len(scores),
+                          normalized_mode+"-"+task+"-n_sents": n_sents
+                         }
+            if task == "normalize" and normalized_mode not in ["InV", "OOV"]:
+                return_dic[normalized_mode + "-" + task + "-pred-count"] = count_pred_number
+            dic.update(return_dic)
+            # DEPRECIATED
+            dic["n_sents"] = len(sent_score_ls)
             pdb.set_trace()
-            print("Assertion failed : CONSISTENCY between two tasks in terms of tokens ", e)
 
-        dic.update(score_binary)
-    else:
-        formulas_bin = None
-    # DEPRECIATED
-    dic["n_sents"] = len(sent_score_ls)
+    formulas_bin = None
+    if task in ["normalize", "norm_not_norm"]:
+        if task == "norm_not_norm":
+            assert pred_norm_not_norm is not None and gold_norm_not_norm is not None," ERROR pred_norm_not_norm and gold_" \
+                                                                                     " norm_not_norm are empty while they should not {} - {}".format(pred_norm_not_norm, gold_norm_not_norm)
+        if pred_norm_not_norm is not None and gold_norm_not_norm is not None:
+            pdb.set_trace()
+            score_binary, formulas_bin = score_norm_not_norm(pred_norm_not_norm, gold_norm_not_norm[:, :pred_norm_not_norm.size(1)], output_seq_n_hot, src_seq, target_seq_gold)
+            # testing consistency in counting
+            try:
+                assert score_binary["all-norm_not_norm-gold-count"] == dic["all-normalize-gold-count"], \
+                    "ERROR : inconsistency between score binary gold count on all and on sequence prediction"
+                assert score_binary["need_norm-norm_not_norm-gold-count"] == dic["NEED_NORM-normalize-gold-count"], \
+                    "ERROR : inconsistency between score binary gold count on NEED_NORM and on sequence prediction"
+            except Exception as e:
+                pdb.set_trace()
+                print("Assertion failed : CONSISTENCY between two tasks in terms of tokens ", e)
+            dic.update(score_binary)
+
 
     # output raw performance counting and formulas associated
     # to a metric name:(numerator/denominator) for higher level score just as to sum
 
     # SHOULD MAKE DISTINCT CASES BETWEEN EXACT MATCH (as here) , EDIT, and BLUE (BLUE SCORE FORMULA ONly at the sentence ,
     # word lebel()
-
-    formulas = {
+    formulas = dict()
+    if task != "norm_not_norm":
+        _formulas = {
                 "accuracy-"+task+"": ("all-"+task+"-pred_correct-count", "all-"+task+"-gold-count"),
                 "accuracy-per_sent-"+task+"": ("all-"+task+"-pred_correct_per_sent-count", "all-"+task+"-n_sents"),
                 "info-all-per_sent": ("all-"+task+"-n_word_per_sent-count", "all-"+task+"-n_sents"),
                 "info-all_tokens-"+task+"": ("all-"+task+"-gold-count"),
                 "info-"+task+"-n_sents": ("all-"+task+"-n_sents")
                 }
+        formulas.update(_formulas)
 
-    if task == "normalization":
+    if task == "normalize":
         formulas_fine = {"recall-"+task+"": ("NEED_NORM-"+task+"-pred_correct-count", "NEED_NORM-"+task+"-gold-count"),
                          "tnr-"+task+"": ("NORMED-"+task+"-pred_correct-count", "NORMED-"+task+"-gold-count"),
                          "precision-"+task+"": ("NEED_NORM-"+task+"-pred_correct-count", "NEED_NORM-"+task+"-pred-count"),
@@ -208,9 +216,9 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
                          }
         if len(set(["InV","OOV"])&set(normalized_mode_ls))>0:
             for vocab_filter in ["InV","OOV"]:
-                formulas.update( {vocab_filter+"-accuracy-"+task+"": (vocab_filter+"-"+task+"-pred_correct-count", vocab_filter+"-"+task+"-gold-count"),
+                formulas.update({vocab_filter+"-accuracy-"+task+"": (vocab_filter+"-"+task+"-pred_correct-count", vocab_filter+"-"+task+"-gold-count"),
                                  vocab_filter+"-accuracy_per_sent-"+task+"": (vocab_filter+"-"+task+"-pred_correct_per_sent-count", vocab_filter+"-"+task+"-n_sents")
-                                  })
+                                })
         formulas.update(formulas_fine)
 
     if formulas_bin is not None:
@@ -253,10 +261,22 @@ def score_norm_not_norm(norm_not_norm_pred, norm_not_norm_gold, output_seq_n_hot
         except:
             print("WARNING : no normed predicted : ==0 [0,:] failed on predicted_not_pad_normed {} ".format(predicted_not_pad))
             predicted_not_pad_normed = torch.tensor([])
-        need_norm_norm_not_normUnormalization_pred_count = len(set(predicted_not_pad_need_norm))+len(set(predicted_not_pad_seq_need_norm))-len(list(set(predicted_not_pad_need_norm.tolist()) & set(predicted_not_pad_seq_need_norm.tolist())))
-        normed_norm_not_normUnormalization_pred_count = len(set(predicted_not_pad_seq_normed))+len(set(predicted_not_pad_normed))-len(list(set(predicted_not_pad_seq_normed.tolist()) & set(predicted_not_pad_normed.tolist())))
-        need_norm_norm_not_normXnormalization_pred_count = len(list(set(predicted_not_pad_need_norm.tolist()) & set(predicted_not_pad_seq_need_norm.tolist())))
-        normed_norm_not_normXnormalization_pred_count = len(list(set(predicted_not_pad_seq_normed.tolist()) & set(predicted_not_pad_normed.tolist())))
+        try:
+            need_norm_norm_not_normUnormalization_pred_count = len(set(predicted_not_pad_need_norm)) + len(
+                set(predicted_not_pad_seq_need_norm)) - len(
+                list(set(predicted_not_pad_need_norm.tolist()) & set(predicted_not_pad_seq_need_norm.tolist())))
+            normed_norm_not_normUnormalization_pred_count = len(set(predicted_not_pad_seq_normed))+len(set(predicted_not_pad_normed))-len(list(set(predicted_not_pad_seq_normed.tolist()) & set(predicted_not_pad_normed.tolist())))
+            need_norm_norm_not_normXnormalization_pred_count = len(
+                list(set(predicted_not_pad_need_norm.tolist()) & set(predicted_not_pad_seq_need_norm.tolist())))
+            normed_norm_not_normXnormalization_pred_count = len(
+                list(set(predicted_not_pad_seq_normed.tolist()) & set(predicted_not_pad_normed.tolist())))
+        except Exception as e:
+            print("ERROR ", Exception(e))
+            need_norm_norm_not_normUnormalization_pred_count = None
+            normed_norm_not_normUnormalization_pred_count = None
+            need_norm_norm_not_normXnormalization_pred_count = None
+            normed_norm_not_normXnormalization_pred_count = None
+
     else:
         need_norm_norm_not_normUnormalization_pred_count = None
         normed_norm_not_normUnormalization_pred_count = None
@@ -328,7 +348,7 @@ def score_ls_(ls_pred, ls_gold, score_func, ls_original=None, stat="mean", norma
         score = np.sum(scores)
     if compute_mean_score_per_sent :
         #get_sent_lengths = [len(sent) for sent in normalization_ls]
-        normalized_sent_error_out_of_overall_sent_len = [np.sum(scores_sent)/len(scores_sent)  for scores_sent in sent_score_ls]#, get_sent_lengths)]
+        normalized_sent_error_out_of_overall_sent_len = [np.sum(scores_sent)/len(scores_sent) for scores_sent in sent_score_ls]#, get_sent_lengths)]
         n_mode_words_per_sent = np.mean([len(scores_sent) for scores_sent in sent_score_ls])
         n_sents = len(sent_score_ls)
         mean_score_per_sent = np.sum(normalized_sent_error_out_of_overall_sent_len)
@@ -338,7 +358,7 @@ def score_ls_(ls_pred, ls_gold, score_func, ls_original=None, stat="mean", norma
         n_sents = None
 
     return {"sum": score, "mean_per_sent": mean_score_per_sent,
-            "all-normalization-gold-count": len(scores), "all-normalization-score": score,
+            "all-normalize-gold-count": len(scores), "all-normalize-score": score,
             "n_word_per_sent": n_mode_words_per_sent, "n_sents": n_sents}, len(scores)
 
 

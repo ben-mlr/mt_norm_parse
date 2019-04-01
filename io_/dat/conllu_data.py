@@ -359,8 +359,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
                        lemma_dictionary=None, word_norm_dictionary=word_norm_dictionary)
   printing("DATA iterator based on {} tasks", var=tasks, verbose_level=1, verbose=verbose)
   inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end,
-                        word_decoder=word_decoder, tasks=tasks,
-                        normalization=normalization)
+                        word_decoder=word_decoder, tasks=tasks)
 
   while inst is not None and (not dry_run or counter < 100):
     printing("Sentence : counter {} inst : {}".format(counter, inst.sentence.raw_lines[1]),
@@ -384,10 +383,8 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
         if bucket_id == last_bucket_id and _buckets[last_bucket_id] < len(sent.word_ids):
           _buckets[last_bucket_id] = len(sent.word_ids)+2
         break
-
-    inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end, 
-                          word_decoder=word_decoder, tasks=tasks,
-                          normalization=normalization)
+    inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end,
+                          word_decoder=word_decoder, tasks=tasks)
     counter += 1
     if inst is None or not (not dry_run or counter < 100):
       printing("Breaking : breaking because inst {} counter<100 {} dry {} ".format(inst is None, counter < 100, dry_run),
@@ -408,6 +405,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
   """
   if max_char_len is None:
     max_char_len = MAX_CHAR_LENGTH
+  print("TASK norm_not_norm ", norm_not_norm, tasks)
   if norm_not_norm:
     assert normalization, "norm_not_norm can't be set without normalisation info"
   printing("WARNING symbolic root {} is and symbolic end is {} ", var=[symbolic_root, symbolic_end], verbose=verbose, verbose_level=1)
@@ -465,6 +463,12 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       ss[bucket_id] += 1
       ss1[bucket_id] = bucket_length
       wids, wids_norm, cid_seqs, cid_norm_seqs, pids, hids, tids, orderid, word_raw, lines, xpids = inst
+      # TODO : have to handle case were wids is null
+      assert len(cid_seqs) == len(wids), "ERROR cid_seqs {} and wids {} are different len".format(cid_seqs, wids)
+      if len(wids_norm) > 0 and normalization:
+          assert len(wids_norm) == len(wids), "ERROR wids_norm {} and wids {} are different len".format(cid_seqs, wids)
+      if len(cid_norm_seqs)>0 and normalization:
+          assert len(cid_seqs) == len(cid_norm_seqs), "ERROR cid_seqs {} and cid_norm_seqs {} have different length ".format(cid_seqs, cid_norm_seqs)
       inst_size = len(wids)
       lengths_inputs[i] = inst_size
       order_inputs[i] = orderid
@@ -497,23 +501,23 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       cid_inputs[i, inst_size:, :] = PAD_ID_CHAR
       # TODO should factorize character sequence numpysation
       if normalization:
-        for c, cids in enumerate(cid_norm_seqs):
+        for word_index, cids in enumerate(cid_norm_seqs):
           if add_start_char:
-            cids_norm[i, c, 0] = CHAR_START_ID
-          cids_norm[i, c, shift:len(cids)+shift] = cids
+            cids_norm[i, word_index, 0] = CHAR_START_ID
+          cids_norm[i, word_index, shift:len(cids)+shift] = cids
 
           if add_end_char:
-            cids_norm[i, c, len(cids)+shift] = CHAR_END_ID
+            cids_norm[i, word_index, len(cids)+shift] = CHAR_END_ID
 
           #we want room to padd it
-          cids_norm[i, c, len(cids)+shift+shift_end:] = PAD_ID_CHAR
+          cids_norm[i, word_index, len(cids)+shift+shift_end:] = PAD_ID_CHAR
           if norm_not_norm:
             # if we want NORM NEED_NORM info
             # we match by character id and not word id because word mighbot be unknown
             # we only match the sequence non equal to _PAD_CHAR TO AVOID VARIABLE LENGHT
             # !!INFO : in the data : 1 means : NORMED , 0 means NEED_NORM
-            word_norm_not_norm[i, c] = np.array_equal(cids_norm[i, c, :][cids_norm[i, c, :] != PAD_ID_CHAR],
-                                                      cid_inputs[i, c, :][cid_inputs[i, c, :] != PAD_ID_CHAR])
+            word_norm_not_norm[i, word_index] = np.array_equal(cids_norm[i, word_index, :][cids_norm[i, word_index, :] != PAD_ID_CHAR],
+                                                               cid_inputs[i, word_index, :][cid_inputs[i, word_index, :] != PAD_ID_CHAR])
 
         cids_norm[i, inst_size:, :] = PAD_ID_CHAR
         if norm_not_norm:
@@ -544,6 +548,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
         if word_dictionary.is_singleton(wid):
           single_inputs[i, j] = 1
       raw_lines.append(lines)
+
     words = Variable(torch.from_numpy(wid_inputs), requires_grad=False)
     chars = Variable(torch.from_numpy(cid_inputs), requires_grad=False)
     word_norm = Variable(torch.from_numpy(wid_norm_inputs), requires_grad=False) if normalization and word_decoder else None
@@ -557,6 +562,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
     masks = Variable(torch.from_numpy(masks_inputs), requires_grad=False)
     single = Variable(torch.from_numpy(single_inputs), requires_grad=False)
     lengths = torch.from_numpy(lengths_inputs)
+
     if use_gpu:
       words = words.cuda()
       chars_norm = chars_norm.cuda() if normalization else None

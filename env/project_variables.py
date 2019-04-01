@@ -38,6 +38,9 @@ TASKS_2_METRICS_STR = {"all": ["accuracy-normalization","InV-accuracy-normalizat
 AVAILABLE_OPTIMIZER = ["adam", "bahdanu-adadelta"]
 MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE = ["uniform", "normalization_100","pos_100","all","pos","normalize","norm_not_norm"]
 DEFAULT_SCORING_FUNCTION = "exact_match"
+AVAILABLE_WORD_LEVEL_LABELLING_MODE = ["word", "pos", "norm_not_norm"]
+
+
 
 # DATASETSproportion_pred_train_ls
 TRAINING_LABEL, TRAINING = "en-ud-train", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-train.conllu")
@@ -137,7 +140,15 @@ REPO_W2V = {DIR_TWEET_W2V: {"label": TWEET_W2V_LABEL, "dim": 400},
             None: {"label": "random_init", "dim": -1}
 }
 
+
+# for some task we need normalize = True for getting the label
+TASKS_PARAMETER = {"normalize": {"normalization": True},
+                   "norm_not_norm": {"normalization": True},
+                   "pos": {"normalization": False},
+                   "all": {"normalization": True}}
+
+
 # output dir for writing
 WRITING_DIR = os.path.join(PROJECT_PATH, "predictions")
 
-WARMUP_N_EPOCHS = 30
+WARMUP_N_EPOCHS = 1

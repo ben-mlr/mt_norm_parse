@@ -68,9 +68,8 @@ class LossCompute:
             assert self.model is not None, "Using clipping requires passing the model in the loss"
         loss_details = self.loss_details_template.copy()
         if self.loss_binary is not None:
-            assert x_norm_not_norm is not None and y_norm_not_norm is not None, \
-                "ERROR : auxilliary_task_norm_not_norm was set to True but x_norm_not_norm {} or" \
-                " y_norm_not_norm {} was None ".format(x_norm_not_norm, y_norm_not_norm)
+            assert x_norm_not_norm is not None , \
+                "ERROR : auxilliary_task_norm_not_norm was set to True but x_norm_not_norm {} ".format(x_norm_not_norm)
         printing("LOSS decoding states {} ", var=[x.size()] if x is not None else None, verbose=self.verbose, verbose_level=3)
         start = time.time() if self.timing else None
         x = self.generator(x) if x is not None else None
@@ -82,7 +81,7 @@ class LossCompute:
             printing("LOSS input y observations size {} ", var=[y.size()], verbose=self.verbose, verbose_level=4)
             printing("LOSS input x candidate scores   {} ", var=(x), verbose=self.verbose,verbose_level=5)
             printing("LOSS input x candidate scores  reshaped {} ", var=(x.view(-1, x.size(-1))),
-                     verbose=self.verbose,verbose_level=5)
+                     verbose=self.verbose, verbose_level=5)
             printing("LOSS input y observations {} reshaped {} ", var=(y, y.contiguous().view(-1)),
                      verbose=self.verbose, verbose_level=5)
             # we remove empty words in the gold
@@ -110,14 +109,17 @@ class LossCompute:
         #    print("no loss were set up for normalization")
         #    raise(Exception)
         loss_distance_time, start = get_timing(start)
+        loss_binary = 0
         if self.loss_binary is not None:
-            pdb.set_trace()
             # PROBLEMS IN THE LABELS !!
-            loss_binary = self.loss_binary(x_norm_not_norm.contiguous().view(-1, x_norm_not_norm.size(-1)), y_norm_not_norm.contiguous().view(-1))
+            if y_norm_not_norm is not None:
+                loss_binary = self.loss_binary(x_norm_not_norm.contiguous().view(-1, x_norm_not_norm.size(-1)),y_norm_not_norm.contiguous().view(-1))
+            #except:
+            #    pdb.set_trace()
+            #    loss_binary = self.loss_binary(x_norm_not_norm.contiguous().view(-1, x_norm_not_norm.size(-1)), y_norm_not_norm.contiguous().view(-1))
             assert weight_binary_loss is not None
             assert scheduling_norm_not_norm is not None
-        else:
-            loss_binary = 0
+
         if pos_batch and self.loss_distance_pos is not None:
             assert x_pos is not None and y_pos is not None, "ERROR x_pos and y_pos should be define "
             y_pos = y_pos[:, :x_pos.size(1)]

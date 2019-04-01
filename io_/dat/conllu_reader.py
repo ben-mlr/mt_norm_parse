@@ -4,7 +4,7 @@ from .ioutils import DependencyInstance, Sentence
 from .constants import DIGIT_RE, MAX_CHAR_LENGTH, NUM_CHAR_PAD, ROOT, ROOT_CHAR, ROOT_POS, ROOT_TYPE, PAD, END_CHAR, END_POS, END_TYPE, END
 from io_.info_print import printing
 from io_.dat.conllu_get_normalization import get_normalized_token
-from env.project_variables import AVAILABLE_TASKS
+from env.project_variables import AVAILABLE_TASKS, TASKS_PARAMETER
 import re
 import pdb
 
@@ -35,7 +35,7 @@ class CoNLLReader(object):
 
   def getNext(self, tasks, normalize_digits=True,
               symbolic_root=False, symbolic_end=False,
-              normalization=False, word_decoder=False,
+              word_decoder=False,
               verbose=0):
     line = self.__source_file.readline()
     if tasks is None:
@@ -44,7 +44,11 @@ class CoNLLReader(object):
       assert len(list(set(tasks) & set(AVAILABLE_TASKS))) > 0,\
         "ERROR tasks provided to iterator is not in AVAILABLE TASKS".format(tasks,AVAILABLE_TASKS)
 
-    normalization = "normalize" in tasks or "all" in tasks
+    normalization = False
+    for task in tasks:
+      if TASKS_PARAMETER[task]["normalization"]:
+        normalization = True
+        break
     # skip multiple blank lines.
     raw_text = []
 
@@ -205,7 +209,6 @@ class CoNLLReader(object):
       types.append(END_TYPE)
       type_ids.append(self.__type_dictionary.get_index(END_TYPE))
       heads.append(0)
-
     return DependencyInstance(Sentence(words, word_ids, char_seqs,
                                        char_id_seqs, [lines, raw_text],
                                        word_norm=norm_words,

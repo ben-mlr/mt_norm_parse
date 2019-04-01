@@ -91,19 +91,19 @@ def evaluate(batch_size, data_path, task,
                                                    extend_n_batch=1, dropout_input=0,
                                                    verbose=verbose)
 
-
     model.eval()
     # the formulas comes from normalization_erros functions
     score_dic_new, formulas = greedy_decode_batch(char_dictionary=model.char_dictionary, verbose=verbose, gold_output=True,
                                                   score_to_compute_ls=score_to_compute_ls, use_gpu=use_gpu,
                                                   write_output=write_output, eval_new=True,
+                                                  task_simultaneous_eval=[task],
                                                   stat="sum", mode_norm_score_ls=mode_norm_ls,
                                                   label_data=REPO_DATASET[data_path],
                                                   batchIter=batchIter, model=model,
                                                   scoring_func_sequence_pred=scoring_func_sequence_pred,
                                                   compute_mean_score_per_sent=compute_mean_score_per_sent,
                                                   batch_size=batch_size)
-
+    pdb.set_trace()
     for score_name, formula in formulas.items():
         if isinstance(formula, tuple) and len(formula) > 1:
             (num, denom) = formula

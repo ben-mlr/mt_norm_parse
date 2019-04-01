@@ -1,6 +1,8 @@
-from env.project_variables import AVAILABLE_TASKS, MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE
+from env.project_variables import AVAILABLE_TASKS, MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE, AVAILABLE_WORD_LEVEL_LABELLING_MODE
 import time
 from io_.info_print import printing
+
+
 def sanity_check_info_checkpoint(info_checkpoint, template):
     for key in template.keys():
         # git id is added on the fly as updated
@@ -26,3 +28,13 @@ def sanity_check_loss_poneration(ponderation_dic, verbose=1):
                  verbose_level=1)
     else:
         raise(Exception("ponderation_dic is neither string or dict {}".format(ponderation_dic)))
+
+
+def sanity_check_model_pred(mode, word_pred, pos_pred, norm_not_norm):
+    assert mode in AVAILABLE_WORD_LEVEL_LABELLING_MODE
+    if mode == "word":
+        assert word_pred is not None, "ERROR "
+    if mode == "pos":
+        assert pos_pred is not None
+    if mode == "norm_not_norm":
+        assert norm_not_norm is not None

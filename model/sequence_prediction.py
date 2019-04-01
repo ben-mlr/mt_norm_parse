@@ -6,7 +6,7 @@ from io_.info_print import printing
 from io_.from_array_to_text import output_text, output_text_
 from io_.dat.constants import PAD_ID_CHAR, CHAR_END_ID
 from env.project_variables import SEED_TORCH, SEED_NP
-from toolbox.sanity_check import get_timing
+from toolbox.sanity_check import get_timing, sanity_check_model_pred
 import pdb
 from collections import OrderedDict
 # EPSILON for the test of edit distance
@@ -16,6 +16,7 @@ TEST_SCORING_IN_CODE = False
 
 torch.manual_seed(SEED_TORCH)
 np.random.seed(SEED_NP)
+
 
 def decode_word(model, src_seq, src_len,
                 pad=1, target_word_gold=None,
@@ -29,32 +30,50 @@ def decode_word(model, src_seq, src_len,
                                                                 input_word_len=src_len,
                                                                 word_embed_input=input_word,
                                                                 word_level_predict=True)
+    sanity_check_model_pred(mode=mode, pos_pred=pos_pred, word_pred=word_pred, norm_not_norm=norm_not_norm)
+
     pred_norm_not_norm = None
     src_word_input = None
-    if mode == "word":
-        assert target_pos_gold is None, "Only target_word_gold should be provided"
+    target_word_gold_text = None
+    words_count_pred = 0
+    words_count_gold = 0
+    text_decoded = None
+    if mode in ["word", "norm_not_norm"]:
         if target_word_gold is None:
             print("INFO decoding with no gold reference")
-        prediction = word_pred.argmax(dim=-1)
-
-        # we trust the predictor to do the padding !
-        src_seq = src_seq[:, :prediction.size(1)]
-        # should not be mandatory right ?
-        if target_word_gold is not None:
-            target_word_gold = target_word_gold[: , :prediction.size(1)]
+        # PREDICT
+        if word_pred is not None:
+            prediction = word_pred.argmax(dim=-1)
+            # we trust the predictor to do the padding !
+            src_seq = src_seq[:, :prediction.size(1)]
         if norm_not_norm is not None:
             pred_norm_not_norm = norm_not_norm.argmax(dim=-1)
+
+        # HANDLE PADDING
+        # should not be mandatory right ?
+        if target_word_gold is not None and word_pred is not None:
+            target_word_gold = target_word_gold[:, :prediction.size(1)]
         if pred_norm_not_norm is not None:
             pred_norm_not_norm = pred_norm_not_norm[:, :src_seq.size(1)]  # followign what's done above
 
+        # GET SRC CHARACTERS AS STRING
         src_word_count, src_text, src_all_ls = output_text_(src_seq, model.char_dictionary,
                                                             single_sequence=single_sequence, debug=False,
                                                             output_str=True)
-        words_count_pred, text_decoded, _ = output_text_(prediction, word_decode=True, word_dic=model.word_dictionary,#word_nom_dictionary,
+        # GET SRC WORD AS STRING
+        if input_word is not None:
+            words_embed_count_src, src_word_input, _ = output_text_(input_word,
+                                                                    word_decode=True,
+                                                                    word_dic=model.word_dictionary,
+                                                                    # model.word_nom_dictionary,
+                                                                    debug=False, single_sequence=single_sequence,
+                                                                    char_decode=False, output_str=True)
+        if word_pred is not None:
+            words_count_pred, text_decoded, _ = output_text_(prediction, word_decode=True, word_dic=model.word_dictionary,#word_nom_dictionary,
                                                          single_sequence=single_sequence, char_decode=False,
                                                          debug=False,
                                                          output_str=True)
-
+        # GET GOLD TARGET AS STRING
         if target_word_gold is not None:
             assert model.word_nom_dictionary is not None, "ERROR : word_nom_dictionary is required"
             words_count_gold, target_word_gold_text, _ = output_text_(target_word_gold,#input_word,#target_word_gold,
@@ -64,25 +83,19 @@ def decode_word(model, src_seq, src_len,
                                                                       showing_attention=False,
                                                                       single_sequence=single_sequence, char_decode=False,
                                                                       output_str=True)
-        else:
-            words_count_gold, target_word_gold_text = None, None
 
-        if input_word is not None:
-            words_embed_count_src, src_word_input, _ = output_text_(input_word,
-                                                                      word_decode=True,
-                                                                      word_dic=model.word_dictionary,
-                                                                      # model.word_nom_dictionary,
-                                                                      debug=False, single_sequence=single_sequence,
-                                                                      char_decode=False, output_str=True)
+        # fix by hand  # TODO : check if it is correct
+        # its based on src_text sequence length because
+        # we assumed word to word mapping and we want to predict without gold
+        if word_pred is not None:
+            text_decoded = [sent[:len(ls_gold)] for sent, ls_gold in zip(text_decoded, src_text)]
+            words_count_pred = sum([len(sent) for sent in text_decoded])
+            printing("PRED : array text {} ", var=[text_decoded], verbose=verbose, verbose_level=5)
 
-        # fix by hand  # TODO : check if it is corret
-        # its based on src_text sequence length because we assumed word to word mapping and we want to predict without gold
-        text_decoded = [sent[:len(ls_gold)] for sent, ls_gold in zip(text_decoded, src_text)]
-        words_count_pred = sum([len(sent) for sent in text_decoded])
         printing("GOLD : array text {} ", var=[target_word_gold_text], verbose=verbose, verbose_level=5)
         printing("SRC : array text {} ", var=[src_text], verbose=verbose, verbose_level=5)
-        printing("PRED : array text {} ", var=[text_decoded], verbose=verbose, verbose_level=5)
 
+    #TODO : should be factorized with above
     elif mode == "pos":
         assert target_word_gold is None, "Only target_pos_gold should be provided"
         #assert target_pos_gold is not None
@@ -108,15 +121,21 @@ def decode_word(model, src_seq, src_len,
                                                                       char_decode=False, output_str=True)
             text_decoded = [sent[:len(ls_gold)] for sent, ls_gold in zip(text_decoded, src_text)]
             words_count_pred = sum([len(sent) for sent in text_decoded])
-        else:
-            target_word_gold_text = None
-            words_count_gold = None
+
     if single_sequence:
         if pred_norm_not_norm is not None:
             pred_norm_not_norm = pred_norm_not_norm[0]
+
+    retu = OrderedDict([("text", OrderedDict([("pred", text_decoded), ("src_as_chars",src_text), ("src_as_words",src_word_input),("gold",target_word_gold)])),
+                        ("count", OrderedDict(
+                            [("src_word_count", src_word_count), ("pred_word_count", words_count_pred),    ("target_word_count", words_count_gold)])),
+                        ("1hot", OrderedDict([("pred_norm_not_norm", pred_norm_not_norm), ("src_seq", src_seq), ("target_word_gold",target_word_gold)]))
+                        ])
+
     return (text_decoded, src_text, target_word_gold_text, src_word_input), \
-           {"src_word_count": src_word_count, "target_word_count": words_count_gold, "pred_word_count": words_count_pred}, \
-           (None, None,), \
+            {"src_word_count": src_word_count, "target_word_count": words_count_gold,
+            "pred_word_count": words_count_pred}, \
+            (None, None,), \
            (pred_norm_not_norm, None, src_seq, target_word_gold)
 
 
@@ -195,6 +214,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         time_output_seq, start = get_timing(start)
         if pred_norm_not_norm is not None:
             pred_norm_not_norm = pred_norm_not_norm[:, :scores.size(1)]  # followign what's done above
+
         output_seq[:, :, char_decode - 1] = predictions[:, :, -1]
 
         if verbose >= 5:

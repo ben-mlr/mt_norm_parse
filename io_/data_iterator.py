@@ -5,7 +5,7 @@ import time
 import numpy as np
 import pdb
 from io_.batch_generator import MaskBatch
-from env.project_variables import EN_LINES_EWT_TRAIN, LIU_DEV, TRAINING, DEMO
+from env.project_variables import EN_LINES_EWT_TRAIN, LIU_DEV, TRAINING, DEMO, TASKS_PARAMETER
 from io_.dat import conllu_data
 from io_.info_print import printing, print_char_seq, disable_tqdm_level
 import sys
@@ -143,10 +143,6 @@ def data_gen(V, batch, nbatches,seq_len=10):
 import numpy as np
 
 
-TASKS_PARAMETER = {"normalize": {"normalization": True},
-                   "norm_not_norm": {"normalization": True},
-                   "pos": {"normalization": False},
-                   "all": {"normalization": True}}
 
 MODE_BATCH_SAMPLING_AVAILABLE = ["proportional", "uniform"]
 
@@ -156,7 +152,7 @@ def sampling_proportion(task_n_sent, total_n_sents):
 
 
 def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_dictionary,
-                 pos_dictionary,xpos_dictionary, type_dictionary, use_gpu,
+                 pos_dictionary, xpos_dictionary, type_dictionary, use_gpu,
                  norm_not_norm=False, word_decoder=False,
                  simultanuous_training=False,bucket=True,max_char_len=None,
                  add_start_char=1, add_end_char=1, symbolic_end=True, symbolic_root=True,
