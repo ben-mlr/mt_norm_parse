@@ -217,7 +217,6 @@ class CharEncoder(nn.Module):
                 inverse_perm_idx_input_sent = [inverse_perm_idx_input_sent]
                 sent_len = sent_len.view(-1)
             packed_char_vecs_input = pack_padded_sequence(input[perm_idx_input_sent, :, :], sent_len.cpu().numpy(), batch_first=True)
-            pdb.set_trace()
         # unpacked for computing the word level representation
         input_char_vecs, input_sizes = pad_packed_sequence(packed_char_vecs_input, batch_first=True,
                                                            padding_value=PAD_ID_CHAR)

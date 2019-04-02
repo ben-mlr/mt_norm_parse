@@ -20,7 +20,7 @@ np.random.seed(SEED_NP)
 
 
 def data_gen_conllu(data, word_dictionary, char_dictionary,
-                    batch_size,
+                    batch_size,task_info="",
                     get_batch_mode=True,
                     padding=1, print_raw=False, normalization=False, pos_dictionary=None,
                     extend_n_batch=1,dropout_input=None,
@@ -34,11 +34,11 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
 
     if nbatch == 0:
         printing("INFO : n_sents < batch_size so nbatch set to 1 ", verbose=verbose, verbose_level=0)
-    print("Running {} batches of {} dim (nsent : {}) (if 0 will be set to 1) ".format(nbatch, batch_size, n_sents))
+    printing("TRAINING : Task {} Running {} batches of {} dim (nsent : {}) (if 0 will be set to 1) ".format(task_info,nbatch, batch_size, n_sents), verbose=verbose, verbose_level=1)
     nbatch = 1 if nbatch == 0 else nbatch
     # deterministic run over all the dataset (for evaluation)
     if not normalization:
-        printing("WARNING : Normalisation is False : model is a autoencoder (BOTH iteration and get cases) --> {} ", verbose=verbose, verbose_level=0)
+        printing("WARNING : Normalisation is False : model is a autoencoder (BOTH iteration and get cases)  (get_batch_mode:{}) ",var=[get_batch_mode], verbose=verbose, verbose_level=0)
     if not get_batch_mode:
         for batch in tqdm(conllu_data.iterate_batch_variable(data, batch_size=batch_size,
                                                              normalization=normalization),
@@ -201,7 +201,7 @@ def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary, char_dic
     n_sents_per_task_dataset_cumul = {}
     cumul_n_sent = 0
     for task in tasks:
-        iterator[task] = data_gen_conllu(data=readers[task], word_dictionary=word_dictionary,
+        iterator[task] = data_gen_conllu(data=readers[task], word_dictionary=word_dictionary,task_info=task,
                                          char_dictionary=char_dictionary, pos_dictionary=pos_dictionary,
                                          batch_size=batch_size, extend_n_batch=extend_n_batch,
                                          get_batch_mode=get_batch_mode, dropout_input=dropout_input,
@@ -229,7 +229,7 @@ def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary, char_dic
                     yield batch
                 except StopIteration:
                     end_task_flag[task] = True
-                    printing("END FLAG for task", var=[task], verbose_level=1, verbose=1)
+                    printing("ITERATOR END {} ", var=[task], verbose_level=1, verbose=verbose)
                     break
             else:
                 n_sent_start = n_sents_per_task_dataset_cumul[task]
@@ -243,7 +243,7 @@ def sanity_check_batch_label(task, batch, verbose=1):
         assert batch.output_seq is not None, "ERROR checking normalization output seq"
     elif task in ["all", "pos"]:
         assert batch.pos is not None, "ERROR checking pos "
-    elif task in ["all","norm_not_norm"]:
+    elif task in ["all", "norm_not_norm"]:
         assert batch.output_norm_not_norm is not None, "ERROR checking norm_not_norm"
     else:
         raise(Exception("task provided {} could not be checked".format(task)))

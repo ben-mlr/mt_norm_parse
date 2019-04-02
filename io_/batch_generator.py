@@ -107,7 +107,6 @@ class MaskBatch(object):
                 reorder_output, start = get_timing(start)
 
             else:
-                pdb.set_trace()
                 output_y_shape = self.output_seq_y.size()
                 self.output_seq_y = self.output_seq_y.view(self.output_seq_y.size(0) * self.output_seq_y.size(1),self.output_seq_y.size(2))
                 output_seq_len = self.output_seq_len.view(self.output_seq_len.size(0) * self.output_seq_len.size(1))

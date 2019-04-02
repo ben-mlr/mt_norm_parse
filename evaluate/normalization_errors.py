@@ -54,10 +54,11 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
                          in_vocab_ls=None, verbose=0):
     # only exact score here !!
     assert task in ["normalize", "pos", "norm_not_norm"]
+    print("EVALUATING correct_pred_counter task ", task)
     assert scoring_func in SCORING_FUNC_AVAILABLE
     dic = OrderedDict()
     normalized_mode_ls = []
-    if task == "normalize":
+    if task == "normalize" or task == "pos":
 
         assert len(ls_gold) == len(ls_pred), "ERROR ls_gold is len {} vs {} : {} while ls_pred is {} ".format(len(ls_gold),
                                                                                                               len(ls_pred),
@@ -129,8 +130,7 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
                             score_word = eval_func(word_pred, word_gold)
                             sent_score.append(score_word)
                             scores.append(score_word)
-                            printing("GOLD {} PRED {} exact_match {} ".format(word_gold, word_pred, score_word),
-                                     verbose_level=0, verbose=verbose)
+                            printing("GOLD {} PRED {} exact_match {} on task {} ".format(word_gold, word_pred, score_word, task),verbose_level=0, verbose=0)
                         else:
                             score_word = "not given cause special char"
 
@@ -271,6 +271,7 @@ def score_norm_not_norm(norm_not_norm_pred, norm_not_norm_gold, output_seq_n_hot
             normed_norm_not_normXnormalization_pred_count = len(
                 list(set(predicted_not_pad_seq_normed.tolist()) & set(predicted_not_pad_normed.tolist())))
         except Exception as e:
+            # TODO MULTITASK : handle case were norm_not_norm by itself
             print("ERROR ", Exception(e))
             need_norm_norm_not_normUnormalization_pred_count = None
             normed_norm_not_normUnormalization_pred_count = None

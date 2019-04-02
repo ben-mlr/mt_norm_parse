@@ -151,4 +151,4 @@ TASKS_PARAMETER = {"normalize": {"normalization": True},
 # output dir for writing
 WRITING_DIR = os.path.join(PROJECT_PATH, "predictions")
 
-WARMUP_N_EPOCHS = 1
+WARMUP_N_EPOCHS = 10

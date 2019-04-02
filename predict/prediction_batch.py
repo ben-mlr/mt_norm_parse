@@ -140,13 +140,13 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size,task_simul
                 src_text_ls = ""
                 text_decoded_ls = ""
                 gold_text_seq_ls = ""
-                if "norm_not_norm" in model.arguments["hyperparameters"].get("tasks", ["normalize"]):
+                if "norm_not_norm" in task_simultaneous_eval:#model.arguments["hyperparameters"].get("tasks", ["normalize"]):
                     (text_decoded_ls, src_text_ls, gold_text_seq_ls, _), counts, _, \
                     (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_word(model, src_seq, src_len,
                                                                                           input_word=batch.input_word,
                                                                                           mode="norm_not_norm"
                                                                                          )
-                if "normalize" in model.arguments["hyperparameters"].get("tasks", ["normalize"]):
+                if "normalize" in task_simultaneous_eval:#model.arguments["hyperparameters"].get("tasks", ["normalize"]):
 
                     if model.arguments["hyperparameters"]["decoder_arch"].get("char_decoding", True):
                         # TODO : should be able to merge word_decoding and char_decoding
@@ -172,14 +172,13 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size,task_simul
                                                                                               input_word=batch.input_word,
                                                                                               mode="word",
                                                                                               target_word_gold=target_word_gold)
-
-
-                if "pos" in model.arguments["hyperparameters"].get("tasks", ["normalize"]):
+                if "pos" in task_simultaneous_eval:#model.arguments["hyperparameters"].get("tasks", ["normalize"]):
                     # decode pos
                     (pred_pos_ls, src_text_pos, gold_pos_seq_ls, _), counts_pos, _, \
                     (_, _, src_seq_pos, target_seq_gold_pos) = decode_word(model, src_seq, src_len,
                                                                            input_word=batch.input_word,
                                                                            mode="pos", target_pos_gold=target_pos_gold)
+                    pdb.set_trace()
                 else:
                     pred_pos_ls, src_text_pos, gold_pos_seq_ls = None, None, None
 
@@ -216,7 +215,7 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size,task_simul
                     counter_correct_batch = dict()
                     score_formulas = dict()
                     for task in task_simultaneous_eval:
-                        # TODO should factorize even more adding assertion on what we evaluate
+                        # TODO MULTITASK should factorize even more adding assertion on what we evaluate
                         if task == "pos":
                             target_seq_gold = gold_pos_seq_ls
                             ls_gold = gold_pos_seq_ls
@@ -283,6 +282,7 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size,task_simul
                     print(e)
 
             if not eval_new:
+                # i think we can remove it
                 score_formulas = None
 
             return counter_correct, score_formulas

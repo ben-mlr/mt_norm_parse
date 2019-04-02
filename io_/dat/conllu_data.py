@@ -11,6 +11,7 @@ from .conllu_reader import CoNLLReader
 from .dictionary import Dictionary
 import numpy as np
 from io_.dat.conllu_get_normalization import get_normalized_token
+from io_.signal_aggregation import get_transform_normalized_standart
 import torch
 import os
 
@@ -516,8 +517,15 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
             # we match by character id and not word id because word mighbot be unknown
             # we only match the sequence non equal to _PAD_CHAR TO AVOID VARIABLE LENGHT
             # !!INFO : in the data : 1 means : NORMED , 0 means NEED_NORM
-            word_norm_not_norm[i, word_index] = np.array_equal(cids_norm[i, word_index, :][cids_norm[i, word_index, :] != PAD_ID_CHAR],
-                                                               cid_inputs[i, word_index, :][cid_inputs[i, word_index, :] != PAD_ID_CHAR])
+            word_norm_not_norm[i, word_index] = get_transform_normalized_standart(cids_norm, cid_inputs, sent_index=i,
+                                                                                  word_index=word_index,
+                                                                                  norm_not_norm=True)
+            # TODO ADD EDIT HERE + USE TASKS INSTEAD OF THISE PARAMETERS !! IN THE ALL CONLLU
+            #
+            #word_norm_not_norm[i, word_index] = np.array_equal(cids_norm[i, word_index, :][cids_norm[i, word_index, :] != PAD_ID_CHAR],
+            #                                                   cid_inputs[i, word_index, :][cid_inputs[i, word_index, :] != PAD_ID_CHAR])
+
+
 
         cids_norm[i, inst_size:, :] = PAD_ID_CHAR
         if norm_not_norm:
@@ -576,7 +584,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       masks = masks.cuda()
       #single = single.cuda()
       lengths = lengths.cuda()
-    data_variable.append((words, word_norm, chars, chars_norm, word_norm_not_norm,pos, xpos, heads, types,
+    data_variable.append((words, word_norm, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types,
                           masks, single, lengths, order_inputs, raw_word_inputs, raw_lines))
   return data_variable, bucket_sizes, _buckets, max_char_length_dic["n_sent"]
 

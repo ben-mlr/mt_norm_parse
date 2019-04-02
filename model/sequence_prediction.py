@@ -38,6 +38,7 @@ def decode_word(model, src_seq, src_len,
     words_count_pred = 0
     words_count_gold = 0
     text_decoded = None
+    print("DECODING WITH ", mode)
     if mode in ["word", "norm_not_norm"]:
         if target_word_gold is None:
             print("INFO decoding with no gold reference")
@@ -121,6 +122,7 @@ def decode_word(model, src_seq, src_len,
                                                                       char_decode=False, output_str=True)
             text_decoded = [sent[:len(ls_gold)] for sent, ls_gold in zip(text_decoded, src_text)]
             words_count_pred = sum([len(sent) for sent in text_decoded])
+        pdb.set_trace()
 
     if single_sequence:
         if pred_norm_not_norm is not None:
