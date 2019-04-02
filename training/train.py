@@ -50,7 +50,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
           hidden_size_encoder=None, output_dim=None, char_embedding_dim=None,
           hidden_size_decoder=None, hidden_size_sent_encoder=None, freq_scoring=5,
           compute_scoring_curve=False, score_to_compute_ls=None, mode_norm_ls=None,
-          checkpointing=True, freq_checkpointing=None,freq_writer=None,
+          checkpointing=True, freq_checkpointing=None, freq_writer=None,
           model_dir=None,
           reload=False, model_full_name=None, model_id_pref="", print_raw=False,
           model_specific_dictionary=False, dir_sent_encoder=1,
@@ -146,7 +146,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
 
         voc_size = len(char_dictionary.instance2index)+1
         word_voc_input_size = len(word_dictionary.instance2index)+1
-        printing("DICTIONARY ; character vocabulary is len {} : {} ", var=str(len(char_dictionary.instance2index)+1, char_dictionary.instance2index), verbose=verbose, verbose_level=0)
+        printing("DICTIONARY ; character vocabulary is len {} : {} ", var=str(len(char_dictionary.instance2index)+1,
+                                                                              char_dictionary.instance2index), verbose=verbose, verbose_level=0)
         _train_path, _dev_path, _add_start_char = None, None, None
     else:
         voc_size = None

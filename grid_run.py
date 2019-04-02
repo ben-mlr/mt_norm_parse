@@ -34,7 +34,7 @@ def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_pa
             if len(params[0]["tasks"]) > 1:
                 train_path = [DEMO, DEMO]
                 dev_path = [DEMO, DEMO]
-                test_paths = [[DEMO], [DEMO]]
+                test_paths = [[LIU_DEV], [EWT_TEST]]
             else:
                 train_path, dev_path = DEMO, DEMO2
                 test_paths = [[DEMO2]]
@@ -85,7 +85,7 @@ if __name__ == "__main__":
         assert os.environ.get("MODE_RUN") in ["DISTRIBUTED", "SINGLE"]
         run_standart = os.environ.get("MODE_RUN") != "DISTRIBUTED"
       else:
-          run_standart = True
+          run_standart = False
           print("LOCAL")
 
       params = []
@@ -285,9 +285,9 @@ if __name__ == "__main__":
           
           MULTI_TASK = True
           if MULTI_TASK:
-              train_path = [EN_LINES_EWT_TRAIN, LIU_TRAIN]
-              dev_path = [EWT_DEV, LIU_DEV]
-              test_paths = [[EWT_DEV, TEST], [LIU_DEV, TEST]]
+              train_path = [DEMO, DEMO]#[EN_LINES_EWT_TRAIN, LIU_TRAIN]
+              dev_path = train_path#[EWT_DEV, LIU_DEV]
+              test_paths = [[LIU_DEV],[EWT_TEST]]#[[EWT_DEV, TEST], [LIU_DEV, TEST]]
               dir_script, row = script_generation(init_param=params_dozat,
                                                   grid_label=LABEL_GRID,
                                                   word_recurrent_cell_encoder_ls=["LSTM"],
@@ -306,7 +306,7 @@ if __name__ == "__main__":
                                                   shared_context_ls=["all"],
                                                   word_embedding_projected_dim_ls=[125],
                                                   char_level_embedding_projection_dim_ls=[125],
-                                                  tasks_ls=[["pos", "norm_not_norm"]],
+                                                  tasks_ls=[["norm_not_norm","pos"]],
                                                   n_layers_sent_cell_ls=[2],
                                                   n_layers_word_encoder_ls=[1],
                                                   unrolling_word_ls=[1],

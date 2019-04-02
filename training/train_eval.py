@@ -52,8 +52,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
 
     else:
         printing("CPU mode cause {} gpu arg or use_gpu detected {} ", var=(gpu, use_gpu_(use_gpu)), verbose_level=1, verbose=verbose)
-    
-    print("WORD_EMBED file ", args["word_embed"])
+
     hidden_size_encoder = args.get("hidden_size_encoder", 10)
     word_embed = args.get("word_embed", False)
     word_embedding_projected_dim = args.get("word_embedding_projected_dim", None)

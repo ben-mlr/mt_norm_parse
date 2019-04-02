@@ -1,5 +1,28 @@
 import argparse
+from io_.info_print import printing
 from env.default_hyperparameters import *
+import re
+from env.project_variables import  MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE, DIC_ARGS, AVAILABLE_TASKS
+
+
+def parse_argument_dictionary(argument_as_string, hyperparameter="multi_task_loss_ponderation", verbose=1):
+    assert hyperparameter in DIC_ARGS , "ERROR only supported"
+    if argument_as_string in MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE:
+        return argument_as_string
+    else:
+        dic = {}
+        for task in AVAILABLE_TASKS:
+            if task != "all":
+                pattern = "{}=([^=]*),".format(task)
+                match = re.search(pattern, argument_as_string)
+                assert match is not None, "ERROR : pattern {} not found for task {} in argument_as_string {}  ".format(pattern, task, argument_as_string)
+                dic[task] = eval(match.group(1))
+        printing("SANITY CHECK : multi_task_loss_ponderation {} ", var=[argument_as_string],
+                 verbose_level=1, verbose=verbose)
+        return dic
+
+
+
 
 
 def args_train(mode="command_line"):
@@ -104,9 +127,7 @@ def args_train(mode="command_line"):
 
     if args.test_paths is not None:
         args.test_paths = [test_path_task.split(",") for test_path_task in args.test_paths]
-    print("-------->", args.test_paths)
-    print("--------------", args.train_path)
-    print("--------------", args.dev_path)
+
     if not args.word_embed:
         args.word_embedding_dim = 0
 

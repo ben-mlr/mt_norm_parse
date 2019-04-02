@@ -29,7 +29,10 @@ SUPPORTED_STAT = ["sum"]
 LOSS_DETAIL_TEMPLATE = {"loss_overall": 0, "loss_seq_prediction": 0, "other": {}}
 LOSS_DETAIL_TEMPLATE_LS = {"loss_overall": [], "loss_seq_prediction": [], "other": {}}
 SCORE_AUX = ["norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recall", "norm_not_norm-accuracy"]
+
 AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm", "pos"]
+
+
 TASKS_2_METRICS_STR = {"all": ["accuracy-normalization","InV-accuracy-normalization","OOV-accuracy-normalization","npv-normalization","recall-normalization","precision-normalization","tnr-normalization","accuracy-pos"],
                        "normalize": ["accuracy-normalization","InV-accuracy-normalization","OOV-accuracy-normalization","npv-normalization","recall-normalization","precision-normalization","tnr-normalization"],
                        "pos": ["accuracy-pos"],
