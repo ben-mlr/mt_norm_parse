@@ -60,7 +60,7 @@ def run_epoch(data_iter, model, loss_compute,
         printing("Starting {} batch out of {} batches", var=(i+1, n_batches), verbose=verbose, verbose_level=2)
         if not empty_run:
             start = time.time() if timing else None
-            out, out_word, pos_pred_state, norm_not_norm_hidden, attention, attention_tag = model.forward(input_seq=batch.input_seq,
+            out, out_word, pos_pred_state, norm_not_norm_hidden, edit_state, attention, attention_tag = model.forward(input_seq=batch.input_seq,
                                                                                                           output_seq=batch.output_seq_x,
                                                                                                           input_word_len=batch.input_seq_len,
                                                                                                           output_word_len=batch.output_seq_len,
@@ -73,15 +73,15 @@ def run_epoch(data_iter, model, loss_compute,
                      verbose=verbose, verbose_level=1)
         if not empty_run:
             loss, loss_details_current = loss_compute(x=out, y=batch.output_seq_y,
-                                                      x_norm_not_norm=norm_not_norm_hidden,
-                                                      y_norm_not_norm=batch.output_norm_not_norm,
+                                                      x_norm_not_norm=norm_not_norm_hidden, y_norm_not_norm=batch.output_norm_not_norm,
                                                       y_word=batch.output_word, x_word_pred=out_word,
                                                       y_pos=batch.pos,  x_pos=pos_pred_state, pos_batch=pos_batch,
-                                                      clipping=clipping,
+                                                      y_edit=batch.edit, pred_edit=edit_state,
                                                       weight_binary_loss=weight_binary_loss,
                                                       weight_pos_loss=weight_pos_loss,
                                                       ponderation_normalize_loss=ponderation_normalize_loss,
-                                                      step=i+step)#, batch.ntokens)
+                                                      clipping=clipping,
+                                                      step=i+step)
 
             loss_time, start = get_timing(start)
             total_loss += loss.item()

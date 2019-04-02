@@ -26,6 +26,7 @@ CHAR_END_ID = 4 # related to END_CHAR
 # END is both signal of sentence end for word vec and char vec
 PAD_ID_CHAR = 1
 
+PAD_ID_EDIT = 3
 PAD_ID_NORM_NOT_NORM = 2
 PAD_ID_WORD = 1
 PAD_ID_TAG = 1

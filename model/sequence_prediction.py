@@ -26,7 +26,7 @@ def decode_word(model, src_seq, src_len,
     """
     NB : could be more factorized (its exactly the same prediction the only difference is the dictionary
     """
-    _, word_pred, pos_pred, norm_not_norm, _, _ = model.forward(input_seq=src_seq,
+    _, word_pred, pos_pred, norm_not_norm, edit_pred, _, _ = model.forward(input_seq=src_seq,
                                                                 input_word_len=src_len,
                                                                 word_embed_input=input_word,
                                                                 word_level_predict=True)
@@ -174,7 +174,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         start = time.time() if timing else None
 
         #pdb.set_trace()
-        decoding_states, word_pred, pos_pred, norm_not_norm, attention, _ = model.forward(input_seq=src_seq,
+        decoding_states, word_pred, pos_pred, norm_not_norm, edit_pred, attention, _ = model.forward(input_seq=src_seq,
                                                                                           output_seq=output_seq,
                                                                                           input_word_len=src_len,
                                                                                           output_word_len=output_len,

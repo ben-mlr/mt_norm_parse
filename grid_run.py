@@ -22,6 +22,7 @@ FINE_TUNE = 0
 GRID = 1
 
 
+
 def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_paths,
              scoring_func_sequence_pred=DEFAULT_SCORING_FUNCTION,
              epochs=50, test_before_run=False, debug=False, warmup=False):
@@ -32,9 +33,10 @@ def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_pa
         epochs = epochs if not test_before_run else 30
         if warmup:
             if len(params[0]["tasks"]) > 1:
-                train_path = [DEMO, DEMO]
-                dev_path = [DEMO, DEMO]
-                test_paths = [[LIU_DEV], [EWT_TEST]]
+                train_path = [DEMO, DEMO, DEMO]
+                dev_path = [DEMO, DEMO,DEMO]
+                test_paths = [[DEV], [LIU_DEV], [TEST]]
+                # TODO : should add assertion on test_paths also
             else:
                 train_path, dev_path = DEMO, DEMO2
                 test_paths = [[DEMO2]]
@@ -85,7 +87,7 @@ if __name__ == "__main__":
         assert os.environ.get("MODE_RUN") in ["DISTRIBUTED", "SINGLE"]
         run_standart = os.environ.get("MODE_RUN") != "DISTRIBUTED"
       else:
-          run_standart = False
+          run_standart = True
           print("LOCAL")
 
       params = []
@@ -146,14 +148,15 @@ if __name__ == "__main__":
                                                                                   shared_context_ls=["all"],
                                                                                   word_embedding_projected_dim_ls=[125],
                                                                                   char_level_embedding_projection_dim_ls=[125],
-                                                                                  tasks_ls=[["norm_not_norm", "pos"]],
+                                                                                  tasks_ls=[["pos", "edit_prediction", "norm_not_norm"]],
                                                                                   n_layers_sent_cell_ls=[2],
                                                                                   n_layers_word_encoder_ls=[1],
                                                                                   unrolling_word_ls=[1],
                                                                                   scoring_func="exact_match",
                                                                                   mode_word_encoding_ls=["sum"],
                                                                                   dropout_input_ls=[0.3],
-                                                                                  multi_task_loss_ponderation_ls=[{"pos": 1, "normalize": 1,"norm_not_norm": 0},
+                                                                                  multi_task_loss_ponderation_ls=[{"pos": 1, "normalize": 1,"norm_not_norm": 0,
+                                                                                                                   "edit_prediction": 1},
                                                                                                                    {"pos": 0.5, "normalize": 1,"norm_not_norm": 0},
                                                                                                                    {"pos": 1, "normalize": 0.1,"norm_not_norm": 0},
                                                                                                                    {"pos": 1, "normalize": 0.01,"norm_not_norm": 0},
@@ -237,15 +240,16 @@ if __name__ == "__main__":
               update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
 
       else:
-          epochs=100 
+          
           train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV#MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
           POS_ABLATION = False
-          NORMALIZE = False
+          NORMALIZE = True
           if NORMALIZE:
-              train_path, dev_path = CP_PASTE_TRAIN, CP_PASTE_DEV#MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+              epochs=100 
+              train_path, dev_path = CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
               train_path = [train_path]
               dev_path = [dev_path]
-              test_path = [[CP_PASTE_TEST, LIU_DEV, TEST]]
+              test_path = [[CP_WR_PASTE_TEST_269, TEST, CP_PASTE_TEST]]
               dir_script, row = script_generation(grid_label=LABEL_GRID, 
                                                   init_param=params_strong,#params_dozat,#params_strong,#params_dozat,
                                                   warmup=test_before_run, test_before_run=test_before_run,
@@ -253,8 +257,8 @@ if __name__ == "__main__":
                                                   stable_decoding_state_ls=[0],
                                                   word_decoding_ls=[0],
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
-                                                  batch_size_ls=[40],
-                                                  word_embed_ls=[1],
+                                                  batch_size_ls=[20],
+                                                  word_embed_ls=[0],
                                                   dir_sent_encoder_ls=[2], dir_word_encoder_ls=[2],
                                                   n_layers_sent_cell_ls=[1], n_layers_word_encoder_ls=[1],
                                                   lr_ls=[0.001],
@@ -263,14 +267,14 @@ if __name__ == "__main__":
                                                   word_recurrent_cell_encoder_ls=["LSTM"],
                                                   dropout_word_encoder_cell_ls=[0.],
                                                   proportion_pred_train_ls=[None],
-                                                  shared_context_ls=["all"],
-                                                  word_embedding_projected_dim_ls=[100],
-                                                  char_level_embedding_projection_dim_ls=[300],
+                                                  shared_context_ls=["word"],
+                                                  word_embedding_projected_dim_ls=[0],
+                                                  char_level_embedding_projection_dim_ls=[0],
                                                   mode_word_encoding_ls=["cat"],
                                                   tasks_ls=[["normalize"]],
                                                   char_src_attention_ls=[0],
                                                   unrolling_word_ls=[1],
-                                                  scale_ls=[1,2,3],
+                                                  scale_ls=[1],
                                                   attention_tagging_ls=[0],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   description_comment=description_comment,
@@ -283,18 +287,19 @@ if __name__ == "__main__":
                                                   multi_task_loss_ponderation_ls=[{"pos": 0, "normalize": 1, "norm_not_norm":0}],
                                                   write_to_dir=RUN_SCRIPTS_DIR)
           
-          MULTI_TASK = True
+          MULTI_TASK = False
           if MULTI_TASK:
-              train_path = [DEMO, DEMO]#[EN_LINES_EWT_TRAIN, LIU_TRAIN]
-              dev_path = train_path#[EWT_DEV, LIU_DEV]
-              test_paths = [[LIU_DEV],[EWT_TEST]]#[[EWT_DEV, TEST], [LIU_DEV, TEST]]
+              epochs=20
+              train_path = [EN_LINES_EWT_TRAIN, LIU_TRAIN]#[DEMO, DEMO]#
+              dev_path = [EWT_DEV, LIU_DEV]#train_path#
+              test_paths = [[EWT_DEV, EWT_TEST, DEV, TEST], [LIU_DEV,DEV, TEST]]#[[LIU_DEV],[EWT_TEST]]#
               dir_script, row = script_generation(init_param=params_dozat,
                                                   grid_label=LABEL_GRID,
                                                   word_recurrent_cell_encoder_ls=["LSTM"],
                                                   dropout_word_encoder_cell_ls=[0.1],
                                                   stable_decoding_state_ls=[0],
                                                   word_decoding_ls=[0],
-                                                  batch_size_ls=[80,120],
+                                                  batch_size_ls=[80, 120],
                                                   word_embed_ls=[0],
                                                   dir_sent_encoder_ls=[2],dir_word_encoder_ls=[2],
                                                   lr_ls=[0.001],
@@ -306,7 +311,7 @@ if __name__ == "__main__":
                                                   shared_context_ls=["all"],
                                                   word_embedding_projected_dim_ls=[125],
                                                   char_level_embedding_projection_dim_ls=[125],
-                                                  tasks_ls=[["norm_not_norm","pos"]],
+                                                  tasks_ls=[["pos","norm_not_norm"]],
                                                   n_layers_sent_cell_ls=[2],
                                                   n_layers_word_encoder_ls=[1],
                                                   unrolling_word_ls=[1],

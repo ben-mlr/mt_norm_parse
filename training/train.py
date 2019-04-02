@@ -78,6 +78,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
           dropout_input=None,
           optimizer="adam",
           verbose=1):
+
     if multi_task_loss_ponderation is not None:
         sanity_check_loss_poneration(multi_task_loss_ponderation, verbose=verbose)
     if teacher_force:
@@ -299,7 +300,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                                            auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm,
                                                                            model=model,
                                                                            writer=writer, use="train",
-                                                                           use_gpu=use_gpu, verbose=verbose,
+                                                                           use_gpu=use_gpu, verbose=verbose,tasks=tasks,
                                                                            char_decoding=char_decoding, word_decoding=word_decoding,
                                                                            pos_pred=auxilliary_task_pos,
                                                                            timing=timing),
@@ -334,7 +335,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
             loss_obj = LossCompute(model.generator, use_gpu=use_gpu, verbose=verbose,
                                    multi_task_loss_ponderation=model.multi_task_loss_ponderation,
                                    writer=writer, use="dev",
-                                   pos_pred=auxilliary_task_pos,
+                                   pos_pred=auxilliary_task_pos,tasks=tasks,
                                    char_decoding=char_decoding, word_decoding=word_decoding,
                                    auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm)
             loss_dev, loss_details_dev, step_dev = run_epoch(batchIter_eval, model, loss_compute=loss_obj,

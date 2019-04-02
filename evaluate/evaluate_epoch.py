@@ -29,7 +29,7 @@ np.random.seed(SEED_NP)
 torch.manual_seed(SEED_TORCH)
 
 
-def evaluate(batch_size, data_path, task,
+def evaluate(batch_size, data_path, tasks, evaluated_task,
              write_report=True, dir_report=None,
              dict_path=None, model_full_name=None,
              score_to_compute_ls=None, mode_norm_ls=None, get_batch_mode_evaluate=True,
@@ -62,6 +62,7 @@ def evaluate(batch_size, data_path, task,
         pdb.set_trace = lambda: 1
 
     model = LexNormalizer(generator=Generator, load=True, model_full_name=model_full_name,
+                          tasks=tasks,
                           word_decoding=word_decoding, char_decoding=char_decoding, # added for dictionary purposes : might be other ways
                           voc_size=voc_size, use_gpu=use_gpu, dict_path=dict_path, model_specific_dictionary=True,
                           dir_model=os.path.join(PROJECT_PATH, "checkpoints", model_full_name + "-folder"), extra_arg_specific_label=extra_arg_specific_label,
@@ -75,7 +76,7 @@ def evaluate(batch_size, data_path, task,
 
     printing("EVALUATION : Evaluating {} metric with details {}  ", var=[score_to_compute_ls, mode_norm_ls], verbose=verbose, verbose_level=3)
 
-    readers_eval = readers_load(datasets=[data_path], tasks=[task], word_dictionary=model.word_dictionary,
+    readers_eval = readers_load(datasets=[data_path], tasks=[evaluated_task], word_dictionary=model.word_dictionary,
                                 word_dictionary_norm=model.word_nom_dictionary, char_dictionary=model.char_dictionary,
                                 pos_dictionary=model.pos_dictionary, xpos_dictionary=model.xpos_dictionary,
                                 type_dictionary=model.type_dictionary, use_gpu=use_gpu,
@@ -83,7 +84,7 @@ def evaluate(batch_size, data_path, task,
                                 bucket=bucket,max_char_len=max_char_len,
                                 add_start_char=1, add_end_char=1, symbolic_end=model.symbolic_end, symbolic_root=model.symbolic_root,
                                 verbose=verbose)
-    batchIter = data_gen_multi_task_sampling_batch(tasks=[task], readers=readers_eval, batch_size=batch_size,
+    batchIter = data_gen_multi_task_sampling_batch(tasks=[evaluated_task], readers=readers_eval, batch_size=batch_size,
                                                    word_dictionary=model.word_dictionary,
                                                    char_dictionary=model.char_dictionary,
                                                    pos_dictionary=model.pos_dictionary,
@@ -96,7 +97,7 @@ def evaluate(batch_size, data_path, task,
     score_dic_new, formulas = greedy_decode_batch(char_dictionary=model.char_dictionary, verbose=verbose, gold_output=True,
                                                   score_to_compute_ls=score_to_compute_ls, use_gpu=use_gpu,
                                                   write_output=write_output, eval_new=True,
-                                                  task_simultaneous_eval=[task],
+                                                  task_simultaneous_eval=[evaluated_task],
                                                   stat="sum", mode_norm_score_ls=mode_norm_ls,
                                                   label_data=REPO_DATASET[data_path],
                                                   batchIter=batchIter, model=model,
@@ -140,9 +141,11 @@ def evaluate(batch_size, data_path, task,
                     all_report.append(report)
                     json.dump(all_report, open(dir, "w"))
     printing("NEW REPORT metric : {} ", var=[" ".join(list(formulas.keys()))], verbose=verbose, verbose_level=1)
-    printing("NEW REPORT : model specific report saved {} ".format(over_all_report_dir), verbose=verbose, verbose_level=1)
-    printing("NEW REPORT : overall report saved {} ".format(over_all_report_dir_all_models), verbose=verbose,verbose_level=1)
-
+    try:
+        printing("NEW REPORT : model specific report saved {} ".format(over_all_report_dir), verbose=verbose, verbose_level=1)
+        printing("NEW REPORT : overall report saved {} ".format(over_all_report_dir_all_models), verbose=verbose,verbose_level=1)
+    except Exception as e:
+        print(Exception(e))
     return None
 
 #4538 , 4578

@@ -21,12 +21,15 @@ class LossCompute:
                  word_decoding=False,
                  char_decoding=True,
                  pos_pred=False,
+                 tasks=None,
                  opt=None, pad=1, use_gpu=False, timing=False,
                  multi_task_loss_ponderation ="all", writer=None, model=None,
                  use="", verbose=0):
 
         #assert (word_decoding or char_decoding) and not (word_decoding and char_decoding), \
         #    "ERROR : strictly one of the two (word,char) decoding should be True "
+        if tasks is None:
+            tasks = []
         self.generator = generator
         assert (char_decoding and generator is not None) or (not char_decoding and generator is None), "ERROR : char_decoding {} generator {}".format(char_decoding, generator)
 
@@ -34,6 +37,7 @@ class LossCompute:
         self.writer = writer
         self.loss_distance = nn.CrossEntropyLoss(reduce=True, ignore_index=pad) if char_decoding else None
         self.loss_binary = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_NORM_NOT_NORM) if auxilliary_task_norm_not_norm else None
+        self.loss_edit = nn.MSELoss(reduce=True) if "edit_prediction" in tasks else None
         self.loss_distance_word_level = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_WORD) if word_decoding else None
         self.loss_distance_pos = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_TAG) if pos_pred else None
         if use_gpu:
@@ -58,6 +62,7 @@ class LossCompute:
                  y_norm_not_norm=None,
                  y_pos=None, x_pos=None,
                  y_word=None, x_word_pred=None,
+                 y_edit=None, pred_edit=None,
                  pos_batch=False,
                  weight_binary_loss=1,
                  weight_pos_loss=0,
@@ -86,6 +91,7 @@ class LossCompute:
                      verbose=self.verbose, verbose_level=5)
             # we remove empty words in the gold
         y = y[:, :x.size(1), :] if x is not None else None
+        y_edit = y_edit[:, :pred_edit.size(1)] if y_edit is not None else None
         y_norm_not_norm = y_norm_not_norm[:, :x_norm_not_norm.size(1)] if y_norm_not_norm is not None else None
         y_word = y_word[:, :x_word_pred.size(1)] if y_word is not None and x_word_pred is not None else None
         # WE PUT THAT HERE IN CASE LATER : WE WANT To ADAPT BATCH-WISE PONDERATION
@@ -93,6 +99,7 @@ class LossCompute:
         scheduling_normalize = loss_scheduler["normalize"]
         schedule_pos = loss_scheduler["pos"]
         scheduling_norm_not_norm = loss_scheduler["norm_not_norm"]
+        scheduling_edit = loss_scheduler["edit_prediction"]
         #print("sanitity", scheduling_normalize,  schedule_pos, scheduling_norm_not_norm)
         if y is not None:
             printing("TYPE  y {} is cuda ", var=(y.is_cuda), verbose=0, verbose_level=5)
@@ -119,6 +126,12 @@ class LossCompute:
             #    loss_binary = self.loss_binary(x_norm_not_norm.contiguous().view(-1, x_norm_not_norm.size(-1)), y_norm_not_norm.contiguous().view(-1))
             assert weight_binary_loss is not None
             assert scheduling_norm_not_norm is not None
+        loss_edit = 0
+        if self.loss_edit is not None and y_edit is not None:
+            # self.loss_edit tells us it model has ability to predict edit, y_edit if we provided labels (could use pred_edit also in a way)
+            assert pred_edit is not None, "ERROR pred_edit was given as None while model has a loss_edit and we got label"
+            pdb.set_trace()
+            loss_edit = self.loss_edit(pred_edit.contiguous().view(-1), y_edit.contiguous().view(-1))
 
         if pos_batch and self.loss_distance_pos is not None:
             assert x_pos is not None and y_pos is not None, "ERROR x_pos and y_pos should be define "
@@ -127,10 +140,10 @@ class LossCompute:
         else:
             loss_pos = 0
 
-        if loss_binary is not None or (pos_batch and self.loss_distance_pos is not None):
+        if loss_binary is not None or (pos_batch and self.loss_distance_pos is not None) :
             multi_task_loss = ponderation_normalize_loss*scheduling_normalize*loss+\
                               weight_binary_loss*loss_binary*scheduling_norm_not_norm+\
-                              schedule_pos*loss_pos*weight_pos_loss
+                              schedule_pos*loss_pos*weight_pos_loss+loss_edit*scheduling_edit
         else:
             multi_task_loss = loss
 
@@ -151,6 +164,9 @@ class LossCompute:
                                      "loss-{}-loss_binary".format(self.use): loss_binary.clone().cpu().data.numpy() if not isinstance(loss_binary, int) else 0,
                                      "loss-{}-loss_pos-schedule_pos".format(self.use): loss_pos.clone().cpu().data.numpy()*schedule_pos*weight_pos_loss if not isinstance(loss_pos, int) else 0,
                                      "loss-{}-loss_pos".format(self.use): loss_pos.clone().cpu().data.numpy() if not isinstance(loss_pos, int) else 0,
+                                     "loss-{}-loss_edit".format(self.use): loss_edit.clone().cpu().data.numpy() if not isinstance(loss_edit, int) else 0,
+                                     "loss-{}-loss_edit-schedule_edit".format(self.use): scheduling_edit*loss_edit.clone().cpu().data.numpy() if not isinstance(loss_edit,
+                                                                                                           int) else 0,
                                      },
                                     step)
 

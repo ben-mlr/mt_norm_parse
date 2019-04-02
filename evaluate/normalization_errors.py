@@ -130,7 +130,7 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
                             score_word = eval_func(word_pred, word_gold)
                             sent_score.append(score_word)
                             scores.append(score_word)
-                            printing("GOLD {} PRED {} exact_match {} on task {} ".format(word_gold, word_pred, score_word, task),verbose_level=0, verbose=0)
+                            printing("GOLD {} PRED {} exact_match {} on task {} ".format(word_gold, word_pred, score_word, task),verbose_level=2, verbose=verbose)
                         else:
                             score_word = "not given cause special char"
 

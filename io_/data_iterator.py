@@ -44,7 +44,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                                                              normalization=normalization),
                           disable=disable_tqdm_level(verbose, verbose_level=2)):
 
-            words, word_norm, chars, chars_norm, word_norm_not_norm, pos, xpos, heads, types, masks, lengths, order_ids, raw_word_inputs, raw_lines = batch
+            words, word_norm, chars, chars_norm, word_norm_not_norm, edit, pos, xpos, heads, types, masks, lengths, order_ids, raw_word_inputs, raw_lines = batch
 
             if not normalization:
                 chars_norm = chars.clone()
@@ -54,11 +54,13 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
 
             if not NORM2NOISY:
                 yield MaskBatch(chars, chars_norm,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
+                                edit=edit,
                                 output_word=word_norm, pos=pos, input_word=words,dropout_input=dropout_input,
                                 verbose=verbose), order_ids
             else:
                 yield MaskBatch(chars_norm, chars,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
                                 output_word=word_norm, pos=pos, input_word=words,dropout_input=dropout_input,
+                                edit=edit,
                                 verbose=verbose), order_ids
 
 
@@ -67,7 +69,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
         for ibatch in tqdm(range(1, nbatch+1), disable=disable_tqdm_level(verbose, verbose_level=2)):
             # word, char, pos, xpos, heads, types, masks, lengths, morph
             printing("Data : getting {} out of {} batches", var=(ibatch, nbatch+1), verbose= verbose, verbose_level=2)
-            word, word_norm, char, chars_norm, word_norm_not_norm, pos, _, _, _, _, lenght, order_ids = \
+            word, word_norm, char, chars_norm, word_norm_not_norm, edit, pos, _, _, _, _, lenght, order_ids = \
                 conllu_data.get_batch_variable(data,
                                                batch_size=batch_size,
                                                normalization=normalization,
@@ -89,8 +91,6 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             __word_ind = 0
 
             if normalization:
-
-
                 if word_norm_not_norm is not None:
                     printing("norm not norm {} ", var=(word_norm_not_norm[:, __word_ind]), verbose=verbose,
                              verbose_level=5)
@@ -105,11 +105,11 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
 
             if NORM2NOISY:
                 print("WARNING !! NORM2NOISY ON ")
-                yield MaskBatch(chars_norm, char, output_word=word_norm,
+                yield MaskBatch(chars_norm, char, output_word=word_norm,edit=edit,
                                 output_norm_not_norm=word_norm_not_norm,dropout_input=dropout_input,
                                 pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose), order_ids
             else:
-                yield MaskBatch(char, chars_norm, output_word=word_norm,
+                yield MaskBatch(char, chars_norm, output_word=word_norm,edit=edit,
                                 output_norm_not_norm=word_norm_not_norm,dropout_input=dropout_input,
                                 pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose), order_ids
 
@@ -177,14 +177,14 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
                                                           pos_dictionary,
                                                           xpos_dictionary, type_dictionary,
                                                           use_gpu=use_gpu,
-                                                          norm_not_norm=norm_not_norm if task == "norm_not_norm" else False,
                                                           word_decoder=word_decoder,
                                                           symbolic_end=symbolic_end, symbolic_root=symbolic_root,
                                                           dry_run=0, lattice=False,
                                                           normalization=TASKS_PARAMETER[task]["normalization"],
                                                           bucket=bucket,
                                                           add_start_char=add_start_char,
-                                                          add_end_char=add_end_char, tasks=[task],max_char_len=max_char_len,
+                                                          add_end_char=add_end_char, tasks=[task],
+                                                          max_char_len=max_char_len,
                                                           word_norm_dictionary=word_dictionary_norm, verbose=verbose)
     return readers
 
@@ -217,10 +217,7 @@ def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary, char_dic
     while True:
         n_sent_start = 0
         random_sample_id = np.random.randint(0, 100)
-        #print("ITER", batch_iter, "sum(end_task_flag.values()) is ", end_task_flag.values(), " while len(tasks) is ", tasks, random_sample_id)
         for ind, task in enumerate(tasks):
-            #print("Sampling, for task ", task, " proportion is ", sampling_proportion(n_sents_per_task_dataset_cumul[task], n_sents_per_task_dataset_cumul["all"]),
-            #      " start is {} ".format(sampling_proportion(n_sent_start, n_sents_per_task_dataset_cumul["all"])), " random is ", random_sample_id)
             if sampling_proportion(n_sent_start, n_sents_per_task_dataset_cumul["all"]) < random_sample_id < sampling_proportion(n_sents_per_task_dataset_cumul[task], n_sents_per_task_dataset_cumul["all"]) and not end_task_flag[task]:
                 try:
                     batch, order = iterator[task].__next__()
@@ -245,6 +242,8 @@ def sanity_check_batch_label(task, batch, verbose=1):
         assert batch.pos is not None, "ERROR checking pos "
     elif task in ["all", "norm_not_norm"]:
         assert batch.output_norm_not_norm is not None, "ERROR checking norm_not_norm"
+    elif task in ["all", "edit_prediction"]:
+        assert batch.edit is not None, "ERROR edit batch was found None "
     else:
         raise(Exception("task provided {} could not be checked".format(task)))
     #printing("BATCH CHECKED ", verbose=verbose, verbose_level=1)

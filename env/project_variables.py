@@ -30,12 +30,14 @@ LOSS_DETAIL_TEMPLATE = {"loss_overall": 0, "loss_seq_prediction": 0, "other": {}
 LOSS_DETAIL_TEMPLATE_LS = {"loss_overall": [], "loss_seq_prediction": [], "other": {}}
 SCORE_AUX = ["norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recall", "norm_not_norm-accuracy"]
 
-AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm", "pos"]
+AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm", "pos", "edit_prediction"]
+AVAILABLE_AGGREGATION_FUNC_AUX_TASKS = ["norm_not_norm", "edit_prediction"]
 
 
 TASKS_2_METRICS_STR = {"all": ["accuracy-normalization","InV-accuracy-normalization","OOV-accuracy-normalization","npv-normalization","recall-normalization","precision-normalization","tnr-normalization","accuracy-pos"],
                        "normalize": ["accuracy-normalization","InV-accuracy-normalization","OOV-accuracy-normalization","npv-normalization","recall-normalization","precision-normalization","tnr-normalization"],
                        "pos": ["accuracy-pos"],
+                       "edit_prediction": ["l2"],
                        "norm_not_norm": ["IoU-pred-normed","recall-norm_not_norm","accuracy-norm_not_norm","IoU-pred-need_norm","precision-norm_not_norm"]}
 
 AVAILABLE_OPTIMIZER = ["adam", "bahdanu-adadelta"]
@@ -147,6 +149,7 @@ REPO_W2V = {DIR_TWEET_W2V: {"label": TWEET_W2V_LABEL, "dim": 400},
 # for some task we need normalize = True for getting the label
 TASKS_PARAMETER = {"normalize": {"normalization": True},
                    "norm_not_norm": {"normalization": True},
+                   "edit_prediction": {"normalization": True},
                    "pos": {"normalization": False},
                    "all": {"normalization": True}}
 
@@ -154,4 +157,4 @@ TASKS_PARAMETER = {"normalize": {"normalization": True},
 # output dir for writing
 WRITING_DIR = os.path.join(PROJECT_PATH, "predictions")
 
-WARMUP_N_EPOCHS = 10
+WARMUP_N_EPOCHS = 1

@@ -6,6 +6,7 @@ import numpy as np
 from model.encoder import CharEncoder
 from model.decoder import CharDecoder
 from model.pos_predictor import PosPredictor
+from model.edit_predictor import EditPredictor
 from model.normalize_not import BinaryPredictor
 from env.project_variables import CHECKPOINT_DIR, AVAILABLE_TASKS, REPO_DATASET, REPO_W2V
 import torch
@@ -391,6 +392,8 @@ class LexNormalizer(nn.Module):
         self.pos_predictor = PosPredictor(voc_pos_size=voc_pos_size,
                                           input_dim=hidden_size_decoder,
                                           dense_dim=dense_dim_auxilliary_pos) if auxilliary_task_pos else None
+
+        self.edit_predictor = EditPredictor(input_dim=hidden_size_decoder, dense_dim=50) if "edit_prediction" in tasks else None
         self.verbose = verbose
         # bridge between encoder hidden representation and decoder
         if load:
@@ -465,10 +468,9 @@ class LexNormalizer(nn.Module):
 
         word_pred_state = self.word_decoder.forward(nn.ReLU()(context)) if self.word_decoder is not None else None
 
-        if self.pos_predictor is not None:
-            pos_pred_state = self.pos_predictor.forward(nn.ReLU()(context))
-        else:
-            pos_pred_state = None
+        pos_pred_state = self.pos_predictor.forward(nn.ReLU()(context)) if self.pos_predictor is not None else None
+
+        edit_state = self.edit_predictor.forward(torch.sigmoid(context)) if self.edit_predictor is not None else None
 
         target_encoder, start = get_timing(start)
         printing("TYPE  decoder {} is cuda ", var=output.is_cuda if output is not None else None,
@@ -483,7 +485,7 @@ class LexNormalizer(nn.Module):
                 [("source_encoder", source_encoder), ("target_encoder", target_encoder), ("bridge", bridge)])
             print("time report {}".format(time_report))
 
-        return output, word_pred_state, pos_pred_state, norm_not_norm_hidden, attention_weight_all, attention_weights_char_tag
+        return output, word_pred_state, pos_pred_state, norm_not_norm_hidden, edit_state, attention_weight_all, attention_weights_char_tag
 
     @staticmethod
     def rm_checkpoint(checkpoint_dir_to_remove, verbose=0):

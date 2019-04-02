@@ -21,7 +21,7 @@ def subsequent_mask(size):
 
 class MaskBatch(object):
     def __init__(self, input_seq, output_seq,
-                 output_word=None, pos=None, input_word=None,
+                 output_word=None, pos=None, input_word=None,edit=None,
                  output_norm_not_norm=None, pad=0, verbose=0, timing=False, dropout_input=0.):
         # input mask
         #if not output_seq.size(0) >1:
@@ -45,9 +45,9 @@ class MaskBatch(object):
             droping_multiplier_char[input_seq == PAD_ID_CHAR] = 1 # making sure padding are always untouched
             droping_multiplier_char[input_seq == CHAR_END_ID] = 1  # making sure padding are always untouched
             self.input_seq = torch.mul(droping_multiplier_char, input_seq)
-
-            # TODO : add different drop out in output_seq_x and output_seq_y
+            # TODO : add more flexibility different drop out in output_seq_x and output_seq_y
         self.output_norm_not_norm = output_norm_not_norm
+        self.edit = edit
         self.output_word = output_word
         # unsqueeze add 1 dim between batch and word len ##- ?   ##- for commenting on context implementaiton
         start = time.time()

@@ -215,6 +215,8 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size,task_simul
                     counter_correct_batch = dict()
                     score_formulas = dict()
                     for task in task_simultaneous_eval:
+                        if task == "edit_prediction":
+                            continue
                         # TODO MULTITASK should factorize even more adding assertion on what we evaluate
                         if task == "pos":
                             target_seq_gold = gold_pos_seq_ls

@@ -217,7 +217,8 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                          batch_size=batch_size, debug=debug,
                          word_decoding=word_decoding, char_decoding=char_decoding,
                          scoring_func_sequence_pred=scoring_func_sequence_pred,
-                         task=task, max_char_len=max_char_len,
+                         evaluated_task=task, max_char_len=max_char_len,
+                         tasks=tasks,
                          dir_report=model_dir, verbose=1)
         printing("GRID : END EVAL {} ".format(time.time()-start_eval), verbose=verbose, verbose_level=1)
     printing("WARNING : no evaluation ", verbose=verbose, verbose_level=0)
