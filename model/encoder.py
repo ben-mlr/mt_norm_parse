@@ -209,7 +209,6 @@ class CharEncoder(nn.Module):
         try:
             ## WARNING / CHANGED sent_len.squeeze().cpu().numpy() into sent_len.cpu().numpy()
             packed_char_vecs_input = pack_padded_sequence(input[perm_idx_input_sent, :, :], sent_len.cpu().numpy(), batch_first=True)
-
         except:
             print("EXCEPT ENCODER PACKING", [perm_idx_input_sent])
             if len(perm_idx_input_sent.size()) == 0:
@@ -235,6 +234,7 @@ class CharEncoder(nn.Module):
         input_char_vecs = input_char_vecs.contiguous().view(input_char_vecs.size(0) * input_char_vecs.size(1), input_char_vecs.size(2))
         # input_char_vecs : [batch x max sent_len , MAX_CHAR_LENGTH or bucket max_char_length]
         # input_word_len  [batch x max sent_len]
+        pdb.set_trace()
         h_w, char_seq_hidden, word_src_sizes, attention_weights_char_tag = self.word_encoder_source(input=input_char_vecs,
                                                                                                     input_word_len=input_word_len)
         # [batch x max sent_len , packed max_char_length, hidden_size_encoder]
@@ -263,6 +263,7 @@ class CharEncoder(nn.Module):
         # we want to pack the sequence so we tranqform it as a list
         # NB ; sent_len and sent_len_cumulated are aligned with permuted input and therefore input_char_vec and h_w
         h_w_ls = [h_w[sent_len_cumulated[i]:sent_len_cumulated[i + 1], :] for i in range(len(sent_len_cumulated) - 1)]
+        pdb.set_trace()
         h_w = pack_sequence(h_w_ls)
         # sent_encoded last layer for each t (word) of the last layer
         sent_encoded, _ = self.sent_encoder(h_w)

@@ -619,7 +619,7 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
       word_norm_not_norm = word_norm_not_norm[index]
     if edit is not None:
       edit = edit[index]
-  return words, word_norm , chars[index], chars_norm, word_norm_not_norm, edit, pos[index], xpos[index], heads[index], \
+  return words, word_norm, chars[index], chars_norm, word_norm_not_norm, edit, pos[index], xpos[index], heads[index], \
          types[index], masks[index], lengths[index], order_inputs[index]
 
 

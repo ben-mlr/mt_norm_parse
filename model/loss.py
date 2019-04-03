@@ -130,7 +130,6 @@ class LossCompute:
         if self.loss_edit is not None and y_edit is not None:
             # self.loss_edit tells us it model has ability to predict edit, y_edit if we provided labels (could use pred_edit also in a way)
             assert pred_edit is not None, "ERROR pred_edit was given as None while model has a loss_edit and we got label"
-            pdb.set_trace()
             loss_edit = self.loss_edit(pred_edit.contiguous().view(-1), y_edit.contiguous().view(-1))
 
         if pos_batch and self.loss_distance_pos is not None:
@@ -157,6 +156,7 @@ class LossCompute:
             printing("TYPE  loss_binary {} is cuda ", var=(loss_binary.is_cuda), verbose=0, verbose_level=5)
 
         if self.writer is not None:
+            pdb.set_trace()
             self.writer.add_scalars("loss-"+self.use,
                                     {"loss-{}-seq_pred".format(self.use): loss.clone().cpu().data.numpy() if not isinstance(loss, int) else 0,
                                      "loss-{}-seq_pred-ponderation_normalize_loss".format(self.use): loss.clone().cpu().data.numpy()*ponderation_normalize_loss if not isinstance(loss, int) else 0,

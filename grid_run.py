@@ -22,7 +22,6 @@ FINE_TUNE = 0
 GRID = 1
 
 
-
 def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_paths,
              scoring_func_sequence_pred=DEFAULT_SCORING_FUNCTION,
              epochs=50, test_before_run=False, debug=False, warmup=False):
@@ -155,11 +154,10 @@ if __name__ == "__main__":
                                                                                   scoring_func="exact_match",
                                                                                   mode_word_encoding_ls=["sum"],
                                                                                   dropout_input_ls=[0.3],
-                                                                                  multi_task_loss_ponderation_ls=[{"pos": 1, "normalize": 1,"norm_not_norm": 0,
-                                                                                                                   "edit_prediction": 1},
-                                                                                                                   {"pos": 0.5, "normalize": 1,"norm_not_norm": 0},
-                                                                                                                   {"pos": 1, "normalize": 0.1,"norm_not_norm": 0},
-                                                                                                                   {"pos": 1, "normalize": 0.01,"norm_not_norm": 0},
+                                                                                  multi_task_loss_ponderation_ls=[{"pos": 1, "normalize": 1,"norm_not_norm": 0, "edit_prediction": 1},
+                                                                                                                   {"pos": 0.5, "normalize": 1, "norm_not_norm": 0},
+                                                                                                                   {"pos": 1, "normalize": 0.1, "norm_not_norm": 0},
+                                                                                                                   {"pos": 1, "normalize": 0.01, "norm_not_norm": 0},
                                                                                                                    {"pos": 1, "normalize": 0.0000001,"norm_not_norm": 0},
                                                                                                                   ],
 
@@ -238,12 +236,11 @@ if __name__ == "__main__":
                    warmup=warmup)
           if row is not None:
               update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
-
       else:
           
           train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV#MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
           POS_ABLATION = False
-          NORMALIZE = True
+          NORMALIZE = False
           if NORMALIZE:
               epochs=100 
               train_path, dev_path = CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
@@ -287,19 +284,19 @@ if __name__ == "__main__":
                                                   multi_task_loss_ponderation_ls=[{"pos": 0, "normalize": 1, "norm_not_norm":0}],
                                                   write_to_dir=RUN_SCRIPTS_DIR)
           
-          MULTI_TASK = False
+          MULTI_TASK = True
           if MULTI_TASK:
-              epochs=20
-              train_path = [EN_LINES_EWT_TRAIN, LIU_TRAIN]#[DEMO, DEMO]#
-              dev_path = [EWT_DEV, LIU_DEV]#train_path#
-              test_paths = [[EWT_DEV, EWT_TEST, DEV, TEST], [LIU_DEV,DEV, TEST]]#[[LIU_DEV],[EWT_TEST]]#
+              epochs=150
+              train_path = [EN_LINES_EWT_TRAIN]#[DEMO, DEMO]#
+              dev_path = [EWT_DEV]#train_path#
+              test_paths = [[EWT_DEV, EWT_TEST, DEV, TEST]]#[[LIU_DEV],[EWT_TEST]]#
               dir_script, row = script_generation(init_param=params_dozat,
                                                   grid_label=LABEL_GRID,
                                                   word_recurrent_cell_encoder_ls=["LSTM"],
                                                   dropout_word_encoder_cell_ls=[0.1],
                                                   stable_decoding_state_ls=[0],
                                                   word_decoding_ls=[0],
-                                                  batch_size_ls=[80, 120],
+                                                  batch_size_ls=[50, 80],
                                                   word_embed_ls=[0],
                                                   dir_sent_encoder_ls=[2],dir_word_encoder_ls=[2],
                                                   lr_ls=[0.001],
@@ -311,17 +308,17 @@ if __name__ == "__main__":
                                                   shared_context_ls=["all"],
                                                   word_embedding_projected_dim_ls=[125],
                                                   char_level_embedding_projection_dim_ls=[125],
-                                                  tasks_ls=[["pos","norm_not_norm"]],
+                                                  tasks_ls=[["pos"]],
                                                   n_layers_sent_cell_ls=[2],
                                                   n_layers_word_encoder_ls=[1],
                                                   unrolling_word_ls=[1],
                                                   scoring_func="exact_match",
                                                   mode_word_encoding_ls=["sum"],
                                                   dropout_input_ls=[0.4, 0.5],
-                                                  multi_task_loss_ponderation_ls=[{"pos": 1, "normalize": 0, "norm_not_norm": 1},
-                                                                                   {"pos": 0.5, "normalize": 0, "norm_not_norm": 1},
-                                                                                   {"pos": 1, "normalize": 0, "norm_not_norm": 0.5},
-                                                                                   {"pos": 1, "normalize": 0.0, "norm_not_norm": 0.01},
+                                                  multi_task_loss_ponderation_ls=[{"pos": 1, "normalize": 0, "norm_not_norm": 0, "edit_prediction":0},
+                                                                                  # {"pos": 1, "normalize": 0, "norm_not_norm": 0.4, "edit_prediction":0},
+                                                                                  # {"pos": 1, "normalize": 0, "norm_not_norm": 0.1 ,"edit_prediction":0},
+                                                                                  # {"pos": 1, "normalize": 0, "norm_not_norm": 0.01, "edit_prediction":0.},
                                                                                  ],
                                                   scale_ls=[1],
                                                   # arguments that are specific to script generation

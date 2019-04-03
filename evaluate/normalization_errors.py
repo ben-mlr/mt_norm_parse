@@ -123,7 +123,6 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
                         sent_score.append(score_word)
                         scores.append(score_word)
                         printing("GOLD {} PRED {} BLEU {} ".format(word_gold, word_pred, score_word), verbose_level=2, verbose=verbose)
-                        pdb.set_trace()
                     else:
                         eval_func = eval(scoring_func)
                         if word_gold not in [ROOT_CHAR, END, ROOT_POS, END_POS]:
@@ -169,7 +168,6 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
             assert pred_norm_not_norm is not None and gold_norm_not_norm is not None," ERROR pred_norm_not_norm and gold_" \
                                                                                      " norm_not_norm are empty while they should not {} - {}".format(pred_norm_not_norm, gold_norm_not_norm)
         if pred_norm_not_norm is not None and gold_norm_not_norm is not None:
-            pdb.set_trace()
             score_binary, formulas_bin = score_norm_not_norm(pred_norm_not_norm, gold_norm_not_norm[:, :pred_norm_not_norm.size(1)], output_seq_n_hot, src_seq, target_seq_gold)
             # testing consistency in counting
             try:

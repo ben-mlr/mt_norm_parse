@@ -59,7 +59,9 @@ class MaskBatch(object):
         zero_last, start = get_timing(start)
         # Handle long unpadded sequence
         ##- still last dimension : maybe 3
-        self.input_seq_len = torch.argmin(_input_seq_mask.cpu(), dim=-1)
+        pdb.set_trace()
+        # NB : Have to use numpy here cause inconsistent implementation of argmin in pytorch
+        self.input_seq_len = torch.argmin(_input_seq_mask.cpu(), dim=-1)#torch.Tensor(np.argmin(np.array(_input_seq_mask), axis=-1))#.size() #
         if _input_seq_mask.is_cuda:
             self.input_seq_len = self.input_seq_len.cuda()
         get_len_input, start = get_timing(start)
