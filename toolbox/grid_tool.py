@@ -38,13 +38,13 @@ def get_gpu_id(gpu_mode, gpus_ls, verbose):
   return gpu
 
 
-def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =None,
-                              #auxilliary_task_norm_not_norm_ls=None,
+def grid_param_label_generate(param,
+                              train_ls, dev_ls, test_ls,
+                              batch_size_ls=None, lr_ls=None, scale_ls =None,
                               shared_context_ls=None,
                               word_embed_init_ls=None, dir_word_encoder_ls=None, char_src_attention_ls=None, dir_sent_encoder_ls=None,
                               clipping_ls=None, unrolling_word_ls=None, teacher_force_ls=None,
                               word_decoding_ls=None,
-                              #auxilliary_task_pos_ls=None,
                               dropout_word_encoder_cell_ls=None,
                               scoring_func=None,
                               stable_decoding_state_ls=None,word_recurrent_cell_encoder_ls=None,
@@ -52,7 +52,6 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                               word_embed_ls=None, char_level_embedding_projection_dim_ls=None, mode_word_encoding_ls=None,
                               dropout_input_ls=None,
                               proportion_pred_train_ls=None, tasks_ls=None, attention_tagging_ls=None,multi_task_loss_ponderation_ls=None,
-
                               grid_label="", gpu_mode="random", gpus_ls=None, printout_info_var=True):
 
   assert gpu_mode in GPU_MODE_SUPPORTED, "ERROR gpu_mode not in {}".format(str(GPU_MODE_SUPPORTED))
@@ -62,6 +61,9 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
   default = []
   info_default = []
 
+  assert len(train_ls) == len(dev_ls), "ERROR train_ls is {} dev_ls {} : they should be same length".format(train_ls, dev_ls)
+  assert len(tasks_ls) == len(train_ls), "ERROR tasks_ls {} and train_ls {} should be same lenght ".format(tasks_ls, train_ls)
+  assert len(train_ls) == len(test_ls), "ERROR train_ls is {} test_ls {} : they should be same length ".format(train_ls, test_ls)
   if batch_size_ls is None:
     batch_size_ls = [DEFAULT_BATCH_SIZE]
     default.append(("batch_size", batch_size_ls[0]))
@@ -132,6 +134,7 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
   if n_layers_word_encoder_ls is None:
     n_layers_word_encoder_ls = [DEFAULT_LAYER_WORD_ENCODER]
     default.append(("n_layers_word_encoder", n_layers_word_encoder_ls[0]))
+  assert len(n_layers_word_encoder_ls)==1, "ERROR n_layers_word_encoder_ls should be len 1 {}".format(n_layers_word_encoder_ls)
   if mode_word_encoding_ls is None:
     mode_word_encoding_ls = [DEFAULT_MODE_WORD_ENCODING] #"mode_word_encoding"
     default.append(("mode_word_encoding", mode_word_encoding_ls[0]))
@@ -202,13 +205,19 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                             for word_recurrent_cell_encoder in word_recurrent_cell_encoder_ls:
                               for dropout_word_encoder_cell in dropout_word_encoder_cell_ls:
                                 for attention_tagging in attention_tagging_ls:
-                                  for n_layers_word_encoder in n_layers_word_encoder_ls:
-                                    #for char_level_embedding_projection_dim in char_level_embedding_projection_dim_ls:
-                                    for mode_word_encoding in _mode_word_encoding_ls:
-                                      for multi_task_loss_ponderation in multi_task_loss_ponderation_ls:
-                                        for dropout_input in dropout_input_ls:
+                                  #for n_layers_word_encoder in n_layers_word_encoder_ls:
+                                  #for char_level_embedding_projection_dim in char_level_embedding_projection_dim_ls:
+                                  for mode_word_encoding in _mode_word_encoding_ls:
+                                    for multi_task_loss_ponderation in multi_task_loss_ponderation_ls:
+                                      for dropout_input in dropout_input_ls:
+                                        for train, dev, test in zip(train_ls, dev_ls, test_ls):
                                           param0 = param.copy()
                                           ind_model += 1
+
+                                          param0["train_path"] = train
+                                          param0["dev_path"] = dev
+                                          param0["test_path"] = test
+
                                           param0["scoring_func"] = scoring_func
                                           param0["batch_size"] = batch
                                           param0["mode_word_encoding"] = mode_word_encoding
@@ -258,7 +267,7 @@ def grid_param_label_generate(param, batch_size_ls=None, lr_ls=None, scale_ls =N
                                           param0["proportion_pred_train"] = proportion_pred_train
                                           param0["gpu"] = get_gpu_id(gpu_mode, gpus_ls, 1)
                                           param0["attention_tagging"] = attention_tagging
-                                          param0["n_layers_word_encoder"] = n_layers_word_encoder
+                                          param0["n_layers_word_encoder"] = n_layers_word_encoder_ls[0]
                                           param0["multi_task_loss_ponderation"] = multi_task_loss_ponderation
                                           param0["dropout_input"] = dropout_input
 

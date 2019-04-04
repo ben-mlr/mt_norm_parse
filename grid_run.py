@@ -22,23 +22,25 @@ FINE_TUNE = 0
 GRID = 1
 
 
-def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_paths,
+def run_grid(parameters, labels, dir_grid, label_grid,
              scoring_func_sequence_pred=DEFAULT_SCORING_FUNCTION,
              epochs=50, test_before_run=False, debug=False, warmup=False):
     i = 0
-    for param, model_id_pref in zip(params, labels):
+
+    for param, model_id_pref in zip(parameters, labels):
         i += 1
         printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
         epochs = epochs if not test_before_run else 30
         if warmup:
-            if len(params[0]["tasks"]) > 1:
-                train_path = [DEMO, DEMO, DEMO]
-                dev_path = [DEMO, DEMO,DEMO]
-                test_paths = [[DEV], [LIU_DEV], [TEST]]
+            if len(parameters[0]["tasks"]) > 1:
+                param["train_path"] = [DEMO, DEMO]
+                param["dev_path"] = [DEMO, DEMO]
+                param["test_path"] = [[DEV], [LIU_DEV]]
                 # TODO : should add assertion on test_paths also
             else:
-                train_path, dev_path = DEMO, DEMO2
-                test_paths = [[DEMO2]]
+                param["train_path"] = [DEMO]
+                param["dev_path"] = [DEMO2]
+                param["test_path"] = [[DEMO2]]
             #param["word_embed_init"] = None
 
         model_id_pref = label_grid + model_id_pref + "-model_" + str(i)
@@ -49,9 +51,10 @@ def run_grid(params, labels, dir_grid, label_grid, train_path, dev_path, test_pa
             print("GRID_INFO fixed vars=  word_embed ")
             print("GRID_INFO fixed vals=  word_embed,False ")
 
-        model_full_name, model_dir = train_eval(train_path, dev_path, model_id_pref,
+        model_full_name, model_dir = train_eval(train_path=param["train_path"], dev_path=param["dev_path"],
+                                                model_id_pref=model_id_pref,
                                                 expand_vocab_dev_test=True,
-                                                test_path=test_paths,
+                                                test_path=param["test_path"],
                                                 overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                 compute_mean_score_per_sent=True, print_raw=False,
                                                 get_batch_mode_all=True, compute_scoring_curve=False,
@@ -129,8 +132,15 @@ if __name__ == "__main__":
 
       if run_standart:
           # default not used but could be
+          #train_path, dev_path = MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV#MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
+          # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#[TEST, TEST],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
+          train_path = [[EN_LINES_EWT_TRAIN, LIU_TRAIN]]
+          dev_path = [[EWT_DEV, LIU_DEV]]
+          test_path = [[[EWT_DEV, TEST], [LIU_DEV, TEST]]]
           params, labels, default_all, analysed, fixed = grid_param_label_generate(
                                                                                   params_dozat,
+                                                                                  train_ls=train_path, dev_ls=dev_path,
+                                                                                  test_ls=test_path,
                                                                                   grid_label="0",
                                                                                   word_recurrent_cell_encoder_ls=["LSTM"],
                                                                                   dropout_word_encoder_cell_ls=[0.1],
@@ -147,7 +157,7 @@ if __name__ == "__main__":
                                                                                   shared_context_ls=["all"],
                                                                                   word_embedding_projected_dim_ls=[125],
                                                                                   char_level_embedding_projection_dim_ls=[125],
-                                                                                  tasks_ls=[["pos", "edit_prediction", "norm_not_norm"]],
+                                                                                  tasks_ls=[["pos", "edit_prediction"]],
                                                                                   n_layers_sent_cell_ls=[2],
                                                                                   n_layers_word_encoder_ls=[1],
                                                                                   unrolling_word_ls=[1],
@@ -160,7 +170,6 @@ if __name__ == "__main__":
                                                                                                                    {"pos": 1, "normalize": 0.01, "norm_not_norm": 0},
                                                                                                                    {"pos": 1, "normalize": 0.0000001,"norm_not_norm": 0},
                                                                                                                   ],
-
                                                                                   scale_ls=[1]
                                                                                   )
 
@@ -222,17 +231,12 @@ if __name__ == "__main__":
           except:
               row = None
           print("row:{}".format(row))
-          #train_path, dev_path = MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV#MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
-          train_path = [EN_LINES_EWT_TRAIN, LIU_TRAIN]
-          dev_path = [EWT_DEV, LIU_DEV]
-          run_grid(params=params, labels=labels, dir_grid=dir_grid,
+          run_grid(parameters=params, labels=labels, dir_grid=dir_grid,
                    label_grid=LABEL_GRID,
                    epochs=100,
                    test_before_run=test_before_run,
-                   train_path=train_path, dev_path=dev_path,
                    debug=False,
                    scoring_func_sequence_pred="exact_match",
-                   test_paths=[[EWT_DEV, TEST], [LIU_DEV, TEST]],#[TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#[TEST, TEST],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
                    warmup=warmup)
           if row is not None:
               update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
@@ -287,10 +291,11 @@ if __name__ == "__main__":
           MULTI_TASK = True
           if MULTI_TASK:
               epochs=150
-              train_path = [EN_LINES_EWT_TRAIN]#[DEMO, DEMO]#
-              dev_path = [EWT_DEV]#train_path#
-              test_paths = [[EWT_DEV, EWT_TEST, DEV, TEST]]#[[LIU_DEV],[EWT_TEST]]#
+              train_path = [[EN_LINES_EWT_TRAIN]]#[DEMO, DEMO]#
+              dev_path = [[EWT_DEV]]#train_path#
+              test_paths =[[[EWT_DEV, EWT_TEST, DEV, TEST]]]#[[LIU_DEV],[EWT_TEST]]#
               dir_script, row = script_generation(init_param=params_dozat,
+                                                  train_path=train_path, dev_path=dev_path, test_paths=test_paths,
                                                   grid_label=LABEL_GRID,
                                                   word_recurrent_cell_encoder_ls=["LSTM"],
                                                   dropout_word_encoder_cell_ls=[0.1],
@@ -323,7 +328,6 @@ if __name__ == "__main__":
                                                   scale_ls=[1],
                                                   # arguments that are specific to script generation
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
-                                                  train_path=train_path, dev_path=dev_path, test_paths=test_paths,
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,

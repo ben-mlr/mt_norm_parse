@@ -15,7 +15,7 @@ CHECKPOINT_DIR = os.path.join(PROJECT_PATH, "checkpoints")
 CLIENT_GOOGLE_CLOUD = os.path.join(PROJECT_PATH, "tracking/google_api")
 SHEET_NAME_DEFAULT, TAB_NAME_DEFAULT = "model_evaluation", "experiments_tracking"
 
-LIST_ARGS = ["tasks"]
+LIST_ARGS = ["tasks", "train_path", "dev_path", "test_path"]
 NONE_ARGS = ["gpu"]
 BOOL_ARGS = ["word_embed", "teacher_force", "char_decoding", "unrolling_word", "init_context_decoder",
              "word_decoding", "stable_decoding_state", "char_src_attention"]

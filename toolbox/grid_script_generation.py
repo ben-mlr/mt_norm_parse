@@ -34,7 +34,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                       scale_ls, pos_specific_path=None, gpu_mode="random", description_comment="",
                       gpus_ls=None,write_to_dir=None,test_before_run=False,scoring_func=None):
 
-    test_paths = [",".join(test_path_task) for test_path_task in test_paths]
+    test_paths = [[",".join(path)] for test_path_grid in test_paths for path in test_path_grid]
 
     if write_to_dir is not None:
         script_dir = os.path.join(write_to_dir, "{}-run.sh".format(overall_label))
@@ -42,29 +42,33 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
     if test_before_run:
         warmup_desc += " test_before_run"
     params, labels, default_all, analysed, fixed = grid_param_label_generate(
-        init_param,
-        scoring_func=scoring_func,
-        grid_label=grid_label,
-        stable_decoding_state_ls=stable_decoding_state_ls,
-        word_decoding_ls=word_decoding_ls,
-        batch_size_ls=batch_size_ls,
-        word_embed_ls=word_embed_ls,
-        dir_sent_encoder_ls=dir_sent_encoder_ls, lr_ls=lr_ls,
-        word_embed_init_ls=word_embed_init_ls,
-        teacher_force_ls=teacher_force_ls,
-        proportion_pred_train_ls=proportion_pred_train_ls,
-        shared_context_ls=shared_context_ls,
-        word_recurrent_cell_encoder_ls=word_recurrent_cell_encoder_ls,
-        dropout_word_encoder_cell_ls=dropout_word_encoder_cell_ls,
-        word_embedding_projected_dim_ls=word_embedding_projected_dim_ls,
-        tasks_ls=tasks_ls,
-        attention_tagging_ls=attention_tagging_ls,
-        char_src_attention_ls=char_src_attention_ls,
-        n_layers_sent_cell_ls=n_layers_sent_cell_ls, dir_word_encoder_ls=dir_word_encoder_ls,
-        multi_task_loss_ponderation_ls=multi_task_loss_ponderation_ls,
-        mode_word_encoding_ls=mode_word_encoding_ls, char_level_embedding_projection_dim_ls=char_level_embedding_projection_dim_ls,
-        unrolling_word_ls=unrolling_word_ls, n_layers_word_encoder_ls=n_layers_word_encoder_ls, dropout_input_ls=dropout_input_ls,
-        scale_ls=scale_ls, gpu_mode=gpu_mode, gpus_ls=gpus_ls)
+                                                                            init_param,
+                                                                            train_ls=train_path, dev_ls=dev_path, test_ls=test_paths,
+                                                                            scoring_func=scoring_func,
+                                                                            grid_label=grid_label,
+                                                                            stable_decoding_state_ls=stable_decoding_state_ls,
+                                                                            word_decoding_ls=word_decoding_ls,
+                                                                            batch_size_ls=batch_size_ls,
+                                                                            word_embed_ls=word_embed_ls,
+                                                                            dir_sent_encoder_ls=dir_sent_encoder_ls, lr_ls=lr_ls,
+                                                                            word_embed_init_ls=word_embed_init_ls,
+                                                                            teacher_force_ls=teacher_force_ls,
+                                                                            proportion_pred_train_ls=proportion_pred_train_ls,
+                                                                            shared_context_ls=shared_context_ls,
+                                                                            word_recurrent_cell_encoder_ls=word_recurrent_cell_encoder_ls,
+                                                                            dropout_word_encoder_cell_ls=dropout_word_encoder_cell_ls,
+                                                                            word_embedding_projected_dim_ls=word_embedding_projected_dim_ls,
+                                                                            tasks_ls=tasks_ls,
+                                                                            attention_tagging_ls=attention_tagging_ls,
+                                                                            char_src_attention_ls=char_src_attention_ls,
+                                                                            n_layers_sent_cell_ls=n_layers_sent_cell_ls,
+                                                                            dir_word_encoder_ls=dir_word_encoder_ls,
+                                                                            multi_task_loss_ponderation_ls=multi_task_loss_ponderation_ls,
+                                                                            mode_word_encoding_ls=mode_word_encoding_ls,
+                                                                            char_level_embedding_projection_dim_ls=char_level_embedding_projection_dim_ls,
+                                                                            unrolling_word_ls=unrolling_word_ls,
+                                                                            n_layers_word_encoder_ls=n_layers_word_encoder_ls, dropout_input_ls=dropout_input_ls,
+                                                                            scale_ls=scale_ls, gpu_mode=gpu_mode, gpus_ls=gpus_ls)
     if gpu_mode == "random":
         if gpus_ls is None:
             gpus_ls = GPU_AVAILABLE_DEFAULT_LS
@@ -75,7 +79,6 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
     description = "{} - {} ({}) : Analysing : {} with regard to {} fixed".format(len(params) if not warmup else str(1)+"_WARMUP",
                                                                                  description_comment,mode_run, analysed, fixed)
     try:
-        no_google = False
         row, col = append_reporting_sheet(git_id=get_commit_id(),tasks=get_experimented_tasks(params),
                                       rioc_job=os.environ.get("OAR_JOB_ID", grid_label), description=description,
                                       log_dir=dir_log, target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR,
@@ -84,14 +87,12 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                                       verbose=1)
     except:
         printing("GOOGLE SHEET CONNECTION FAILED", verbose=1, verbose_level=1)
-        no_google = True
         row = None
 
     for ind, (param, model_id_pref) in enumerate(zip(params, labels)):
         script = "CUDA_VISIBLE_DEVICES={} {} {}".format(ind % len(gpus_ls), os.environ.get("PYTHON_CONDA","python"), os.path.join(PROJECT_PATH, "train_evaluate_run.py"))
         for arg, val in param.items():
             # args in NONE ARGS ARE NOT ADDED TO THE SCRIPT MAKER (they will be handle by default behavior later in the code)
-
             if val is None:
                 continue
             if arg in BOOL_ARGS:
@@ -106,11 +107,13 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
             if arg not in LIST_ARGS and arg not in DIC_ARGS:
                 script += " --{} {}".format(arg, val)
             elif arg in LIST_ARGS:
+                print(arg,val)
                 script += " --{} {}".format(arg, " ".join(val))
-        script += " --{} {}".format("train_path", " ".join(train_path))
-        script += " --{} {}".format("dev_path", " ".join(dev_path))
-        if test_paths is not None:
-            script += " --{} {}".format("test_path", " ".join(test_paths))
+
+            #script += " --{} {}".format("train_path", " ".join())
+            #script += " --{} {}".format("dev_path", " ".join(dev_path))
+            #if test_paths is not None:
+            #    script += " --{} {}".format("test_path", " ".join(test_paths))
         if pos_specific_path is not None:
             script += " --{} {}".format("pos_specific_path", pos_specific_path)
         script += " --{} {}".format("overall_label", overall_label)
@@ -136,27 +139,50 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
 
 
 if __name__ == "__main__":
+    from uuid import uuid4
+    test_before_run=False
+    epochs=1
+    LABEL_GRID= str(uuid4())[0:5]
 
-    script_generation(grid_label="0", init_param=params_dozat, warmup=False,
-                      stable_decoding_state_ls=[False],
-                      word_decoding_ls=[False],
-                      batch_size_ls=[50, 100, 200, 400],
-                      word_embed_ls=[False],
-                      dir_sent_encoder_ls=[2], lr_ls=[0],
-                      word_embed_init_ls=[None],
-                      teacher_force_ls=[True],
+    script_generation(init_param=params_dozat,
+                      grid_label=LABEL_GRID,
+                      word_recurrent_cell_encoder_ls=["LSTM"],
+                      dropout_word_encoder_cell_ls=[0.1],
+                      stable_decoding_state_ls=[0],
+                      word_decoding_ls=[0],
+                      batch_size_ls=[50, 80],
+                      word_embed_ls=[0],
+                      dir_sent_encoder_ls=[2],dir_word_encoder_ls=[2],
+                      lr_ls=[0.001],
+                      word_embed_init_ls=[None],#, DIR_FASTEXT_WIKI_NEWS_W2V, DIR_TWEET_W2V],
+                      attention_tagging_ls=[1, 0],
+                      char_src_attention_ls=[1, 0],
+                      teacher_force_ls=[1],
                       proportion_pred_train_ls=[None],
                       shared_context_ls=["all"],
-                      word_embedding_projected_dim_ls=[None],
+                      word_embedding_projected_dim_ls=[125],
+                      char_level_embedding_projection_dim_ls=[125],
                       tasks_ls=[["pos"]],
-                      char_src_attention_ls=[True],
                       n_layers_sent_cell_ls=[2],
-                      unrolling_word_ls=[True],
+                      n_layers_word_encoder_ls=[1],
+                      unrolling_word_ls=[1],
+                      scoring_func="exact_match",
+                      mode_word_encoding_ls=["sum"],
+                      dropout_input_ls=[0.4, 0.5],
+                      multi_task_loss_ponderation_ls=[{"pos": 1, "normalize": 0, "norm_not_norm": 0, "edit_prediction":0},
+                                                      # {"pos": 1, "normalize": 0, "norm_not_norm": 0.4, "edit_prediction":0},
+                                                      # {"pos": 1, "normalize": 0, "norm_not_norm": 0.1 ,"edit_prediction":0},
+                                                      # {"pos": 1, "normalize": 0, "norm_not_norm": 0.01, "edit_prediction":0.},
+                                                     ],
                       scale_ls=[1],
-                      overall_report_dir="./", overall_label="test_label",
-                      train_path=DEV, dev_path=TEST, test_paths=None, gpu_mode="CPU", gpus_ls=["10", "11"],
-                      write_to_dir=RUN_SCRIPTS_DIR)
-
+                      # arguments that are specific to script generation
+                      overall_report_dir="./", overall_label=LABEL_GRID,
+                      train_path=[[DEV]], dev_path=[[TEST]], test_paths=[[[TEST,DEV]]],
+                      warmup=test_before_run, test_before_run=test_before_run,
+                      dir_grid="./", environment="local", dir_log="./",
+                      epochs=epochs ,
+                      gpu_mode="random",
+                      write_to_dir=RUN_SCRIPTS_DIR, description_comment="")
 # default not used but could be
 
 # HANDLE SPECIFIC BEHAVIOR

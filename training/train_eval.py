@@ -137,6 +137,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
     printing("SANITY CHECK : TASKS {} ", var=[tasks], verbose=verbose, verbose_level=1)
     normalization = "normalize" in tasks or "norm_not_norm" in tasks
     printing("SANITY CHECK : normalization {} ", var=normalization, verbose=verbose, verbose_level=1)
+    print(tasks, train_path, dev_path, test_path)
     model_full_name = train(train_path, dev_path, pos_specific_path=pos_specific_path,
                             expand_vocab_dev_test=expand_vocab_dev_test if word_embed_init is not None   else False,
                             dense_dim_auxilliary=dense_dim_auxilliary, dense_dim_auxilliary_2=dense_dim_auxilliary_2,
