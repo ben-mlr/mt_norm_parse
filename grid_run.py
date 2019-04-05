@@ -157,7 +157,7 @@ if __name__ == "__main__":
                                                                                   shared_context_ls=["all"],
                                                                                   word_embedding_projected_dim_ls=[125],
                                                                                   char_level_embedding_projection_dim_ls=[125],
-                                                                                  tasks_ls=[["pos", "edit_prediction"]],
+                                                                                  tasks_ls=[["pos", "normalize"]],
                                                                                   n_layers_sent_cell_ls=[2],
                                                                                   n_layers_word_encoder_ls=[1],
                                                                                   unrolling_word_ls=[1],
@@ -225,9 +225,9 @@ if __name__ == "__main__":
                                                                                        analysed, fixed)
           try:
               row, col = append_reporting_sheet(git_id=get_commit_id(), tasks=get_experimented_tasks(params),rioc_job=OAR, description=description, log_dir=log,
-                                            target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR, "{}*".format(LABEL_GRID)),
-                                            env=environment, status="running {}{}".format(warmup_desc, test_before_run_desc),
-                                            verbose=1)
+                                                target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR, "{}*".format(LABEL_GRID)),
+                                                env=environment, status="running {}{}".format(warmup_desc, test_before_run_desc),
+                                                verbose=1)
           except:
               row = None
           print("row:{}".format(row))
@@ -291,9 +291,10 @@ if __name__ == "__main__":
           MULTI_TASK = True
           if MULTI_TASK:
               epochs=150
-              train_path = [[EN_LINES_EWT_TRAIN]]#[DEMO, DEMO]#
-              dev_path = [[EWT_DEV]]#train_path#
-              test_paths =[[[EWT_DEV, EWT_TEST, DEV, TEST]]]#[[LIU_DEV],[EWT_TEST]]#
+              train_path = [[EN_LINES_EWT_TRAIN], [EN_LINES_EWT_TRAIN, LIU_TRAIN], [EN_LINES_EWT_TRAIN, LIU_TRAIN]]#[DEMO, DEMO]#
+              dev_path = [[EWT_DEV],[EWT_DEV, LIU_DEV], [EWT_DEV, LIU_DEV]]#train_path#
+              test_paths = [[[EWT_DEV, EWT_TEST, DEV, TEST]], [[EWT_DEV, EWT_TEST, DEV, TEST], [TEST, LIU_DEV]], [[EWT_DEV, EWT_TEST, DEV, TEST], [TEST, LIU_DEV]]]
+              #[[LIU_DEV],[EWT_TEST]]#
               dir_script, row = script_generation(init_param=params_dozat,
                                                   train_path=train_path, dev_path=dev_path, test_paths=test_paths,
                                                   grid_label=LABEL_GRID,
@@ -301,27 +302,29 @@ if __name__ == "__main__":
                                                   dropout_word_encoder_cell_ls=[0.1],
                                                   stable_decoding_state_ls=[0],
                                                   word_decoding_ls=[0],
-                                                  batch_size_ls=[50, 80],
+                                                  batch_size_ls=[80, 120, 200],
                                                   word_embed_ls=[0],
                                                   dir_sent_encoder_ls=[2],dir_word_encoder_ls=[2],
                                                   lr_ls=[0.001],
                                                   word_embed_init_ls=[None],#, DIR_FASTEXT_WIKI_NEWS_W2V, DIR_TWEET_W2V],
-                                                  attention_tagging_ls=[1, 0],
-                                                  char_src_attention_ls=[1, 0],
+                                                  attention_tagging_ls=[0],
+                                                  char_src_attention_ls=[0],
                                                   teacher_force_ls=[1],
                                                   proportion_pred_train_ls=[None],
                                                   shared_context_ls=["all"],
                                                   word_embedding_projected_dim_ls=[125],
                                                   char_level_embedding_projection_dim_ls=[125],
-                                                  tasks_ls=[["pos"]],
+                                                  tasks_ls=[["pos"],
+                                                            ["pos", "edit_prediction"],
+                                                            ["pos", "norm_not_norm"]],
                                                   n_layers_sent_cell_ls=[2],
                                                   n_layers_word_encoder_ls=[1],
                                                   unrolling_word_ls=[1],
                                                   scoring_func="exact_match",
                                                   mode_word_encoding_ls=["sum"],
-                                                  dropout_input_ls=[0.4, 0.5],
-                                                  multi_task_loss_ponderation_ls=[{"pos": 1, "normalize": 0, "norm_not_norm": 0, "edit_prediction":0},
-                                                                                  # {"pos": 1, "normalize": 0, "norm_not_norm": 0.4, "edit_prediction":0},
+                                                  dropout_input_ls=[0.4, 0.5,  0.6],
+                                                  multi_task_loss_ponderation_ls=[#{"pos": 1, "normalize": 0, "norm_not_norm": 0, "edit_prediction":0},
+                                                                                   {"pos": 1, "normalize": 0, "norm_not_norm": 1, "edit_prediction":1},
                                                                                   # {"pos": 1, "normalize": 0, "norm_not_norm": 0.1 ,"edit_prediction":0},
                                                                                   # {"pos": 1, "normalize": 0, "norm_not_norm": 0.01, "edit_prediction":0.},
                                                                                  ],

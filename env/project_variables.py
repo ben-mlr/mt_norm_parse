@@ -140,10 +140,11 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 }
 
 
-REPO_W2V = {DIR_TWEET_W2V: {"label": TWEET_W2V_LABEL, "dim": 400},
+REPO_W2V = {
+            DIR_TWEET_W2V: {"label": TWEET_W2V_LABEL, "dim": 400},
             DIR_FASTEXT_WIKI_NEWS_W2V: {"label": FASTEXT_WIKI_NEWS_W2V_LABEL, "dim": 300},
             None: {"label": "random_init", "dim": -1}
-}
+            }
 
 
 # for some task we need normalize = True for getting the label

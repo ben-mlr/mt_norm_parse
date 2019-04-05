@@ -152,9 +152,7 @@ class LexNormalizer(nn.Module):
                 # wess make sure the dictionary dir exists and is located in dict_path
                 assert dict_path is not None, "ERROR dict_path should be specified"
                 assert os.path.isdir(dict_path), "ERROR : dict_path {} does not exist".format(dict_path)
-
-
-                    # we are loading the dictionary now because we need it to define the model
+                # we are loading the dictionary now because we need it to define the model
             self.word_dictionary, self.word_nom_dictionary,  self.char_dictionary, \
             self.pos_dictionary, self.xpos_dictionary, self.type_dictionary =\
                 conllu_data.load_dict(dict_path=dict_path,

@@ -61,7 +61,9 @@ class MaskBatch(object):
         ##- still last dimension : maybe 3
         pdb.set_trace()
         # NB : Have to use numpy here cause inconsistent implementation of argmin in pytorch
-        self.input_seq_len = torch.argmin(_input_seq_mask.cpu(), dim=-1)#torch.Tensor(np.argmin(np.array(_input_seq_mask), axis=-1))#.size() #
+        #self.input_seq_len = torch.argmin(_input_seq_mask.cpu(), dim=-1) # # PYTORCH 0.4
+        self.input_seq_len = torch.Tensor(np.argmin(np.array(_input_seq_mask), axis=-1)).int()## PYTORCH 1.0 (or O.4)
+
         if _input_seq_mask.is_cuda:
             self.input_seq_len = self.input_seq_len.cuda()
         get_len_input, start = get_timing(start)
@@ -88,7 +90,9 @@ class MaskBatch(object):
             zero_mask_output, start = get_timing(start)
             self.output_seq_y = output_seq[:, :, 1:]
             ##- last dim also
-            self.output_seq_len = torch.argmin(_output_mask_x.cpu(), dim=-1)
+            pdb.set_trace()
+            self.output_seq_len = torch.Tensor(np.argmin(np.array(_output_mask_x), axis=-1)).int()  ## PYTORCH 1.0 (or O.4)
+            #self.output_seq_len = torch.argmin(_output_mask_x.cpu(), dim=-1) ## PYTORCH WARNING : THEY MIGH BE A PROBLEM HERE
             if _output_mask_x.is_cuda:
                 self.output_seq_len = self.output_seq_len.cuda()
             get_len_output, start = get_timing(start)

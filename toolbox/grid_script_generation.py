@@ -32,10 +32,9 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                       n_layers_sent_cell_ls, unrolling_word_ls,attention_tagging_ls, n_layers_word_encoder_ls, multi_task_loss_ponderation_ls,dir_word_encoder_ls,
                       dropout_input_ls,
                       scale_ls, pos_specific_path=None, gpu_mode="random", description_comment="",
-                      gpus_ls=None,write_to_dir=None,test_before_run=False,scoring_func=None):
+                      gpus_ls=None, write_to_dir=None,test_before_run=False, scoring_func=None):
 
-    test_paths = [[",".join(path)] for test_path_grid in test_paths for path in test_path_grid]
-
+    test_paths = [[",".join(path) for path in test_path_grid ] for test_path_grid in test_paths ]
     if write_to_dir is not None:
         script_dir = os.path.join(write_to_dir, "{}-run.sh".format(overall_label))
     warmup_desc = "warmup" if warmup else ""
@@ -107,7 +106,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
             if arg not in LIST_ARGS and arg not in DIC_ARGS:
                 script += " --{} {}".format(arg, val)
             elif arg in LIST_ARGS:
-                print(arg,val)
+                print(arg, val)
                 script += " --{} {}".format(arg, " ".join(val))
 
             #script += " --{} {}".format("train_path", " ".join())

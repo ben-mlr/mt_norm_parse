@@ -68,7 +68,7 @@ class CharEncoder(nn.Module):
                                     hidden_size=hidden_size_sent_encoder,
                                     num_layers=n_layers_sent_cell, bias=True, batch_first=True,
                                     dropout=dropout_sent_encoder_cell,
-                                    bidirectional=bidir_sent)
+                                    bidirectional=bool(bidir_sent))
         self.drop_out_word_encoder_out = nn.Dropout(drop_out_word_encoder_out)
         self.drop_out_sent_encoder_out = nn.Dropout(drop_out_sent_encoder_out)
         self.verbose = verbose
@@ -196,7 +196,9 @@ class CharEncoder(nn.Module):
         _input_word_len[:, -1, :] = 0
         # when input_word_len is 0 means we reached end of sentence
         # I think +1 is required : we want the lenght !! so if argmin --> 0 lenght should be 1 right
-        sent_len = torch.argmin(_input_word_len, dim=1)
+        pdb.set_trace()
+        #sent_len = torch.argmin(_input_word_len, dim=1) # PYTORCH 0.4
+        sent_len = torch.Tensor(np.argmin(np.array(_input_word_len), axis=1)).long() ## PYTORCH 1.0 (or O.4)
         # we add to sent len if the original src word was filling the entire sequence (i.e last len is not 0)
         sent_len += (input_word_len[:, -1, :] != 0).long() # #handling (I guess) ODO : I think this case problem for sentence that take the all sequence : we are missing a word ! ??
         # sort batch based on sentence length
@@ -256,20 +258,20 @@ class CharEncoder(nn.Module):
             if self.mode_word_encoding == "cat":
                 h_w = torch.cat((word_embed_input, #.float(),
                                  h_w), dim=-1)
-
             elif self.mode_word_encoding == "sum":
                 h_w = word_embed_input+h_w
+        pdb.set_trace()
         sent_len_cumulated = get_cumulated_list(sent_len)
         # we want to pack the sequence so we tranqform it as a list
         # NB ; sent_len and sent_len_cumulated are aligned with permuted input and therefore input_char_vec and h_w
         h_w_ls = [h_w[sent_len_cumulated[i]:sent_len_cumulated[i + 1], :] for i in range(len(sent_len_cumulated) - 1)]
-        pdb.set_trace()
+
         h_w = pack_sequence(h_w_ls)
         # sent_encoded last layer for each t (word) of the last layer
+        pdb.set_trace()
         sent_encoded, _ = self.sent_encoder(h_w)
         # add contitioning
         sent_encoded, length_sent = pad_packed_sequence(sent_encoded, batch_first=True)
-
         h_w, lengh_2 = pad_packed_sequence(h_w, batch_first=True)
         # now we reorder it one time to get the original order
         # --PERMUTE / reorder to original ordering so that it's consistent with output
