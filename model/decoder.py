@@ -151,7 +151,7 @@ class CharDecoder(nn.Module):
             output, state = self.seq_decoder(char_vec_current_batch, state_decoder_current)
         except Exception as a:
             print(Exception(a))
-            pdb.set_trace()
+
             output, state = self.seq_decoder(char_vec_current_batch, state_decoder_current)
         time_step_decoder, _ = get_timing(start)
         if self.timing:
@@ -326,7 +326,6 @@ class CharDecoder(nn.Module):
         _output_word_len[:, -1, :] = 0
         # when input_word_len is 0 means we reached end of sentence
         # TODO : WARNING : is +1 required : as sent with 1 ? WHY ALWAYS IS NOT WORKING
-        pdb.set_trace()
         sent_len = torch.Tensor(np.argmin(np.array(_output_word_len), axis=1)).long()  ## PYTORCH 1.0 (or O.4)
         #sent_len = torch.argmin(_output_word_len, dim=1) ## PYTORCH WARNING : THEY MIGH BE A PROBLEM HERE
         # WARNING : forcint sent_len to be one

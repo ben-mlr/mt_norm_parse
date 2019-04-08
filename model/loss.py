@@ -156,7 +156,6 @@ class LossCompute:
             printing("TYPE  loss_binary {} is cuda ", var=(loss_binary.is_cuda), verbose=0, verbose_level=5)
 
         if self.writer is not None:
-            pdb.set_trace()
             self.writer.add_scalars("loss-"+self.use,
                                     {"loss-{}-seq_pred".format(self.use): loss.clone().cpu().data.numpy() if not isinstance(loss, int) else 0,
                                      "loss-{}-seq_pred-ponderation_normalize_loss".format(self.use): loss.clone().cpu().data.numpy()*ponderation_normalize_loss if not isinstance(loss, int) else 0,

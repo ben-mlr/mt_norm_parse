@@ -149,7 +149,7 @@ if __name__ == "__main__":
                                                                                   batch_size_ls=[80],
                                                                                   word_embed_ls=[1],
                                                                                   dir_sent_encoder_ls=[2], lr_ls=[0.001],
-                                                                                  word_embed_init_ls=[None],#, DIR_FASTEXT_WIKI_NEWS_W2V, DIR_TWEET_W2V],
+                                                                                  word_embed_init_ls=[DIR_TWEET_W2V],#, DIR_FASTEXT_WIKI_NEWS_W2V, DIR_TWEET_W2V],
                                                                                   attention_tagging_ls=[1],
                                                                                   char_src_attention_ls=[0],
                                                                                   teacher_force_ls=[1],

@@ -196,7 +196,6 @@ class CharEncoder(nn.Module):
         _input_word_len[:, -1, :] = 0
         # when input_word_len is 0 means we reached end of sentence
         # I think +1 is required : we want the lenght !! so if argmin --> 0 lenght should be 1 right
-        pdb.set_trace()
         #sent_len = torch.argmin(_input_word_len, dim=1) # PYTORCH 0.4
         sent_len = torch.Tensor(np.argmin(np.array(_input_word_len), axis=1)).long() ## PYTORCH 1.0 (or O.4)
         # we add to sent len if the original src word was filling the entire sequence (i.e last len is not 0)
@@ -236,7 +235,6 @@ class CharEncoder(nn.Module):
         input_char_vecs = input_char_vecs.contiguous().view(input_char_vecs.size(0) * input_char_vecs.size(1), input_char_vecs.size(2))
         # input_char_vecs : [batch x max sent_len , MAX_CHAR_LENGTH or bucket max_char_length]
         # input_word_len  [batch x max sent_len]
-        pdb.set_trace()
         h_w, char_seq_hidden, word_src_sizes, attention_weights_char_tag = self.word_encoder_source(input=input_char_vecs,
                                                                                                     input_word_len=input_word_len)
         # [batch x max sent_len , packed max_char_length, hidden_size_encoder]
@@ -260,7 +258,6 @@ class CharEncoder(nn.Module):
                                  h_w), dim=-1)
             elif self.mode_word_encoding == "sum":
                 h_w = word_embed_input+h_w
-        pdb.set_trace()
         sent_len_cumulated = get_cumulated_list(sent_len)
         # we want to pack the sequence so we tranqform it as a list
         # NB ; sent_len and sent_len_cumulated are aligned with permuted input and therefore input_char_vec and h_w
@@ -268,7 +265,6 @@ class CharEncoder(nn.Module):
 
         h_w = pack_sequence(h_w_ls)
         # sent_encoded last layer for each t (word) of the last layer
-        pdb.set_trace()
         sent_encoded, _ = self.sent_encoder(h_w)
         # add contitioning
         sent_encoded, length_sent = pad_packed_sequence(sent_encoded, batch_first=True)

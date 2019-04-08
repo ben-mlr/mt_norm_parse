@@ -317,8 +317,10 @@ class LexNormalizer(nn.Module):
         self.char_embedding = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
         self.word_embedding = nn.Embedding(num_embeddings=word_voc_input_size,
                                            embedding_dim=word_embedding_dim) if word_embed else None
+        pdb.set_trace()
         if self.word_embedding is not None:
-            self.word_embedding_project = nn.Linear(word_embedding_dim, word_embedding_projected_dim) if word_embed and word_embedding_projected_dim is not None else None
+            self.word_embedding_project = nn.Linear(word_embedding_dim, word_embedding_projected_dim) if word_embed \
+                                                                                                         and word_embedding_projected_dim is not None else None
         if word_embed_dir is not None and not load:
             word_embed_torch = construct_word_embedding_table(word_dim=len(word_embed_dic["a"]),
                                                               word_dictionary=self.word_dictionary.instance2index,
@@ -327,6 +329,7 @@ class LexNormalizer(nn.Module):
             printing("W2V INFO : intializing embedding matrix with tensor of shape {}  ",
                      var=[word_embed_torch.size()], verbose=verbose, verbose_level=1)
             self.word_embedding.weight.data = word_embed_torch
+            pdb.set_trace()
             #print("SANITY CHECK word : them", self.word_embedding())
 
         self.encoder = CharEncoder(self.char_embedding, input_dim=char_embedding_dim,
@@ -402,6 +405,7 @@ class LexNormalizer(nn.Module):
                 self = self.cuda()
             else:
                 self.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
+            pdb.set_trace()
 
     def forward(self, input_seq, input_word_len, word_embed_input=None,
                 output_word_len=None, output_seq=None, word_level_predict=False,

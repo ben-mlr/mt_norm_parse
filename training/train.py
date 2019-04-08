@@ -270,6 +270,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
     checkpoint_dir_former = None
 
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
+        pdb.set_trace()
+        print("DEBUG : TRAIN ", model.word_embedding.weight.data[25, :])
         parameters = filter(lambda p: p.requires_grad, model.parameters())
         opt = dptx.get_optimizer(parameters, lr=lr, optimizer=optimizer)
         assert policy in AVAILABLE_SCHEDULING_POLICIES
@@ -367,6 +369,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
 
         # computing exact/edit score
         exact_only = False
+        pdb.set_trace()
         if compute_scoring_curve and ((epoch % freq_scoring == 0) or (epoch+1 == n_epochs)):
             if epoch<1 and ADAPTABLE_SCORING:
                 freq_scoring*=5
