@@ -10,7 +10,7 @@ def get_optimizer(parameters, lr, optimizer="adam", betas=None, verbose=1):
     assert optimizer in AVAILABLE_OPTIMIZER, "ERROR optimizers supported are {} ".format(AVAILABLE_OPTIMIZER)
     if optimizer == "adam":
         if betas is None:
-            betas = (0.9, 0.95)
+            betas = (0.9, 0.9)
             print("DOZAT INIT ADAM betas:", betas)
         opt = torch.optim.Adam(parameters, lr=lr, betas=betas, eps=1e-9)
     elif optimizer == "bahdanu-adadelta":

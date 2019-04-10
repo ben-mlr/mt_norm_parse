@@ -94,6 +94,7 @@ W2V_LOADED_DIM = 400
 MAX_VOCABULARY_SIZE_WORD_DIC = 20000
 
 # Michel
+##
 MTNT_TOK_TRAIN_LABEL, MTNT_TOK_TRAIN= "mtnt_tok_train", os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/train.en.raw2tok.conll")
 MTNT_TOK_DEV_LABEL, MTNT_TOK_DEV= "mtnt_tok_dev", os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/dev.en.raw2tok.conll")
 
@@ -102,7 +103,15 @@ MTNT_EN_FR_DEV_LABEL, MTNT_EN_FR_DEV = "mtnt_valid", os.path.join(PROJECT_PATH, 
 MTNT_EN_FR_TEST_LABEL, MTNT_EN_FR_TEST = "mtnt_test", os.path.join(PROJECT_PATH, "./data/MTNT/test/test.en-fr.conll")
 MTNT_EN_FR_TEST_DEMO_LABEL, MTNT_EN_FR_TEST_DEMO = "mtnt_test.demo", os.path.join(PROJECT_PATH, "./data/MTNT/test/test.en-fr.demo.conll")
 
+## MTNT CONLL tokenized
 
+MTNT_EN_TOK_TRAIN_CONLL_LABEL, MTNT_EN_TOK_TRAIN_CONLL = "mtnt_tok_train_conll", os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/train.tok.en.conll")
+MTNT_EN_TOK_DEV_CONLL_LABEL, MTNT_EN_TOK_DEV_CONLL = "mtnt_tok_dev_conll", os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/dev.tok.en.conll")
+MTNT_EN_TOK_DEV_DEMO_CONLL_LABEL, MTNT_EN_TOK_DEV_DEMO_CONLL = "mtnt_tok_dev_demo_conll", os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/dev.tok.en.demo.conll")
+
+
+# EMOJIs
+EMOJI_LS_LABEL, EMOJIS_LS = "emojis", os.path.join(PROJECT_PATH, "data/emojis_ls.txt")
 
 # EN
 EN_LINES_TRAIN_LABEL, EN_LINES_TRAIN = "en_lines_train", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en_lines-ud-train.conllu")
@@ -116,6 +125,9 @@ TEST_SENT_LABEL, TEST_SENT = "lexnorm_sent", os.path.join(PROJECT_PATH, "../pars
 DEV_SENT_LABEL, DEV_SENT = "owoputi_sent", os.path.join(PROJECT_PATH, "../parsing/normpar/data/owoputi-sent.conll")
 LIU_TRAIN_SENT_LABEL, LIU_TRAIN_SENT = "liu_train_sent" , os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-sent-train_2009.conll")
 LIU_DEV_SENT_LABEL, LIU_DEV_SENT = "liu_dev_sent", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-sent-dev_500.conll")
+
+
+
 
 
 REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO2: DEMO2_LABEL,TRAINING_DEMO:TRAINING_DEMO_LABEL,
@@ -135,8 +147,10 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 MTNT_EN_FR_DEV: MTNT_EN_FR_DEV_LABEL, MTNT_EN_FR_TEST: MTNT_EN_FR_TEST_LABEL,
                 DIR_TWEET_W2V: TWEET_W2V_LABEL, FASTEXT_WIKI_NEWS_W2V_LABEL: DIR_FASTEXT_WIKI_NEWS_W2V,
                 MTNT_EN_FR_TEST_DEMO: MTNT_EN_FR_TEST_DEMO_LABEL,
-                EWT_PRED_TOKEN_UDPIPE:EWT_PRED_TOKEN_UDPIPE_LABEL
-
+                EWT_PRED_TOKEN_UDPIPE: EWT_PRED_TOKEN_UDPIPE_LABEL,
+                MTNT_EN_TOK_TRAIN_CONLL: MTNT_EN_TOK_TRAIN_CONLL_LABEL,
+                MTNT_EN_TOK_DEV_CONLL: MTNT_EN_TOK_DEV_CONLL_LABEL, MTNT_EN_TOK_DEV_DEMO_CONLL:MTNT_EN_TOK_DEV_DEMO_CONLL_LABEL,
+                EMOJIS_LS:EMOJI_LS_LABEL,
                 }
 
 
@@ -148,10 +162,10 @@ REPO_W2V = {
 
 
 # for some task we need normalize = True for getting the label
-TASKS_PARAMETER = {"normalize": {"normalization": True},
+TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact_match"},
                    "norm_not_norm": {"normalization": True},
                    "edit_prediction": {"normalization": True},
-                   "pos": {"normalization": False},
+                   "pos": {"normalization": False, "default_metric": "accuracy-pos"},
                    "all": {"normalization": True}}
 
 

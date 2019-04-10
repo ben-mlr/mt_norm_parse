@@ -327,6 +327,8 @@ class CharDecoder(nn.Module):
         # when input_word_len is 0 means we reached end of sentence
         # TODO : WARNING : is +1 required : as sent with 1 ? WHY ALWAYS IS NOT WORKING
         sent_len = torch.Tensor(np.argmin(np.array(_output_word_len), axis=1)).long()  ## PYTORCH 1.0 (or O.4)
+        if _output_word_len.is_cuda:
+            sent_len = sent_len.cuda()
         #sent_len = torch.argmin(_output_word_len, dim=1) ## PYTORCH WARNING : THEY MIGH BE A PROBLEM HERE
         # WARNING : forcint sent_len to be one
         if (sent_len == 0).any() and False:

@@ -274,7 +274,7 @@ class LexNormalizer(nn.Module):
                     self.auxilliary_task_norm_not_norm, unrolling_word, char_src_attention, dense_dim_auxilliary, shared_context,\
                 teacher_force, dense_dim_auxilliary_2, stable_decoding_state, init_context_decoder, \
             word_decoding, char_decoding, auxilliary_task_pos, dense_dim_auxilliary_pos, dense_dim_auxilliary_pos_2, \
-                dense_dim_word_pred, dense_dim_word_pred_2,dense_dim_word_pred_3, \
+                dense_dim_word_pred, dense_dim_word_pred_2, dense_dim_word_pred_3, \
                 symbolic_root, symbolic_end, word_embedding_dim, word_embed, word_embedding_projected_dim, \
                 activation_char_decoder, activation_word_decoder, attention_tagging, char_level_embedding_projection_dim, mode_word_encoding, multi_task_loss_ponderation \
                 = get_args(args, False)
@@ -304,7 +304,7 @@ class LexNormalizer(nn.Module):
 
 
         # adjusting for directions : the hidden_size_sent_encoder provided and are the dir x hidden_dim dimensions
-        hidden_size_sent_encoder = int(hidden_size_sent_encoder/(n_layers_sent_cell))
+        #hidden_size_sent_encoder = int(hidden_size_sent_encoder/(n_layers_sent_cell))
         hidden_size_encoder = int(hidden_size_encoder/dir_word_encoder)
         printing("WARNING : Model : hidden dim of word level and sentence leve encoders "
                  "are divided by the number of directions", verbose_level=1, verbose=verbose)
@@ -317,7 +317,6 @@ class LexNormalizer(nn.Module):
         self.char_embedding = nn.Embedding(num_embeddings=voc_size, embedding_dim=char_embedding_dim)
         self.word_embedding = nn.Embedding(num_embeddings=word_voc_input_size,
                                            embedding_dim=word_embedding_dim) if word_embed else None
-        pdb.set_trace()
         if self.word_embedding is not None:
             self.word_embedding_project = nn.Linear(word_embedding_dim, word_embedding_projected_dim) if word_embed \
                                                                                                          and word_embedding_projected_dim is not None else None
@@ -329,7 +328,6 @@ class LexNormalizer(nn.Module):
             printing("W2V INFO : intializing embedding matrix with tensor of shape {}  ",
                      var=[word_embed_torch.size()], verbose=verbose, verbose_level=1)
             self.word_embedding.weight.data = word_embed_torch
-            pdb.set_trace()
             #print("SANITY CHECK word : them", self.word_embedding())
 
         self.encoder = CharEncoder(self.char_embedding, input_dim=char_embedding_dim,
@@ -405,7 +403,6 @@ class LexNormalizer(nn.Module):
                 self = self.cuda()
             else:
                 self.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
-            pdb.set_trace()
 
     def forward(self, input_seq, input_word_len, word_embed_input=None,
                 output_word_len=None, output_seq=None, word_level_predict=False,
@@ -456,7 +453,6 @@ class LexNormalizer(nn.Module):
             printing("DECODER hidden state after norm_not_norm_hidden size {}", var=[norm_not_norm_hidden.size()],
                      verbose=0, verbose_level=4)
         if self.decoder is not None and not word_level_predict:
-            #pdb.set_trace()
             output, attention_weight_all = self.decoder.forward(output=output_seq,
                                                                 conditioning=for_decoder,
                                                                 output_word_len=output_word_len,
@@ -479,9 +475,11 @@ class LexNormalizer(nn.Module):
                  verbose=0, verbose_level=4)
         # output_score = nn.ReLU()(self.output_predictor(h_out))
         # [batch, output_voc_size], one score per output character token
-        printing("DECODER full  output sequence encoded of size {} ", var=[output.size()] if output is not None else None, verbose=self.verbose,
+        printing("DECODER full  output sequence encoded of size {} ", var=[output.size()] if output is not None else None,
+                 verbose=self.verbose,
                  verbose_level=3)
-        printing("DECODER full  output sequence encoded of {}", var=[output] if output is not None else None, verbose=self.verbose, verbose_level=5)
+        printing("DECODER full  output sequence encoded of {}", var=[output] if output is not None else None,
+                 verbose=self.verbose, verbose_level=5)
         if timing:
             time_report = OrderedDict(
                 [("source_encoder", source_encoder), ("target_encoder", target_encoder), ("bridge", bridge)])

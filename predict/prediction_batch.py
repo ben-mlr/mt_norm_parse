@@ -96,8 +96,9 @@ def _init_metric_report_2():
     return dic
 
 
-def greedy_decode_batch(batchIter, model, char_dictionary, batch_size,task_simultaneous_eval, pad=1,
-                        gold_output=False, score_to_compute_ls=None, stat=None,
+def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, task_simultaneous_eval, pad=1,
+                        gold_output=False, score_to_compute_ls=None,
+                        stat=None,
                         use_gpu=False,
                         compute_mean_score_per_sent=False,
                         mode_norm_score_ls=None,
@@ -237,7 +238,6 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size,task_simul
                             pred_norm_not_norm = pred_norm
                             gold_norm_not_norm = batch.output_norm_not_norm
                             ls_original = src_text_ls
-                        print("-------------- EVALUATING task {}".format(task))
                         _counter_correct_batch, _score_formulas = correct_pred_counter(ls_pred=ls_pred,
                                                                                        ls_gold=ls_gold,
                                                                                        output_seq_n_hot=output_seq_n_hot,

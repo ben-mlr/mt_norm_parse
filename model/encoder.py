@@ -198,6 +198,8 @@ class CharEncoder(nn.Module):
         # I think +1 is required : we want the lenght !! so if argmin --> 0 lenght should be 1 right
         #sent_len = torch.argmin(_input_word_len, dim=1) # PYTORCH 0.4
         sent_len = torch.Tensor(np.argmin(np.array(_input_word_len), axis=1)).long() ## PYTORCH 1.0 (or O.4)
+        if _input_word_len.is_cuda:
+            sent_len = sent_len.cuda()
         # we add to sent len if the original src word was filling the entire sequence (i.e last len is not 0)
         sent_len += (input_word_len[:, -1, :] != 0).long() # #handling (I guess) ODO : I think this case problem for sentence that take the all sequence : we are missing a word ! ??
         # sort batch based on sentence length
@@ -238,11 +240,7 @@ class CharEncoder(nn.Module):
         h_w, char_seq_hidden, word_src_sizes, attention_weights_char_tag = self.word_encoder_source(input=input_char_vecs,
                                                                                                     input_word_len=input_word_len)
         # [batch x max sent_len , packed max_char_length, hidden_size_encoder]
-        # DEP Ih_w = h_w.transpose(1, 0)
         # n_dir x dim hidden
-        #DEP hidden_dim = h_w.size(2) * h_w.size(1)
-        #DEP hidden_dim = h_w.size(1)
-        #DEP h_w = h_w.contiguous().view(shape_sent_seq[0], shape_sent_seq[1], hidden_dim)
         # [batch,  max sent_len , packed max_char_length, hidden_size_encoder]
         printing("SOURCE word encoding reshaped dim sent : {} ", var=[h_w.size()],
                  verbose=verbose, verbose_level=3)
@@ -262,7 +260,6 @@ class CharEncoder(nn.Module):
         # we want to pack the sequence so we tranqform it as a list
         # NB ; sent_len and sent_len_cumulated are aligned with permuted input and therefore input_char_vec and h_w
         h_w_ls = [h_w[sent_len_cumulated[i]:sent_len_cumulated[i + 1], :] for i in range(len(sent_len_cumulated) - 1)]
-
         h_w = pack_sequence(h_w_ls)
         # sent_encoded last layer for each t (word) of the last layer
         sent_encoded, _ = self.sent_encoder(h_w)

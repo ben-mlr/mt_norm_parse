@@ -17,6 +17,7 @@ if __name__ == "__main__":
     print("DISTRIBUTED : TRAINING EVALUATE STARTING thread on GPU {} ".format(os.environ.get("CUDA_VISIBLE_DEVICES", "NO GPU FOUND")))
     model_full_name, model_dir = train_eval(args=params,
                                             model_id_pref=args.model_id_pref,
+                                            checkpointing_metric=args.checkpointing_metric,
                                             train_path=args.train_path,
                                             n_epochs=args.epochs,
                                             dev_path=args.dev_path,

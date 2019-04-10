@@ -31,7 +31,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                       tasks_ls, char_src_attention_ls, mode_word_encoding_ls, char_level_embedding_projection_dim_ls,
                       n_layers_sent_cell_ls, unrolling_word_ls,attention_tagging_ls, n_layers_word_encoder_ls, multi_task_loss_ponderation_ls,dir_word_encoder_ls,
                       dropout_input_ls,
-                      scale_ls, pos_specific_path=None, gpu_mode="random", description_comment="",
+                      scale_ls, checkpointing_metric_ls=None, pos_specific_path=None, gpu_mode="random", description_comment="",
                       gpus_ls=None, write_to_dir=None,test_before_run=False, scoring_func=None):
 
     test_paths = [[",".join(path) for path in test_path_grid ] for test_path_grid in test_paths ]
@@ -42,7 +42,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
         warmup_desc += " test_before_run"
     params, labels, default_all, analysed, fixed = grid_param_label_generate(
                                                                             init_param,
-                                                                            train_ls=train_path, dev_ls=dev_path, test_ls=test_paths,
+                                                                            train_ls=train_path, dev_ls=dev_path, test_ls=test_paths, checkpointing_metric_ls=checkpointing_metric_ls,
                                                                             scoring_func=scoring_func,
                                                                             grid_label=grid_label,
                                                                             stable_decoding_state_ls=stable_decoding_state_ls,

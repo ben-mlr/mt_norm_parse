@@ -103,6 +103,7 @@ def args_train(mode="command_line"):
 
     parser.add_argument("--train_path", required=mode == "command_line", nargs='+', help='<Required> Set flag')
     parser.add_argument("--dev_path", required=mode == "command_line", nargs='+', help='<Required> Set flag')
+    parser.add_argument("--checkpointing_metric", required=mode == "command_line", nargs='+', help='<Required> Set flag')
     parser.add_argument('--test_paths', nargs='+', help='<Required> Set flag', default=None)
 
     parser.add_argument("--pos_specific_path", default=None, type=str, help="display a square of a given number")

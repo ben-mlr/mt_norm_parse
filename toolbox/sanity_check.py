@@ -1,4 +1,4 @@
-from env.project_variables import AVAILABLE_TASKS, MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE, AVAILABLE_WORD_LEVEL_LABELLING_MODE
+from env.project_variables import AVAILABLE_TASKS, MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE, AVAILABLE_WORD_LEVEL_LABELLING_MODE, TASKS_PARAMETER
 import time
 from io_.info_print import printing
 
@@ -38,3 +38,14 @@ def sanity_check_model_pred(mode, word_pred, pos_pred, norm_not_norm):
         assert pos_pred is not None
     if mode == "norm_not_norm":
         assert norm_not_norm is not None
+
+
+def sanity_check_checkpointing_metric(tasks, checkpointing_metric):
+    standard_metric = "loss-dev-all"
+    if len(tasks) > 1:
+        assert checkpointing_metric == standard_metric, "ERROR : only {} supported in multitask setting so far".format(
+            standard_metric)
+    else:
+        allowed_metric = [standard_metric, TASKS_PARAMETER[tasks[0]].get("default_metric", "NOT a metric")]
+        assert checkpointing_metric in allowed_metric, "ERROR checkpointing_metric {} should be in {}".format(
+            checkpointing_metric, allowed_metric)

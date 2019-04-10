@@ -54,7 +54,7 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
                          in_vocab_ls=None, verbose=0):
     # only exact score here !!
     assert task in ["normalize", "pos", "norm_not_norm"]
-    print("EVALUATING correct_pred_counter task ", task)
+
     assert scoring_func in SCORING_FUNC_AVAILABLE
     dic = OrderedDict()
     normalized_mode_ls = []

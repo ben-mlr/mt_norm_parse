@@ -104,7 +104,6 @@ def evaluate(batch_size, data_path, tasks, evaluated_task,
                                                   scoring_func_sequence_pred=scoring_func_sequence_pred,
                                                   compute_mean_score_per_sent=compute_mean_score_per_sent,
                                                   batch_size=batch_size)
-    pdb.set_trace()
     for score_name, formula in formulas.items():
         if isinstance(formula, tuple) and len(formula) > 1:
             (num, denom) = formula
@@ -134,7 +133,8 @@ def evaluate(batch_size, data_path, tasks, evaluated_task,
             writing_mode_all_models = "w" if not os.path.isfile(over_all_report_dir_all_models) else "a"
             for dir, writing_mode in zip([over_all_report_dir, over_all_report_dir_all_models ], [writing_mode, writing_mode_all_models]):
                 if writing_mode == "w":
-                    json.dump([report], open(dir, writing_mode))
+                    all_report = [report]
+                    json.dump(all_report, open(dir, writing_mode))
                     printing("REPORT : Creating new report  {} ".format(dir), verbose=verbose, verbose_level=1)
                 else:
                     all_report = json.load(open(dir, "r"))
@@ -146,7 +146,7 @@ def evaluate(batch_size, data_path, tasks, evaluated_task,
         printing("NEW REPORT : overall report saved {} ".format(over_all_report_dir_all_models), verbose=verbose,verbose_level=1)
     except Exception as e:
         print(Exception(e))
-    return None
+    return all_report
 
 #4538 , 4578
 

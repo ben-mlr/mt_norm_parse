@@ -12,11 +12,11 @@ from toolbox.checkpointing import checkpoint, update_curve_dic
 import os
 import numpy as np
 from io_.info_print import disable_tqdm_level, printing
-from env.project_variables import PROJECT_PATH, REPO_DATASET, SEED_TORCH, BREAKING_NO_DECREASE, CHECKPOINT_DIR, LOSS_DETAIL_TEMPLATE_LS, AVAILABLE_OPTIMIZER
+from env.project_variables import PROJECT_PATH, REPO_DATASET, SEED_TORCH, BREAKING_NO_DECREASE, CHECKPOINT_DIR, LOSS_DETAIL_TEMPLATE_LS, AVAILABLE_OPTIMIZER, TASKS_PARAMETER
 from env.project_variables import SEED_NP, SEED_TORCH
 import time
 from toolbox.gpu_related import use_gpu_
-from toolbox.sanity_check import get_timing, sanity_check_loss_poneration
+from toolbox.sanity_check import get_timing, sanity_check_loss_poneration, sanity_check_checkpointing_metric
 from collections import OrderedDict
 from tracking.plot_loss import simple_plot_ls
 from evaluate.evaluate_epoch import evaluate
@@ -25,6 +25,7 @@ from toolbox.norm_not_norm import scheduling_policy
 import toolbox.deep_learning_toolbox as dptx
 from toolbox.tensorboard_tools import writer_weights_and_grad
 from tensorboardX import SummaryWriter
+import toolbox.report_tools as rep_tl
 
 # TODO : make imports more concise
 
@@ -35,6 +36,7 @@ ADAPTABLE_SCORING = True
 
 def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_specific_path=None,
           expand_vocab_dev_test=False,
+          checkpointing_metric="loss-dev-all",
           batch_size=10, test_path=None,
           label_train="", label_dev="",
           use_gpu=None,
@@ -122,11 +124,10 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
     loss_developing = []
     # was not able to use the template cause no more reinitialization of the variable
     loss_details_template = {'loss_seq_prediction': [], 'other': {}, 'loss_binary': [], 'loss_overall': []} if auxilliary_task_norm_not_norm else None
-    if isinstance(train_path, list):
-        evaluation_set_reporting = train_path.copy()
-        evaluation_set_reporting.extend(dev_path)
-    else:
-        evaluation_set_reporting = list(set([train_path, dev_path]))
+
+    # used for computed scores for early stoping if checkpoint_metric != loss and for curves plot
+    evaluation_set_reporting = dev_path
+
     curve_scores = {score + "-" + mode_norm+"-"+REPO_DATASET[data]: [] for score in score_to_compute_ls
                     for mode_norm in mode_norm_ls for data in evaluation_set_reporting} if compute_scoring_curve else None
 
@@ -226,6 +227,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
 
 
     _loss_dev = 1000
+    checkpoint_score_saved = 1000
     _loss_train = 1000
     counter_no_deacrease = 0
     saved_epoch = 1
@@ -270,8 +272,11 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
     checkpoint_dir_former = None
 
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
-        pdb.set_trace()
-        print("DEBUG : TRAIN ", model.word_embedding.weight.data[25, :])
+        index_look = 25
+        try:
+            print("DEBUG : TRAIN for index {}  vector : {} ".format(index_look, model.word_embedding.weight.data[index_look, :]))
+        except:
+            pass
         parameters = filter(lambda p: p.requires_grad, model.parameters())
         opt = dptx.get_optimizer(parameters, lr=lr, optimizer=optimizer)
         assert policy in AVAILABLE_SCHEDULING_POLICIES
@@ -369,7 +374,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
 
         # computing exact/edit score
         exact_only = False
-        pdb.set_trace()
         if compute_scoring_curve and ((epoch % freq_scoring == 0) or (epoch+1 == n_epochs)):
             if epoch<1 and ADAPTABLE_SCORING:
                 freq_scoring*=5
@@ -381,7 +385,10 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
               printing("EVALUATION : final scoring ", verbose, verbose_level=0)
             x_axis_epochs.append(epoch)
             printing("EVALUATION : Computing score on {} and {}  ", var=(score_to_compute_ls,mode_norm_ls), verbose=verbose, verbose_level=1)
-            for eval_data in evaluation_set_reporting:
+            overall_report_ls = []
+            for task, eval_data in zip(tasks, evaluation_set_reporting):
+            #for eval_data in evaluation_set_reporting:
+                pdb.set_trace()
                 eval_label = REPO_DATASET[eval_data]
                 assert len(set(evaluation_set_reporting)) == len(evaluation_set_reporting),\
                     "ERROR : twice the same dataset has been provided for reporting which will mess up the loss"
@@ -399,28 +406,36 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                   word_decoding=word_decoding,
                                   dir_report=model.dir_model,
                                   debug=debug,
+                                  evaluated_task=task, tasks=tasks,
                                   verbose=verbose)
+                # we keep everythinghere in case we want to do some fancy early stopping metric
+                overall_report_ls.extend(scores)
 
                 # dirty but do the job
                 exact_only = True
-                curve_scores = update_curve_dic(score_to_compute_ls=score_to_compute_ls, mode_norm_ls=mode_norm_ls,
-                                                eval_data=eval_label,
-                                                former_curve_scores=curve_scores, scores=scores, exact_only=exact_only)
-                curve_ls_tuple = [(loss_ls, label) for label, loss_ls in curve_scores.items() if isinstance(loss_ls, list)]
-                curves = [tupl[0] for tupl in curve_ls_tuple]
-                val_ls = [tupl[1]+"({}tok)".format(info_token) for tupl in curve_ls_tuple for data, info_token in curve_scores.items() if not isinstance(info_token, list) if tupl[1].endswith(data)]
+                pdb.set_trace()
+                DEPRECIATED = False
+                if DEPRECIATED:
+                    curve_scores = update_curve_dic(score_to_compute_ls=score_to_compute_ls, mode_norm_ls=mode_norm_ls,
+                                                    eval_data=eval_label,
+                                                    former_curve_scores=curve_scores, scores=scores, exact_only=exact_only)
+                    curve_ls_tuple = [(loss_ls, label) for label, loss_ls in curve_scores.items() if isinstance(loss_ls, list)]
+                    curves = [tupl[0] for tupl in curve_ls_tuple]
+                    val_ls = [tupl[1]+"({}tok)".format(info_token) for tupl in curve_ls_tuple
+                              for data, info_token in curve_scores.items() if not isinstance(info_token, list) if tupl[1].endswith(data)]
             score_to_compute_ls = ["exact"] if exact_only else score_to_compute_ls
-            for score_plot in score_to_compute_ls:
-                # dirty but do the job
-                print(val_ls)
-                if exact_only:
-                    val_ls = [val for val in val_ls if val.startswith("exact-all") or val.startswith("exact-NORMED") or val.startswith("exact-NEED_NORM") ]
-                    #val_ls = ["{}-all-{}".format(metric,REPO_DATASET[eval]) for eval in evaluation_set_reporting for metric in ["exact", "edit"]]
-                    curves = [curve for curve in curves if len(curve)>0]
+            if DEPRECIATED:
+                for score_plot in score_to_compute_ls:
+                    # dirty but do the job
+                    print(val_ls)
+                    if exact_only:
+                        val_ls = [val for val in val_ls if val.startswith("exact-all") or val.startswith("exact-NORMED") or val.startswith("exact-NEED_NORM") ]
+                        #val_ls = ["{}-all-{}".format(metric,REPO_DATASET[eval]) for eval in evaluation_set_reporting for metric in ["exact", "edit"]]
+                        curves = [curve for curve in curves if len(curve)>0]
 
-                simple_plot_ls(losses_ls=curves, labels=val_ls, final_loss="", save=True, filter_by_label=score_plot,  x_axis=x_axis_epochs,
-                               dir=model.dir_model, prefix=model.model_full_name, epochs=str(epoch)+reloading, verbose=verbose, lr=lr,
-                               label_color_0=REPO_DATASET[evaluation_set_reporting[0]], label_color_1=REPO_DATASET[evaluation_set_reporting[1]])
+                    simple_plot_ls(losses_ls=curves, labels=val_ls, final_loss="", save=True, filter_by_label=score_plot,  x_axis=x_axis_epochs,
+                                   dir=model.dir_model, prefix=model.model_full_name, epochs=str(epoch)+reloading, verbose=verbose, lr=lr,
+                                   label_color_0=REPO_DATASET[evaluation_set_reporting[0]], label_color_1=REPO_DATASET[evaluation_set_reporting[1]])
 
         # WARNING : only saving if we decrease not loading former model if we relaod
         if (checkpointing and epoch % freq_checkpointing == 0) or (epoch+1 == n_epochs):
@@ -442,8 +457,25 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                    epoch_ls_1=epoch_ls_train, epoch_ls_2=epoch_ls_dev, label=label_train+"-train",
                                    label_2=label_dev+"-dev", save=True, dir=model.dir_model, verbose=verbose,
                                    verbose_level=1, lr=lr, prefix=model.model_full_name, show=False)
-            model, _loss_dev, counter_no_deacrease, saved_epoch, checkpoint_dir_former = \
-                    checkpoint(loss_saved=_loss_dev, loss=loss_dev, model=model, counter_no_decrease=counter_no_deacrease,
+
+            sanity_check_checkpointing_metric(tasks, checkpointing_metric=checkpointing_metric)
+
+            if checkpointing_metric != "loss-dev-all":
+                # for now only useful when different from loss --> compute metric on dev all and default always
+                # assuing unitask thanks to sanity check
+                report = rep_tl.get_score(overall_report_ls,
+                                          metric=TASKS_PARAMETER[tasks[0]].get("default_metric"),
+                                          data=REPO_DATASET[dev_path[0]], info_score="all",
+                                          task=tasks[0])
+                # Negative cause it's an accyracy
+                checkpoint_score = -report["score"]
+            else:
+                checkpoint_score = loss_dev
+
+            model, checkpoint_score_saved, counter_no_deacrease, saved_epoch, checkpoint_dir_former = \
+                    checkpoint(loss_saved=checkpoint_score_saved, loss=checkpoint_score,
+                               checkpointing_metric=checkpointing_metric ,
+                               model=model, counter_no_decrease=counter_no_deacrease,
                                checkpoint_dir_former=checkpoint_dir_former,
                                saved_epoch=saved_epoch, model_dir=model.dir_model,
                                extra_checkpoint_label="1st_train" if not reload else "start_{}_ep-{}".format(starting_epoch, extra_arg_specific_label),
@@ -454,7 +486,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                 "teacher_force": teacher_force,
                                                 "proportion_pred_train": proportion_pred_train,
                                                 "train_data_path": train_path, "dev_data_path": dev_path,
-                                                "other": {"error_curves": dir_plot, "loss": _loss_dev,
+                                                "other": {"error_curves": dir_plot, "loss": "",
                                                           "error_curves_details":dir_plot_detailed,
                                                           "dropout_input":dropout_input,
                                                           "multi_task_loss_ponderation":multi_task_loss_ponderation,

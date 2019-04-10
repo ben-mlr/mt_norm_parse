@@ -1,16 +1,21 @@
 from io_.info_print import printing
 import os
 import torch
-
+import pdb
 
 def checkpoint(loss_saved, loss, model, model_dir, epoch, epochs, info_checkpoint, saved_epoch,
                counter_no_decrease, verbose, extra_checkpoint_label="",extra_arg_specific_label="",
+               checkpointing_metric="loss-dev-all",
                checkpoint_dir_former=None, keep_all_checkpoint=False):
+    pdb.set_trace()
     if loss < loss_saved:
         saved_epoch = epoch
         loss_saved = loss
-        printing('Checkpoint info : Loss decreased so saving model saved epoch is {} (counter_no_decrease set to 0)',var=saved_epoch, verbose=verbose, verbose_level=1)
-        _,_, checkpoint_dir = model.save(model_dir, model, info_checkpoint=info_checkpoint, extra_arg_specific_label=extra_arg_specific_label,
+        printing('Checkpoint info : {} decreased so saving model saved epoch is {} (counter_no_decrease set to 0)',
+                 var=[checkpointing_metric, saved_epoch],
+                 verbose=verbose, verbose_level=1)
+        _,_, checkpoint_dir = model.save(model_dir, model, info_checkpoint=info_checkpoint,
+                                         extra_arg_specific_label=extra_arg_specific_label,
                                          suffix_name="{}-{}of{}epoch".format(extra_checkpoint_label, epoch, epochs), verbose=verbose)
         if not keep_all_checkpoint:
             model.rm_checkpoint(checkpoint_dir_former, verbose=verbose)
@@ -22,11 +27,11 @@ def checkpoint(loss_saved, loss, model, model_dir, epoch, epochs, info_checkpoin
         #model.load_state_dict(torch.load(checkpoint_dir))
         # TODO : load former checkpoint : and do change loss append IF error suddendly pick
         counter_no_decrease += 1
-        printing("Checkpoint info: Loss did not decrease so keeping former model of epoch {} "
+        printing("Checkpoint info: {} did not decrease so keeping former model of epoch {} "
                  "counter_no_decrease is now {} ",
-                 var=(saved_epoch, counter_no_decrease), verbose=verbose, verbose_level=1)
+                 var=[checkpointing_metric, saved_epoch, counter_no_decrease], verbose=verbose, verbose_level=1)
 
-    return model, loss_saved , counter_no_decrease, saved_epoch, checkpoint_dir_former
+    return model, loss_saved, counter_no_decrease, saved_epoch, checkpoint_dir_former
 
 
 def update_curve_dic(score_to_compute_ls, mode_norm_ls, eval_data, scores, former_curve_scores, exact_only=True):

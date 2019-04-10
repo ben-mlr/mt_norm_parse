@@ -39,7 +39,7 @@ def get_gpu_id(gpu_mode, gpus_ls, verbose):
 
 
 def grid_param_label_generate(param,
-                              train_ls, dev_ls, test_ls,
+                              train_ls, dev_ls, test_ls, checkpointing_metric_ls=None,tasks_ls=None,
                               batch_size_ls=None, lr_ls=None, scale_ls =None,
                               shared_context_ls=None,
                               word_embed_init_ls=None, dir_word_encoder_ls=None, char_src_attention_ls=None, dir_sent_encoder_ls=None,
@@ -51,7 +51,7 @@ def grid_param_label_generate(param,
                               word_embedding_projected_dim_ls=None, n_layers_sent_cell_ls=None, n_layers_word_encoder_ls=None,
                               word_embed_ls=None, char_level_embedding_projection_dim_ls=None, mode_word_encoding_ls=None,
                               dropout_input_ls=None,
-                              proportion_pred_train_ls=None, tasks_ls=None, attention_tagging_ls=None,multi_task_loss_ponderation_ls=None,
+                              proportion_pred_train_ls=None,  attention_tagging_ls=None,multi_task_loss_ponderation_ls=None,
                               grid_label="", gpu_mode="random", gpus_ls=None, printout_info_var=True):
 
   assert gpu_mode in GPU_MODE_SUPPORTED, "ERROR gpu_mode not in {}".format(str(GPU_MODE_SUPPORTED))
@@ -64,6 +64,7 @@ def grid_param_label_generate(param,
   assert len(train_ls) == len(dev_ls), "ERROR train_ls is {} dev_ls {} : they should be same length".format(train_ls, dev_ls)
   assert len(tasks_ls) == len(train_ls), "ERROR tasks_ls {} and train_ls {} should be same lenght ".format(tasks_ls, train_ls)
   assert len(train_ls) == len(test_ls), "ERROR len train {} test {} train_ls is {} test_ls {} : they should be same length ".format(len(train_ls), len(test_ls),train_ls, test_ls)
+
   if batch_size_ls is None:
     batch_size_ls = [DEFAULT_BATCH_SIZE]
     default.append(("batch_size", batch_size_ls[0]))
@@ -148,6 +149,12 @@ def grid_param_label_generate(param,
   if dropout_input_ls is None:
     dropout_input_ls = [0]
     default.append(("dropout_input", dropout_input_ls[0]))
+  if checkpointing_metric_ls is None:
+    checkpointing_metric_ls = ["loss-dev-all" for _ in tasks_ls]
+    default.append(("checkpointing_metric", checkpointing_metric_ls[0]))
+
+  assert len(checkpointing_metric_ls) == len(test_ls), "ERROR checkpointing_metric {} and test_ls {} should be same len".format(checkpointing_metric_ls, test_ls)
+
   for def_ in default:
     info_default.append((def_[0], def_[1])) #" "+str(def_[0])+","+str(def_[0])
     printing("GRID : {} argument defaulted to {} ", var=[str(def_)[:-6], def_], verbose=0, verbose_level=0)
@@ -164,7 +171,7 @@ def grid_param_label_generate(param,
               "teacher_force": teacher_force_ls, "proportion_pred_train": proportion_pred_train_ls, "dropout_word_encoder_cell":dropout_word_encoder_cell_ls,
               "attention_tagging": attention_tagging_ls, "mode_word_encoding":mode_word_encoding_ls, "char_level_embedding_projection_dim":char_level_embedding_projection_dim_ls,
               "n_layers_word_encoder": n_layers_word_encoder_ls,"multi_task_loss_ponderation":multi_task_loss_ponderation_ls,
-              "tasks": tasks_ls, "dropout_input": dropout_input_ls,
+              "tasks": tasks_ls, "dropout_input": dropout_input_ls,"checkpointing_metric": checkpointing_metric_ls,
               "word_embed": word_embed_ls}
   ind_model = 0
   for batch in batch_size_ls:
@@ -210,14 +217,14 @@ def grid_param_label_generate(param,
                                   for mode_word_encoding in _mode_word_encoding_ls:
                                     for multi_task_loss_ponderation in multi_task_loss_ponderation_ls:
                                       for dropout_input in dropout_input_ls:
-                                        for train, dev, test in zip(train_ls, dev_ls, test_ls):
+                                        for train, dev, test, checkpointing_metric in zip(train_ls, dev_ls, test_ls, checkpointing_metric_ls):
                                           param0 = param.copy()
                                           ind_model += 1
 
                                           param0["train_path"] = train
                                           param0["dev_path"] = dev
                                           param0["test_path"] = test
-
+                                          param0["checkpointing_metric"] = checkpointing_metric
                                           param0["scoring_func"] = scoring_func
                                           param0["batch_size"] = batch
                                           param0["mode_word_encoding"] = mode_word_encoding

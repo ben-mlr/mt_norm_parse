@@ -34,6 +34,7 @@ def get_data_set_label(data_set):
 
 def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                expand_vocab_dev_test=False,
+               checkpointing_metric="loss-dev-all",
                n_epochs=11, test_path=None, args=None,
                overall_report_dir=CHECKPOINT_DIR, overall_label="DEFAULT",
                get_batch_mode_all=True,
@@ -137,11 +138,11 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
     printing("SANITY CHECK : TASKS {} ", var=[tasks], verbose=verbose, verbose_level=1)
     normalization = "normalize" in tasks or "norm_not_norm" in tasks
     printing("SANITY CHECK : normalization {} ", var=normalization, verbose=verbose, verbose_level=1)
-    print(tasks, train_path, dev_path, test_path)
     model_full_name = train(train_path, dev_path, pos_specific_path=pos_specific_path,
-                            expand_vocab_dev_test=expand_vocab_dev_test if word_embed_init is not None   else False,
+                            checkpointing_metric=checkpointing_metric,
+                            expand_vocab_dev_test=expand_vocab_dev_test if word_embed_init is not None else False,
                             dense_dim_auxilliary=dense_dim_auxilliary, dense_dim_auxilliary_2=dense_dim_auxilliary_2,
-                            lr=lr,extend_n_batch=extend_n_batch,
+                            lr=lr, extend_n_batch=extend_n_batch,
                             n_epochs=n_epochs, normalization=normalization,get_batch_mode_all=get_batch_mode_all,
                             batch_size=batch_size, model_specific_dictionary=True, freq_writer=freq_writer,
                             dict_path=None, model_dir=None, add_start_char=1, freq_scoring=freq_scoring,
@@ -218,8 +219,8 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                          batch_size=batch_size, debug=debug,
                          word_decoding=word_decoding, char_decoding=char_decoding,
                          scoring_func_sequence_pred=scoring_func_sequence_pred,
-                         evaluated_task=task, max_char_len=max_char_len,
-                         tasks=tasks,
+                         evaluated_task=task, tasks=tasks,
+                         max_char_len=max_char_len,
                          dir_report=model_dir, verbose=1)
         printing("GRID : END EVAL {} ".format(time.time()-start_eval), verbose=verbose, verbose_level=1)
     printing("WARNING : no evaluation ", verbose=verbose, verbose_level=0)
