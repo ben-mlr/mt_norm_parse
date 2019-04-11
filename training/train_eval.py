@@ -1,16 +1,11 @@
-import argparse
-import sys
+from env.importing import *
 
 sys.path.insert(0, "..")
 sys.path.insert(0, ".")
 from training.train import train
-
 from io_.info_print import printing
-import os
 from evaluate.evaluate_epoch import evaluate
-import numpy as np
 from env.project_variables import CHECKPOINT_DIR, REPO_DATASET, SEED_NP, SEED_TORCH
-import time
 from training.args_tool import args_train
 from toolbox.gpu_related import use_gpu_
 from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, CP_WR_PASTE_TEST_269, \
@@ -18,8 +13,7 @@ from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, C
     CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST, EWT_DEV, EWT_TEST, \
     LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO, EN_LINES_EWT_TRAIN, EN_LINES_DEV, EN_LINES_EWT_TRAIN, \
     MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, DEFAULT_SCORING_FUNCTION, WARMUP_N_EPOCHS
-import torch
-import pdb
+
 np.random.seed(SEED_NP + 1)
 torch.manual_seed(SEED_TORCH)
 

@@ -1,14 +1,12 @@
-import torch
+from env.importing import *
+
 from io_.info_print import printing
 from io_.dat.normalized_writer import write_conll
 from model.sequence_prediction import decode_sequence, decode_word
-import numpy as np
 from evaluate.normalization_errors import score_norm_not_norm
 from evaluate.normalization_errors import score_ls_, correct_pred_counter
 from env.project_variables import WRITING_DIR
-import os
-from collections import OrderedDict
-import pdb
+
 # EPSILON for the test of edit distance
 EPSILON = 0.000001
 TEST_SCORING_IN_CODE = False

@@ -1,15 +1,10 @@
-from torch.autograd import Variable
-import torch
-import numpy as np
-import pdb
-import matplotlib.pyplot as plt
-from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
-from io_.dat.constants import PAD_ID_CHAR 
+from env.importing import *
+
+from io_.dat.constants import PAD_ID_CHAR
 from io_.info_print import printing
-import time
 from io_.dat.constants import PAD_ID_CHAR, PAD_ID_WORD, CHAR_START_ID, CHAR_END_ID
 from toolbox.sanity_check import get_timing
-from collections import OrderedDict
+
 
 
 def subsequent_mask(size):

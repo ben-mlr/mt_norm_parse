@@ -1,18 +1,14 @@
-import torch.nn as nn
-import os
-import json
-from uuid import uuid4
-import numpy as np
+from env.importing import *
+
+
 from model.encoder import CharEncoder
 from model.decoder import CharDecoder
 from model.pos_predictor import PosPredictor
 from model.edit_predictor import EditPredictor
 from model.normalize_not import BinaryPredictor
 from env.project_variables import CHECKPOINT_DIR, AVAILABLE_TASKS, REPO_DATASET, REPO_W2V
-import torch
-from io_.dat.create_embedding_mat import construct_word_embedding_table
-from torch.autograd import Variable
 
+from io_.dat.create_embedding_mat import construct_word_embedding_table
 from io_.info_print import printing
 from toolbox.load_w2v import load_emb
 from toolbox.git_related import get_commit_id
@@ -21,11 +17,7 @@ from env.project_variables import PROJECT_PATH
 from io_.dat import conllu_data
 from toolbox.deep_learning_toolbox import count_trainable_parameters
 from toolbox.sanity_check import get_timing
-import time
-import re
-import pdb
 from toolbox.checkpointing import get_args
-from collections import OrderedDict
 from model.decoder import WordDecoder
 
 
@@ -180,6 +172,7 @@ class LexNormalizer(nn.Module):
                                                   "lr": None, "lr_policy": None, "extend_vocab_with_test": extend_vocab_with_test,
                                                   "dropout_input": None,
                                                   "optimizer": None,
+                                                  "checkpointing_metric": None,
                                                   "multi_task_loss_ponderation": multi_task_loss_ponderation,
                                                   "shared_context": shared_context,
                                                   "symbolic_end": symbolic_end, "symbolic_root": symbolic_root,
@@ -439,7 +432,7 @@ class LexNormalizer(nn.Module):
         printing("DECODER hidden state before bridge size {}", var=[context.size() if context is not None else 0], verbose=0, verbose_level=3)
         context = self.bridge(context)
         context = self.dropout_bridge(context)
-        for_decoder = torch.tanh(context)
+        #for_decoder = nn.Tanh()(context)
         #h = self.layer_norm(h) if self.layer_norm is not None else h
 
         bridge, start = get_timing(start)
@@ -454,7 +447,7 @@ class LexNormalizer(nn.Module):
                      verbose=0, verbose_level=4)
         if self.decoder is not None and not word_level_predict:
             output, attention_weight_all = self.decoder.forward(output=output_seq,
-                                                                conditioning=for_decoder,
+                                                                conditioning=nn.Tanh()(context),
                                                                 output_word_len=output_word_len,
                                                                 word_src_sizes=word_src_sizes,
                                                                 char_seq_hidden_encoder=char_seq_hidden_encoder,
@@ -523,6 +516,7 @@ class LexNormalizer(nn.Module):
         model.arguments["info_checkpoint"]["git_id"] = get_commit_id()
         model.arguments["checkpoint_dir"] = checkpoint_dir
         model.arguments["hyperparameters"]["dropout_input"] = info_checkpoint["other"]["dropout_input"]
+        model.arguments["hyperparameters"]["checkpointing_metric"] = info_checkpoint["other"]["checkpointing_metric"]
         # the arguments dir does not change !
         if len(extra_arg_specific_label) > 0:
             extra_arg_specific_label += "-"

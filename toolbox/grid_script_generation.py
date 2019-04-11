@@ -1,14 +1,13 @@
+from env.importing import *
 
 from env.project_variables import PROJECT_PATH
 from toolbox.grid_tool import grid_param_label_generate, get_experimented_tasks
-import os
 from io_.info_print import printing
 from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, CP_WR_PASTE_TEST_269, \
     LIU_DEV, DEV, DIR_TWEET_W2V, TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, CP_PASTE_WR_TRAIN, \
     CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST, EWT_DEV, EWT_TEST, \
     LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO, EN_LINES_EWT_TRAIN, EN_LINES_DEV, EN_LINES_EWT_TRAIN, \
     MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, LIST_ARGS, NONE_ARGS, BOOL_ARGS, RUN_SCRIPTS_DIR, GPU_AVAILABLE_DEFAULT_LS, DIC_ARGS, WARMUP_N_EPOCHS
-
 from toolbox.git_related import get_commit_id
 from tracking.reporting_google_sheet import append_reporting_sheet
 
@@ -176,7 +175,7 @@ if __name__ == "__main__":
                       scale_ls=[1],
                       # arguments that are specific to script generation
                       overall_report_dir="./", overall_label=LABEL_GRID,
-                      train_path=[[DEV]], dev_path=[[TEST]], test_paths=[[[TEST,DEV]]],
+                      train_path=[[DEV]], dev_path=[[TEST]], test_paths=[[[TEST, DEV]]],
                       warmup=test_before_run, test_before_run=test_before_run,
                       dir_grid="./", environment="local", dir_log="./",
                       epochs=epochs ,

@@ -1,10 +1,8 @@
-import sys
+from env.importing import *
 
 from io_.info_print import printing
 from env.project_variables import CLIENT_GOOGLE_CLOUD, SHEET_NAME_DEFAULT, TAB_NAME_DEFAULT
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-import os
+
 # use creds to create a client to interact with the Google Drive API
 
 SCOPES_GOOGLE_SHEET = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']

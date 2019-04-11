@@ -1,8 +1,7 @@
-import argparse
+from env.importing import *
 from io_.info_print import printing
 from env.default_hyperparameters import *
-import re
-from env.project_variables import  MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE, DIC_ARGS, AVAILABLE_TASKS
+from env.project_variables import MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE, DIC_ARGS, AVAILABLE_TASKS
 
 
 def parse_argument_dictionary(argument_as_string, hyperparameter="multi_task_loss_ponderation", verbose=1):

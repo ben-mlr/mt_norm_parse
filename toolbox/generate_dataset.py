@@ -1,5 +1,4 @@
-import random
-import numpy as np
+from env.importing import *
 from env.project_variables import DIR_TWEET_W2V
 from toolbox.load_w2v import load_emb
 

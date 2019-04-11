@@ -1,8 +1,5 @@
-import torch
-from torch.autograd import Variable
+from env.importing import *
 from io_.info_print import printing
-import numpy as np
-import pdb
 from model.sequence_prediction import decode_word, decode_sequence
 from model.sequence_prediction_beam import decode_sequence_beam
 from evaluate.visualize_attention import show_attention

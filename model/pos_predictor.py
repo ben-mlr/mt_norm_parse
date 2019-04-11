@@ -1,4 +1,4 @@
-import torch.nn as nn
+from env.importing import *
 
 
 class PosPredictor(nn.Module):

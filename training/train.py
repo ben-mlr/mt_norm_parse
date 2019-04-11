@@ -1,3 +1,5 @@
+from env.importing import *
+
 from io_.dat import conllu_data
 from model.seq2seq import LexNormalizer
 from model.generator import Generator
@@ -5,26 +7,22 @@ from io_.data_iterator import data_gen_conllu, readers_load, data_gen_multi_task
 from training.epoch_train import run_epoch
 from model.loss import LossCompute
 from tracking.plot_loss import simple_plot
-import torch
-from tqdm import tqdm
-import pdb
+
 from toolbox.checkpointing import checkpoint, update_curve_dic
-import os
-import numpy as np
 from io_.info_print import disable_tqdm_level, printing
 from env.project_variables import PROJECT_PATH, REPO_DATASET, SEED_TORCH, BREAKING_NO_DECREASE, CHECKPOINT_DIR, LOSS_DETAIL_TEMPLATE_LS, AVAILABLE_OPTIMIZER, TASKS_PARAMETER
-from env.project_variables import SEED_NP, SEED_TORCH
-import time
+from env.project_variables import SEED_NP, SEED_TORCH, STARTING_CHECKPOINTING_WITH_SCORE
+
 from toolbox.gpu_related import use_gpu_
 from toolbox.sanity_check import get_timing, sanity_check_loss_poneration, sanity_check_checkpointing_metric
-from collections import OrderedDict
+
 from tracking.plot_loss import simple_plot_ls
 from evaluate.evaluate_epoch import evaluate
 from model.schedule_training_policy import AVAILABLE_SCHEDULING_POLICIES
 from toolbox.norm_not_norm import scheduling_policy
 import toolbox.deep_learning_toolbox as dptx
 from toolbox.tensorboard_tools import writer_weights_and_grad
-from tensorboardX import SummaryWriter
+
 import toolbox.report_tools as rep_tl
 
 # TODO : make imports more concise
@@ -102,9 +100,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
     if auxilliary_task_norm_not_norm:
         printing("MODEL : training model with auxillisary task (loss weighted with {})", var=[weight_binary_loss],
                  verbose=verbose, verbose_level=1)
-    if compute_scoring_curve:
-        assert score_to_compute_ls is not None and mode_norm_ls is not None and freq_scoring is not None, \
-            "ERROR score_to_compute_ls and mode_norm_ls should not be None"
+    #if compute_scoring_curve:
+        #assert score_to_compute_ls is not None and mode_norm_ls is not None and freq_scoring is not None, \
+        #    "ERROR score_to_compute_ls and mode_norm_ls should not be None"
     use_gpu = use_gpu_(use_gpu)
     hardware_choosen = "GPU" if use_gpu else "CPU"
     printing("{} hardware mode ", var=([hardware_choosen]), verbose_level=0, verbose=verbose)
@@ -127,7 +125,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
 
     # used for computed scores for early stoping if checkpoint_metric != loss and for curves plot
     evaluation_set_reporting = dev_path
-
+    mode_norm_ls = ["all"]
+    score_to_compute_ls = ["exact_match"]
+    print("WARNING :train.py overwriting mode_norm_ls score_to_compute_ls argument ")
     curve_scores = {score + "-" + mode_norm+"-"+REPO_DATASET[data]: [] for score in score_to_compute_ls
                     for mode_norm in mode_norm_ls for data in evaluation_set_reporting} if compute_scoring_curve else None
 
@@ -374,6 +374,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
 
         # computing exact/edit score
         exact_only = False
+        overall_report_ls = None
         if compute_scoring_curve and ((epoch % freq_scoring == 0) or (epoch+1 == n_epochs)):
             if epoch<1 and ADAPTABLE_SCORING:
                 freq_scoring*=5
@@ -439,6 +440,17 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
 
         # WARNING : only saving if we decrease not loading former model if we relaod
         if (checkpointing and epoch % freq_checkpointing == 0) or (epoch+1 == n_epochs):
+            if checkpointing_metric != "loss-dev-all" and epoch<STARTING_CHECKPOINTING_WITH_SCORE:
+              _checkpointing_metric = "loss-dev-all"
+            elif checkpointing_metric != "loss-dev-all" :
+              _checkpointing_metric = checkpointing_metric
+              if epoch == STARTING_CHECKPOINTING_WITH_SCORE:
+                checkpoint_score_saved = -report["score"]
+            elif checkpointing_metric == "loss-dev-all" :
+              _checkpointing_metric = checkpointing_metric
+            else:
+              raise(Exception("You missed a case"))
+            
 
             dir_plot_detailed = simple_plot(final_loss=0,
                                             epoch_ls_1=epoch_ls_dev,epoch_ls_2=epoch_ls_dev,
@@ -458,11 +470,12 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                    label_2=label_dev+"-dev", save=True, dir=model.dir_model, verbose=verbose,
                                    verbose_level=1, lr=lr, prefix=model.model_full_name, show=False)
 
-            sanity_check_checkpointing_metric(tasks, checkpointing_metric=checkpointing_metric)
+            sanity_check_checkpointing_metric(tasks, checkpointing_metric=_checkpointing_metric)
 
-            if checkpointing_metric != "loss-dev-all":
+            if _checkpointing_metric != "loss-dev-all" or (epoch == (STARTING_CHECKPOINTING_WITH_SCORE-1) and checkpointing_metric !="loss-dev-all"):
                 # for now only useful when different from loss --> compute metric on dev all and default always
                 # assuing unitask thanks to sanity check
+                assert overall_report_ls is not None, "ERROR overall_report_ls  was not defined "
                 report = rep_tl.get_score(overall_report_ls,
                                           metric=TASKS_PARAMETER[tasks[0]].get("default_metric"),
                                           data=REPO_DATASET[dev_path[0]], info_score="all",
@@ -474,7 +487,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
 
             model, checkpoint_score_saved, counter_no_deacrease, saved_epoch, checkpoint_dir_former = \
                     checkpoint(loss_saved=checkpoint_score_saved, loss=checkpoint_score,
-                               checkpointing_metric=checkpointing_metric ,
+                               checkpointing_metric=_checkpointing_metric ,
                                model=model, counter_no_decrease=counter_no_deacrease,
                                checkpoint_dir_former=checkpoint_dir_former,
                                saved_epoch=saved_epoch, model_dir=model.dir_model,
@@ -488,7 +501,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                 "train_data_path": train_path, "dev_data_path": dev_path,
                                                 "other": {"error_curves": dir_plot, "loss": "",
                                                           "error_curves_details":dir_plot_detailed,
-                                                          "dropout_input":dropout_input,
+                                                          "dropout_input": dropout_input,
+                                                          "checkpointing_metric": _checkpointing_metric,
                                                           "multi_task_loss_ponderation":multi_task_loss_ponderation,
                                                           "weight_binary_loss": weight_binary_loss*int(auxilliary_task_norm_not_norm),
                                                           "weight_pos_loss": weight_pos_loss*int(auxilliary_task_pos),

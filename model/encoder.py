@@ -1,13 +1,7 @@
-import torch.nn as nn
-import numpy as np
-import torch
-from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
+from env.importing import *
+
+
 from io_.info_print import printing
-import time
-from toolbox.deep_learning_toolbox import get_cumulated_list
-#from torchnlp.nn import WeightDropLSTM
-import pdb
-from torch.nn.utils.rnn import pack_sequence
 from env.project_variables import SUPPORED_WORD_ENCODER
 from io_.dat.constants import PAD_ID_CHAR
 from io_.dat.constants import MAX_CHAR_LENGTH

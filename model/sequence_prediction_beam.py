@@ -1,27 +1,20 @@
 
+from env.importing import *
 
-import torch
-import torch.nn as nn
-from torch.autograd import Variable
 from io_.info_print import printing
 from io_.dat.normalized_writer import write_conll
 from io_.from_array_to_text import output_text, output_text_
 from io_.dat.constants import PAD_ID_CHAR, CHAR_END_ID
-import numpy as np
 from evaluate.normalization_errors import score_norm_not_norm
 from evaluate.normalization_errors import score_ls_, correct_pred_counter
 from env.project_variables import WRITING_DIR
 from io_.dat.constants import CHAR_START_ID
 from toolbox.sanity_check import get_timing
-import pdb
-import os
-from collections import OrderedDict
 from toolbox.beam_related_reshape_ind import get_beam_ind_token_ind, update_output_seq
-
-
 from evaluate.visualize_attention import show_attention
 from toolbox.norm_not_norm import get_label_norm
 from io_.dat.constants import PAD, ROOT, END, ROOT_CHAR, END_CHAR
+
 # EPSILON for the test of edit distance
 import time
 EPSILON = 0.000001

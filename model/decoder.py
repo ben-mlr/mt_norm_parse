@@ -1,16 +1,9 @@
-import torch.nn as nn
-import numpy as np
-import torch
-from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence, pack_sequence
+from env.importing import *
+
 from io_.info_print import printing
 from toolbox.deep_learning_toolbox import get_cumulated_list
-import pdb
-import time
-from torch.autograd import Variable
 from toolbox.sanity_check import get_timing
-from collections import OrderedDict
 from env.project_variables import SUPPORED_WORD_ENCODER
-import torch.nn.functional as F
 from io_.dat.constants import PAD_ID_WORD
 from model.attention import Attention
 

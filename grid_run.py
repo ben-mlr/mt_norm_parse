@@ -1,22 +1,18 @@
-from io_.info_print import printing
-import os
-from training.train_eval import train_eval
+from env.importing import *
 
-from training.fine_tune import fine_tune
+from io_.info_print import printing
+from training.train_eval import train_eval
 from toolbox.grid_tool import grid_param_label_generate, get_experimented_tasks
 from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, CP_WR_PASTE_TEST_269, \
     LIU_DEV, DEV, DIR_TWEET_W2V, TEST, DIR_TWEET_W2V, DIR_FASTEXT_WIKI_NEWS_W2V, CHECKPOINT_DIR, DEMO, DEMO2, CP_PASTE_WR_TRAIN, \
     CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST, EWT_DEV, EWT_TEST, \
     LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO, EN_LINES_EWT_TRAIN, EN_LINES_DEV, EN_LINES_EWT_TRAIN, \
     MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, RUN_SCRIPTS_DIR, GPU_AVAILABLE_DEFAULT_LS, DEFAULT_SCORING_FUNCTION, WARMUP_N_EPOCHS
-from uuid import uuid4
-import argparse
-from sys import platform
+
 from toolbox.git_related import get_commit_id
 from tracking.reporting_google_sheet import update_status, append_reporting_sheet
 from toolbox.grid_script_generation import script_generation
 
-import pdb as pdb
 
 FINE_TUNE = 0
 GRID = 1
@@ -30,7 +26,7 @@ def run_grid(parameters, labels, dir_grid, label_grid,
     for param, model_id_pref in zip(parameters, labels):
         i += 1
         printing("GRID RUN : RUN_ID {} as prefix".format(RUN_ID), verbose=0, verbose_level=0)
-        epochs = epochs if not test_before_run else 30
+        epochs = epochs if not test_before_run else 1
         if warmup:
             if len(parameters[0]["tasks"]) > 1:
                 param["train_path"] = [DEMO, DEMO]
@@ -90,14 +86,14 @@ if __name__ == "__main__":
         assert os.environ.get("MODE_RUN") in ["DISTRIBUTED", "SINGLE"]
         run_standart = os.environ.get("MODE_RUN") != "DISTRIBUTED"
       else:
-          run_standart = False
+          run_standart = True
           print("LOCAL")
 
       params = []
       ls_param = ["hidden_size_encoder", "hidden_size_sent_encoder", "hidden_size_decoder", "output_dim", "char_embedding_dim"]
       params_strong = {"hidden_size_encoder": 100, "output_dim": 100, "char_embedding_dim": 50,
-                         "dropout_sent_encoder": 0.3, "drop_out_word_encoder": 0.3, "dropout_word_decoder": 0.,
-                         "drop_out_word_encoder_out": 0.3, "drop_out_sent_encoder_out": 0.3, "drop_out_char_embedding_decoder":0.1, "dropout_bridge":0.01,
+                         "dropout_sent_encoder": 0.0, "drop_out_word_encoder": 0.0, "dropout_word_decoder": 0.,
+                         "drop_out_word_encoder_out": 0.0, "drop_out_sent_encoder_out": 0.0, "drop_out_char_embedding_decoder":0., "dropout_bridge":0.00,
                          "n_layers_word_encoder": 1, "dir_sent_encoder": 2,"word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder":"LSTM",
                          "hidden_size_sent_encoder": 100, "hidden_size_decoder": 200, "batch_size": 10}
 
@@ -135,23 +131,23 @@ if __name__ == "__main__":
           # default not used but could be
           #train_path, dev_path = MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV#MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
           # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#[TEST, TEST],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
-          train_path = [[EN_LINES_EWT_TRAIN]]
-          dev_path = [[EWT_DEV]]
-          test_path = [[[EWT_DEV, TEST]]]
+          train_path = [[DEMO]]
+          dev_path = [[DEMO]]
+          test_path = [[[DEMO]]]
           # TODO : test with normalize and other multi tasks !!
           params, labels, default_all, analysed, fixed = grid_param_label_generate(
                                                                                   params_dozat,
                                                                                   train_ls=train_path, dev_ls=dev_path,
                                                                                   test_ls=test_path,
-                                                                                  checkpointing_metric_ls=["accuracy-pos"],
+                                                                                  checkpointing_metric_ls=None,
                                                                                   grid_label="0",
                                                                                   word_recurrent_cell_encoder_ls=["LSTM"],
                                                                                   dropout_word_encoder_cell_ls=[0.1],
                                                                                   stable_decoding_state_ls=[0],
                                                                                   word_decoding_ls=[0],
-                                                                                  batch_size_ls=[80],
+                                                                                  batch_size_ls=[2, 10, 50, 200],
                                                                                   word_embed_ls=[1],
-                                                                                  dir_sent_encoder_ls=[2], lr_ls=[0.001],
+                                                                                  dir_sent_encoder_ls=[2], lr_ls=[0.0001],
                                                                                   word_embed_init_ls=[None],#, DIR_FASTEXT_WIKI_NEWS_W2V, DIR_TWEET_W2V],
                                                                                   attention_tagging_ls=[1],
                                                                                   char_src_attention_ls=[0],
@@ -160,7 +156,7 @@ if __name__ == "__main__":
                                                                                   shared_context_ls=["all"],
                                                                                   word_embedding_projected_dim_ls=[125],
                                                                                   char_level_embedding_projection_dim_ls=[125],
-                                                                                  tasks_ls=[["pos"]],
+                                                                                  tasks_ls=[["normalize"]],
                                                                                   n_layers_sent_cell_ls=[2],
                                                                                   n_layers_word_encoder_ls=[1],
                                                                                   unrolling_word_ls=[1],
@@ -200,8 +196,9 @@ if __name__ == "__main__":
           OAR=""
           environment = "local"
           log = "in the fly logs"
-          test_before_run = True
+          test_before_run = False
           description_comment = "addslij"
+          warmup = False
           gpu_ls = GPU_AVAILABLE_DEFAULT_LS
 
       RUN_ID = str(uuid4())[0:5]
@@ -247,13 +244,13 @@ if __name__ == "__main__":
           
           train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV#MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
           POS_ABLATION = False
-          NORMALIZE = False
+          NORMALIZE = True
           if NORMALIZE:
-              epochs=100 
+              epochs=10 
               train_path, dev_path = CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
               train_path = [[train_path]]
               dev_path = [[dev_path]]
-              test_path = [[[CP_WR_PASTE_TEST_269, TEST, CP_PASTE_TEST]]]
+              test_path = [[[CP_WR_PASTE_TEST_269, TEST]]]
               dir_script, row = script_generation(grid_label=LABEL_GRID, 
                                                   init_param=params_strong,#params_dozat,#params_strong,#params_dozat,
                                                   warmup=test_before_run, test_before_run=test_before_run,
@@ -261,11 +258,11 @@ if __name__ == "__main__":
                                                   stable_decoding_state_ls=[0],
                                                   word_decoding_ls=[0],
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
-                                                  batch_size_ls=[20],
+                                                  batch_size_ls=[5, 20, 60, 200],
                                                   word_embed_ls=[0],
                                                   dir_sent_encoder_ls=[2], dir_word_encoder_ls=[2],
                                                   n_layers_sent_cell_ls=[1], n_layers_word_encoder_ls=[1],
-                                                  lr_ls=[0.001],
+                                                  lr_ls=[0.0001],
                                                   word_embed_init_ls=[None],
                                                   teacher_force_ls=[1],
                                                   word_recurrent_cell_encoder_ls=["LSTM"],
@@ -276,7 +273,7 @@ if __name__ == "__main__":
                                                   char_level_embedding_projection_dim_ls=[0],
                                                   mode_word_encoding_ls=["cat"],
                                                   tasks_ls=[["normalize"]],
-                                                  char_src_attention_ls=[0,1],
+                                                  char_src_attention_ls=[0],
                                                   unrolling_word_ls=[1],
                                                   scale_ls=[1],
                                                   attention_tagging_ls=[0],
@@ -287,7 +284,7 @@ if __name__ == "__main__":
                                                   gpu_mode="random",
                                                   gpus_ls=gpu_ls,
                                                   scoring_func="exact_match",
-                                                  dropout_input_ls=[0.,0.4],
+                                                  dropout_input_ls=[0.],
                                                   multi_task_loss_ponderation_ls=[{"pos": 0, "normalize": 1, "norm_not_norm":0, "edit_prediction":0}],
                                                   write_to_dir=RUN_SCRIPTS_DIR)
           
@@ -328,8 +325,6 @@ if __name__ == "__main__":
                                                   dropout_input_ls=[0.4, 0.5,  0.6],
                                                   multi_task_loss_ponderation_ls=[#{"pos": 1, "normalize": 0, "norm_not_norm": 0, "edit_prediction":0},
                                                                                    {"pos": 1, "normalize": 0, "norm_not_norm": 1, "edit_prediction":1},
-                                                                                  # {"pos": 1, "normalize": 0, "norm_not_norm": 0.1 ,"edit_prediction":0},
-                                                                                  # {"pos": 1, "normalize": 0, "norm_not_norm": 0.01, "edit_prediction":0.},
                                                                                  ],
                                                   scale_ls=[1],
                                                   # arguments that are specific to script generation
@@ -339,29 +334,28 @@ if __name__ == "__main__":
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
                                                   gpus_ls=gpu_ls, gpu_mode="random",
                                                   write_to_dir=RUN_SCRIPTS_DIR, description_comment=description_comment)
-          POS_ABLATION = True
+          POS_ABLATION = False
           if POS_ABLATION:
             import numpy as np
             epochs=150
-            train_path = [[EN_LINES_EWT_TRAIN]]#[DEMO, DEMO]#
-            dev_path = [[EWT_DEV]]#train_path#
-            test_paths = [[[EWT_DEV, EWT_TEST, DEV, TEST]]]
-            test_before_run = 1
+            train_path = [[EN_LINES_EWT_TRAIN]]#,[EN_LINES_EWT_TRAIN]]#[DEMO, DEMO]#
+            dev_path = [[EWT_DEV]]#,[EWT_DEV]]#train_path#
+            test_paths = [[[EWT_DEV, EWT_TEST, DEV, TEST]]]#,[[EWT_DEV, EWT_TEST, DEV, TEST]]]
             dir_script, row = script_generation(grid_label=LABEL_GRID,
                                                 train_path=train_path, dev_path=dev_path,
-                                                test_paths=test_paths,
+                                                test_paths=test_paths, checkpointing_metric_ls=["accuracy-pos"],#"loss-dev-all"],
                                                 init_param=params_dozat,#params_dozat,#params_strong,#params_dozat,
                                                 warmup=test_before_run, test_before_run=test_before_run,
                                                 dir_grid=dir_grid, environment=environment, dir_log=log,
                                                 stable_decoding_state_ls=[0],
                                                 word_decoding_ls=[0],
                                                 epochs=epochs if not (test_before_run or warmup) else 1,
-                                                batch_size_ls=[100, 200, 400],
+                                                batch_size_ls=[100, 150, 200],
                                                 word_embed_ls=[1],
                                                 dir_sent_encoder_ls=[2], dir_word_encoder_ls=[1],
                                                 n_layers_sent_cell_ls=[2], n_layers_word_encoder_ls=[1],
-                                                lr_ls=[0.001, 0.003],
-                                                word_embed_init_ls=[None, DIR_FASTEXT_WIKI_NEWS_W2V, DIR_TWEET_W2V],
+                                                lr_ls=[0.001, 0.0015],
+                                                word_embed_init_ls=[None, DIR_TWEET_W2V],
                                                 teacher_force_ls=[1],
                                                 word_recurrent_cell_encoder_ls=["LSTM"],
                                                 dropout_word_encoder_cell_ls=[0.],
@@ -377,12 +371,11 @@ if __name__ == "__main__":
                                                 attention_tagging_ls=[1],
                                                 overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                 description_comment=description_comment,
-
                                                 gpu_mode="random",
                                                 gpus_ls=gpu_ls,
                                                 scoring_func="exact_match",
-                                                dropout_input_ls=[0.33, 0.45],
-                                                multi_task_loss_ponderation_ls=[{"pos": 1, "normalize": 0, "norm_not_norm":0,"edit_prediction":0}],
+                                                dropout_input_ls=[0.33, 0.40],
+                                                multi_task_loss_ponderation_ls=[{"pos": 1, "normalize": 0, "norm_not_norm": 0,"edit_prediction":0}],
                                                 write_to_dir=RUN_SCRIPTS_DIR)
 
 

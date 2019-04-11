@@ -1,5 +1,6 @@
+from env.importing import *
+
 from env.project_variables import AVAILABLE_OPTIMIZER, SEED_TORCH
-import torch
 from io_.info_print import printing
 
 torch.manual_seed(SEED_TORCH)

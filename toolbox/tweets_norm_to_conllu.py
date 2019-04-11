@@ -1,7 +1,4 @@
-import re
-import argparse
-import json
-import numpy as np
+from env.importing import *
 
 def process_liu_data(dir_src, dir_target):
     count_sent = 1

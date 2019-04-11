@@ -1,19 +1,16 @@
-from torch.autograd import Variable
+from env.importing import *
+
 from env.project_variables import DEV, LIU_DEV, SEED_TORCH, SEED_NP
-import torch
-import time
-import numpy as np
-import pdb
 from io_.batch_generator import MaskBatch
 from env.project_variables import EN_LINES_EWT_TRAIN, LIU_DEV, TRAINING, DEMO, TASKS_PARAMETER
 from io_.dat import conllu_data
 from io_.info_print import printing, print_char_seq, disable_tqdm_level
-import sys
-from tqdm import tqdm
+from io_.printout_iterator_as_raw import outputing_raw_data_from_iterator
 from toolbox.sanity_check import get_timing
 
+
 NORM2NOISY = False
-from io_.printout_iterator_as_raw import outputing_raw_data_from_iterator
+
 
 torch.manual_seed(SEED_TORCH)
 np.random.seed(SEED_NP)

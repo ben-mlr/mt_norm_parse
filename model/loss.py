@@ -1,17 +1,11 @@
-from torch.autograd import Variable
-import torch.nn as nn
-import torch
+from env.importing import *
+
 from model.generator import Generator
-import matplotlib.pyplot as plt
-import numpy as np
 from io_.info_print import printing
 from io_.dat.constants import PAD_ID_NORM_NOT_NORM, PAD_ID_WORD, PAD_ID_TAG
-import pdb
 from env.project_variables import LOSS_DETAIL_TEMPLATE
-import time
 from toolbox.sanity_check import get_timing
 from toolbox.norm_not_norm import schedule_training
-from collections import OrderedDict
 
 
 class LossCompute:
@@ -170,6 +164,7 @@ class LossCompute:
                                     step)
 
         if self.opt is not None:
+            pdb.set_trace()
             self.opt.zero_grad()
             multi_task_loss.backward()
             loss_backwrd_time, start = get_timing(start)
@@ -178,6 +173,7 @@ class LossCompute:
             gradient_clipping, start = get_timing(start)
             printing("Optimizing", self.verbose, verbose_level=3)
             self.opt.step()
+            pdb.set_trace()
             step_opt_time, start = get_timing(start)
             # TODO : should it be before ?
             zero_gradtime, start = get_timing(start)

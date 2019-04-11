@@ -20,11 +20,12 @@ NONE_ARGS = ["gpu"]
 BOOL_ARGS = ["word_embed", "teacher_force", "char_decoding", "unrolling_word", "init_context_decoder",
              "word_decoding", "stable_decoding_state", "char_src_attention"]
 DIC_ARGS = ["multi_task_loss_ponderation"]
-GPU_AVAILABLE_DEFAULT_LS = ["0", "1", "2", "3"]
+GPU_AVAILABLE_DEFAULT_LS = ["0", "1", "2","3"]
 
 # architecture/model/training supported
 SUPPORED_WORD_ENCODER = ["LSTM", "GRU", "WeightDropLSTM"]
 BREAKING_NO_DECREASE = 21
+STARTING_CHECKPOINTING_WITH_SCORE = 10
 SUPPORTED_STAT = ["sum"]
 LOSS_DETAIL_TEMPLATE = {"loss_overall": 0, "loss_seq_prediction": 0, "other": {}}
 LOSS_DETAIL_TEMPLATE_LS = {"loss_overall": [], "loss_seq_prediction": [], "other": {}}
@@ -34,8 +35,8 @@ AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm", "pos", "edit_prediction"
 AVAILABLE_AGGREGATION_FUNC_AUX_TASKS = ["norm_not_norm", "edit_prediction"]
 
 
-TASKS_2_METRICS_STR = {"all": ["accuracy-normalization","InV-accuracy-normalization","OOV-accuracy-normalization","npv-normalization","recall-normalization","precision-normalization","tnr-normalization","accuracy-pos"],
-                       "normalize": ["accuracy-normalization","InV-accuracy-normalization","OOV-accuracy-normalization","npv-normalization","recall-normalization","precision-normalization","tnr-normalization"],
+TASKS_2_METRICS_STR = {"all": ["accuracy-normalize","InV-accuracy-normalize","OOV-accuracy-normalize","npv-normalize","recall-normalize","precision-normalize","tnr-normalize","accuracy-pos"],
+                       "normalize": ["accuracy-normalize","InV-accuracy-normalize","OOV-accuracy-normalize","npv-normalize","recall-normalize","precision-normalize","tnr-normalize"],
                        "pos": ["accuracy-pos"],
                        "edit_prediction": [""],
                        "norm_not_norm": ["IoU-pred-normed","recall-norm_not_norm","accuracy-norm_not_norm","IoU-pred-need_norm","precision-norm_not_norm"]}

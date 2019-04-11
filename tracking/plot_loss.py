@@ -1,8 +1,5 @@
-import os
-import matplotlib.pyplot as plt
+from env.importing import *
 plt.switch_backend('agg')
-import matplotlib.patches as mpatches
-import git
 from io_.info_print import printing
 
 

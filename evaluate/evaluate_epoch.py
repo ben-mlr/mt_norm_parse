@@ -1,21 +1,15 @@
+from env.importing import *
 
-import sys
-sys.path.insert(0,"..")
-sys.path.insert(0,"/scratch/bemuller/mt_norm_parse")
-#TODO  why is it necessary fo rioc ? 
+sys.path.insert(0, "..")
+sys.path.insert(0, "/scratch/bemuller/mt_norm_parse")
+#TODO  why is it necessary for rioc ?
 from predict.prediction_batch import greedy_decode_batch#, decode_seq_str, decode_interacively
-import pdb
 from model.seq2seq import LexNormalizer
 from model.generator import Generator
 from io_.data_iterator import data_gen_conllu, readers_load, data_gen_multi_task_sampling_batch
 from io_.dat import conllu_data
 from io_.info_print import printing
-import os
-import json
-import sys
-import numpy as np
-import torch
-import re
+
 
 from scipy.stats import hmean
 from env.project_variables import PROJECT_PATH, TRAINING, DEV,EWT_DEV,EWT_PRED_TOKEN_UDPIPE, EWT_TEST, TEST, DEMO, DEMO2, LIU, LEX_TEST, REPO_DATASET, CHECKPOINT_DIR, SEED_TORCH, SEED_NP, LEX_TRAIN, LIU_TRAIN, LIU_DEV, CP_WR_PASTE_TEST, MTNT_EN_FR_TEST,MTNT_EN_FR_TEST_DEMO
