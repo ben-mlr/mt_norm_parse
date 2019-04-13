@@ -6,6 +6,7 @@ from model.sequence_prediction import decode_sequence, decode_word
 from evaluate.normalization_errors import score_norm_not_norm
 from evaluate.normalization_errors import score_ls_, correct_pred_counter
 from env.project_variables import WRITING_DIR
+from io_.dat.constants import PAD_ID_CHAR
 
 # EPSILON for the test of edit distance
 EPSILON = 0.000001
@@ -94,7 +95,7 @@ def _init_metric_report_2():
     return dic
 
 
-def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, task_simultaneous_eval, pad=1,
+def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, task_simultaneous_eval, pad=PAD_ID_CHAR,
                         gold_output=False, score_to_compute_ls=None,
                         stat=None,
                         use_gpu=False,
@@ -102,7 +103,8 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, task_simu
                         mode_norm_score_ls=None,
                         label_data=None, eval_new=False,
                         scoring_func_sequence_pred="exact_match",
-                        write_output=False, write_to="conll", dir_normalized=None, dir_original=None,
+                        write_output=False, write_to="conll",
+                        dir_normalized=None, dir_original=None,
 
                         verbose=0):
         "We decode batch by batch simultaneous ls of tasks at a time "
@@ -145,12 +147,12 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, task_simu
                                                                                           input_word=batch.input_word,
                                                                                           mode="norm_not_norm"
                                                                                          )
-                if "normalize" in task_simultaneous_eval:#model.arguments["hyperparameters"].get("tasks", ["normalize"]):
-
+                if "normalize" in task_simultaneous_eval:
                     if model.arguments["hyperparameters"]["decoder_arch"].get("char_decoding", True):
                         # TODO : should be able to merge word_decoding and char_decoding
                         assert not model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False), \
                             "ERROR : only on type of decoding should be set (for now)"
+                        pdb.set_trace()
                         (text_decoded_ls, src_text_ls, gold_text_seq_ls, _), counts, _, \
                         (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_sequence(model=model,
                                                                                                   char_dictionary=char_dictionary,
@@ -236,6 +238,7 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, task_simu
                             pred_norm_not_norm = pred_norm
                             gold_norm_not_norm = batch.output_norm_not_norm
                             ls_original = src_text_ls
+                            pdb.set_trace()
                         _counter_correct_batch, _score_formulas = correct_pred_counter(ls_pred=ls_pred,
                                                                                        ls_gold=ls_gold,
                                                                                        output_seq_n_hot=output_seq_n_hot,

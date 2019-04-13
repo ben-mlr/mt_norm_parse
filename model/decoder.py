@@ -123,11 +123,7 @@ class CharDecoder(nn.Module):
             context = self.context_proj(context)
             # MIS ALGINEMNT BETWEEN SOURCE CHAR LEVEL CONTEXT PER WORD AND WORD THAT WE DECODE PER CHAR
             # output_word_len is incorrect --> char_vec_current_batch incorrect to at test time were
-            try:
-                char_vec_current_batch = torch.cat((context, char_vec_current_batch), dim=2)
-            except:
-                pdb.set_trace()
-                char_vec_current_batch = torch.cat((context, char_vec_current_batch), dim=2)
+            char_vec_current_batch = torch.cat((context, char_vec_current_batch), dim=2)
 
         else:
             # no word level context passed so --> char_vec_current is only the current character vector  
@@ -140,12 +136,9 @@ class CharDecoder(nn.Module):
             ##https://github.com/spro/practical-pytorch/blob/master/seq2seq-translation/seq2seq-translation-batched.ipynb
             # the context is goes as input as the character embedding : we add the tranditional conditioning_other
         time_atten, start = get_timing(start_atten)
-        try:
-            output, state = self.seq_decoder(char_vec_current_batch, state_decoder_current)
-        except Exception as a:
-            print(Exception(a))
 
-            output, state = self.seq_decoder(char_vec_current_batch, state_decoder_current)
+        output, state = self.seq_decoder(char_vec_current_batch, state_decoder_current)
+
         time_step_decoder, _ = get_timing(start)
         if self.timing:
             print("Attention time {} ".format(OrderedDict([('time_attention', time_atten),
@@ -164,7 +157,7 @@ class CharDecoder(nn.Module):
         printing("TARGET  : Word  length  {}  ".format(output_word_len), self.verbose, verbose_level=5)
         start = time.time() if self.timing else None
         output_word_len, perm_idx_output = output_word_len.squeeze().sort(0, descending=True)
-        output = output[perm_idx_output]
+        output = output[perm_idx_output,:]
         # we made the choice to mask again the
         conditioning = conditioning.view(1, conditioning.size(0) * conditioning.size(1), -1)
         conditioning = conditioning[:, perm_idx_output, :]
@@ -197,7 +190,8 @@ class CharDecoder(nn.Module):
         if isinstance(self.seq_decoder, nn.LSTM):
             stable_decoding_word_state = conditioning.clone() if self.stable_decoding_state else None
             # TODO : ugly because we have done a projection and reshaping for nothing on conditioning
-            conditioning = (torch.zeros_like(conditioning), conditioning) if self.init_context_decoder else (torch.zeros_like(conditioning), torch.zeros_like(conditioning))
+            conditioning = (torch.zeros_like(conditioning), conditioning) if self.init_context_decoder \
+                else (torch.zeros_like(conditioning), torch.zeros_like(conditioning))
         # attention
         if self.attn_layer is not None:
             assert char_seq_hidden_encoder is not None, 'ERROR sent_len_max_source is None'
@@ -338,7 +332,6 @@ class CharDecoder(nn.Module):
         #reorder so that it aligns with input
 
         try:
-            ## WARNING / CHANGED sent_len.squeeze().cpu().numpy() into sent_len.cpu().numpy()
             packed_char_vecs_output = pack_padded_sequence(output[perm_idx_input_sent, :, :],
                                                            sent_len.cpu().numpy(), batch_first=True)
         except:
@@ -353,7 +346,7 @@ class CharDecoder(nn.Module):
         # unpacked for computing the word level representation
         #packed_char_vecs_output = pack_padded_sequence(output[perm_idx_input_sent, :, :],
         #                                               sent_len.squeeze().cpu().numpy(), batch_first=True)
-        conditioning = conditioning[perm_idx_input_sent,:,:]
+        conditioning = conditioning[perm_idx_input_sent, :, :]
         packed_sent, start = get_timing(start)
         # unpacked for the word level representation
         # packed_char_vecs_output .data : [batch x shorted sent_lenS , word lens ] + .batch_sizes

@@ -1,7 +1,6 @@
 import os
-
 # SEEDS
-SEED_NP = 123+1
+SEED_NP = 123
 SEED_TORCH = 123
 
 # ENVIRONMENT VARIABLES
@@ -25,7 +24,7 @@ GPU_AVAILABLE_DEFAULT_LS = ["0", "1", "2","3"]
 # architecture/model/training supported
 SUPPORED_WORD_ENCODER = ["LSTM", "GRU", "WeightDropLSTM"]
 BREAKING_NO_DECREASE = 21
-STARTING_CHECKPOINTING_WITH_SCORE = 10
+STARTING_CHECKPOINTING_WITH_SCORE = 30
 SUPPORTED_STAT = ["sum"]
 LOSS_DETAIL_TEMPLATE = {"loss_overall": 0, "loss_seq_prediction": 0, "other": {}}
 LOSS_DETAIL_TEMPLATE_LS = {"loss_overall": [], "loss_seq_prediction": [], "other": {}}
@@ -41,8 +40,8 @@ TASKS_2_METRICS_STR = {"all": ["accuracy-normalize","InV-accuracy-normalize","OO
                        "edit_prediction": [""],
                        "norm_not_norm": ["IoU-pred-normed","recall-norm_not_norm","accuracy-norm_not_norm","IoU-pred-need_norm","precision-norm_not_norm"]}
 
-AVAILABLE_OPTIMIZER = ["adam", "bahdanu-adadelta"]
-MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE = ["uniform", "normalization_100","pos_100","all","pos","normalize","norm_not_norm"]
+AVAILABLE_OPTIMIZER = ["adam", "bahdanu-adadelta", "SGD"]
+MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE = ["uniform", "normalization_100", "pos_100","all","pos", "normalize","norm_not_norm"]
 DEFAULT_SCORING_FUNCTION = "exact_match"
 AVAILABLE_WORD_LEVEL_LABELLING_MODE = ["word", "pos", "norm_not_norm"]
 
@@ -110,6 +109,10 @@ MTNT_EN_TOK_TRAIN_CONLL_LABEL, MTNT_EN_TOK_TRAIN_CONLL = "mtnt_tok_train_conll",
 MTNT_EN_TOK_DEV_CONLL_LABEL, MTNT_EN_TOK_DEV_CONLL = "mtnt_tok_dev_conll", os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/dev.tok.en.conll")
 MTNT_EN_TOK_DEV_DEMO_CONLL_LABEL, MTNT_EN_TOK_DEV_DEMO_CONLL = "mtnt_tok_dev_demo_conll", os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/dev.tok.en.demo.conll")
 
+#PERMUTATION
+PERMUTATION_TRAIN_LABEL, PERMUTATION_TRAIN = "permutation-train", os.path.join(PROJECT_PATH, "./data/permutation-train.conll")
+PERMUTATION_TEST_LABEL, PERMUTATION_TEST= "permutation-test", os.path.join(PROJECT_PATH, "./data/permutation-test.conll")
+
 
 # EMOJIs
 EMOJI_LS_LABEL, EMOJIS_LS = "emojis", os.path.join(PROJECT_PATH, "data/emojis_ls.txt")
@@ -152,6 +155,7 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 MTNT_EN_TOK_TRAIN_CONLL: MTNT_EN_TOK_TRAIN_CONLL_LABEL,
                 MTNT_EN_TOK_DEV_CONLL: MTNT_EN_TOK_DEV_CONLL_LABEL, MTNT_EN_TOK_DEV_DEMO_CONLL:MTNT_EN_TOK_DEV_DEMO_CONLL_LABEL,
                 EMOJIS_LS:EMOJI_LS_LABEL,
+                PERMUTATION_TRAIN:PERMUTATION_TRAIN_LABEL, PERMUTATION_TEST:PERMUTATION_TEST_LABEL,
                 }
 
 

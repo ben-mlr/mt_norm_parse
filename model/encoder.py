@@ -58,11 +58,7 @@ class CharEncoder(nn.Module):
             dim_input_sentence_encoder = char_level_embedding_projection_dim
         elif mode_word_encoding == "cat":
             dim_input_sentence_encoder = char_level_embedding_input_dim + word_embedding_dim_inputed
-        self.sent_encoder = nn.LSTM(input_size=dim_input_sentence_encoder,
-                                    hidden_size=hidden_size_sent_encoder,
-                                    num_layers=n_layers_sent_cell, bias=True, batch_first=True,
-                                    dropout=dropout_sent_encoder_cell,
-                                    bidirectional=bool(bidir_sent))
+
         self.drop_out_word_encoder_out = nn.Dropout(drop_out_word_encoder_out)
         self.drop_out_sent_encoder_out = nn.Dropout(drop_out_sent_encoder_out)
         self.verbose = verbose
@@ -76,9 +72,12 @@ class CharEncoder(nn.Module):
             word_recurrent_cell = eval(word_recurrent_cell)
         else:
             word_recurrent_cell = eval("nn."+word_recurrent_cell)
+
         self.word_recurrent_cell = word_recurrent_cell
+
         printing("MODEL Encoder : word_recurrent_cell has been set to {} ", var=([str(word_recurrent_cell)]),
                  verbose=verbose, verbose_level=1)
+
         self.seq_encoder = word_recurrent_cell(input_size=input_dim, hidden_size=hidden_size_encoder,
                                                dropout=dropout_word_encoder_cell,
                                                num_layers=n_layers_word_cell,
@@ -86,6 +85,16 @@ class CharEncoder(nn.Module):
         self.output_encoder_dim = 0
         if self.context_level in ["sent", "all"]:
             self.output_encoder_dim += hidden_size_sent_encoder*(int(bidir_sent)+1)
+            self.sent_encoder = nn.LSTM(input_size=dim_input_sentence_encoder,
+                                        hidden_size=hidden_size_sent_encoder,
+                                        num_layers=n_layers_sent_cell, bias=True, batch_first=True,
+                                        dropout=dropout_sent_encoder_cell,
+                                        bidirectional=bool(bidir_sent))
+        else:
+            self.sent_encoder = None
+            printing("WARNING : parameters hidden_size_sent_encoder, n_layers_sent_cell and bidir_sent will be ignored "
+                     "as self.context_level is {}".format(self.context_level),
+                     verbose=verbose, verbose_level=1)
         if self.context_level in ["word", "all"]:
             self.output_encoder_dim += dim_input_sentence_encoder
 
@@ -207,7 +216,7 @@ class CharEncoder(nn.Module):
             ## WARNING / CHANGED sent_len.squeeze().cpu().numpy() into sent_len.cpu().numpy()
             packed_char_vecs_input = pack_padded_sequence(input[perm_idx_input_sent, :, :], sent_len.cpu().numpy(), batch_first=True)
         except:
-            print("EXCEPT ENCODER PACKING", [perm_idx_input_sent])
+            #print("EXCEPT ENCODER PACKING", [perm_idx_input_sent])
             if len(perm_idx_input_sent.size()) == 0:
                 perm_idx_input_sent = [perm_idx_input_sent]
                 inverse_perm_idx_input_sent = [inverse_perm_idx_input_sent]
@@ -256,20 +265,24 @@ class CharEncoder(nn.Module):
         h_w_ls = [h_w[sent_len_cumulated[i]:sent_len_cumulated[i + 1], :] for i in range(len(sent_len_cumulated) - 1)]
         h_w = pack_sequence(h_w_ls)
         # sent_encoded last layer for each t (word) of the last layer
-        sent_encoded, _ = self.sent_encoder(h_w)
-        # add contitioning
-        sent_encoded, length_sent = pad_packed_sequence(sent_encoded, batch_first=True)
+        if context_level != "word":
+            sent_encoded, _ = self.sent_encoder(h_w)
+            # add contitioning
+            sent_encoded, length_sent = pad_packed_sequence(sent_encoded, batch_first=True)
+
         h_w, lengh_2 = pad_packed_sequence(h_w, batch_first=True)
         # now we reorder it one time to get the original order
         # --PERMUTE / reorder to original ordering so that it's consistent with output
         h_w = h_w[inverse_perm_idx_input_sent, :, :]
-        sent_encoded = sent_encoded[inverse_perm_idx_input_sent, :, :]
-        # sent_encoded : upper layer only but all time step, to get all the layers states of the last state get hidden
-        # sent_encoded : [batch, max sent len ,hidden_size_sent_encoder]
-        printing("SOURCE sentence encoder output dim sent : {} ", var=[sent_encoded.size()],
-                 verbose=verbose, verbose_level=3)
+        if context_level != "word":
+            sent_encoded = sent_encoded[inverse_perm_idx_input_sent, :, :]
+            # sent_encoded : upper layer only but all time step, to get all the layers states of the last state get hidden
+            # sent_encoded : [batch, max sent len ,hidden_size_sent_encoder]
+            printing("SOURCE sentence encoder output dim sent : {} ", var=[sent_encoded.size()],
+                     verbose=verbose, verbose_level=3)
         # concatanate
-        sent_encoded = self.drop_out_sent_encoder_out(sent_encoded)
+        if context_level != "word":
+            sent_encoded = self.drop_out_sent_encoder_out(sent_encoded)
         h_w = self.drop_out_word_encoder_out(h_w)
         if context_level == "all":
             #" 'all' means word and sentence level "

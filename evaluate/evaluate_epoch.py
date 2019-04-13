@@ -11,16 +11,15 @@ from io_.dat import conllu_data
 from io_.info_print import printing
 
 
-from scipy.stats import hmean
-from env.project_variables import PROJECT_PATH, TRAINING, DEV,EWT_DEV,EWT_PRED_TOKEN_UDPIPE, EWT_TEST, TEST, DEMO, DEMO2, LIU, LEX_TEST, REPO_DATASET, CHECKPOINT_DIR, SEED_TORCH, SEED_NP, LEX_TRAIN, LIU_TRAIN, LIU_DEV, CP_WR_PASTE_TEST, MTNT_EN_FR_TEST,MTNT_EN_FR_TEST_DEMO
+from env.project_variables import PROJECT_PATH, TRAINING, DEV,EWT_DEV,EWT_PRED_TOKEN_UDPIPE,\
+    PERMUTATION_TRAIN, PERMUTATION_TEST, \
+    EWT_TEST, TEST, DEMO, DEMO2, LIU, LEX_TEST, REPO_DATASET, CHECKPOINT_DIR, LEX_TRAIN, LIU_TRAIN, LIU_DEV, CP_WR_PASTE_TEST, MTNT_EN_FR_TEST,MTNT_EN_FR_TEST_DEMO
 from toolbox.gpu_related import use_gpu_
 sys.path.insert(0, os.path.join(PROJECT_PATH, "..", "experimental_pipe"))
 from reporting.write_to_performance_repo import report_template, write_dic
 from evaluate.normalization_errors import score_auxiliary
 from env.project_variables import SCORE_AUX
 
-np.random.seed(SEED_NP)
-torch.manual_seed(SEED_TORCH)
 
 
 def evaluate(batch_size, data_path, tasks, evaluated_task,
@@ -125,10 +124,11 @@ def evaluate(batch_size, data_path, tasks, evaluated_task,
             over_all_report_dir_all_models = os.path.join(overall_report_dir, overall_label + "NEW-report.json")
             writing_mode = "w" if not os.path.isfile(over_all_report_dir) else "a"
             writing_mode_all_models = "w" if not os.path.isfile(over_all_report_dir_all_models) else "a"
-            for dir, writing_mode in zip([over_all_report_dir, over_all_report_dir_all_models ], [writing_mode, writing_mode_all_models]):
+            for dir, writing_mode in zip([over_all_report_dir, over_all_report_dir_all_models],
+                                         [writing_mode, writing_mode_all_models]):
                 if writing_mode == "w":
-                    all_report = [report]
-                    json.dump(all_report, open(dir, writing_mode))
+                    _all_report = [report]
+                    json.dump([report], open(dir, writing_mode))
                     printing("REPORT : Creating new report  {} ".format(dir), verbose=verbose, verbose_level=1)
                 else:
                     all_report = json.load(open(dir, "r"))
@@ -140,6 +140,8 @@ def evaluate(batch_size, data_path, tasks, evaluated_task,
         printing("NEW REPORT : overall report saved {} ".format(over_all_report_dir_all_models), verbose=verbose,verbose_level=1)
     except Exception as e:
         print(Exception(e))
+    if writing_mode == "w":
+        all_report = _all_report
     return all_report
 
 #4538 , 4578
@@ -164,30 +166,31 @@ if __name__ == "__main__":
     PRED_AND_EVAL = True
     if PRED_AND_EVAL:
         #
-        for ablation_id in ["70b87-test_before_run-WARMUP-unrolling-False0-model_1-model_1_bef5"]:
+        for ablation_id in ["da5d8-B0-model_1-model_1_3a18"]:
           for get_batch_mode_evaluate in [False]:
             for batch_size in [2]:
-              #for data in [LIU, DEV, LEX_TEST]:
-              for data in [DEMO2]:
+              for data in [PERMUTATION_TRAIN]:
                 list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
                 print("FOLDERS : ", list_)
+                if len(list_) == 0:
+                    raise(Exception("error empty list on {} id".format(ablation_id)))
                 for folder_name in list_:
                   model_full_name = folder_name[:-7]
                   print("MODEL_FULL_NAME : ", model_full_name)
                   print("0Evaluating {} ".format(model_full_name))
-                  import time
                   time_ = time.time()
                   evaluate(
-                           model_full_name=model_full_name, data_path=data,#LIU,
+                           model_full_name=model_full_name, data_path=data,
                            dict_path=os.path.join(PROJECT_PATH, "checkpoints", folder_name, "dictionaries"),
                            label_report="eval_again", use_gpu=None,
-                           overall_label=ablation_id+"-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch",#"f2f2-iterate+new_data-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch-validation_True",
+                           overall_label=ablation_id+"-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch",
                            mode_norm_ls=None, #score_to_compute_ls=["norm_not_norm-Recall"],
                            normalization=True, model_specific_dictionary=True, batch_size=batch_size,
                            debug=False, bucket=False,
                            compute_mean_score_per_sent=True,
                            word_decoding=False, char_decoding=True,
-                           scoring_func_sequence_pred="exact_match", task="normalize",
+                           scoring_func_sequence_pred="exact_match",
+                           tasks=["normalize"], evaluated_task="normalize",
                            get_batch_mode_evaluate=get_batch_mode_evaluate, write_output=True,
                            max_char_len=1000,
                            dir_report=os.path.join(PROJECT_PATH, "checkpoints", folder_name), verbose=1
@@ -208,9 +211,6 @@ if __name__ == "__main__":
         results = conll18_ud_eval.evaluate(gold, sys)
         for score, val in results.items():
             print("METRIC {} is {} F1 ({} recall {} precision) ".format(score, results[score].f1, results[score].recall, results[score].precision))
-
-
-
 
 
 #reporting = False

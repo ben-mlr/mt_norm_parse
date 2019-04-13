@@ -1,6 +1,6 @@
 from env.importing import *
 
-from env.project_variables import DEV, LIU_DEV, SEED_TORCH, SEED_NP
+from env.project_variables import DEV, LIU_DEV
 from io_.batch_generator import MaskBatch
 from env.project_variables import EN_LINES_EWT_TRAIN, LIU_DEV, TRAINING, DEMO, TASKS_PARAMETER
 from io_.dat import conllu_data
@@ -10,10 +10,6 @@ from toolbox.sanity_check import get_timing
 
 
 NORM2NOISY = False
-
-
-torch.manual_seed(SEED_TORCH)
-np.random.seed(SEED_NP)
 
 
 def data_gen_conllu(data, word_dictionary, char_dictionary,
@@ -31,7 +27,10 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
 
     if nbatch == 0:
         printing("INFO : n_sents < batch_size so nbatch set to 1 ", verbose=verbose, verbose_level=0)
-    printing("TRAINING : Task {} Running {} batches of {} dim (nsent : {}) (if 0 will be set to 1) ".format(task_info,nbatch, batch_size, n_sents), verbose=verbose, verbose_level=1)
+    printing("TRAINING : Task {} Running {} batches of {} dim (nsent : {} extended {} time(s)) (if 0 will be set to 1) ".format(task_info,
+                                                                                                            nbatch,
+                                                                                                            batch_size,
+                                                                                                            n_sents,extend_n_batch), verbose=verbose, verbose_level=1)
     nbatch = 1 if nbatch == 0 else nbatch
     # deterministic run over all the dataset (for evaluation)
     if not normalization:
@@ -46,7 +45,8 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             if not normalization:
                 chars_norm = chars.clone()
 
-            outputing_raw_data_from_iterator(words, word_norm, chars, chars_norm, word_norm_not_norm, pos,word_dictionary=word_dictionary, pos_dictionary=pos_dictionary, char_dictionary=char_dictionary,
+            outputing_raw_data_from_iterator(words, word_norm, chars, chars_norm, word_norm_not_norm, pos,
+                                             word_dictionary=word_dictionary, pos_dictionary=pos_dictionary, char_dictionary=char_dictionary,
                                              verbose=verbose, print_raw=print_raw, normalization=normalization)
 
             if not NORM2NOISY:
@@ -73,7 +73,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                                                unk_replace=0)
 
             if char.size(0) <= 1:
-                print("WARNING : NOT Skip character ", char)
+                print("WARNING : NOT Skip character ")
                 #continue
             printing("TYPE {} word, char {} , chars_norm {} length {} ", var=(word.is_cuda, char.is_cuda,
                                                                               #chars_norm.is_cuda, lenght.is_cuda

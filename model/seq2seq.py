@@ -1,6 +1,5 @@
 from env.importing import *
 
-
 from model.encoder import CharEncoder
 from model.decoder import CharDecoder
 from model.pos_predictor import PosPredictor

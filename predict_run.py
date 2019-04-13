@@ -10,7 +10,7 @@ from model.generator import Generator
 from io_.data_iterator import data_gen_conllu
 from io_.dat import conllu_data
 from io_.info_print import printing
-from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, DEMO, DEMO2, LIU, LEX_TEST, REPO_DATASET, CHECKPOINT_DIR, SEED_TORCH, SEED_NP, LEX_TRAIN
+from env.project_variables import PROJECT_PATH, TRAINING, DEV, TEST, DEMO, DEMO2, LIU, LEX_TEST, REPO_DATASET, CHECKPOINT_DIR, LEX_TRAIN
 from toolbox.gpu_related import use_gpu_
 sys.path.insert(0, os.path.join(PROJECT_PATH, "..", "experimental_pipe"))
 from env.project_variables import SCORE_AUX

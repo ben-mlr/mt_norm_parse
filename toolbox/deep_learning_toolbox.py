@@ -1,9 +1,8 @@
 from env.importing import *
 
-from env.project_variables import AVAILABLE_OPTIMIZER, SEED_TORCH
+from env.project_variables import AVAILABLE_OPTIMIZER
 from io_.info_print import printing
 
-torch.manual_seed(SEED_TORCH)
 
 
 def get_optimizer(parameters, lr, optimizer="adam", betas=None, verbose=1):
@@ -14,6 +13,9 @@ def get_optimizer(parameters, lr, optimizer="adam", betas=None, verbose=1):
             betas = (0.9, 0.9)
             print("DOZAT INIT ADAM betas:", betas)
         opt = torch.optim.Adam(parameters, lr=lr, betas=betas, eps=1e-9)
+    elif optimizer == "SGD":
+        assert betas is None, "ERROR "
+        opt = torch.optim.SGD(parameters, lr=lr)
     elif optimizer == "bahdanu-adadelta":
         assert betas is None, "ERROR betas not supported for optimizer {}".format(optimizer)
         opt = torch.optim.Adadelta(parameters, eps=10e-6, rho=0.95)

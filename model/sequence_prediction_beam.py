@@ -67,7 +67,7 @@ def decode_sequence_beam(model, max_len, src_seq, src_mask, src_len, char_dictio
 
         for candidate_ind in range(beam_size):
             # we decode the sequence for each beam
-            decoding_states, word_pred, pos_pred, norm_not_norm, attention, _ = model.forward(input_seq=src_seq,
+            decoding_states, word_pred, pos_pred, norm_not_norm, edit_state, attention, attention_weights_char_tag = model.forward(input_seq=src_seq,
                                                                                               word_embed_input=input_word,
                                                                                               output_seq=output_seq[:, :, :, candidate_ind],
                                                                                               input_word_len=src_len, output_word_len=output_len)

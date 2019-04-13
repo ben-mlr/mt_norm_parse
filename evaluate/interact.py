@@ -53,12 +53,14 @@ def interact(dic_path, model_full_name,
     # /1eeb9-WARMUP-unrolling-False0-model_1-model_1_fd8c-folder/dictionaries/
     #1eeb9-WARMUP-unrolling-False0-model_1-model_1_fd8c-folder-50-False_get_batchNEW-repo-folder
 
-import io
+
 import torchvision
+
 from PIL import Image
 import socket
 import visdom
-import torch
+
+from env.importing import *
 
 import matplotlib.pyplot as plt
 
@@ -99,7 +101,7 @@ if __name__ == "__main__":
     # word decode with word embed
     list_ = ["1f86c-WARMUP-unrolling-False0-model_1-model_1_57b7-folder"]
     # char decode
-    list_ = ["9088021_rioc--B0-model_1-model_1_9fe6-folder"]
+    list_ = ["da5d8-B0-model_1-model_1_3a18-folder"]
     for folder_name in list_:
         model_full_name = folder_name[:-7]
         print("Interatcing with new model : ", model_full_name)
@@ -107,11 +109,11 @@ if __name__ == "__main__":
         dic_path = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder", "dictionaries")
         model_dir = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder")
         interact(dic_path=dic_path, dir_model=model_dir, model_full_name=model_full_name,
-                 beam_decode=True, beam_size=10,
+                 beam_decode=False, beam_size=10,
                  word_decoding=False,
                  save_attention=False, show_attention=False,
                  max_len=8,
-                 debug=0, verbose=1)
+                 debug=1, verbose=1)
         #break
     #show_attention("[lekfezlfkh efj ", ["se", "mjfsemkfj"], torch.tensor([[0,.4], [1,0.6]]))
 

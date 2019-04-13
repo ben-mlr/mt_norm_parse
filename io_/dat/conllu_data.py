@@ -1,22 +1,14 @@
-import sys
-import codecs
-import pdb
-from torch.autograd import Variable
+from env.importing import *
+
 from io_.info_print import printing
 from .constants import MAX_CHAR_LENGTH, NUM_CHAR_PAD, PAD_CHAR, PAD_POS, PAD_TYPE, ROOT_CHAR, ROOT_POS, PAD, \
   ROOT_TYPE, END_CHAR, END_POS, END_TYPE, _START_VOCAB, ROOT, PAD_ID_WORD, PAD_ID_CHAR, PAD_ID_TAG, DIGIT_RE, CHAR_START_ID, CHAR_START, CHAR_END_ID, PAD_ID_CHAR, PAD_ID_NORM_NOT_NORM, END,\
   MEAN_RAND_W2V, SCALE_RAND_W2V, PAD_ID_EDIT
-from env.project_variables import SEED_NP, SEED_TORCH, W2V_LOADED_DIM, MAX_VOCABULARY_SIZE_WORD_DIC
+from env.project_variables import W2V_LOADED_DIM, MAX_VOCABULARY_SIZE_WORD_DIC
 from .conllu_reader import CoNLLReader
 from .dictionary import Dictionary
-import numpy as np
 from io_.dat.conllu_get_normalization import get_normalized_token
 from io_.signal_aggregation import get_transform_normalized_standart
-import torch
-import os
-
-np.random.seed(SEED_NP)
-torch.manual_seed(SEED_TORCH)
 
 
 def load_dict(dict_path, train_path=None, dev_path=None, test_path=None,

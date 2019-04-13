@@ -1,15 +1,10 @@
-import sys
-import codecs
+from env.importing import *
 
 from .constants import MAX_CHAR_LENGTH, NUM_CHAR_PAD, PAD_CHAR, PAD_POS, PAD_TYPE, ROOT_CHAR, ROOT_POS, ROOT_TYPE, END_CHAR, END_POS, END_TYPE, _START_VOCAB, ROOT, PAD_ID_WORD, PAD_ID_CHAR, PAD_ID_TAG, DIGIT_RE, PAD_ID_MORPH, ROOT_ID_MORPH, UNK_ID
 from .conllu_reader import CoNLLReader
 from .dictionary import Dictionary
 
-import numpy as np
-np.random.seed(123)
-import torch
-torch.manual_seed(123)
-from torch.autograd import Variable
+
 
 def _get_lexicial_feature(lexicon, word, pos):
   raw_token = word

@@ -1,14 +1,4 @@
-import gzip
-import codecs
-
-import os
-from tqdm import tqdm
-import os
-
-import numpy as np
-np.random.seed(123)
-import torch
-
+from env.importing import *
 from .constants import UNK_ID, DIGIT_RE
 
 

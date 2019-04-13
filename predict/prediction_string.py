@@ -112,6 +112,7 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
 
             if model.arguments["hyperparameters"]["decoder_arch"].get("char_decoding", True):
                 assert not model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False), "ERROR : only on type of decoding should be set (for now)"
+                pdb.set_trace()
                 (text_decoded, src_text, target, src_words_from_embed), _, (attention, src_seq), (pred_norm,_, _, _)  \
                     = decode_sequence(model=model, char_dictionary=char_dictionary,
                                       max_len=max_len, src_seq=batch, src_len=batch_lens, input_word=input_word,

@@ -1,11 +1,11 @@
 from env.importing import *
-
 sys.path.insert(0, "..")
 sys.path.insert(0, ".")
+
 from training.train import train
 from io_.info_print import printing
 from evaluate.evaluate_epoch import evaluate
-from env.project_variables import CHECKPOINT_DIR, REPO_DATASET, SEED_NP, SEED_TORCH
+from env.project_variables import CHECKPOINT_DIR, REPO_DATASET
 from training.args_tool import args_train
 from toolbox.gpu_related import use_gpu_
 from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, CP_WR_PASTE_TEST_269, \
@@ -13,9 +13,6 @@ from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, C
     CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST, EWT_DEV, EWT_TEST, \
     LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO, EN_LINES_EWT_TRAIN, EN_LINES_DEV, EN_LINES_EWT_TRAIN, \
     MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, DEFAULT_SCORING_FUNCTION, WARMUP_N_EPOCHS
-
-np.random.seed(SEED_NP + 1)
-torch.manual_seed(SEED_TORCH)
 
 
 def get_data_set_label(data_set):
@@ -92,7 +89,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
     proportion_pred_train = args.get("proportion_pred_train",None)
     if teacher_force and proportion_pred_train is not None:
         printing("WARNING : inconsistent arguments solved :  proportion_pred_train forced to None while it was {} "
-                 "cause teacher_force mode",var=[proportion_pred_train], verbose=verbose, verbose_level=0)
+                 "cause teacher_force mode", var=[proportion_pred_train], verbose=verbose, verbose_level=0)
         proportion_pred_train = None
 
     stable_decoding_state = args.get("stable_decoding_state", False)
@@ -139,7 +136,8 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                             lr=lr, extend_n_batch=extend_n_batch,
                             n_epochs=n_epochs, normalization=normalization,get_batch_mode_all=get_batch_mode_all,
                             batch_size=batch_size, model_specific_dictionary=True, freq_writer=freq_writer,
-                            dict_path=None, model_dir=None, add_start_char=1, freq_scoring=freq_scoring,
+                            dict_path=None, model_dir=None, add_start_char=1,
+                            freq_scoring=freq_scoring,
                             add_end_char=1, use_gpu=use_gpu, dir_sent_encoder=dir_sent_encoder,
                             dropout_sent_encoder_cell=dropout_sent_encoder,
                             dropout_word_encoder_cell=dropout_word_encoder_cell,
@@ -205,7 +203,8 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                 printing("EVALUATING task {} on dataset {}", var=[task, eval_data_set], verbose=verbose, verbose_level=1)
                 evaluate(model_full_name=model_full_name, data_path=eval_data_set,
                          dict_path=dict_path, use_gpu=use_gpu,
-                         label_report=REPO_DATASET[eval_data_set], overall_label=overall_label+"-last+bucket_True_eval-get_batch_"+str(get_batch_mode_evaluate),
+                         label_report=REPO_DATASET[eval_data_set],
+                         overall_label=overall_label+"-last+bucket_True_eval-get_batch_"+str(get_batch_mode_evaluate),
                          score_to_compute_ls=score_to_compute_ls, mode_norm_ls=["all", "NEED_NORM", "NORMED"],
                          normalization=normalization, print_raw=print_raw,
                          model_specific_dictionary=True, get_batch_mode_evaluate=get_batch_mode_evaluate, bucket=True,
@@ -216,7 +215,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                          evaluated_task=task, tasks=tasks,
                          max_char_len=max_char_len,
                          dir_report=model_dir, verbose=1)
-        printing("GRID : END EVAL {} ".format(time.time()-start_eval), verbose=verbose, verbose_level=1)
+        printing("GRID : END EVAL {:.3f}s ".format(time.time()-start_eval), verbose=verbose, verbose_level=1)
     printing("WARNING : no evaluation ", verbose=verbose, verbose_level=0)
 
     return model_full_name, model_dir
@@ -224,9 +223,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
 
 if __name__ == "__main__":
 
-
     # just here to test train_eval workflow for prod like run : train_evaluate_run.py
-
     args = args_train(mode="script")
     params = vars(args)
 
@@ -248,7 +245,6 @@ if __name__ == "__main__":
                get_batch_mode_all=True, compute_mean_score_per_sent=False, bucketing_train=True, freq_checkpointing=1,
                symbolic_end=True, symbolic_root=True, freq_writer=1, compute_scoring_curve=False,
                verbose=args.verbose, warmup=args.warmup)
-
 
     #print(vars(argparse.Namespace()))
 

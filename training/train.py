@@ -10,8 +10,8 @@ from tracking.plot_loss import simple_plot
 
 from toolbox.checkpointing import checkpoint, update_curve_dic
 from io_.info_print import disable_tqdm_level, printing
-from env.project_variables import PROJECT_PATH, REPO_DATASET, SEED_TORCH, BREAKING_NO_DECREASE, CHECKPOINT_DIR, LOSS_DETAIL_TEMPLATE_LS, AVAILABLE_OPTIMIZER, TASKS_PARAMETER
-from env.project_variables import SEED_NP, SEED_TORCH, STARTING_CHECKPOINTING_WITH_SCORE
+from env.project_variables import PROJECT_PATH, REPO_DATASET, BREAKING_NO_DECREASE, CHECKPOINT_DIR, LOSS_DETAIL_TEMPLATE_LS, AVAILABLE_OPTIMIZER, TASKS_PARAMETER
+from env.project_variables import STARTING_CHECKPOINTING_WITH_SCORE
 
 from toolbox.gpu_related import use_gpu_
 from toolbox.sanity_check import get_timing, sanity_check_loss_poneration, sanity_check_checkpointing_metric
@@ -27,8 +27,6 @@ import toolbox.report_tools as rep_tl
 
 # TODO : make imports more concise
 
-np.random.seed(SEED_NP)
-torch.manual_seed(SEED_TORCH)
 ADAPTABLE_SCORING = True
 
 
@@ -273,12 +271,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
 
     for epoch in tqdm(range(starting_epoch, n_epochs), disable_tqdm_level(verbose=verbose, verbose_level=0)):
         index_look = 25
-        try:
-            print("DEBUG : TRAIN for index {}  vector : {} ".format(index_look, model.word_embedding.weight.data[index_look, :]))
-        except:
-            pass
-        parameters = filter(lambda p: p.requires_grad, model.parameters())
-        opt = dptx.get_optimizer(parameters, lr=lr, optimizer=optimizer)
+        #parameters = filter(lambda p: p.requires_grad, model.parameters())
+        decay_rate = 1
+        opt = dptx.get_optimizer(model.parameters(), lr=lr * decay_rate**epoch, optimizer="adam")
         assert policy in AVAILABLE_SCHEDULING_POLICIES
         policy_dic = eval(policy)(epoch) if policy is not None else None
         #TODO : no need of re-ouptuting multi_task_mode : tasks should be harmonized to read
@@ -301,6 +296,11 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
         start = time.time()
         printing("TRAINING : TEACHER FORCE : Schedule Sampling proportion of train on prediction is {} ", var=[proportion_pred_train],
                  verbose=verbose, verbose_level=2)
+
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                if name == "encoder.sent_encoder.weight_ih_l0":
+                    print("REPLICATION:epoch", epoch, "name", name, param.data)
         loss_train, loss_details_train, step_train = run_epoch(batchIter, model,
                                                                LossCompute(model.generator, opt=opt,
                                                                            multi_task_loss_ponderation=model.multi_task_loss_ponderation,
@@ -338,7 +338,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
         # TODO : should be able o factorize this to have a single run_epoch() for train and dev (I think the computaiton would be same )
         # TODO : should not evaluate for each epoch : should evalaute every x epoch : check if it decrease and checkpoint
         if (dev_report_loss and (epoch % freq_checkpointing == 0)) or (epoch + 1 == n_epochs):
-            printing("EVALUATION : computing loss on dev epoch {}  ",var=epoch, verbose=verbose, verbose_level=1)
+            printing("EVALUATION : computing loss on dev epoch {}  ", var=epoch, verbose=verbose, verbose_level=1)
             loss_obj = LossCompute(model.generator, use_gpu=use_gpu, verbose=verbose,
                                    multi_task_loss_ponderation=model.multi_task_loss_ponderation,
                                    writer=writer, use="dev",
@@ -375,14 +375,16 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
         # computing exact/edit score
         exact_only = False
         overall_report_ls = None
-        if compute_scoring_curve and ((epoch % freq_scoring == 0) or (epoch+1 == n_epochs)):
-            if epoch<1 and ADAPTABLE_SCORING:
-                freq_scoring*=5
-            if epoch>4 and epoch<6 and ADAPTABLE_SCORING:
-                freq_scoring*=3
+        # MODIFIED FREQ SCORING TO FREQ CHECKPOINTING
+
+        if compute_scoring_curve and ((epoch % (freq_checkpointing if checkpointing_metric != "loss-dev-all" else freq_scoring) == 0) or (epoch+1 == n_epochs)):
+            if epoch < 1 and ADAPTABLE_SCORING:
+                freq_scoring *= 5
+            if epoch > 4 and epoch < 6 and ADAPTABLE_SCORING:
+                freq_scoring *= 3
             if epoch > 14 and epoch < 15 and ADAPTABLE_SCORING:
-                freq_scoring*=2
-            if (epoch+1 == n_epochs):
+                freq_scoring *= 2
+            if ( epoch+1 == n_epochs):
               printing("EVALUATION : final scoring ", verbose, verbose_level=0)
             x_axis_epochs.append(epoch)
             printing("EVALUATION : Computing score on {} and {}  ", var=(score_to_compute_ls,mode_norm_ls), verbose=verbose, verbose_level=1)
@@ -440,17 +442,19 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
 
         # WARNING : only saving if we decrease not loading former model if we relaod
         if (checkpointing and epoch % freq_checkpointing == 0) or (epoch+1 == n_epochs):
-            if checkpointing_metric != "loss-dev-all" and epoch<STARTING_CHECKPOINTING_WITH_SCORE:
+            if checkpointing_metric != "loss-dev-all" and epoch < STARTING_CHECKPOINTING_WITH_SCORE:
               _checkpointing_metric = "loss-dev-all"
             elif checkpointing_metric != "loss-dev-all" :
               _checkpointing_metric = checkpointing_metric
               if epoch == STARTING_CHECKPOINTING_WITH_SCORE:
                 checkpoint_score_saved = -report["score"]
+                printing("Checkoint info : switching "
+                         "checkpoint_score_saved to {} : {}".format(checkpointing_metric, checkpoint_score_saved),
+                         verbose_level=1, verbose=verbose)
             elif checkpointing_metric == "loss-dev-all" :
               _checkpointing_metric = checkpointing_metric
             else:
               raise(Exception("You missed a case"))
-            
 
             dir_plot_detailed = simple_plot(final_loss=0,
                                             epoch_ls_1=epoch_ls_dev,epoch_ls_2=epoch_ls_dev,
@@ -472,15 +476,14 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
 
             sanity_check_checkpointing_metric(tasks, checkpointing_metric=_checkpointing_metric)
 
-            if _checkpointing_metric != "loss-dev-all" or (epoch == (STARTING_CHECKPOINTING_WITH_SCORE-1) and checkpointing_metric !="loss-dev-all"):
+            if _checkpointing_metric != "loss-dev-all" or \
+                    (epoch == (STARTING_CHECKPOINTING_WITH_SCORE-1) and checkpointing_metric != "loss-dev-all"):
                 # for now only useful when different from loss --> compute metric on dev all and default always
                 # assuing unitask thanks to sanity check
                 assert overall_report_ls is not None, "ERROR overall_report_ls  was not defined "
-                report = rep_tl.get_score(overall_report_ls,
-                                          metric=TASKS_PARAMETER[tasks[0]].get("default_metric"),
-                                          data=REPO_DATASET[dev_path[0]], info_score="all",
-                                          task=tasks[0])
-                # Negative cause it's an accyracy
+                report = rep_tl.get_score(overall_report_ls, metric=TASKS_PARAMETER[tasks[0]].get("default_metric"),
+                                          data=REPO_DATASET[dev_path[0]], info_score="all", task=tasks[0])
+                # Negative cause it's an accuracy
                 checkpoint_score = -report["score"]
             else:
                 checkpoint_score = loss_dev
@@ -507,7 +510,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                           "weight_binary_loss": weight_binary_loss*int(auxilliary_task_norm_not_norm),
                                                           "weight_pos_loss": weight_pos_loss*int(auxilliary_task_pos),
                                                           "ponderation_normalize_loss": ponderation_normalize_loss,
-                                                          "data": "dev", "seed(np/torch)": (SEED_TORCH, SEED_TORCH),
+                                                          "data": "dev", "seed(np/torch)": (SEED_NP, SEED_TORCH),
                                                           "extend_n_batch": extend_n_batch,
                                                           "lr": lr, "optim_strategy":"lr_constant",
                                                           "time_training(min)": "{0:.2f}".format(total_time/60),
@@ -529,12 +532,13 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
             print("Summary : {}".format(OrderedDict([("_train_ep_time", _train_ep_time), ("_create_iter_time", _create_iter_time), ("_eval_time",_eval_time) ])))
 
     writer.close()
+    printing("REPORT : run `tensorboard --logdir `  ", verbose=verbose, verbose_level=1)
 
     simple_plot(final_loss=loss_dev,
                 loss_ls=loss_training, loss_2=loss_developing,
                 epoch_ls_1=epoch_ls_train,epoch_ls_2=epoch_ls_dev,
                 epochs=n_epochs, save=True,
                 dir=model.dir_model, label=label_train, label_2=label_dev,
-                lr=lr, prefix=model.model_full_name+"-LAST")
-   
+                lr=lr, prefix=model.model_full_name+"-LAST", verbose=verbose)
+
     return model.model_full_name

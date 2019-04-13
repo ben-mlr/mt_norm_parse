@@ -3,15 +3,11 @@ from env.importing import *
 from io_.info_print import printing
 from io_.from_array_to_text import output_text, output_text_
 from io_.dat.constants import PAD_ID_CHAR, CHAR_END_ID
-from env.project_variables import SEED_TORCH, SEED_NP
 from toolbox.sanity_check import get_timing, sanity_check_model_pred
 # EPSILON for the test of edit distance
 
 EPSILON = 0.000001
 TEST_SCORING_IN_CODE = False
-
-torch.manual_seed(SEED_TORCH)
-np.random.seed(SEED_NP)
 
 
 def decode_word(model, src_seq, src_len,
@@ -168,7 +164,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
             output_len = output_len.cuda()
         start = time.time() if timing else None
 
-        #pdb.set_trace()
+        pdb.set_trace()
         decoding_states, word_pred, pos_pred, norm_not_norm, edit_pred, attention, _ = model.forward(input_seq=src_seq,
                                                                                           output_seq=output_seq,
                                                                                           input_word_len=src_len,

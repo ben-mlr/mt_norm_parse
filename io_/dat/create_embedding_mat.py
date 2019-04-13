@@ -1,5 +1,4 @@
-import numpy as np
-import torch
+from env.importing import *
 from io_.info_print import printing
 from io_.dat.constants import UNK_ID
 
@@ -42,9 +41,9 @@ def construct_word_embedding_table(word_dim, word_dictionary, word_embed_init_to
             oov += 1
         table[index, :] = embedding
         #print("repeat", table[index, :])
-    printing("W2V INFO : Mean of preloaded w2v {} var {} while the one generated randomly have {} mean and {} var in average", var=[mean/inv,
-                                                                                                                                    var/inv,
-                                                                                                                                    mean_oov/oov ,var_oov/oov ], verbose_level=1, verbose=verbose)
+    printing("W2V INFO : Mean of preloaded w2v {} var {} "
+             "while the one generated randomly have {} mean and {} var in average",
+             var=[mean/inv, var/inv, mean_oov/oov, var_oov/oov ], verbose_level=1, verbose=verbose)
     printing('W2V INFO  : OOV: %d/%d (%f rate (percent)) in %d' % (oov, len(word_dictionary) + 1, 100 * float(oov / (len(word_dictionary) + 1)), inv), verbose_level=1, verbose=verbose)
     word = "the"
     print("word {} of index {} has vector {} ".format(word, index, embedding))

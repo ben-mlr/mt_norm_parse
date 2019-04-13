@@ -4,7 +4,6 @@ from io_.info_print import printing
 
 
 def simple_plot(final_loss, loss_ls, epoch_ls_1, epoch_ls_2=None,loss_2=None, epochs=None, V=None, seq_len=None,
-
                 label="", label_2="",
                 dir="/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/test_/test_logs",
                 lr=None, save=False, show=True, prefix="test", verbose=0, verbose_level=1):
@@ -14,7 +13,7 @@ def simple_plot(final_loss, loss_ls, epoch_ls_1, epoch_ls_2=None,loss_2=None, ep
     if len(label_2) > 0:
         assert len(label) > 0, "label should be specified as label_2 is "
 
-    printing("Final Loss to be plotted {} ".format(final_loss), verbose=0, verbose_level=1)
+    printing("REPORT : Final Loss to be plotted {} ".format(final_loss), verbose=verbose, verbose_level=1)
     plt.figure()
     plt.title("Training Loss with after {} epo (lr {}) ".format(epochs, lr))
     plt.xlabel("epoch")
@@ -30,7 +29,8 @@ def simple_plot(final_loss, loss_ls, epoch_ls_1, epoch_ls_2=None,loss_2=None, ep
     dir_fig = os.path.join(dir, "{}-{}-plo-seq.png".format(prefix, "last", V, lr, seq_len))
     if save:
         plt.savefig(dir_fig)
-        printing("Learning curve saved at {} ", var= ([dir_fig]), verbose=verbose, verbose_level=verbose_level)
+        printing("REPORT : Learning curve saved at {} ", var=([dir_fig]),
+                 verbose=verbose, verbose_level=verbose_level)
 
     if show:
         print("Not Showing loss")
@@ -47,7 +47,7 @@ def simple_plot_ls(final_loss, losses_ls, x_axis,
                    label_color_0="", label_color_1="",
                    prefix="simple_plot_ls", verbose=1, verbose_level=1):
 
-    printing("Final Loss to be plotted {} ".format(final_loss), verbose=0, verbose_level=0)
+    printing("REPORT : Final Loss to be plotted {} ".format(final_loss), verbose=verbose, verbose_level=1)
     plt.figure(figsize=(20, 10))
     plt.title("Score after {} epo (lr {}) only {} ".format(epochs, lr, filter_by_label))
     plt.xlabel("epoch")
@@ -72,9 +72,10 @@ def simple_plot_ls(final_loss, losses_ls, x_axis,
     dir_fig = os.path.join(dir, "{}-filtered_by-{}-lr-plot-seq.png".format(prefix, filter_by_label))
     if save:
         plt.savefig(dir_fig)
-        printing("Scoring curves saved at {} ", var=([dir_fig]), verbose=verbose, verbose_level=verbose_level)
+        printing("REPORT : Scoring curves plot saved at {} ", var=([dir_fig]), verbose=verbose, verbose_level=verbose_level)
     plt.close()
     return dir_fig
+
 
 if __name__=="__main__":
     repo = git.Repo(search_parent_directories=True)

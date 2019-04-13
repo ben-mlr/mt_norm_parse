@@ -9,10 +9,12 @@ def checkpoint(loss_saved, loss, model, model_dir, epoch, epochs, info_checkpoin
     pdb.set_trace()
     if loss < loss_saved:
         saved_epoch = epoch
-        loss_saved = loss
-        printing('Checkpoint info : {} decreased so saving model saved epoch is {} (counter_no_decrease set to 0)',
-                 var=[checkpointing_metric, saved_epoch],
+        printing('Checkpoint info : {} (former:{} current:{}) decreased so saving model '
+                 'saved epoch is {} (actual epoch {}) (counter_no_decrease set to 0)',
+                 var=[checkpointing_metric, loss_saved, loss, saved_epoch, epoch],
                  verbose=verbose, verbose_level=1)
+        loss_saved = loss
+
         _,_, checkpoint_dir = model.save(model_dir, model, info_checkpoint=info_checkpoint,
                                          extra_arg_specific_label=extra_arg_specific_label,
                                          suffix_name="{}-{}of{}epoch".format(extra_checkpoint_label, epoch, epochs), verbose=verbose)
@@ -26,9 +28,9 @@ def checkpoint(loss_saved, loss, model, model_dir, epoch, epochs, info_checkpoin
         #model.load_state_dict(torch.load(checkpoint_dir))
         # TODO : load former checkpoint : and do change loss append IF error suddendly pick
         counter_no_decrease += 1
-        printing("Checkpoint info: {} did not decrease so keeping former model of epoch {} "
-                 "counter_no_decrease is now {} ",
-                 var=[checkpointing_metric, saved_epoch, counter_no_decrease], verbose=verbose, verbose_level=1)
+        printing("Checkpoint info: {} (former:{} current:{}) did not decrease so keeping former model of epoch {} "
+                 "counter_no_decrease is now {} (actual epoch {}) ",
+                 var=[checkpointing_metric, loss_saved, loss, saved_epoch, counter_no_decrease, epoch], verbose=verbose, verbose_level=1)
 
     return model, loss_saved, counter_no_decrease, saved_epoch, checkpoint_dir_former
 

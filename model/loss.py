@@ -2,7 +2,7 @@ from env.importing import *
 
 from model.generator import Generator
 from io_.info_print import printing
-from io_.dat.constants import PAD_ID_NORM_NOT_NORM, PAD_ID_WORD, PAD_ID_TAG
+from io_.dat.constants import PAD_ID_NORM_NOT_NORM, PAD_ID_WORD, PAD_ID_TAG, PAD_ID_CHAR
 from env.project_variables import LOSS_DETAIL_TEMPLATE
 from toolbox.sanity_check import get_timing
 from toolbox.norm_not_norm import schedule_training
@@ -29,7 +29,7 @@ class LossCompute:
 
         self.multi_task_loss_ponderation = multi_task_loss_ponderation
         self.writer = writer
-        self.loss_distance = nn.CrossEntropyLoss(reduce=True, ignore_index=pad) if char_decoding else None
+        self.loss_distance = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_CHAR) if char_decoding else None
         self.loss_binary = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_NORM_NOT_NORM) if auxilliary_task_norm_not_norm else None
         self.loss_edit = nn.MSELoss(reduce=True) if "edit_prediction" in tasks else None
         self.loss_distance_word_level = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_WORD) if word_decoding else None
@@ -69,20 +69,24 @@ class LossCompute:
         if self.loss_binary is not None:
             assert x_norm_not_norm is not None , \
                 "ERROR : auxilliary_task_norm_not_norm was set to True but x_norm_not_norm {} ".format(x_norm_not_norm)
-        printing("LOSS decoding states {} ", var=[x.size()] if x is not None else None, verbose=self.verbose, verbose_level=3)
+        printing("LOSS decoding states {} ", var=[x.size()] if x is not None else None, verbose=self.verbose,
+                 verbose_level=3)
         start = time.time() if self.timing else None
         x = self.generator(x) if x is not None else None
         generate_time, start = get_timing(start)
         if self.use_gpu:
             printing("LOSS : use gpu is True", self.verbose, verbose_level=3)
         if x is not None:
-            printing("LOSS input x candidate scores size {} ", var=[x.size()],verbose= self.verbose, verbose_level=4)
-            printing("LOSS input y observations size {} ", var=[y.size()], verbose=self.verbose, verbose_level=4)
-            printing("LOSS input x candidate scores   {} ", var=(x), verbose=self.verbose,verbose_level=5)
+            printing("LOSS input x candidate scores size {} ",
+                     var=[x.size()],verbose= self.verbose, verbose_level=4)
+            printing("LOSS input y observations size {} ",
+                     var=[y.size()], verbose=self.verbose, verbose_level=4)
+            printing("LOSS input x candidate scores   {} ",
+                     var=(x), verbose=self.verbose,verbose_level=4)
             printing("LOSS input x candidate scores  reshaped {} ", var=(x.view(-1, x.size(-1))),
-                     verbose=self.verbose, verbose_level=5)
+                     verbose=self.verbose, verbose_level=4)
             printing("LOSS input y observations {} reshaped {} ", var=(y, y.contiguous().view(-1)),
-                     verbose=self.verbose, verbose_level=5)
+                     verbose=self.verbose, verbose_level=4)
             # we remove empty words in the gold
         y = y[:, :x.size(1), :] if x is not None else None
         y_edit = y_edit[:, :pred_edit.size(1)] if y_edit is not None else None
@@ -99,31 +103,28 @@ class LossCompute:
             printing("TYPE  y {} is cuda ", var=(y.is_cuda), verbose=0, verbose_level=5)
         reshaping, start = get_timing(start)
         if self.loss_distance is not None:
-            loss = self.loss_distance(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1))
+            loss_generation = self.loss_distance(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1))
         elif self.loss_distance_word_level is not None:
-            loss = self.loss_distance_word_level(x_word_pred.contiguous().view(-1, x_word_pred.size(-1)), y_word.contiguous().view(-1))
+            loss_generation = self.loss_distance_word_level(x_word_pred.contiguous().view(-1, x_word_pred.size(-1)), y_word.contiguous().view(-1))
             assert ponderation_normalize_loss is not None
             assert scheduling_normalize is not None
         else:
-            loss = 0
+            loss_generation  = 0
         #else:
         #    print("no loss were set up for normalization")
         #    raise(Exception)
         loss_distance_time, start = get_timing(start)
         loss_binary = 0
         if self.loss_binary is not None:
-            # PROBLEMS IN THE LABELS !!
             if y_norm_not_norm is not None:
                 loss_binary = self.loss_binary(x_norm_not_norm.contiguous().view(-1, x_norm_not_norm.size(-1)),y_norm_not_norm.contiguous().view(-1))
-            #except:
-            #    pdb.set_trace()
-            #    loss_binary = self.loss_binary(x_norm_not_norm.contiguous().view(-1, x_norm_not_norm.size(-1)), y_norm_not_norm.contiguous().view(-1))
+
             assert weight_binary_loss is not None
             assert scheduling_norm_not_norm is not None
         loss_edit = 0
         if self.loss_edit is not None and y_edit is not None:
             # self.loss_edit tells us it model has ability to predict edit, y_edit if we provided labels (could use pred_edit also in a way)
-            assert pred_edit is not None, "ERROR pred_edit was given as None while model has a loss_edit and we got label"
+            assert pred_edit is not None, "ERROR pred_edit was given as None while model has a  _edit and we got label"
             loss_edit = self.loss_edit(pred_edit.contiguous().view(-1), y_edit.contiguous().view(-1))
 
         if pos_batch and self.loss_distance_pos is not None:
@@ -133,16 +134,14 @@ class LossCompute:
         else:
             loss_pos = 0
 
-        if loss_binary is not None or (pos_batch and self.loss_distance_pos is not None) :
-            multi_task_loss = ponderation_normalize_loss*scheduling_normalize*loss+\
-                              weight_binary_loss*loss_binary*scheduling_norm_not_norm+\
-                              schedule_pos*loss_pos*weight_pos_loss+loss_edit*scheduling_edit
-        else:
-            multi_task_loss = loss
+        multi_task_loss = ponderation_normalize_loss*scheduling_normalize*loss_generation +\
+                          weight_binary_loss*loss_binary*scheduling_norm_not_norm+\
+                          schedule_pos*loss_pos*weight_pos_loss+\
+                          loss_edit*scheduling_edit
 
         loss_details["overall_loss"] = multi_task_loss.item()
-        if not isinstance(loss, int):
-            loss_details["loss_seq_prediction"] = loss.item()
+        if not isinstance(loss_generation , int):
+            loss_details["loss_seq_prediction"] = loss_generation.item()
         else:
             loss_details["loss_seq_prediction"] = 0
         if not isinstance(loss_binary,int):
@@ -151,8 +150,8 @@ class LossCompute:
 
         if self.writer is not None:
             self.writer.add_scalars("loss-"+self.use,
-                                    {"loss-{}-seq_pred".format(self.use): loss.clone().cpu().data.numpy() if not isinstance(loss, int) else 0,
-                                     "loss-{}-seq_pred-ponderation_normalize_loss".format(self.use): loss.clone().cpu().data.numpy()*ponderation_normalize_loss if not isinstance(loss, int) else 0,
+                                    {"loss-{}-seq_pred".format(self.use): loss_generation .clone().cpu().data.numpy() if not isinstance(loss_generation , int) else 0,
+                                     "loss-{}-seq_pred-ponderation_normalize_loss".format(self.use): loss_generation .clone().cpu().data.numpy()*ponderation_normalize_loss if not isinstance(loss, int) else 0,
                                      "loss-{}-multitask".format(self.use): multi_task_loss.clone().cpu().data.numpy(),
                                      "loss-{}-loss_binary".format(self.use): loss_binary.clone().cpu().data.numpy() if not isinstance(loss_binary, int) else 0,
                                      "loss-{}-loss_pos-schedule_pos".format(self.use): loss_pos.clone().cpu().data.numpy()*schedule_pos*weight_pos_loss if not isinstance(loss_pos, int) else 0,

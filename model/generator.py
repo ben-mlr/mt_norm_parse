@@ -18,10 +18,11 @@ class Generator(nn.Module):
     def forward(self, x):
         # return F.log_softmax(self.proj(x), dim=-1)
         # the log_softmax is done within the loss
-        activation = eval(self.activation)
+        activation = nn.ReLU#eval(self.activation)
         y = activation()(self.dense(x))
         proj = self.proj(y)
-        printing("TYPE  proj {} is cuda ", var=(proj.is_cuda), verbose=0, verbose_level=4)
+        printing("TYPE  proj {} is cuda ",
+                 var=(proj.is_cuda), verbose=0, verbose_level=4)
         if self.verbose >= 3:
             print("PROJECTION {} size".format(proj.size()))
         if self.verbose >= 5:

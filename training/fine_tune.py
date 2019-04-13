@@ -7,14 +7,11 @@ from evaluate.evaluate_epoch import evaluate
 from env.project_variables import PROJECT_PATH, TRAINING, DEV, DIR_TWEET_W2V, LIU_TRAIN, LIU_DEV, TEST, DIR_TWEET_W2V, CHECKPOINT_DIR, DEMO, DEMO2, CP_PASTE_WR_TRAIN,CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST
 from toolbox.gpu_related import use_gpu_
 from io_.info_print import printing
-from env.project_variables import CHECKPOINT_DIR, REPO_DATASET, SEED_NP, SEED_TORCH
+from env.project_variables import CHECKPOINT_DIR, REPO_DATASET
 from evaluate.evaluate_epoch import evaluate
 from model.generator import Generator
 from model.seq2seq import LexNormalizer
 from training.train import train
-
-np.random.seed(SEED_NP)
-torch.manual_seed(SEED_TORCH)
 
 
 def fine_tune(train_path, dev_path, test_path, n_epochs,  model_full_name, learning_rate,tasks,
