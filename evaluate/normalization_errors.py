@@ -154,7 +154,6 @@ def correct_pred_counter(ls_pred, ls_gold, ls_original, pred_norm_not_norm=None,
             dic.update(return_dic)
             # DEPRECIATED
             dic["n_sents"] = len(sent_score_ls)
-            pdb.set_trace()
 
     formulas_bin = None
     if task in ["normalize", "norm_not_norm"]:

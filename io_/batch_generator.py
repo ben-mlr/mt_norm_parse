@@ -26,9 +26,8 @@ class MaskBatch(object):
         self.input_seq = input_seq
         self.pos = pos
         self.input_word = input_word
-        if dropout_input>0:
+        if dropout_input > 0:
             # we put it jere so that input_seq_mask computed based on droped input_seq # migh cause trouble for input_seq_len
-            #pdb.set_trace()
             droping_multiplier_word = torch.zeros_like(input_word).bernoulli_(1-dropout_input)
             # NB : we can use this droping cause we replace by 0 character and word id which corresponds to UNK token
             droping_multiplier_word[0, :] = 1
@@ -57,9 +56,9 @@ class MaskBatch(object):
         # NB : Have to use numpy here cause inconsistent implementation of argmin in pytorch
         #self.input_seq_len = torch.argmin(_input_seq_mask.cpu(), dim=-1) # # PYTORCH 0.4
         self.input_seq_len = torch.Tensor(np.argmin(np.array(_input_seq_mask), axis=-1)).int()## PYTORCH 1.0 (or O.4)
-
         if _input_seq_mask.is_cuda:
             self.input_seq_len = self.input_seq_len.cuda()
+
         get_len_input, start = get_timing(start)
         printing("BATCH : SOURCE true dim size {} ", var=(self.input_seq.size()), verbose=verbose, verbose_level=3)
         printing("BATCH : SOURCE input_seq_len  {} ", var=(self.input_seq_len), verbose=verbose, verbose_level=5)
@@ -69,11 +68,12 @@ class MaskBatch(object):
         if output_seq is not None:
             ##- would be last dim also !
             self.output_seq_x = output_seq[:, :, :-1]
-            droping_multiplier_char_output_seq = torch.zeros_like(self.output_seq_x).bernoulli_(1 - dropout_input)
-            droping_multiplier_char_output_seq[0, :, :] = 1  # making sure first tokens are always untouched
-            droping_multiplier_char_output_seq[self.output_seq_x == PAD_ID_CHAR] = 1  # making sure padding are always untouched
-            droping_multiplier_char_output_seq[self.output_seq_x == CHAR_END_ID] = 1  # making sure padding are always untouched
-            self.output_seq_x = torch.mul(droping_multiplier_char_output_seq, self.output_seq_x)
+            if dropout_input>0:
+                droping_multiplier_char_output_seq = torch.zeros_like(self.output_seq_x).bernoulli_(1 - dropout_input)
+                droping_multiplier_char_output_seq[0, :, :] = 1  # making sure first tokens are always untouched
+                droping_multiplier_char_output_seq[self.output_seq_x == PAD_ID_CHAR] = 1  # making sure padding are always untouched
+                droping_multiplier_char_output_seq[self.output_seq_x == CHAR_END_ID] = 1  # making sure padding are always untouched
+                self.output_seq_x = torch.mul(droping_multiplier_char_output_seq, self.output_seq_x)
             zero_last_output, start = get_timing(start)
             ##- ? what unsequeeze
             _output_mask_x = (self.output_seq_x != pad).unsqueeze(-2)
@@ -94,7 +94,7 @@ class MaskBatch(object):
             self.ntokens = (self.output_seq_y != pad).data.sum()
             get_n_token, start = get_timing(start)
             # dealing with bach_size == 1
-            if self.output_seq_len.size(0) > 1 :
+            if self.output_seq_len.size(0) > 1:
                 output_y_shape = self.output_seq_y.size()
                 self.output_seq_y = self.output_seq_y.view(self.output_seq_y.size(0)*self.output_seq_y.size(1), self.output_seq_y.size(2))
                 output_seq_len = self.output_seq_len.view(self.output_seq_len.size(0)*self.output_seq_len.size(1))
@@ -126,12 +126,11 @@ class MaskBatch(object):
             self.output_seq_y = pack_padded_sequence(self.output_seq_y, output_seq_len.squeeze().cpu().numpy(),
                                                      batch_first=True)
             pack_output_y, start = get_timing(start)
-            #pdb.set_trace()
             self.output_seq_y, lenghts = pad_packed_sequence(self.output_seq_y, batch_first=True, padding_value=PAD_ID_CHAR)
             pad_output_y, start = get_timing(start)
             #useless but bug raised of not packeding (would like to remove packing which I think is useless ?)
 
-            self.output_seq_y = self.output_seq_y[inverse_perm_idx]
+            self.output_seq_y = self.output_seq_y[inverse_perm_idx,:]
             reorder_output_y, start = get_timing(start)
             #print("Warning confirm shape of")
             # we reshape so that it fits tthe generated sequence

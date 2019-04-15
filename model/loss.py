@@ -107,7 +107,7 @@ class LossCompute:
             assert ponderation_normalize_loss is not None
             assert scheduling_normalize is not None
         else:
-            loss_generation  = 0
+            loss_generation = 0
 
         loss_distance_time, start = get_timing(start)
         loss_binary = 0
@@ -175,7 +175,6 @@ class LossCompute:
             gradient_clipping, start = get_timing(start)
             printing("Optimizing", self.verbose, verbose_level=3)
             self.opt.step()
-            pdb.set_trace()
             step_opt_time, start = get_timing(start)
             zero_gradtime, start = get_timing(start)
         else:

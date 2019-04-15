@@ -135,9 +135,9 @@ if __name__ == "__main__":
           # default not used but could be
           #train_path, dev_path = MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV#MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
           # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#[TEST, TEST],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
-          train_path = [[DEMO, DEMO]]
-          dev_path = [[DEMO, DEMO2]]
-          test_path = [[[DEMO,DEMO]]]
+          train_path = [[DEMO]]
+          dev_path = [[DEMO]]
+          test_path = [[[DEMO]]]
           # TODO : test with normalize and other multi tasks !!
           params, labels, default_all, analysed, fixed = grid_param_label_generate(params_strong_tryal,
                                                                                    train_ls=train_path,
@@ -150,18 +150,18 @@ if __name__ == "__main__":
                                                                                    stable_decoding_state_ls=[0],
                                                                                    word_decoding_ls=[0],
                                                                                    batch_size_ls=[2], word_embed_ls=[0],
-                                                                                   dir_sent_encoder_ls=[2], dir_word_encoder_ls=[1],
-                                                                                   lr_ls=[0.0002],
+                                                                                   dir_sent_encoder_ls=[2], dir_word_encoder_ls=[2],
+                                                                                   lr_ls=[0.005],
                                                                                    word_embed_init_ls=[None],
                                                                                    #, DIR_FASTEXT_WIKI_NEWS_W2V, DIR_TWEET_W2V],
                                                                                    attention_tagging_ls=[1],
-                                                                                   char_src_attention_ls=[0],
+                                                                                   char_src_attention_ls=[1],
                                                                                    teacher_force_ls=[True],
-                                                                                   proportion_pred_train_ls=[0],
+                                                                                   proportion_pred_train_ls=[None],
                                                                                    shared_context_ls=["word"],
                                                                                    word_embedding_projected_dim_ls=[0],
                                                                                    char_level_embedding_projection_dim_ls=[30],
-                                                                                   tasks_ls=[["pos","normalize"]],
+                                                                                   tasks_ls=[["normalize"]],
                                                                                    n_layers_sent_cell_ls=[2],
                                                                                    n_layers_word_encoder_ls=[1],
                                                                                    unrolling_word_ls=[1],
@@ -233,9 +233,9 @@ if __name__ == "__main__":
           print("row:{}".format(row))
           run_grid(parameters=params, labels=labels, dir_grid=dir_grid,
                    label_grid=LABEL_GRID,
-                   epochs=1,
+                   epochs=30,
                    test_before_run=test_before_run,
-                   debug=False,
+                   debug=True,
                    scoring_func_sequence_pred="exact_match",
                    warmup=warmup)
           if row is not None:

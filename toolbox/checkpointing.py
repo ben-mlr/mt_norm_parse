@@ -6,7 +6,7 @@ def checkpoint(loss_saved, loss, model, model_dir, epoch, epochs, info_checkpoin
                counter_no_decrease, verbose, extra_checkpoint_label="",extra_arg_specific_label="",
                checkpointing_metric="loss-dev-all",
                checkpoint_dir_former=None, keep_all_checkpoint=False):
-    pdb.set_trace()
+
     if loss < loss_saved:
         saved_epoch = epoch
         printing('Checkpoint info : {} (former:{} current:{}) decreased so saving model '

@@ -261,6 +261,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
 
     dir_writer = os.path.join(overall_report_dir, "runs", "{}-model".format(model.model_full_name))
     writer = SummaryWriter(log_dir=dir_writer)
+    printing("REPORT : run `tensorboard --logdir={} --host=localhost --port=9101`  ",var=[dir_writer], verbose=verbose,
+             verbose_level=1)
     printing("REPORT : summary writer will be located {}", var=[dir_writer], verbose_level=1, verbose=verbose)
     step_train = 0
     step_dev = 0
@@ -387,7 +389,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
             printing("EVALUATION : Computing score on {} and {}  ", var=(score_to_compute_ls,mode_norm_ls), verbose=verbose, verbose_level=1)
             overall_report_ls = []
             for task, eval_data in zip(tasks, evaluation_set_reporting):
-                pdb.set_trace()
                 eval_label = REPO_DATASET[eval_data]
                 assert len(set(evaluation_set_reporting)) == len(evaluation_set_reporting),\
                     "ERROR : twice the same dataset has been provided for reporting which will mess up the loss"
@@ -412,7 +413,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
 
                 # dirty but do the job
                 exact_only = True
-                pdb.set_trace()
                 DEPRECIATED = False
                 if DEPRECIATED:
                     curve_scores = update_curve_dic(score_to_compute_ls=score_to_compute_ls, mode_norm_ls=mode_norm_ls,
@@ -529,7 +529,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
             print("Summary : {}".format(OrderedDict([("_train_ep_time", _train_ep_time), ("_create_iter_time", _create_iter_time), ("_eval_time",_eval_time) ])))
 
     writer.close()
-    printing("REPORT : run `tensorboard --logdir `  ", verbose=verbose, verbose_level=1)
+    printing("REPORT : run `tensorboard --logdir={} --host=localhost --port=9101`  ",var=[dir_writer], verbose=verbose, verbose_level=1)
 
     rep_tl.checkout_layer_name("encoder.seq_encoder.weight_ih_l0", model.named_parameters(), info_epoch="LAST")
 

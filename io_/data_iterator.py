@@ -27,10 +27,12 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
 
     if nbatch == 0:
         printing("INFO : n_sents < batch_size so nbatch set to 1 ", verbose=verbose, verbose_level=0)
-    printing("TRAINING : Task {} Running {} batches of {} dim (nsent : {} extended {} time(s)) (if 0 will be set to 1) ".format(task_info,
-                                                                                                            nbatch,
-                                                                                                            batch_size,
-                                                                                                            n_sents,extend_n_batch), verbose=verbose, verbose_level=1)
+    printing("TRAINING : Task {} Running {} batches of {} dim (nsent : {} extended {} time(s)) (if 0 will be set to 1) "
+             .format(task_info,
+                     nbatch,
+                     batch_size,
+                     n_sents, extend_n_batch), verbose=verbose, verbose_level=1)
+    printing("ITERATOR INFO : 1 epoch is {} iteration/step/batch (extension is {}) ", var=[nbatch,extend_n_batch], verbose=verbose, verbose_level=1)
     nbatch = 1 if nbatch == 0 else nbatch
     # deterministic run over all the dataset (for evaluation)
     if not normalization:

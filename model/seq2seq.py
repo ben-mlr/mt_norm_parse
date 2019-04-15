@@ -32,7 +32,7 @@ class LexNormalizer(nn.Module):
                  dense_dim_auxilliary=None,dense_dim_auxilliary_2=None,
                  dense_dim_auxilliary_pos=None, dense_dim_auxilliary_pos_2=None,
                  tasks=None,
-                 char_embedding_dim=None, hidden_size_encoder=None,output_dim=None,
+                 char_embedding_dim=None, hidden_size_encoder=None, output_dim=None,
                  hidden_size_sent_encoder=None,
                  weight_binary_loss=None,
                  n_layers_word_encoder=1,
@@ -399,10 +399,10 @@ class LexNormalizer(nn.Module):
                 self = self.cuda()
             else:
                 self.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
-            if loading_sanity_test:
+            if False:
                 assert len(sanity_test_dic) > 0, "ERROR loaded {} dictionary empty".format(sanity_test_dic)
-                loss, details, _ = get_loss(model=self, data_path=sanity_test_dic["data"],tasks=tasks,use_gpu=use_gpu,
-                         word_decoding=word_decoding, char_decoding=char_decoding, max_char_len=20)
+                loss, details, _ = get_loss(model=self, data_path=sanity_test_dic["data"], tasks=tasks, use_gpu=use_gpu,
+                                            word_decoding=word_decoding, char_decoding=char_decoding, max_char_len=20)
                 assert sanity_test_dic["loss"] == loss
                 printing("SANITY TEST PASSED : loss is {} on {} (detailed loss {})",
                          var=[loss, sanity_test_dic["data"], details],
@@ -434,9 +434,10 @@ class LexNormalizer(nn.Module):
                 word_embed_input = self.word_embedding_project(word_embed_input)
                 word_embed_input = self.dropout_word_encoder(word_embed_input)
 
-        context, sent_len_max_source, char_seq_hidden_encoder, word_src_sizes, attention_weights_char_tag = self.encoder.forward(input_seq,
-                                                                                                                                 input_word_len,
-                                                                                                                                 word_embed_input=word_embed_input)
+        context, sent_len_max_source, char_seq_hidden_encoder, word_src_sizes, attention_weights_char_tag = \
+            self.encoder.forward(input_seq,
+                                 input_word_len,
+                                 word_embed_input=word_embed_input)
 
         source_encoder, start = get_timing(start)
         # [] [batch, , hiden_size_decoder]
@@ -464,6 +465,7 @@ class LexNormalizer(nn.Module):
                                                                 char_seq_hidden_encoder=char_seq_hidden_encoder,
                                                                 proportion_pred_train=proportion_pred_train,
                                                                 sent_len_max_source=sent_len_max_source)
+
         else:
             output = None
             attention_weight_all = None

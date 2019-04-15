@@ -152,7 +152,6 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, task_simu
                         # TODO : should be able to merge word_decoding and char_decoding
                         assert not model.arguments["hyperparameters"]["decoder_arch"].get("word_decoding", False), \
                             "ERROR : only on type of decoding should be set (for now)"
-                        pdb.set_trace()
                         (text_decoded_ls, src_text_ls, gold_text_seq_ls, _), counts, _, \
                         (pred_norm, output_seq_n_hot, src_seq, target_seq_gold) = decode_sequence(model=model,
                                                                                                   char_dictionary=char_dictionary,
@@ -179,7 +178,6 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, task_simu
                     (_, _, src_seq_pos, target_seq_gold_pos) = decode_word(model, src_seq, src_len,
                                                                            input_word=batch.input_word,
                                                                            mode="pos", target_pos_gold=target_pos_gold)
-                    pdb.set_trace()
                 else:
                     pred_pos_ls, src_text_pos, gold_pos_seq_ls = None, None, None
 
@@ -238,7 +236,6 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, task_simu
                             pred_norm_not_norm = pred_norm
                             gold_norm_not_norm = batch.output_norm_not_norm
                             ls_original = src_text_ls
-                            pdb.set_trace()
                         _counter_correct_batch, _score_formulas = correct_pred_counter(ls_pred=ls_pred,
                                                                                        ls_gold=ls_gold,
                                                                                        output_seq_n_hot=output_seq_n_hot,

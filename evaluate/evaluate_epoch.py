@@ -127,8 +127,8 @@ def evaluate(batch_size, data_path, tasks, evaluated_task,
                                      evaluation_script_val="exact_match",
                                      model_args_dir=model.args_dir,
                                      data_val=REPO_DATASET[data_path])
-            over_all_report_dir = os.path.join(dir_report, model.model_full_name + "NEW-report-" + label_report + ".json")
-            over_all_report_dir_all_models = os.path.join(overall_report_dir, overall_label + "NEW-report.json")
+            over_all_report_dir = os.path.join(dir_report, model.model_full_name + "-report-" + label_report + ".json")
+            over_all_report_dir_all_models = os.path.join(overall_report_dir, overall_label + "-report.json")
             writing_mode = "w" if not os.path.isfile(over_all_report_dir) else "a"
             writing_mode_all_models = "w" if not os.path.isfile(over_all_report_dir_all_models) else "a"
             for dir, writing_mode in zip([over_all_report_dir, over_all_report_dir_all_models],
@@ -173,10 +173,10 @@ if __name__ == "__main__":
     PRED_AND_EVAL = True
     if PRED_AND_EVAL:
         #
-        for ablation_id in ["5ee6d-B0-model_1-model_1_2330"]:
+        for ablation_id in ["09b6e-B0-model_1-model_1_aa3a"]:
           for get_batch_mode_evaluate in [False]:
             for batch_size in [2]:
-              for data in [PERMUTATION_TRAIN]:
+              for data in [DEMO2]:
                 list_ = [dir_ for dir_ in list_all_dir if dir_.startswith(ablation_id) and not dir_.endswith("log") and not dir_.endswith(".json") and not dir_.endswith("summary")]
                 print("FOLDERS : ", list_)
                 if len(list_) == 0:
@@ -193,7 +193,7 @@ if __name__ == "__main__":
                            overall_label=ablation_id+"-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch",
                            mode_norm_ls=None, #score_to_compute_ls=["norm_not_norm-Recall"],
                            normalization=True, model_specific_dictionary=True, batch_size=batch_size,
-                           debug=False, bucket=False,
+                           debug=True, bucket=False,
                            compute_mean_score_per_sent=True,
                            word_decoding=False, char_decoding=True,
                            scoring_func_sequence_pred="exact_match",
