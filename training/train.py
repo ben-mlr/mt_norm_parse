@@ -387,7 +387,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
             printing("EVALUATION : Computing score on {} and {}  ", var=(score_to_compute_ls,mode_norm_ls), verbose=verbose, verbose_level=1)
             overall_report_ls = []
             for task, eval_data in zip(tasks, evaluation_set_reporting):
-            #for eval_data in evaluation_set_reporting:
                 pdb.set_trace()
                 eval_label = REPO_DATASET[eval_data]
                 assert len(set(evaluation_set_reporting)) == len(evaluation_set_reporting),\
@@ -500,7 +499,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                 "proportion_pred_train": proportion_pred_train,
                                                 "train_data_path": train_path, "dev_data_path": dev_path,
                                                 "other": {"error_curves": dir_plot, "loss": loss_dev,
-                                                          "sanity_check":{"loss": loss_dev, "data":dev_path},
+                                                          "sanity_test": {"loss": loss_dev, "data":dev_path},
                                                           "error_curves_details": dir_plot_detailed,
                                                           "dropout_input": dropout_input,
                                                           "checkpointing_metric": _checkpointing_metric,

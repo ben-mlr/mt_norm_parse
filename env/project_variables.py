@@ -26,8 +26,12 @@ SUPPORED_WORD_ENCODER = ["LSTM", "GRU", "WeightDropLSTM"]
 BREAKING_NO_DECREASE = 21
 STARTING_CHECKPOINTING_WITH_SCORE = 30
 SUPPORTED_STAT = ["sum"]
-LOSS_DETAIL_TEMPLATE = {"loss_overall": 0, "loss_seq_prediction": 0, "other": {}}
-LOSS_DETAIL_TEMPLATE_LS = {"loss_overall": [], "loss_seq_prediction": [], "other": {}}
+LOSS_DETAIL_TEMPLATE = {"loss_overall": 0,
+                        "loss_seq_prediction": 0, "loss_binary": 0, "loss_pos": 0, "loss_edit": 0,
+                        "other": {}}
+LOSS_DETAIL_TEMPLATE_LS = {"loss_overall": [], "loss_seq_prediction": [],
+                           "loss_binary": [], "loss_pos": [], "loss_edit": [],
+                           "other": {}}
 SCORE_AUX = ["norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recall", "norm_not_norm-accuracy"]
 
 AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm", "pos", "edit_prediction"]

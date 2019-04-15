@@ -44,8 +44,6 @@ class LossCompute:
                 self.loss_distance_word_level = self.loss_distance_word_level.cuda()
         self.opt = opt
         self.loss_details_template = LOSS_DETAIL_TEMPLATE.copy()
-        if auxilliary_task_norm_not_norm:
-            self.loss_details_template["loss_binary"] = 0
         self.model = model
         self.use_gpu = use_gpu
         self.use = use
@@ -98,7 +96,7 @@ class LossCompute:
         schedule_pos = loss_scheduler["pos"]
         scheduling_norm_not_norm = loss_scheduler["norm_not_norm"]
         scheduling_edit = loss_scheduler["edit_prediction"]
-        #print("sanitity", scheduling_normalize,  schedule_pos, scheduling_norm_not_norm)
+
         if y is not None:
             printing("TYPE  y {} is cuda ", var=(y.is_cuda), verbose=0, verbose_level=5)
         reshaping, start = get_timing(start)
@@ -110,9 +108,7 @@ class LossCompute:
             assert scheduling_normalize is not None
         else:
             loss_generation  = 0
-        #else:
-        #    print("no loss were set up for normalization")
-        #    raise(Exception)
+
         loss_distance_time, start = get_timing(start)
         loss_binary = 0
         if self.loss_binary is not None:
@@ -140,30 +136,37 @@ class LossCompute:
                           loss_edit*scheduling_edit
 
         loss_details["overall_loss"] = multi_task_loss.item()
-        if not isinstance(loss_generation , int):
-            loss_details["loss_seq_prediction"] = loss_generation.item()
-        else:
-            loss_details["loss_seq_prediction"] = 0
-        if not isinstance(loss_binary,int):
+        loss_details["loss_seq_prediction"] = loss_generation.item() if not isinstance(loss_generation , int) else 0
+        loss_details["loss_binary"] = loss_binary.item() if not isinstance(loss_binary, int) else 0
+        loss_details["loss_pos"] = loss_pos.item() if not isinstance(loss_pos, int) else 0
+        loss_details["loss_edit"] = loss_edit.item() if not isinstance(loss_edit, int) else 0
+
+        if not isinstance(loss_binary, int):
             printing("LOSS BINARY loss size {} ", var=(str(loss_binary.size())), verbose=self.verbose, verbose_level=3)
             printing("TYPE  loss_binary {} is cuda ", var=(loss_binary.is_cuda), verbose=0, verbose_level=5)
 
         if self.writer is not None:
             self.writer.add_scalars("loss-"+self.use,
-                                    {"loss-{}-seq_pred".format(self.use): loss_generation .clone().cpu().data.numpy() if not isinstance(loss_generation , int) else 0,
-                                     "loss-{}-seq_pred-ponderation_normalize_loss".format(self.use): loss_generation .clone().cpu().data.numpy()*ponderation_normalize_loss if not isinstance(loss, int) else 0,
-                                     "loss-{}-multitask".format(self.use): multi_task_loss.clone().cpu().data.numpy(),
-                                     "loss-{}-loss_binary".format(self.use): loss_binary.clone().cpu().data.numpy() if not isinstance(loss_binary, int) else 0,
-                                     "loss-{}-loss_pos-schedule_pos".format(self.use): loss_pos.clone().cpu().data.numpy()*schedule_pos*weight_pos_loss if not isinstance(loss_pos, int) else 0,
-                                     "loss-{}-loss_pos".format(self.use): loss_pos.clone().cpu().data.numpy() if not isinstance(loss_pos, int) else 0,
-                                     "loss-{}-loss_edit".format(self.use): loss_edit.clone().cpu().data.numpy() if not isinstance(loss_edit, int) else 0,
-                                     "loss-{}-loss_edit-schedule_edit".format(self.use): scheduling_edit*loss_edit.clone().cpu().data.numpy() if not isinstance(loss_edit,
-                                                                                                           int) else 0,
+                                    {"loss-{}-seq_pred".format(self.use):
+                                         loss_generation.clone().cpu().data.numpy() if not isinstance(loss_generation , int) else 0,
+                                     "loss-{}-seq_pred-ponderation_normalize_loss".format(self.use):
+                                         loss_generation.clone().cpu().data.numpy()*ponderation_normalize_loss if not isinstance(loss_generation, int) else 0,
+                                     "loss-{}-multitask".format(self.use):
+                                         multi_task_loss.clone().cpu().data.numpy(),
+                                     "loss-{}-loss_binary".format(self.use):
+                                         loss_binary.clone().cpu().data.numpy() if not isinstance(loss_binary, int) else 0,
+                                     "loss-{}-loss_pos-schedule_pos".format(self.use):
+                                         loss_pos.clone().cpu().data.numpy()*schedule_pos*weight_pos_loss if not isinstance(loss_pos, int) else 0,
+                                     "loss-{}-loss_pos".format(self.use):
+                                         loss_pos.clone().cpu().data.numpy() if not isinstance(loss_pos, int) else 0,
+                                     "loss-{}-loss_edit".format(self.use):
+                                         loss_edit.clone().cpu().data.numpy() if not isinstance(loss_edit, int) else 0,
+                                     "loss-{}-loss_edit-schedule_edit".format(self.use):
+                                         scheduling_edit*loss_edit.clone().cpu().data.numpy() if not isinstance(loss_edit, int) else 0,
                                      },
                                     step)
 
         if self.opt is not None:
-            pdb.set_trace()
             self.opt.zero_grad()
             multi_task_loss.backward()
             loss_backwrd_time, start = get_timing(start)
@@ -174,10 +177,10 @@ class LossCompute:
             self.opt.step()
             pdb.set_trace()
             step_opt_time, start = get_timing(start)
-            # TODO : should it be before ?
             zero_gradtime, start = get_timing(start)
         else:
-            printing("WARNING no optimization : is backward required here ? (loss.py) ", verbose=self.verbose, verbose_level=3)
+            printing("WARNING no optimization : is backward required here ? (loss.py) ",
+                     verbose=self.verbose, verbose_level=3)
         if self.timing:
             print("run loss timing : {} ".format(OrderedDict([("loss_distance_time", loss_distance_time),
                                                               ("reshaping", reshaping), ("generate_time", generate_time),

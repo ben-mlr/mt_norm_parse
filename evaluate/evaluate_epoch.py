@@ -25,13 +25,17 @@ def evaluate(batch_size, data_path, tasks, evaluated_task,
              write_report=True, dir_report=None,
              dict_path=None, model_full_name=None,
              score_to_compute_ls=None, mode_norm_ls=None, get_batch_mode_evaluate=True,
-             overall_label="ALL_MODELS",overall_report_dir=CHECKPOINT_DIR, bucket = False,
-             model_specific_dictionary=True, label_report="", print_raw=False, model=None,
-             compute_mean_score_per_sent=False,write_output=False,
+             overall_label="ALL_MODELS", overall_report_dir=CHECKPOINT_DIR, bucket=False,
+             model_specific_dictionary=True, label_report="",
+             print_raw=False,
+             model=None,
+             compute_mean_score_per_sent=False, write_output=False,
              word_decoding=False, char_decoding=True,
              extra_arg_specific_label="", scoring_func_sequence_pred="BLUE",
              max_char_len=None,
-             normalization=True, debug=False, force_new_dic=False, use_gpu=None, verbose=0):
+             normalization=True, debug=False,
+             force_new_dic=False,
+             use_gpu=None, verbose=0):
     assert model_specific_dictionary, "ERROR : only model_specific_dictionary = True supported now"
     # NB : now : you have to load dictionary when evaluating (cannot recompute) (could add in the LexNormalizer ability)
     use_gpu = use_gpu_(use_gpu)
@@ -59,6 +63,7 @@ def evaluate(batch_size, data_path, tasks, evaluated_task,
                           voc_size=voc_size, use_gpu=use_gpu, dict_path=dict_path, model_specific_dictionary=True,
                           dir_model=os.path.join(PROJECT_PATH, "checkpoints", model_full_name + "-folder"),
                           extra_arg_specific_label=extra_arg_specific_label,
+                          loading_sanity_test=True,
                           verbose=verbose
                           ) if model is None else model
 

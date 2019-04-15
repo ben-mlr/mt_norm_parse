@@ -18,6 +18,7 @@ from toolbox.deep_learning_toolbox import count_trainable_parameters
 from toolbox.sanity_check import get_timing
 from toolbox.checkpointing import get_args
 from model.decoder import WordDecoder
+from evaluate.evaluate_loss_sanity_test import get_loss
 
 
 TEMPLATE_INFO_CHECKPOINT = {"n_epochs": 0, "batch_size": None,
@@ -55,6 +56,7 @@ class LexNormalizer(nn.Module):
                  extend_vocab_with_test=False, test_path=None,
                  extra_arg_specific_label="", multi_task_loss_ponderation=None,
                  activation_char_decoder=None, activation_word_decoder=None, expand_vocab_dev_test=False,
+                 loading_sanity_test=True,
                  verbose=0, load=False, dir_model=None, model_full_name=None, use_gpu=False, timing=False):
         """
         character level Sequence to Sequence model for normalization
@@ -179,6 +181,7 @@ class LexNormalizer(nn.Module):
                                                   "tasks_schedule_policy": None,
                                                   "tasks": tasks, # TODO : remove aux pos and norm not norm boolean from json
                                                   "proportion_pred_train": None,
+                                                  "sanity_test": None,
                                                   "auxilliary_arch": {
                                                                   "weight_binary_loss": weight_binary_loss,
                                                                   "auxilliary_task_norm_not_norm": self.auxilliary_task_norm_not_norm,
@@ -250,6 +253,7 @@ class LexNormalizer(nn.Module):
             args = args["hyperparameters"]
             # -1 because when is passed for checking it accounts for the unkwnown which is
             # actually not appear in the dictionary
+            assert args.get("tasks") == tasks, "ERROR : {} found do not match {}".format(args.get("tasks"), tasks)
             assert args.get("word_voc_input_size", 0) == word_voc_input_size, "ERROR : voc_size word_voc_input_size and voc_size " "redefined in dictionnaries do not match {} vs {} ".format(args.get("word_voc_input_size",0), word_voc_input_size)
             assert args["voc_size"] == voc_size, "ERROR : voc_size loaded and voc_size " \
                                                  "redefined in dictionnaries do not " \
@@ -268,8 +272,8 @@ class LexNormalizer(nn.Module):
             word_decoding, char_decoding, auxilliary_task_pos, dense_dim_auxilliary_pos, dense_dim_auxilliary_pos_2, \
                 dense_dim_word_pred, dense_dim_word_pred_2, dense_dim_word_pred_3, \
                 symbolic_root, symbolic_end, word_embedding_dim, word_embed, word_embedding_projected_dim, \
-                activation_char_decoder, activation_word_decoder, attention_tagging, char_level_embedding_projection_dim, mode_word_encoding, multi_task_loss_ponderation \
-                = get_args(args, False)
+                activation_char_decoder, activation_word_decoder, attention_tagging, char_level_embedding_projection_dim, mode_word_encoding, multi_task_loss_ponderation, \
+                sanity_test_dic = get_args(args, False)
 
             printing("Loading model with argument {}", var=[args], verbose=0, verbose_level=0)
             self.args_dir = args_dir
@@ -342,10 +346,8 @@ class LexNormalizer(nn.Module):
                                    word_embedding_dim_inputed=word_embedding_projected_dim if word_embedding_projected_dim is not None else word_embedding_dim,
                                    verbose=verbose)
 
-        p_word = 1 if shared_context in ["word", "all", "none"] else 0
-        p_sent = 1 if shared_context in ["sent", "all"] else 0
+
         # in sent case : the word embedding only ges int to the word encoder so no need of larger bridge
-        p_word_emb = 1 if shared_context != "sent" else 0
         self.shared_context = shared_context
         self.multi_task_loss_ponderation = multi_task_loss_ponderation
 
@@ -359,8 +361,10 @@ class LexNormalizer(nn.Module):
                  var=dropout_char_encoder, verbose=verbose, verbose_level=1)
         self.dropout_char_encoder = nn.Dropout(p=dropout_char_encoder)
         self.dropout_word_encoder = nn.Dropout(p=dropout_char_encoder)
+        # TODO : rely only on the parameter 'tasks'
         self.normalize_not_normalize = BinaryPredictor(input_dim=hidden_size_decoder, dense_dim=dense_dim_auxilliary,
                                                        dense_dim_2=dense_dim_auxilliary_2) if self.auxilliary_task_norm_not_norm else None
+
         self.generator = generator(hidden_size_decoder=hidden_size_decoder, voc_size=voc_size,
                                    activation=activation_char_decoder,
                                    output_dim=output_dim, verbose=verbose) if char_decoding else None
@@ -382,7 +386,7 @@ class LexNormalizer(nn.Module):
         voc_pos_size = len(self.pos_dictionary.instance2index)+1
         self.pos_predictor = PosPredictor(voc_pos_size=voc_pos_size,
                                           input_dim=hidden_size_decoder,
-                                          dense_dim=dense_dim_auxilliary_pos) if auxilliary_task_pos else None
+                                          dense_dim=dense_dim_auxilliary_pos) if "pos" in tasks else None #if auxilliary_task_pos else None
 
         self.edit_predictor = EditPredictor(input_dim=hidden_size_decoder, dense_dim=50) if "edit_prediction" in tasks else None
         self.verbose = verbose
@@ -395,11 +399,14 @@ class LexNormalizer(nn.Module):
                 self = self.cuda()
             else:
                 self.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
-            loading_sanity_test = True
             if loading_sanity_test:
-                # get dataset_path, get loss
-                # evaluate
-                pass
+                assert len(sanity_test_dic) > 0, "ERROR loaded {} dictionary empty".format(sanity_test_dic)
+                loss, details, _ = get_loss(model=self, data_path=sanity_test_dic["data"],tasks=tasks,use_gpu=use_gpu,
+                         word_decoding=word_decoding, char_decoding=char_decoding, max_char_len=20)
+                assert sanity_test_dic["loss"] == loss
+                printing("SANITY TEST PASSED : loss is {} on {} (detailed loss {})",
+                         var=[loss, sanity_test_dic["data"], details],
+                         verbose=verbose, verbose_level=1)
 
     def forward(self, input_seq, input_word_len, word_embed_input=None,
                 output_word_len=None, output_seq=None, word_level_predict=False,
@@ -521,6 +528,7 @@ class LexNormalizer(nn.Module):
         model.arguments["checkpoint_dir"] = checkpoint_dir
         model.arguments["hyperparameters"]["dropout_input"] = info_checkpoint["other"]["dropout_input"]
         model.arguments["hyperparameters"]["checkpointing_metric"] = info_checkpoint["other"]["checkpointing_metric"]
+        model.arguments["hyperparameters"]["sanity_test"] = info_checkpoint["other"]["sanity_test"]
         # the arguments dir does not change !
         if len(extra_arg_specific_label) > 0:
             extra_arg_specific_label += "-"
@@ -528,7 +536,6 @@ class LexNormalizer(nn.Module):
                      verbose=0)
         arguments_dir = os.path.join(dir,  model.model_full_name + "-" + extra_arg_specific_label + "args.json")
         model.args_dir = arguments_dir
-
 
         if os.path.isfile(arguments_dir):
             printing("Overwriting argument file (checkpoint dir updated with {}  ) ", var=[checkpoint_dir],

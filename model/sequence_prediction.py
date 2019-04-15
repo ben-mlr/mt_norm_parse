@@ -194,7 +194,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         predictions = scores.argmax(dim=-1)
 
         time_argmax_printing, start = get_timing(start)
-        if verbose >= 0:
+        if verbose >= 4:
             # .size() takes some time
             printing("Prediction size {} ", var=(predictions.size()), verbose=verbose, verbose_level=0)
             printing("SCORES {} ", var=[str(scores)], verbose=verbose, verbose_level=0)
@@ -213,7 +213,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
 
         output_seq[:, :, char_decode - 1] = predictions[:, :, -1]
 
-        if verbose >= 0:
+        if verbose >= 4:
             sequence = [" ".join([char_dictionary.get_instance(output_seq[sent, word_ind, char_i]) for char_i in range(max_len)])
                         + "|sent-{}|".format(sent) for sent in range(output_seq.size(0)) for word_ind in range(output_seq.size(1))]
         else:
