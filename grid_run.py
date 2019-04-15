@@ -151,7 +151,7 @@ if __name__ == "__main__":
                                                                                    word_decoding_ls=[0],
                                                                                    batch_size_ls=[2], word_embed_ls=[0],
                                                                                    dir_sent_encoder_ls=[2], dir_word_encoder_ls=[2],
-                                                                                   lr_ls=[0.005],
+                                                                                   lr_ls=[0.001],
                                                                                    word_embed_init_ls=[None],
                                                                                    #, DIR_FASTEXT_WIKI_NEWS_W2V, DIR_TWEET_W2V],
                                                                                    attention_tagging_ls=[1],
@@ -233,9 +233,9 @@ if __name__ == "__main__":
           print("row:{}".format(row))
           run_grid(parameters=params, labels=labels, dir_grid=dir_grid,
                    label_grid=LABEL_GRID,
-                   epochs=30,
+                   epochs=300,
                    test_before_run=test_before_run,
-                   debug=True,
+                   debug=False,
                    scoring_func_sequence_pred="exact_match",
                    warmup=warmup)
           if row is not None:
@@ -245,7 +245,7 @@ if __name__ == "__main__":
           POS_ABLATION = False
           NORMALIZE = True
           if NORMALIZE:
-              epochs=100
+              epochs = 100
               train_path, dev_path = CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
               train_path = [[PERMUTATION_TRAIN]]
               dev_path = [[PERMUTATION_TEST]]
