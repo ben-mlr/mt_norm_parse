@@ -233,7 +233,7 @@ if __name__ == "__main__":
           print("row:{}".format(row))
           run_grid(parameters=params, labels=labels, dir_grid=dir_grid,
                    label_grid=LABEL_GRID,
-                   epochs=20,
+                   epochs=3,
                    test_before_run=test_before_run,
                    debug=False,
                    scoring_func_sequence_pred="exact_match",

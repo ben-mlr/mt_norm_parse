@@ -133,7 +133,7 @@ def decode_word(model, src_seq, src_len,
 
 
 def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
-                    pad=1, target_seq_gold=None, input_word=None,
+                    pad=PAD_ID_CHAR, target_seq_gold=None, input_word=None,
                     use_gpu=False, showing_attention=False,
                     single_sequence=False, eval_time=True, verbose=2,
                     timing=False):
@@ -147,7 +147,8 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
     target_seq_gold_ls = [] if target_seq_gold is not None else None
     output_mask = np.ones(src_mask.size(), dtype=np.int64)
     output_mask[:, :, 1:] = 0
-    output_len = Variable(torch.from_numpy(np.ones((src_seq.size(0), src_seq.size(1), 1), dtype=np.int64)), requires_grad=False)
+    output_len = Variable(torch.from_numpy(np.ones((src_seq.size(0), src_seq.size(1), 1), dtype=np.int64)),
+                          requires_grad=False)
     output_mask = Variable(torch.from_numpy(output_mask), requires_grad=False)
     output_seq = Variable(torch.from_numpy(output_seq), requires_grad=False)
     printing("Data Start source {} {} ", var=(src_seq, src_seq.size()), verbose=verbose, verbose_level=5)
@@ -165,11 +166,12 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         start = time.time() if timing else None
 
         pdb.set_trace()
-        decoding_states, word_pred, pos_pred, norm_not_norm, edit_pred, attention, _ = model.forward(input_seq=src_seq,
-                                                                                          output_seq=output_seq,
-                                                                                          input_word_len=src_len,
-                                                                                          output_word_len=output_len,
-                                                                                          word_embed_input=input_word)
+        decoding_states, word_pred, pos_pred, norm_not_norm, edit_pred, attention, _ \
+            = model.forward(input_seq=src_seq,
+                            output_seq=output_seq,
+                            input_word_len=src_len,
+                            output_word_len=output_len,
+                            word_embed_input=input_word)
 
         output_len = (src_len[:, :, 0] != 0).unsqueeze(dim=2) * char_decode
         printing("DECODER step {} output len {} ", var=(step, output_len), verbose=verbose, verbose_level=3)
@@ -179,6 +181,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
 
         pred_norm_not_norm = norm_not_norm.argmax(dim=-1) if norm_not_norm is not None else None
         scores = model.generator.forward(x=decoding_states)
+
         time_generate, start = get_timing(start)
         # each time step predict the most likely
         # len
@@ -191,16 +194,16 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
         predictions = scores.argmax(dim=-1)
 
         time_argmax_printing, start = get_timing(start)
-        if verbose >= 4:
+        if verbose >= 0:
             # .size() takes some time
-            printing("Prediction size {} ", var=(predictions.size()), verbose=verbose, verbose_level=4)
-            printing("SCORES {} ", var=[str(scores)], verbose=verbose, verbose_level=5)
-            printing("Prediction {} ", var=[predictions], verbose=verbose, verbose_level=5)
+            printing("Prediction size {} ", var=(predictions.size()), verbose=verbose, verbose_level=0)
+            printing("SCORES {} ", var=[str(scores)], verbose=verbose, verbose_level=0)
+            printing("Prediction {} ", var=[predictions], verbose=verbose, verbose_level=0)
 
-            printing("scores: {} scores {} scores sized  {} predicion size {} prediction {} outputseq ", var=(scores,
-                     scores.size(), predictions.size(), predictions[:, -1],
-                     output_seq.size()),
-                     verbose=verbose, verbose_level=5)
+            printing("scores: (1st batch)  {} scores sized  {} \n predicion size {} prediction {} ",
+                     var=[scores[0, :, :, :], scores.size(),
+                          predictions.size(), predictions[0,:, -1],],
+                     verbose=verbose, verbose_level=0)
         time_printing, start = get_timing(start)
 
         output_seq = output_seq[:, :scores.size(1), :]
@@ -210,14 +213,16 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
 
         output_seq[:, :, char_decode - 1] = predictions[:, :, -1]
 
-        if verbose >= 5:
+        if verbose >= 0:
             sequence = [" ".join([char_dictionary.get_instance(output_seq[sent, word_ind, char_i]) for char_i in range(max_len)])
                         + "|sent-{}|".format(sent) for sent in range(output_seq.size(0)) for word_ind in range(output_seq.size(1))]
         else:
             sequence = []
 
-        printing("Decoding step {} decoded target {} ", var=(step, sequence), verbose=verbose, verbose_level=5)
+        printing("Decoding step {} decoded target {} ", var=(step, sequence), verbose=verbose, verbose_level=0)
         time_sequence_text, start = get_timing(start)
+        printing("DECODING scores {}", var=[scores[0]], verbose=verbose, verbose_level=0)
+        printing("DECODING decoding_states {}", var=[decoding_states[0]], verbose=verbose, verbose_level=0)
 
         if eval_time:
             # at test time : if all prediction in the batch are whether PAD symbol or END symbol : we break
@@ -232,7 +237,6 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                                                              last=(char_decode == (max_len-1)),
                                                              showing_attention=showing_attention,
                                                              debug=False)
-
 
     time_output_text, start = get_timing(start)
 

@@ -395,6 +395,11 @@ class LexNormalizer(nn.Module):
                 self = self.cuda()
             else:
                 self.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
+            loading_sanity_test = True
+            if loading_sanity_test:
+                # get dataset_path, get loss
+                # evaluate
+                pass
 
     def forward(self, input_seq, input_word_len, word_embed_input=None,
                 output_word_len=None, output_seq=None, word_level_predict=False,

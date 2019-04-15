@@ -296,11 +296,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
         start = time.time()
         printing("TRAINING : TEACHER FORCE : Schedule Sampling proportion of train on prediction is {} ", var=[proportion_pred_train],
                  verbose=verbose, verbose_level=2)
+        rep_tl.checkout_layer_name("encoder.seq_encoder.weight_ih_l0", model.named_parameters(), info_epoch=epoch)
 
-        for name, param in model.named_parameters():
-            if param.requires_grad:
-                if name == "encoder.sent_encoder.weight_ih_l0":
-                    print("REPLICATION:epoch", epoch, "name", name, param.data)
         loss_train, loss_details_train, step_train = run_epoch(batchIter, model,
                                                                LossCompute(model.generator, opt=opt,
                                                                            multi_task_loss_ponderation=model.multi_task_loss_ponderation,
@@ -502,17 +499,18 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                 "teacher_force": teacher_force,
                                                 "proportion_pred_train": proportion_pred_train,
                                                 "train_data_path": train_path, "dev_data_path": dev_path,
-                                                "other": {"error_curves": dir_plot, "loss": "",
-                                                          "error_curves_details":dir_plot_detailed,
+                                                "other": {"error_curves": dir_plot, "loss": loss_dev,
+                                                          "sanity_check":{"loss": loss_dev, "data":dev_path},
+                                                          "error_curves_details": dir_plot_detailed,
                                                           "dropout_input": dropout_input,
                                                           "checkpointing_metric": _checkpointing_metric,
-                                                          "multi_task_loss_ponderation":multi_task_loss_ponderation,
+                                                          "multi_task_loss_ponderation": multi_task_loss_ponderation,
                                                           "weight_binary_loss": weight_binary_loss*int(auxilliary_task_norm_not_norm),
                                                           "weight_pos_loss": weight_pos_loss*int(auxilliary_task_pos),
                                                           "ponderation_normalize_loss": ponderation_normalize_loss,
                                                           "data": "dev", "seed(np/torch)": (SEED_NP, SEED_TORCH),
                                                           "extend_n_batch": extend_n_batch,
-                                                          "lr": lr, "optim_strategy":"lr_constant",
+                                                          "lr": lr, "optim_strategy": "lr_constant",
                                                           "time_training(min)": "{0:.2f}".format(total_time/60),
                                                           "average_per_epoch(min)": "{0:.2f}".format((total_time/n_epochs)/60)}},
                                epoch=epoch, epochs=n_epochs-1,
@@ -533,6 +531,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
 
     writer.close()
     printing("REPORT : run `tensorboard --logdir `  ", verbose=verbose, verbose_level=1)
+
+    rep_tl.checkout_layer_name("encoder.seq_encoder.weight_ih_l0", model.named_parameters(), info_epoch="LAST")
 
     simple_plot(final_loss=loss_dev,
                 loss_ls=loss_training, loss_2=loss_developing,

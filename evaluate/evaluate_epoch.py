@@ -9,7 +9,7 @@ from model.generator import Generator
 from io_.data_iterator import data_gen_conllu, readers_load, data_gen_multi_task_sampling_batch
 from io_.dat import conllu_data
 from io_.info_print import printing
-
+import toolbox.report_tools as rep_tl
 
 from env.project_variables import PROJECT_PATH, TRAINING, DEV,EWT_DEV,EWT_PRED_TOKEN_UDPIPE,\
     PERMUTATION_TRAIN, PERMUTATION_TEST, \
@@ -19,7 +19,6 @@ sys.path.insert(0, os.path.join(PROJECT_PATH, "..", "experimental_pipe"))
 from reporting.write_to_performance_repo import report_template, write_dic
 from evaluate.normalization_errors import score_auxiliary
 from env.project_variables import SCORE_AUX
-
 
 
 def evaluate(batch_size, data_path, tasks, evaluated_task,
@@ -56,9 +55,10 @@ def evaluate(batch_size, data_path, tasks, evaluated_task,
 
     model = LexNormalizer(generator=Generator, load=True, model_full_name=model_full_name,
                           tasks=tasks,
-                          word_decoding=word_decoding, char_decoding=char_decoding, # added for dictionary purposes : might be other ways
+                          word_decoding=word_decoding, char_decoding=char_decoding,
                           voc_size=voc_size, use_gpu=use_gpu, dict_path=dict_path, model_specific_dictionary=True,
-                          dir_model=os.path.join(PROJECT_PATH, "checkpoints", model_full_name + "-folder"), extra_arg_specific_label=extra_arg_specific_label,
+                          dir_model=os.path.join(PROJECT_PATH, "checkpoints", model_full_name + "-folder"),
+                          extra_arg_specific_label=extra_arg_specific_label,
                           verbose=verbose
                           ) if model is None else model
 
@@ -68,6 +68,8 @@ def evaluate(batch_size, data_path, tasks, evaluated_task,
             score_to_compute_ls.extend(SCORE_AUX)
 
     printing("EVALUATION : Evaluating {} metric with details {}  ", var=[score_to_compute_ls, mode_norm_ls], verbose=verbose, verbose_level=3)
+
+    rep_tl.checkout_layer_name("encoder.seq_encoder.weight_ih_l0", model.named_parameters(), info_epoch="EVAL")
 
     readers_eval = readers_load(datasets=[data_path], tasks=[evaluated_task], word_dictionary=model.word_dictionary,
                                 word_dictionary_norm=model.word_nom_dictionary, char_dictionary=model.char_dictionary,
@@ -166,7 +168,7 @@ if __name__ == "__main__":
     PRED_AND_EVAL = True
     if PRED_AND_EVAL:
         #
-        for ablation_id in ["da5d8-B0-model_1-model_1_3a18"]:
+        for ablation_id in ["5ee6d-B0-model_1-model_1_2330"]:
           for get_batch_mode_evaluate in [False]:
             for batch_size in [2]:
               for data in [PERMUTATION_TRAIN]:
@@ -192,7 +194,7 @@ if __name__ == "__main__":
                            scoring_func_sequence_pred="exact_match",
                            tasks=["normalize"], evaluated_task="normalize",
                            get_batch_mode_evaluate=get_batch_mode_evaluate, write_output=True,
-                           max_char_len=1000,
+                           max_char_len=20,
                            dir_report=os.path.join(PROJECT_PATH, "checkpoints", folder_name), verbose=1
                            )
                   print("TIME with max len {} on data {}s ".format(time.time()-time_, data))
