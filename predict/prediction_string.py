@@ -5,6 +5,7 @@ from model.sequence_prediction_beam import decode_sequence_beam
 from evaluate.visualize_attention import show_attention
 from toolbox.norm_not_norm import get_label_norm
 from io_.dat.constants import PAD, ROOT, END, ROOT_CHAR, END_CHAR
+from toolbox.report_tools import pred_word_to_list
 # EPSILON for the test of edit distance
 EPSILON = 0.000001
 TEST_SCORING_IN_CODE = False
@@ -145,13 +146,20 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
             printing("Attention {} ", var=[attention.size()], verbose=verbose, verbose_level=1)
             printing("Attention {} {} {} ", var=[attention, src_seq, text_decoded], verbose=verbose, verbose_level=3)
             for pred_word, src_word, attention_word in zip(text_decoded, src_seq, attention):
+                #if src_word in [["_START","_ROOT_CHAR","_END_CHAR"], ["_START", "_END","_END_CHAR"]]:
+                #    printing("VISUALIZE : SKIPPING start sentence and end symbol", verbose=verbose, verbose_level=1)
+                #    continue
+                # TODO : transform in decent list
+                pdb.set_trace()
+                # NB : _END must be after END_CHAR
+                pred_word = pred_word_to_list(pred_word=pred_word, special_symb_ls=["_START", "_ROOT_CHAR", "_END_CHAR", "_END"])
+                pdb.set_trace()
+                show_attention(pred_word, src_word[:attention_word.size(1)],
+                           attention_word.transpose(1, 0), save=save_attention, dir_save=dir_attention,show=show_att,
+                           model_full_name=model.model_full_name)
 
-                show_attention(list(pred_word), src_word[:attention_word.size(1)],
-                               attention_word.transpose(1, 0), save=save_attention, dir_save=dir_attention,show=show_att,
-                               model_full_name=model.model_full_name)
             #show_attention("[lekfezlfkh efj ", ["se", "mjfsemkfj"], torch.tensor([[0, .4], [1, 0.6]]))
         if pred_norm is not None:
-            pdb.set_trace()
             norm_not_norm_seq = [(get_label_norm(norm), word) for norm, word in zip(pred_norm, src_text)]
             printing("NORMALIZING : {} ", var=[norm_not_norm_seq], verbose_level=0, verbose=0)
         if text_decoded is not None:

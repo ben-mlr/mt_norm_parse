@@ -77,7 +77,6 @@ def show_plot_visdom():
     vis.image(torchvision.transforms.ToTensor()(Image.open(buf)), win=attn_win, opts={'title': attn_win})
 
 
-
 if __name__ == "__main__":
     
     debug = False
@@ -101,7 +100,7 @@ if __name__ == "__main__":
     # word decode with word embed
     list_ = ["1f86c-WARMUP-unrolling-False0-model_1-model_1_57b7-folder"]
     # char decode
-    list_ = ["da5d8-B0-model_1-model_1_3a18-folder"]
+    list_ = ["30e60-B0-model_1-model_1_780d-folder"]
     for folder_name in list_:
         model_full_name = folder_name[:-7]
         print("Interatcing with new model : ", model_full_name)
@@ -111,9 +110,9 @@ if __name__ == "__main__":
         interact(dic_path=dic_path, dir_model=model_dir, model_full_name=model_full_name,
                  beam_decode=False, beam_size=10,
                  word_decoding=False,
-                 save_attention=False, show_attention=False,
+                 save_attention=False, show_attention=True,
                  max_len=8,
-                 debug=1, verbose=1)
+                 debug=True, verbose=1)
         #break
     #show_attention("[lekfezlfkh efj ", ["se", "mjfsemkfj"], torch.tensor([[0,.4], [1,0.6]]))
 

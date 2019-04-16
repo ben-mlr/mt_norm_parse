@@ -1,4 +1,4 @@
-import os
+from env.importing import *
 from io_.info_print import printing
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -14,7 +14,8 @@ def show_attention(prediction_word, input_word, attentions, model_full_name=None
     fig.colorbar(cax)
 
     # Set up axes
-    ax.set_xticklabels(['']+prediction_word, rotation=0)
+    pdb.set_trace()
+    ax.set_xticklabels(['']+prediction_word, rotation=45)
     ax.set_yticklabels([''] + input_word)
     plt.xlabel("Predicted  Normalization word")
     plt.ylabel("Noisy source word")
