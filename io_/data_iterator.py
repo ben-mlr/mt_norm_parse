@@ -152,8 +152,10 @@ def sampling_proportion(task_n_sent, total_n_sents):
 
 
 def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_dictionary,
-                 pos_dictionary, xpos_dictionary, type_dictionary, use_gpu,
-                 norm_not_norm=False, word_decoder=False,
+                 pos_dictionary, xpos_dictionary, type_dictionary,
+                 use_gpu,
+                 norm_not_norm=False,
+                 word_decoder=False,
                  simultanuous_training=False,bucket=True,max_char_len=None,
                  add_start_char=1, add_end_char=1, symbolic_end=True, symbolic_root=True,
                  verbose=1):
@@ -190,10 +192,11 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
 
 
 def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary, char_dictionary, pos_dictionary,extend_n_batch,
-                                       batch_size,  get_batch_mode=True, mode_batch_sampling="proportional",
+                                       batch_size,  get_batch_mode, mode_batch_sampling="proportional",
+                                       padding=PAD_ID_CHAR,
                                        dropout_input=None,
                                        verbose=1):
-    "multitask learning iterator "
+    "multitask learning iterator"
     assert len(tasks) == len(readers)
     assert mode_batch_sampling in MODE_BATCH_SAMPLING_AVAILABLE
     iterator = {}
@@ -205,6 +208,7 @@ def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary, char_dic
                                          char_dictionary=char_dictionary, pos_dictionary=pos_dictionary,
                                          batch_size=batch_size, extend_n_batch=extend_n_batch,
                                          get_batch_mode=get_batch_mode, dropout_input=dropout_input,
+                                         padding=padding,
                                          print_raw=False, normalization=TASKS_PARAMETER[task]["normalization"],
                                          verbose=verbose)
         end_task_flag[task] = False
@@ -213,7 +217,6 @@ def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary, char_dic
     n_sents_per_task_dataset_cumul["all"] = n_sents_per_task_dataset_cumul[tasks[-1]]
     printing("TRAINING : MultiTask batch sampling iterator {} cumulated n_sent   ", var=[n_sents_per_task_dataset_cumul], verbose_level=1, verbose=verbose)
     batch_iter = 0
-
     while True:
         n_sent_start = 0
         random_sample_id = np.random.randint(0, 100)

@@ -6,9 +6,8 @@ from io_.dat.constants import PAD_ID_CHAR, PAD_ID_WORD, CHAR_START_ID, CHAR_END_
 from toolbox.sanity_check import get_timing
 
 
-
 def subsequent_mask(size):
-    "Mask out subsequent positions."
+    " Mask out subsequent positions."
     attn_shape = (1, size, size)
     subsequent_mask = np.triu(np.ones(attn_shape), k=1).astype('uint8')
     return torch.from_numpy(subsequent_mask) == 0
@@ -18,11 +17,7 @@ class MaskBatch(object):
     def __init__(self, input_seq, output_seq,
                  output_word=None, pos=None, input_word=None,edit=None,
                  output_norm_not_norm=None, pad=PAD_ID_CHAR, verbose=0, timing=False, dropout_input=0.):
-        # input mask
-        #if not output_seq.size(0) >1:
-        #    pdb.set_trace()
-        #assert output_seq.size(0) >1 , "ERROR  batch_size should be strictly above 1 but is {} ".format(output_seq.size())
-        # originnaly batch_size, word len
+
         self.input_seq = input_seq
         self.pos = pos
         self.input_word = input_word
@@ -36,7 +31,7 @@ class MaskBatch(object):
             self.input_word = torch.mul(droping_multiplier_word, input_word)
             droping_multiplier_char = torch.zeros_like(input_seq).bernoulli_(1 - dropout_input)
             droping_multiplier_char[0, :, :] = 1 # making sure first tokens are always untouched
-            droping_multiplier_char[input_seq == PAD_ID_CHAR] = 1 # making sure padding are always untouched
+            droping_multiplier_char[input_seq == pad] = 1 # making sure padding are always untouched
             droping_multiplier_char[input_seq == CHAR_END_ID] = 1  # making sure padding are always untouched
             self.input_seq = torch.mul(droping_multiplier_char, input_seq)
             # TODO : add more flexibility different drop out in output_seq_x and output_seq_y
@@ -68,7 +63,7 @@ class MaskBatch(object):
         if output_seq is not None:
             ##- would be last dim also !
             self.output_seq_x = output_seq[:, :, :-1]
-            if dropout_input>0:
+            if dropout_input > 0:
                 droping_multiplier_char_output_seq = torch.zeros_like(self.output_seq_x).bernoulli_(1 - dropout_input)
                 droping_multiplier_char_output_seq[0, :, :] = 1  # making sure first tokens are always untouched
                 droping_multiplier_char_output_seq[self.output_seq_x == pad] = 1  # making sure padding are always untouched
@@ -120,13 +115,13 @@ class MaskBatch(object):
                      verbose_level=4)
             printing("BATCH : TARGET before packed true {} ", var=(self.output_seq_y),verbose=verbose, verbose_level=5)
             printing("BATCH : output seq len {} ", var=(output_seq_len), verbose=verbose, verbose_level=5)
-            printing("BATCH : output seq len packed {} ", var=(output_seq_len.size()),verbose= verbose, verbose_level=4)
+            printing("BATCH : output seq len packed {} ", var=(output_seq_len.size()), verbose= verbose, verbose_level=4)
             output_seq_len[output_seq_len == 0] = 1
             zero_last_output_len, start = get_timing(start)
             self.output_seq_y = pack_padded_sequence(self.output_seq_y, output_seq_len.squeeze().cpu().numpy(),
                                                      batch_first=True)
             pack_output_y, start = get_timing(start)
-            self.output_seq_y, lenghts = pad_packed_sequence(self.output_seq_y, batch_first=True, padding_value=PAD_ID_CHAR)
+            self.output_seq_y, lenghts = pad_packed_sequence(self.output_seq_y, batch_first=True, padding_value=pad)
             pad_output_y, start = get_timing(start)
             #useless but bug raised of not packeding (would like to remove packing which I think is useless ?)
 

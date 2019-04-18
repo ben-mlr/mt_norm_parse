@@ -137,6 +137,8 @@ class LossCompute:
                           weight_binary_loss*loss_binary*scheduling_norm_not_norm+\
                           schedule_pos*loss_pos*weight_pos_loss+\
                           loss_edit*scheduling_edit
+
+
         if False:
             predictions = x.argmax(dim=-1)
             print("STEP ", step)

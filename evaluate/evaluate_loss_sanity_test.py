@@ -5,11 +5,11 @@ from io_.info_print import printing
 
 
 def get_loss(model, data_path, tasks, use_gpu, word_decoding, char_decoding,
-                 max_char_len,
-                 symbolic_end=1, add_end_char=1, add_start_char=1, bucketing=True,
-                 symbolic_root=1,
-                 verbose=1):
-    batch_size = 2
+             max_char_len,bucketing,
+             symbolic_end=1, add_end_char=1, add_start_char=1,
+             symbolic_root=1,
+             verbose=1):
+    batch_size = 4
     ponderation_normalize_loss = model.arguments["hyperparameters"]["ponderation_normalize_loss"]
     weight_pos_loss = model.arguments["hyperparameters"]["weight_pos_loss"]
     weight_binary_loss = model.arguments["hyperparameters"]["weight_binary_loss"]
@@ -19,7 +19,7 @@ def get_loss(model, data_path, tasks, use_gpu, word_decoding, char_decoding,
                                type_dictionary=model.type_dictionary, use_gpu=use_gpu,
                                norm_not_norm="norm_not_norm" in tasks, word_decoder=word_decoding,
                                add_start_char=add_start_char, add_end_char=add_end_char, symbolic_end=symbolic_end,
-                               symbolic_root=symbolic_root,bucket=bucketing,max_char_len=max_char_len,
+                               symbolic_root=symbolic_root, bucket=bucketing, max_char_len=max_char_len,
                                verbose=verbose)
 
     batchIter_eval = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_dev, batch_size=batch_size,
@@ -38,7 +38,7 @@ def get_loss(model, data_path, tasks, use_gpu, word_decoding, char_decoding,
                            vocab_char_size=len(list(model.char_dictionary.instance2index.keys())) + 1,
                            char_decoding=char_decoding, word_decoding=word_decoding,
                            auxilliary_task_norm_not_norm="norm_not_norm" in tasks)
-
+    print("PONDERATION", ponderation_normalize_loss)
     loss_dev, loss_details_dev, step_dev = run_epoch(batchIter_eval, model, loss_compute=loss_obj,
                                                      verbose=verbose, timing="", step=0,
                                                      weight_binary_loss=weight_binary_loss,

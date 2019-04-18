@@ -184,3 +184,5 @@ TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact
 WRITING_DIR = os.path.join(PROJECT_PATH, "predictions")
 
 WARMUP_N_EPOCHS = 1
+
+EPSILON = 1e-4

@@ -223,7 +223,6 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                     param.requires_grad = False
                     printing("TRAINING : freezing {} parameter ", var=[name], verbose=verbose, verbose_level=1)
 
-
     _loss_dev = 1000
     checkpoint_score_saved = 1000
     _loss_train = 1000
@@ -256,7 +255,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                type_dictionary=model.type_dictionary, use_gpu=use_gpu,
                                norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=word_decoding,
                                add_start_char=add_start_char, add_end_char=add_end_char, symbolic_end=symbolic_end,
-                               symbolic_root=symbolic_root,bucket=bucketing,max_char_len=max_char_len,
+                               symbolic_root=symbolic_root, bucket=bucketing,max_char_len=max_char_len,
                                verbose=verbose)
 
     dir_writer = os.path.join(overall_report_dir, "runs", "{}-model".format(model.model_full_name))
@@ -403,7 +402,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                   label_report=eval_label, model=model,
                                   normalization=normalization, print_raw=False,
                                   model_specific_dictionary=True,
-                                  get_batch_mode_evaluate=get_batch_mode_all,
+                                  get_batch_mode_evaluate=False,
                                   compute_mean_score_per_sent=compute_mean_score_per_sent,
                                   batch_size=batch_size,
                                   word_decoding=word_decoding,
@@ -450,7 +449,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                 printing("Checkoint info : switching "
                          "checkpoint_score_saved to {} : {}".format(checkpointing_metric, checkpoint_score_saved),
                          verbose_level=1, verbose=verbose)
-            elif checkpointing_metric == "loss-dev-all" :
+            elif checkpointing_metric == "loss-dev-all":
               _checkpointing_metric = checkpointing_metric
             else:
               raise(Exception("You missed a case"))
@@ -502,7 +501,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                 "proportion_pred_train": proportion_pred_train,
                                                 "train_data_path": train_path, "dev_data_path": dev_path,
                                                 "other": {"error_curves": dir_plot, "loss": loss_dev,
-                                                          "sanity_test": {"loss": loss_dev, "data":dev_path},
+                                                          "sanity_test": {"loss": loss_dev, "data": dev_path},
                                                           "error_curves_details": dir_plot_detailed,
                                                           "dropout_input": dropout_input,
                                                           "checkpointing_metric": _checkpointing_metric,
@@ -532,7 +531,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
             print("Summary : {}".format(OrderedDict([("_train_ep_time", _train_ep_time), ("_create_iter_time", _create_iter_time), ("_eval_time",_eval_time) ])))
 
     writer.close()
-    printing("REPORT : run : \ntensorboard --logdir={} --host=localhost --port=9101  ",var=[dir_writer], verbose=verbose, verbose_level=1)
+    printing("REPORT : run : \n tensorboard --logdir={} --host=localhost --port=9101  ",var=[dir_writer], verbose=verbose, verbose_level=1)
 
     #rep_tl.checkout_layer_name("encoder.seq_encoder.weight_ih_l0", model.named_parameters(), info_epoch="LAST")
 

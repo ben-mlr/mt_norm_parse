@@ -12,7 +12,7 @@ from io_.info_print import printing
 from toolbox.load_w2v import load_emb
 from toolbox.git_related import get_commit_id
 from toolbox.sanity_check import sanity_check_info_checkpoint
-from env.project_variables import PROJECT_PATH
+from env.project_variables import PROJECT_PATH, EPSILON
 from io_.dat import conllu_data
 from toolbox.deep_learning_toolbox import count_trainable_parameters
 from toolbox.sanity_check import get_timing
@@ -399,11 +399,16 @@ class LexNormalizer(nn.Module):
                 self = self.cuda()
             else:
                 self.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
+
             if loading_sanity_test:
                 assert len(sanity_test_dic) > 0, "ERROR loaded {} dictionary empty".format(sanity_test_dic)
                 loss, details, _ = get_loss(model=self, data_path=sanity_test_dic["data"], tasks=tasks, use_gpu=use_gpu,
-                                            word_decoding=word_decoding, char_decoding=char_decoding, max_char_len=20)
-                assert sanity_test_dic["loss"] == loss
+                                            #batch_size=batch,
+                                            bucketing=True,
+                                            word_decoding=word_decoding, char_decoding=char_decoding,
+                                            max_char_len=20)
+                diff = np.abs(sanity_test_dic["loss"] - loss)
+                assert diff < EPSILON, "ERROR loaded loss is {} while computed one is {} : diff {} (data:{})".format(sanity_test_dic["loss"], loss, diff ,sanity_test_dic["data"])
                 printing("SANITY TEST PASSED : loss is {} on {} (detailed loss {})",
                          var=[loss, sanity_test_dic["data"], details],
                          verbose=verbose, verbose_level=1)
