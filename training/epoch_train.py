@@ -68,6 +68,7 @@ def run_epoch(data_iter, model, loss_compute,
             printing("DATA : \n input Sequence {} \n Target sequence {} ", var=(batch.input_seq, batch.output_seq),
                      verbose=verbose, verbose_level=1)
         if not empty_run:
+            batch.output_seq_y
             loss, loss_details_current = loss_compute(x=out, y=batch.output_seq_y,
                                                       x_norm_not_norm=norm_not_norm_hidden, y_norm_not_norm=batch.output_norm_not_norm,
                                                       y_word=batch.output_word, x_word_pred=out_word,

@@ -16,7 +16,8 @@ class LossCompute:
                  char_decoding=True,
                  pos_pred=False,
                  tasks=None,
-                 opt=None, pad=1, use_gpu=False, timing=False,
+                 vocab_char_size=None,
+                 opt=None,  use_gpu=False, timing=False,
                  multi_task_loss_ponderation ="all", writer=None, model=None,
                  use="", verbose=0):
 
@@ -29,7 +30,9 @@ class LossCompute:
 
         self.multi_task_loss_ponderation = multi_task_loss_ponderation
         self.writer = writer
-        self.loss_distance = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_CHAR) if char_decoding else None
+        weight = torch.ones(vocab_char_size)
+        weight[PAD_ID_CHAR] = 0.0
+        self.loss_distance = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_CHAR, weight=weight) if char_decoding else None
         self.loss_binary = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_NORM_NOT_NORM) if auxilliary_task_norm_not_norm else None
         self.loss_edit = nn.MSELoss(reduce=True) if "edit_prediction" in tasks else None
         self.loss_distance_word_level = nn.CrossEntropyLoss(reduce=True, ignore_index=PAD_ID_WORD) if word_decoding else None
@@ -134,7 +137,14 @@ class LossCompute:
                           weight_binary_loss*loss_binary*scheduling_norm_not_norm+\
                           schedule_pos*loss_pos*weight_pos_loss+\
                           loss_edit*scheduling_edit
-
+        if False:
+            predictions = x.argmax(dim=-1)
+            print("STEP ", step)
+            print("DEBUG LOSS", multi_task_loss, loss_generation)
+            print("PREDICTIONS", predictions)
+            print("LABEL", y)
+            if step==60:
+                pdb.set_trace()
         loss_details["overall_loss"] = multi_task_loss.item()
         loss_details["loss_seq_prediction"] = loss_generation.item() if not isinstance(loss_generation , int) else 0
         loss_details["loss_binary"] = loss_binary.item() if not isinstance(loss_binary, int) else 0

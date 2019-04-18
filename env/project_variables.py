@@ -99,8 +99,8 @@ MAX_VOCABULARY_SIZE_WORD_DIC = 20000
 
 # Michel
 ##
-MTNT_TOK_TRAIN_LABEL, MTNT_TOK_TRAIN= "mtnt_tok_train", os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/train.en.raw2tok.conll")
-MTNT_TOK_DEV_LABEL, MTNT_TOK_DEV= "mtnt_tok_dev", os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/dev.en.raw2tok.conll")
+MTNT_TOK_TRAIN_LABEL, MTNT_TOK_TRAIN = "mtnt_tok_train", os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/train.en.raw2tok.conll")
+MTNT_TOK_DEV_LABEL, MTNT_TOK_DEV = "mtnt_tok_dev", os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/dev.en.raw2tok.conll")
 
 MTNT_EN_FR_TRAIN_LABEL, MTNT_EN_FR_TRAIN = "mtnt_train", os.path.join(PROJECT_PATH, "./data/MTNT/train/train.en-fr.conll")
 MTNT_EN_FR_DEV_LABEL, MTNT_EN_FR_DEV = "mtnt_valid", os.path.join(PROJECT_PATH, "./data/MTNT/valid/valid.en-fr.conll")
@@ -117,7 +117,6 @@ MTNT_EN_TOK_DEV_DEMO_CONLL_LABEL, MTNT_EN_TOK_DEV_DEMO_CONLL = "mtnt_tok_dev_dem
 PERMUTATION_TRAIN_LABEL, PERMUTATION_TRAIN = "permutation-train", os.path.join(PROJECT_PATH, "./data/permutation-train.conll")
 PERMUTATION_TEST_LABEL, PERMUTATION_TEST= "permutation-test", os.path.join(PROJECT_PATH, "./data/permutation-test.conll")
 
-
 # EMOJIs
 EMOJI_LS_LABEL, EMOJIS_LS = "emojis", os.path.join(PROJECT_PATH, "data/emojis_ls.txt")
 
@@ -131,8 +130,10 @@ EN_LINES_DEV_LABEL, EN_LINES_DEV = "en_lines_dev", os.path.join(PROJECT_PATH, ".
 DEMO_SENT_LABEL, DEMO_SENT = "lexnorm-Demo_sent", os.path.join(PROJECT_PATH, "../parsing/normpar/data/char_test.demo")
 TEST_SENT_LABEL, TEST_SENT = "lexnorm_sent", os.path.join(PROJECT_PATH, "../parsing/normpar/data/lexnorm-sent.conll")
 DEV_SENT_LABEL, DEV_SENT = "owoputi_sent", os.path.join(PROJECT_PATH, "../parsing/normpar/data/owoputi-sent.conll")
-LIU_TRAIN_SENT_LABEL, LIU_TRAIN_SENT = "liu_train_sent" , os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-sent-train_2009.conll")
-LIU_DEV_SENT_LABEL, LIU_DEV_SENT = "liu_dev_sent", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-sent-dev_500.conll")
+LIU_TRAIN_SENT_LABEL, LIU_TRAIN_SENT = "liu_train_sent", os.path.join(PROJECT_PATH,
+                                                                      "./data/LiLiu/2577_tweets-li-sent-train_2009.conll")
+LIU_DEV_SENT_LABEL, LIU_DEV_SENT = "liu_dev_sent", os.path.join(PROJECT_PATH,
+                                                                "./data/LiLiu/2577_tweets-li-sent-dev_500.conll")
 
 
 

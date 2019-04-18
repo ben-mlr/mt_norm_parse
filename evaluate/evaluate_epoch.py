@@ -74,7 +74,7 @@ def evaluate(batch_size, data_path, tasks, evaluated_task,
 
     printing("EVALUATION : Evaluating {} metric with details {}  ", var=[score_to_compute_ls, mode_norm_ls], verbose=verbose, verbose_level=3)
 
-    rep_tl.checkout_layer_name("encoder.seq_encoder.weight_ih_l0", model.named_parameters(), info_epoch="EVAL")
+    #rep_tl.checkout_layer_name("encoder.seq_encoder.weight_ih_l0", model.named_parameters(), info_epoch="EVAL")
 
     readers_eval = readers_load(datasets=[data_path], tasks=[evaluated_task], word_dictionary=model.word_dictionary,
                                 word_dictionary_norm=model.word_nom_dictionary, char_dictionary=model.char_dictionary,
@@ -173,7 +173,7 @@ if __name__ == "__main__":
     PRED_AND_EVAL = True
     if PRED_AND_EVAL:
         #
-        for ablation_id in ["09b6e-B0-model_1-model_1_aa3a"]:
+        for ablation_id in ["c47db-B0-model_1-model_1_e6a3"]:
           for get_batch_mode_evaluate in [False]:
             for batch_size in [2]:
               for data in [DEMO2]:

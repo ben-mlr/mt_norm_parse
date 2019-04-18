@@ -18,10 +18,11 @@ def decode_word(model, src_seq, src_len,
     """
     NB : could be more factorized (its exactly the same prediction the only difference is the dictionary
     """
-    _, word_pred, pos_pred, norm_not_norm, edit_pred, _, _ = model.forward(input_seq=src_seq,
-                                                                input_word_len=src_len,
-                                                                word_embed_input=input_word,
-                                                                word_level_predict=True)
+    _, word_pred, pos_pred, norm_not_norm, edit_pred, _, attention_weights_char_tag =\
+        model.forward(input_seq=src_seq,
+                      input_word_len=src_len,
+                      word_embed_input=input_word,
+                      word_level_predict=True)
     sanity_check_model_pred(mode=mode, pos_pred=pos_pred, word_pred=word_pred, norm_not_norm=norm_not_norm)
 
     pred_norm_not_norm = None
@@ -148,8 +149,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
     target_seq_gold_ls = [] if target_seq_gold is not None else None
     output_mask = np.ones(src_mask.size(), dtype=np.int64)
     output_mask[:, :, 1:] = 0
-    #output_len = Variable(torch.from_numpy(np.ones((src_seq.size(0), src_seq.size(1), 1), dtype=np.int64)),
-    #                      requires_grad=False)
+    output_len = Variable(torch.from_numpy(np.ones((src_seq.size(0), src_seq.size(1), 1), dtype=np.int64)), requires_grad=False)
     output_mask = Variable(torch.from_numpy(output_mask), requires_grad=False)
     output_seq = Variable(torch.from_numpy(output_seq), requires_grad=False)
     printing("Data Start source {} {} ", var=(src_seq, src_seq.size()), verbose=verbose, verbose_level=5)
@@ -166,7 +166,7 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
             output_len = output_len.cuda()
         start = time.time() if timing else None
         output_len = (src_len[:, :, 0] != 0).unsqueeze(dim=2) * (char_decode-1)
-        printing("DECODER step {} output len {} ", var=(step, output_len), verbose=verbose, verbose_level=3)
+        printing("DECODER step {} output len {} ", var=(step, output_len), verbose=verbose, verbose_level=4)
 
         decoding_states, word_pred, pos_pred, norm_not_norm, edit_pred, attention, _ \
             = model.forward(input_seq=src_seq,
@@ -174,7 +174,6 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
                             input_word_len=src_len,
                             output_word_len=output_len,
                             word_embed_input=input_word)
-
 
         time_forward, start = get_timing(start)
         # [batch, seq_len, V]
@@ -213,16 +212,16 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
 
         output_seq[:, :, char_decode - 1] = predictions[:, :, -1]
 
-        if verbose >= 0:
+        if verbose >= 4:
             sequence = [" ".join([char_dictionary.get_instance(output_seq[sent, word_ind, char_i]) for char_i in range(max_len)])
                         + "|sent-{}|".format(sent) for sent in range(output_seq.size(0)) for word_ind in range(output_seq.size(1))]
         else:
             sequence = []
 
-        printing("Decoding step {} decoded target {} ", var=(step, sequence), verbose=verbose, verbose_level=0)
+        printing("Decoding step {} decoded target {} ", var=(step, sequence), verbose=verbose, verbose_level=4)
         time_sequence_text, start = get_timing(start)
-        printing("DECODING scores {}", var=[scores[0]], verbose=verbose, verbose_level=0)
-        printing("DECODING decoding_states {}", var=[decoding_states[0]], verbose=verbose, verbose_level=0)
+        printing("DECODING scores {}", var=[scores[0]], verbose=verbose, verbose_level=4)
+        printing("DECODING decoding_states {}", var=[decoding_states[0]], verbose=verbose, verbose_level=4)
 
         if eval_time:
             # at test time : if all prediction in the batch are whether PAD symbol or END symbol : we break
@@ -241,17 +240,17 @@ def decode_sequence(model, char_dictionary, max_len, src_seq, src_mask, src_len,
     time_output_text, start = get_timing(start)
 
     time_decoding_all_seq, start  = get_timing(start_decode_sequence)
-    printing("PREDICTION : array text {} ", var=[text_decoded], verbose=verbose, verbose_level=5)
+    printing("PREDICTION : array text {} ", var=[text_decoded], verbose=verbose, verbose_level=0)
     src_word_count, src_text, src_all_ls = output_text_(src_seq, char_dictionary, single_sequence=single_sequence,
                                                         showing_attention=showing_attention,output_str=output_str)
-    printing("SOURCE  : array text {} ", var=[src_text], verbose=verbose, verbose_level=5)
+    printing("SOURCE  : array text {} ", var=[src_text], verbose=verbose, verbose_level=0)
     src_text_ls.extend(src_text)
     if target_seq_gold is not None:
         target_word_count, target_text, _ = output_text_(target_seq_gold, char_dictionary,
                                                          showing_attention=showing_attention,
                                                          single_sequence=single_sequence, output_str=output_str)
         target_seq_gold_ls.extend(target_text)
-        printing("GOLD : array text {} ", var=[target_text], verbose=verbose, verbose_level=5)
+        printing("GOLD : array text {} ", var=[target_text], verbose=verbose, verbose_level=0)
     else:
         target_word_count = None
     if single_sequence:

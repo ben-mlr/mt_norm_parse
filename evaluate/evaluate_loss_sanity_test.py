@@ -35,6 +35,7 @@ def get_loss(model, data_path, tasks, use_gpu, word_decoding, char_decoding,
                            use="dev",
                            pos_pred="pos" in tasks,
                            tasks=tasks,
+                           vocab_char_size=len(list(model.char_dictionary.instance2index.keys())) + 1,
                            char_decoding=char_decoding, word_decoding=word_decoding,
                            auxilliary_task_norm_not_norm="norm_not_norm" in tasks)
 

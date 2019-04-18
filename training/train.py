@@ -261,7 +261,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
 
     dir_writer = os.path.join(overall_report_dir, "runs", "{}-model".format(model.model_full_name))
     writer = SummaryWriter(log_dir=dir_writer)
-    printing("REPORT : run `tensorboard --logdir={} --host=localhost --port=9101`  ",var=[dir_writer], verbose=verbose,
+    printing("REPORT : run \ntensorboard --logdir={} --host=localhost --port=9101 ", var=[dir_writer], verbose=verbose,
              verbose_level=1)
     printing("REPORT : summary writer will be located {}", var=[dir_writer], verbose_level=1, verbose=verbose)
     step_train = 0
@@ -298,7 +298,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
         start = time.time()
         printing("TRAINING : TEACHER FORCE : Schedule Sampling proportion of train on prediction is {} ", var=[proportion_pred_train],
                  verbose=verbose, verbose_level=2)
-        rep_tl.checkout_layer_name("encoder.seq_encoder.weight_ih_l0", model.named_parameters(), info_epoch=epoch)
+
+        #rep_tl.checkout_layer_name("encoder.seq_encoder.weight_ih_l0", model.named_parameters(), info_epoch=epoch)
 
         loss_train, loss_details_train, step_train = run_epoch(batchIter, model,
                                                                LossCompute(model.generator, opt=opt,
@@ -309,6 +310,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                                            use_gpu=use_gpu, verbose=verbose,tasks=tasks,
                                                                            char_decoding=char_decoding, word_decoding=word_decoding,
                                                                            pos_pred=auxilliary_task_pos,
+                                                                           vocab_char_size=len(list(model.char_dictionary.instance2index.keys()))+1,
                                                                            timing=timing),
                                                                verbose=verbose, i_epoch=epoch,
                                                                multi_task_mode=multi_task_mode,
@@ -341,6 +343,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
             loss_obj = LossCompute(model.generator, use_gpu=use_gpu, verbose=verbose,
                                    multi_task_loss_ponderation=model.multi_task_loss_ponderation,
                                    writer=writer, use="dev",
+                                   vocab_char_size=len(list(model.char_dictionary.instance2index.keys())) + 1,
                                    pos_pred=auxilliary_task_pos,tasks=tasks,
                                    char_decoding=char_decoding, word_decoding=word_decoding,
                                    auxilliary_task_norm_not_norm=auxilliary_task_norm_not_norm)
@@ -529,9 +532,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
             print("Summary : {}".format(OrderedDict([("_train_ep_time", _train_ep_time), ("_create_iter_time", _create_iter_time), ("_eval_time",_eval_time) ])))
 
     writer.close()
-    printing("REPORT : run `tensorboard --logdir={} --host=localhost --port=9101`  ",var=[dir_writer], verbose=verbose, verbose_level=1)
+    printing("REPORT : run : \ntensorboard --logdir={} --host=localhost --port=9101  ",var=[dir_writer], verbose=verbose, verbose_level=1)
 
-    rep_tl.checkout_layer_name("encoder.seq_encoder.weight_ih_l0", model.named_parameters(), info_epoch="LAST")
+    #rep_tl.checkout_layer_name("encoder.seq_encoder.weight_ih_l0", model.named_parameters(), info_epoch="LAST")
 
     simple_plot(final_loss=loss_dev,
                 loss_ls=loss_training, loss_2=loss_developing,

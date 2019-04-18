@@ -67,7 +67,6 @@ def decode_seq_str(seq_string, model, char_dictionary, pad=1,
         sent = [ROOT]+sent+[END]
         for seq_string in sent:
             # should be padded in the same way as done in the training data conll_reader
-
             if len(seq_string) > 0:
                 word_string = seq_string[:]
                 if seq_string == ROOT:

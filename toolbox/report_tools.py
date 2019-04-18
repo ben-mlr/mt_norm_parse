@@ -14,7 +14,7 @@ def checkout_layer_name(name_param, model_parameters, info_epoch=""):
     for name, param in model_parameters:
         if param.requires_grad:
             if name == name_param:
-                print("DEBUG END REPLICATION:epoch {} ".format(info_epoch), "name", name, param.data)
+                print("DEBUG END REPLICATION:epoch (checkout_layers_tools) {} ".format(info_epoch), "name", name, param.data)
 
 
 def pred_word_to_list(pred_word, special_symb_ls):

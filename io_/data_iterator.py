@@ -1,6 +1,7 @@
 from env.importing import *
 
 from env.project_variables import DEV, LIU_DEV
+from io_.dat.constants import PAD_ID_CHAR
 from io_.batch_generator import MaskBatch
 from env.project_variables import EN_LINES_EWT_TRAIN, LIU_DEV, TRAINING, DEMO, TASKS_PARAMETER
 from io_.dat import conllu_data
@@ -15,7 +16,7 @@ NORM2NOISY = False
 def data_gen_conllu(data, word_dictionary, char_dictionary,
                     batch_size,task_info="",
                     get_batch_mode=True,
-                    padding=1, print_raw=False, normalization=False, pos_dictionary=None,
+                    padding=PAD_ID_CHAR, print_raw=False, normalization=False, pos_dictionary=None,
                     extend_n_batch=1,dropout_input=None,
                     timing=False,
                     verbose=0):

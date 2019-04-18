@@ -31,6 +31,7 @@ def interact(dic_path, model_full_name,
                           dict_path=dic_path,
                           dir_model=dir_model,
                           extra_arg_specific_label=extra_arg_specific_label,
+                          loading_sanity_test=True,
                           word_decoding=word_decoding, char_decoding=not word_decoding,
                           verbose=verbose)
     model.eval()
@@ -100,19 +101,21 @@ if __name__ == "__main__":
     # word decode with word embed
     list_ = ["1f86c-WARMUP-unrolling-False0-model_1-model_1_57b7-folder"]
     # char decode
-    list_ = ["30e60-B0-model_1-model_1_780d-folder"]
+    list_ = ["13ddd-B0-model_1-model_1_8ac8-folder"]
     for folder_name in list_:
         model_full_name = folder_name[:-7]
         print("Interatcing with new model : ", model_full_name)
         print("0Evaluating {} ".format(model_full_name))
         dic_path = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder", "dictionaries")
         model_dir = os.path.join(script_dir, "..", "checkpoints", model_full_name + "-folder")
+        # TODO : still problem in length of some sequence
         interact(dic_path=dic_path, dir_model=model_dir, model_full_name=model_full_name,
                  beam_decode=False, beam_size=10,
                  word_decoding=False,
-                 save_attention=False, show_attention=True,
+                 save_attention=False, show_attention=False,
                  max_len=8,
-                 debug=True, verbose=1)
+                 debug=False,
+                 verbose=1)
         #break
     #show_attention("[lekfezlfkh efj ", ["se", "mjfsemkfj"], torch.tensor([[0,.4], [1,0.6]]))
 

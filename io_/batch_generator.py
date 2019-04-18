@@ -17,7 +17,7 @@ def subsequent_mask(size):
 class MaskBatch(object):
     def __init__(self, input_seq, output_seq,
                  output_word=None, pos=None, input_word=None,edit=None,
-                 output_norm_not_norm=None, pad=0, verbose=0, timing=False, dropout_input=0.):
+                 output_norm_not_norm=None, pad=PAD_ID_CHAR, verbose=0, timing=False, dropout_input=0.):
         # input mask
         #if not output_seq.size(0) >1:
         #    pdb.set_trace()
@@ -71,7 +71,7 @@ class MaskBatch(object):
             if dropout_input>0:
                 droping_multiplier_char_output_seq = torch.zeros_like(self.output_seq_x).bernoulli_(1 - dropout_input)
                 droping_multiplier_char_output_seq[0, :, :] = 1  # making sure first tokens are always untouched
-                droping_multiplier_char_output_seq[self.output_seq_x == PAD_ID_CHAR] = 1  # making sure padding are always untouched
+                droping_multiplier_char_output_seq[self.output_seq_x == pad] = 1  # making sure padding are always untouched
                 droping_multiplier_char_output_seq[self.output_seq_x == CHAR_END_ID] = 1  # making sure padding are always untouched
                 self.output_seq_x = torch.mul(droping_multiplier_char_output_seq, self.output_seq_x)
             zero_last_output, start = get_timing(start)

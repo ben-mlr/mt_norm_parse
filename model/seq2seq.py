@@ -399,7 +399,7 @@ class LexNormalizer(nn.Module):
                 self = self.cuda()
             else:
                 self.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
-            if False:
+            if loading_sanity_test:
                 assert len(sanity_test_dic) > 0, "ERROR loaded {} dictionary empty".format(sanity_test_dic)
                 loss, details, _ = get_loss(model=self, data_path=sanity_test_dic["data"], tasks=tasks, use_gpu=use_gpu,
                                             word_decoding=word_decoding, char_decoding=char_decoding, max_char_len=20)
