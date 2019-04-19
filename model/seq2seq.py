@@ -403,7 +403,7 @@ class LexNormalizer(nn.Module):
             if loading_sanity_test:
                 assert len(sanity_test_dic) > 0, "ERROR loaded {} dictionary empty".format(sanity_test_dic)
                 loss, details, _ = get_loss(model=self, data_path=sanity_test_dic["data"], tasks=tasks, use_gpu=use_gpu,
-                                            #batch_size=batch,
+                                            batch_size=sanity_test_dic["batch_size"],
                                             bucketing=True,
                                             word_decoding=word_decoding, char_decoding=char_decoding,
                                             max_char_len=20)

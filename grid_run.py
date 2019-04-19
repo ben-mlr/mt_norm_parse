@@ -8,7 +8,7 @@ from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, C
     CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST, EWT_DEV, EWT_TEST, \
     LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO, EN_LINES_EWT_TRAIN, EN_LINES_DEV, EN_LINES_EWT_TRAIN,\
     PERMUTATION_TRAIN, PERMUTATION_TEST,\
-    MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, RUN_SCRIPTS_DIR, GPU_AVAILABLE_DEFAULT_LS, DEFAULT_SCORING_FUNCTION, WARMUP_N_EPOCHS
+    MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, RUN_SCRIPTS_DIR, GPU_AVAILABLE_DEFAULT_LS, DEFAULT_SCORING_FUNCTION, WARMUP_N_EPOCHS, PERMUTATION_TRAIN_DIC
 
 from toolbox.git_related import get_commit_id
 from tracking.reporting_google_sheet import update_status, append_reporting_sheet
@@ -246,11 +246,12 @@ if __name__ == "__main__":
           POS_ABLATION = False
           NORMALIZE = True
           if NORMALIZE:
-              epochs = 1
+              epochs = 100
               #train_path, dev_path = CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
-              train_path = [[DEMO]]
-              dev_path = [[DEMO]]
-              test_path = [[[DEMO]]]
+              n_sents = 50000
+              train_path = [[PERMUTATION_TRAIN_DIC[n_sents]]]
+              dev_path = [[PERMUTATION_TEST]]
+              test_path = [[[PERMUTATION_TEST, PERMUTATION_TRAIN_DIC[n_sents]]]]
               dir_script, row = script_generation(grid_label=LABEL_GRID, 
                                                   init_param=params_strong_tryal,#params_dozat,#params_strong,#params_dozat,
                                                   warmup=test_before_run, test_before_run=test_before_run,
@@ -258,11 +259,11 @@ if __name__ == "__main__":
                                                   stable_decoding_state_ls=[0],
                                                   word_decoding_ls=[0],
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
-                                                  batch_size_ls=[4],
+                                                  batch_size_ls=[10, 40, 120],
                                                   word_embed_ls=[0],
                                                   dir_sent_encoder_ls=[2], dir_word_encoder_ls=[2],
                                                   n_layers_sent_cell_ls=[1], n_layers_word_encoder_ls=[1],
-                                                  lr_ls=[0.0001],
+                                                  lr_ls=[0.0001, 0.001],
                                                   word_embed_init_ls=[None],
                                                   teacher_force_ls=[1],
                                                   word_recurrent_cell_encoder_ls=["LSTM"],

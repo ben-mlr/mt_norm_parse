@@ -501,7 +501,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                 "proportion_pred_train": proportion_pred_train,
                                                 "train_data_path": train_path, "dev_data_path": dev_path,
                                                 "other": {"error_curves": dir_plot, "loss": loss_dev,
-                                                          "sanity_test": {"loss": loss_dev, "data": dev_path},
+                                                          "sanity_test": {"loss": loss_dev, "data": dev_path, "batch_size":batch_size},
                                                           "error_curves_details": dir_plot_detailed,
                                                           "dropout_input": dropout_input,
                                                           "checkpointing_metric": _checkpointing_metric,

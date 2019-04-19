@@ -116,6 +116,12 @@ MTNT_EN_TOK_DEV_DEMO_CONLL_LABEL, MTNT_EN_TOK_DEV_DEMO_CONLL = "mtnt_tok_dev_dem
 #PERMUTATION
 PERMUTATION_TRAIN_LABEL, PERMUTATION_TRAIN = "permutation-train", os.path.join(PROJECT_PATH, "./data/permutation-train.conll")
 PERMUTATION_TEST_LABEL, PERMUTATION_TEST= "permutation-test", os.path.join(PROJECT_PATH, "./data/permutation-test.conll")
+PERMUTATION_TRAIN_DIC = {}
+PERMUTATION_TRAIN_LABEL_DIC = {}
+for n_sent in [100, 1000, 10000, 50000, 100000, 200000]:
+    dir_train = "{}-{}{}".format(PERMUTATION_TRAIN[:-6], n_sent, PERMUTATION_TRAIN[-6:])
+    PERMUTATION_TRAIN_DIC[n_sent] = dir_train
+    PERMUTATION_TRAIN_LABEL_DIC[n_sent] = "permutation-{}-train".format(n_sent)
 
 # EMOJIs
 EMOJI_LS_LABEL, EMOJIS_LS = "emojis", os.path.join(PROJECT_PATH, "data/emojis_ls.txt")
@@ -134,11 +140,13 @@ LIU_TRAIN_SENT_LABEL, LIU_TRAIN_SENT = "liu_train_sent", os.path.join(PROJECT_PA
                                                                       "./data/LiLiu/2577_tweets-li-sent-train_2009.conll")
 LIU_DEV_SENT_LABEL, LIU_DEV_SENT = "liu_dev_sent", os.path.join(PROJECT_PATH,
                                                                 "./data/LiLiu/2577_tweets-li-sent-dev_500.conll")
-
-
-
-
-
+# ERIC data
+ERIC_ORIGINAL_LABEL, ERIC_ORIGINAL = "eric_frmg_original", \
+                                     os.path.join(PROJECT_PATH,
+                                                  "./data/eric_normalization/frmg_normalize4/collect2.nw100.conllu")
+ERIC_ORIGINAL_DEMO_LABEL, ERIC_ORIGINAL_DEMO = "eric_frmg_original-demo", \
+                                     os.path.join(PROJECT_PATH,
+                                                  "./data/eric_normalization/frmg_normalize4/collect2.nw100-demo1000.conllu")
 
 REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO2: DEMO2_LABEL,
                 TEST: TEST_LABEL, LIU: LIU_LABEL,
@@ -162,8 +170,11 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 MTNT_EN_TOK_DEV_CONLL: MTNT_EN_TOK_DEV_CONLL_LABEL, MTNT_EN_TOK_DEV_DEMO_CONLL:MTNT_EN_TOK_DEV_DEMO_CONLL_LABEL,
                 EMOJIS_LS: EMOJI_LS_LABEL,
                 PERMUTATION_TRAIN: PERMUTATION_TRAIN_LABEL, PERMUTATION_TEST: PERMUTATION_TEST_LABEL,
+                ERIC_ORIGINAL: ERIC_ORIGINAL_LABEL
                 }
 
+for n_sent in [100, 1000, 10000, 50000, 100000, 200000]:
+    REPO_DATASET[PERMUTATION_TRAIN_DIC[n_sent]] = PERMUTATION_TRAIN_LABEL_DIC[n_sent]
 
 REPO_W2V = {
             DIR_TWEET_W2V: {"label": TWEET_W2V_LABEL, "dim": 400},
