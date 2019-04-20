@@ -88,11 +88,13 @@ if __name__ == "__main__":
         assert os.environ.get("MODE_RUN") in ["DISTRIBUTED", "SINGLE"]
         run_standart = os.environ.get("MODE_RUN") != "DISTRIBUTED"
       else:
-          run_standart = False
+          run_standart = True
           print("LOCAL")
 
       params = []
+
       ls_param = ["hidden_size_encoder", "hidden_size_sent_encoder", "hidden_size_decoder", "output_dim", "char_embedding_dim"]
+
       params_strong = {"hidden_size_encoder": 100, "output_dim": 100, "char_embedding_dim": 50,
                        "dropout_sent_encoder": 0.0, "drop_out_word_encoder": 0.0, "dropout_word_decoder": 0.,
                        "drop_out_word_encoder_out": 0.0, "drop_out_sent_encoder_out": 0.0,
@@ -101,14 +103,14 @@ if __name__ == "__main__":
                        "word_recurrent_cell_decoder": "LSTM", "word_recurrent_cell_encoder":"LSTM",
                        "hidden_size_sent_encoder": 100, "hidden_size_decoder": 200, "batch_size": 10}
 
-      params_strong_tryal = {"hidden_size_encoder": 200, "output_dim": 100, "char_embedding_dim": 40,
+      params_strong_tryal = {"hidden_size_encoder": 12, "output_dim": 20, "char_embedding_dim": 20,
                              "dropout_sent_encoder": 0, "dropout_word_encoder_cell": 0, "dropout_word_decoder": 0.,
                              "drop_out_word_encoder_out": 0., "drop_out_sent_encoder_out": 0.,
                              "drop_out_char_embedding_decoder": 0., "dropout_bridge": 0.0,
                              "n_layers_word_encoder": 1, "dir_sent_encoder": 2, "word_recurrent_cell_decoder": "LSTM",
                              "word_recurrent_cell_encoder": "LSTM",
-                             "hidden_size_sent_encoder": 24,
-                             "hidden_size_decoder": 300, "batch_size": 10}
+                             "hidden_size_sent_encoder": 12,
+                             "hidden_size_decoder": 12, "batch_size": 10}
 
       params_dozat = {"hidden_size_encoder": 400, "output_dim": 100, "char_embedding_dim": 100,
                       "dropout_sent_encoder": 0.5, "dropout_word_decoder": 0.0,
@@ -136,9 +138,9 @@ if __name__ == "__main__":
           # default not used but could be
           #train_path, dev_path = MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV#MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
           # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#[TEST, TEST],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
-          train_path = [[DEMO]]
-          dev_path = [[DEMO2]]
-          test_path = [[[DEMO]]]
+          train_path = [[PERMUTATION_TRAIN_DIC[100]]]
+          dev_path = [[PERMUTATION_TRAIN_DIC[100]]]
+          test_path = [[[PERMUTATION_TRAIN_DIC[100]]]]
           # TODO : test with normalize and other multi tasks !!
           params, labels, default_all, analysed, fixed = grid_param_label_generate(params_strong_tryal,
                                                                                    train_ls=train_path,
@@ -163,7 +165,7 @@ if __name__ == "__main__":
                                                                                    word_embedding_projected_dim_ls=[0],
                                                                                    char_level_embedding_projection_dim_ls=[30],
                                                                                    tasks_ls=[["normalize"]],
-                                                                                   n_layers_sent_cell_ls=[2],
+                                                                                   n_layers_sent_cell_ls=[1],
                                                                                    n_layers_word_encoder_ls=[1],
                                                                                    unrolling_word_ls=[1],
                                                                                    scoring_func="exact_match",
@@ -243,12 +245,11 @@ if __name__ == "__main__":
               update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
       else:
           train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV#MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
-          POS_ABLATION = False
           NORMALIZE = True
           if NORMALIZE:
               epochs = 100
               #train_path, dev_path = CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
-              n_sents = 50000
+              n_sents = 10000
               train_path = [[PERMUTATION_TRAIN_DIC[n_sents]]]
               dev_path = [[PERMUTATION_TEST]]
               test_path = [[[PERMUTATION_TEST, PERMUTATION_TRAIN_DIC[n_sents]]]]
@@ -259,11 +260,11 @@ if __name__ == "__main__":
                                                   stable_decoding_state_ls=[0],
                                                   word_decoding_ls=[0],
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
-                                                  batch_size_ls=[10, 40, 120],
+                                                  batch_size_ls=[20, 60],
                                                   word_embed_ls=[0],
                                                   dir_sent_encoder_ls=[2], dir_word_encoder_ls=[2],
                                                   n_layers_sent_cell_ls=[1], n_layers_word_encoder_ls=[1],
-                                                  lr_ls=[0.0001, 0.001],
+                                                  lr_ls=[0.0001, 0.0005, 0.001],
                                                   word_embed_init_ls=[None],
                                                   teacher_force_ls=[1],
                                                   word_recurrent_cell_encoder_ls=["LSTM"],
@@ -274,9 +275,9 @@ if __name__ == "__main__":
                                                   char_level_embedding_projection_dim_ls=[0],
                                                   mode_word_encoding_ls=["cat"],
                                                   tasks_ls=[["normalize"]],
-                                                  char_src_attention_ls=[1], attention_tagging_ls=[1],
+                                                  char_src_attention_ls=[1], attention_tagging_ls=[0],
                                                   unrolling_word_ls=[1],
-                                                  scale_ls=[1],
+                                                  scale_ls=[1, 5, 20],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   description_comment=description_comment,
                                                   train_path=train_path, dev_path=dev_path,
@@ -284,7 +285,7 @@ if __name__ == "__main__":
                                                   gpu_mode="random",
                                                   gpus_ls=gpu_ls,
                                                   scoring_func="exact_match",
-                                                  dropout_input_ls=[0.],
+                                                  dropout_input_ls=[0.0],
                                                   multi_task_loss_ponderation_ls=[{"pos": 0, "normalize": 1, "norm_not_norm":0, "edit_prediction":0}],
                                                   write_to_dir=RUN_SCRIPTS_DIR)
           
@@ -311,7 +312,7 @@ if __name__ == "__main__":
                                                   char_src_attention_ls=[0],
                                                   teacher_force_ls=[1],
                                                   proportion_pred_train_ls=[None],
-                                                  shared_context_ls=["all"],
+                                                  shared_context_ls=["word"],
                                                   word_embedding_projected_dim_ls=[125],
                                                   char_level_embedding_projection_dim_ls=[125],
                                                   tasks_ls=[["pos"],

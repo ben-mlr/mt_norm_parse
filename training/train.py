@@ -10,7 +10,8 @@ from tracking.plot_loss import simple_plot
 
 from toolbox.checkpointing import checkpoint, update_curve_dic
 from io_.info_print import disable_tqdm_level, printing
-from env.project_variables import PROJECT_PATH, REPO_DATASET, BREAKING_NO_DECREASE, CHECKPOINT_DIR, LOSS_DETAIL_TEMPLATE_LS, AVAILABLE_OPTIMIZER, TASKS_PARAMETER
+from env.project_variables import PROJECT_PATH, REPO_DATASET, REPO_LABEL2SET,\
+    BREAKING_NO_DECREASE, CHECKPOINT_DIR, LOSS_DETAIL_TEMPLATE_LS, AVAILABLE_OPTIMIZER, TASKS_PARAMETER
 from env.project_variables import STARTING_CHECKPOINTING_WITH_SCORE
 
 from toolbox.gpu_related import use_gpu_
@@ -488,7 +489,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
 
             model, checkpoint_score_saved, counter_no_deacrease, saved_epoch, checkpoint_dir_former = \
                     checkpoint(loss_saved=checkpoint_score_saved, loss=checkpoint_score,
-                               checkpointing_metric=_checkpointing_metric ,
+                               checkpointing_metric=_checkpointing_metric,
                                model=model, counter_no_decrease=counter_no_deacrease,
                                checkpoint_dir_former=checkpoint_dir_former,
                                saved_epoch=saved_epoch, model_dir=model.dir_model,
@@ -501,7 +502,9 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                 "proportion_pred_train": proportion_pred_train,
                                                 "train_data_path": train_path, "dev_data_path": dev_path,
                                                 "other": {"error_curves": dir_plot, "loss": loss_dev,
-                                                          "sanity_test": {"loss": loss_dev, "data": dev_path, "batch_size":batch_size},
+                                                          "sanity_test": {"loss": loss_dev,
+                                                                          "data": [REPO_DATASET[_dev_path] for _dev_path in dev_path],
+                                                                          "batch_size": batch_size},
                                                           "error_curves_details": dir_plot_detailed,
                                                           "dropout_input": dropout_input,
                                                           "checkpointing_metric": _checkpointing_metric,

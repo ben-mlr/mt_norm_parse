@@ -402,7 +402,8 @@ class LexNormalizer(nn.Module):
 
             if loading_sanity_test:
                 assert len(sanity_test_dic) > 0, "ERROR loaded {} dictionary empty".format(sanity_test_dic)
-                loss, details, _ = get_loss(model=self, data_path=sanity_test_dic["data"], tasks=tasks, use_gpu=use_gpu,
+                loss, details, _ = get_loss(model=self, data_label=sanity_test_dic["data"],
+                                            tasks=tasks, use_gpu=use_gpu,
                                             batch_size=sanity_test_dic["batch_size"],
                                             bucketing=True,
                                             word_decoding=word_decoding, char_decoding=char_decoding,
@@ -486,9 +487,7 @@ class LexNormalizer(nn.Module):
                  verbose=0, verbose_level=4)
         # output_score = nn.ReLU()(self.output_predictor(h_out))
         # [batch, output_voc_size], one score per output character token
-        printing("DECODER full  output sequence encoded of size {} ", var=[output.size()] if output is not None else None,
-                 verbose=self.verbose,
-                 verbose_level=3)
+        printing("DECODER full  output sequence encoded of size {} ", var=[output.size()] if output is not None else None, verbose=self.verbose, verbose_level=3)
         printing("DECODER full  output sequence encoded of {}", var=[output] if output is not None else None,
                  verbose=self.verbose, verbose_level=5)
         if timing:
@@ -516,8 +515,7 @@ class LexNormalizer(nn.Module):
         checkpoint_dir = os.path.join(dir, model.model_full_name + "-" + suffix_name + "-" + "checkpoint.pt")
         # we update the checkpoint_dir
         model.arguments["hyperparameters"]["n_trainable_parameters"] = count_trainable_parameters(model)
-        printing("MODEL : trainable parameters : {} ",  var=model.arguments["hyperparameters"]["n_trainable_parameters"]
-                 , verbose_level=0, verbose=verbose)
+        printing("MODEL : trainable parameters : {} ",  var=model.arguments["hyperparameters"]["n_trainable_parameters"], verbose_level=0, verbose=verbose)
         model.arguments["hyperparameters"]["proportion_pred_train"] = info_checkpoint["proportion_pred_train"]
         model.arguments["hyperparameters"]["decoder_arch"]["teacher_force"] = info_checkpoint["teacher_force"]
         model.arguments["hyperparameters"]["batch_size"] = info_checkpoint["batch_size"]
@@ -539,21 +537,18 @@ class LexNormalizer(nn.Module):
         # the arguments dir does not change !
         if len(extra_arg_specific_label) > 0:
             extra_arg_specific_label += "-"
-            printing("MODEL : added extra {} to arg directory  ", var=[extra_arg_specific_label], verbose_level=0,
-                     verbose=0)
+            printing("MODEL : added extra {} to arg directory  ", var=[extra_arg_specific_label], verbose_level=0, verbose=0)
         arguments_dir = os.path.join(dir,  model.model_full_name + "-" + extra_arg_specific_label + "args.json")
         model.args_dir = arguments_dir
 
         if os.path.isfile(arguments_dir):
-            printing("Overwriting argument file (checkpoint dir updated with {}  ) ", var=[checkpoint_dir],
-                     verbose=verbose, verbose_level=1)
+            printing("Overwriting argument file (checkpoint dir updated with {}  ) ", var=[checkpoint_dir], verbose=verbose, verbose_level=1)
         printing("Checkpoint info are now {} ", var=(model.arguments["info_checkpoint"]), verbose=verbose,
                  verbose_level=3)
         torch.save(model.state_dict(), checkpoint_dir)
         printing(model.arguments, verbose=verbose, verbose_level=1)
         json.dump(model.arguments, open(arguments_dir, "w"))
-        printing("Saving model weights and arguments as {}  and {} ", var=(checkpoint_dir, arguments_dir),
-                 verbose=verbose, verbose_level=1)
+        printing("Saving model weights and arguments as {}  and {} ", var=(checkpoint_dir, arguments_dir), verbose=verbose, verbose_level=1)
         return dir, model.model_full_name, checkpoint_dir
 
     @staticmethod

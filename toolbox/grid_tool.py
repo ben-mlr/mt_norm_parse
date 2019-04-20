@@ -185,7 +185,9 @@ def grid_param_label_generate(param,
             scale_word = 1
             scaled_output_dim = 1
           else:
-            scale_sent_context, scale_word, scaled_output_dim = 1, 1, 1
+            scale_sent_context, scale_word= scale, scale
+            scaled_output_dim =  max(int(scale/2), 1) if max(int(scale/2), 1) < 10 else 10
+            scale = 1
           #for dir_word_encoder in dir_word_encoder_ls:
           for char_src_attention in char_src_attention_ls:
             #for dir_sent_encoder in dir_sent_encoder_ls:
@@ -236,8 +238,7 @@ def grid_param_label_generate(param,
                                         param0["lr"] = lr
                                         param0["word_embed_init"] = word_embed_init
                                         param0["dropout_word_encoder_cell"] = dropout_word_encoder_cell
-                                        param0["hidden_size_encoder"] = int(param0["hidden_size_encoder"] * scale *
-                                                                            scale_word)
+                                        param0["hidden_size_encoder"] = int(param0["hidden_size_encoder"] * scale *scale_word)
                                         param0["hidden_size_sent_encoder"] = int(param0["hidden_size_sent_encoder"] * scale * scale_sent_context)
                                         param0["hidden_size_decoder"] = int(param0["hidden_size_decoder"] * scale)
                                         param0["output_dim"] *= int(scale * scaled_output_dim) + 1

@@ -2,9 +2,10 @@ from io_.data_iterator import data_gen_multi_task_sampling_batch, readers_load
 from model.loss import LossCompute
 from training.epoch_train import run_epoch
 from io_.info_print import printing
+from env.project_variables import REPO_LABEL2SET
 
 
-def get_loss(model, data_path, tasks, use_gpu, word_decoding, char_decoding,
+def get_loss(model, data_label, tasks, use_gpu, word_decoding, char_decoding,
              max_char_len, bucketing,batch_size,
              symbolic_end=1, add_end_char=1, add_start_char=1,
              symbolic_root=1,
@@ -13,7 +14,10 @@ def get_loss(model, data_path, tasks, use_gpu, word_decoding, char_decoding,
     ponderation_normalize_loss = model.arguments["hyperparameters"]["ponderation_normalize_loss"]
     weight_pos_loss = model.arguments["hyperparameters"]["weight_pos_loss"]
     weight_binary_loss = model.arguments["hyperparameters"]["weight_binary_loss"]
-    readers_dev = readers_load(datasets=data_path, tasks=tasks, word_dictionary=model.word_dictionary,
+    dataset = [REPO_LABEL2SET[_data_label] for _data_label in data_label]
+    printing("SANITY TEST performed on {}".format(dataset), verbose=verbose, verbose_level=1)
+    readers_dev = readers_load(datasets=dataset,
+                               tasks=tasks, word_dictionary=model.word_dictionary,
                                word_dictionary_norm=model.word_nom_dictionary, char_dictionary=model.char_dictionary,
                                pos_dictionary=model.pos_dictionary, xpos_dictionary=model.xpos_dictionary,
                                type_dictionary=model.type_dictionary, use_gpu=use_gpu,
