@@ -13,6 +13,7 @@ NORM2NOISY = False
 
 
 def data_gen_conllu(data, word_dictionary, char_dictionary,
+                    word_dictionary_norm,
                     batch_size,task_info="",
                     get_batch_mode=True,
                     padding=PAD_ID_CHAR, print_raw=False, normalization=False, pos_dictionary=None,
@@ -78,13 +79,11 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
         for ibatch in tqdm(range(1, nbatch+1), disable=disable_tqdm_level(verbose, verbose_level=2)):
             # word, char, pos, xpos, heads, types, masks, lengths, morph
             printing("Data : getting {} out of {} batches", var=(ibatch, nbatch+1), verbose= verbose, verbose_level=2)
-            word, word_norm, char, chars_norm, word_norm_not_norm, edit, pos, _, _, _, raw_word_inputs, normalized_str,\
-            lenght, order_ids = \
-                conllu_data.get_batch_variable(data,
-                                               batch_size=batch_size,
-                                               normalization=normalization,
-                                               unk_replace=0)
 
+            word, word_norm, char, chars_norm, word_norm_not_norm, edit, pos, _, _, _, \
+            _, lenght, order_ids, raw_word_inputs, normalized_str, _ = conllu_data.get_batch_variable(data,batch_size=batch_size,
+                                               normalization=normalization, unk_replace=0)
+            pdb.set_trace()
             if char.size(0) <= 1:
                 print("WARNING : NOT Skip character ")
                 #continue
@@ -201,7 +200,9 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
     return readers
 
 
-def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary, char_dictionary, pos_dictionary,extend_n_batch,
+def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary, char_dictionary, pos_dictionary,
+                                       word_dictionary_norm,
+                                       extend_n_batch,
                                        batch_size,  get_batch_mode, mode_batch_sampling="proportional",
                                        padding=PAD_ID_CHAR,
                                        dropout_input=0, print_raw=False,
@@ -216,6 +217,7 @@ def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary, char_dic
     for task in tasks:
         iterator[task] = data_gen_conllu(data=readers[task], word_dictionary=word_dictionary, task_info=task,
                                          char_dictionary=char_dictionary, pos_dictionary=pos_dictionary,
+                                         word_dictionary_norm=word_dictionary_norm,
                                          batch_size=batch_size, extend_n_batch=extend_n_batch,
                                          get_batch_mode=get_batch_mode, dropout_input=dropout_input,
                                          padding=padding,

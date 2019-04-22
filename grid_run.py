@@ -8,7 +8,8 @@ from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, C
     CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST, EWT_DEV, EWT_TEST, \
     LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO, EN_LINES_EWT_TRAIN, EN_LINES_DEV, EN_LINES_EWT_TRAIN,\
     PERMUTATION_TRAIN, PERMUTATION_TEST, LEX_TRAIN, LEX_TEST,\
-    MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, RUN_SCRIPTS_DIR, GPU_AVAILABLE_DEFAULT_LS, DEFAULT_SCORING_FUNCTION, WARMUP_N_EPOCHS, PERMUTATION_TRAIN_DIC
+    MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST,\
+    RUN_SCRIPTS_DIR, GPU_AVAILABLE_DEFAULT_LS, DEFAULT_SCORING_FUNCTION, WARMUP_N_EPOCHS, PERMUTATION_TRAIN_DIC
 
 from toolbox.git_related import get_commit_id
 from tracking.reporting_google_sheet import update_status, append_reporting_sheet
@@ -141,9 +142,9 @@ if __name__ == "__main__":
           #train_path = [[DEMO,DEMO2]]
           #dev_path = [[DEMO, DEMO2]]
           #test_path = [[[DEMO], [DEMO2]]]
-          train_path = [[LEX_TRAIN]]
-          dev_path = [[LEX_TEST]]
-          test_path = [[[LEX_TEST]]]
+          train_path = [[DEMO]]
+          dev_path = [[DEMO]]
+          test_path = [[[DEMO]]]
           # TODO : test with normalize and other multi tasks !!
           params, labels, default_all, analysed, fixed = grid_param_label_generate(params_strong_tryal,
                                                                                    train_ls=train_path,
@@ -175,7 +176,8 @@ if __name__ == "__main__":
                                                                                    mode_word_encoding_ls=["sum"],
                                                                                    dropout_input_ls=[0.0],
                                                                                    multi_task_loss_ponderation_ls=[{"pos": 1, "normalize": 1,
-                                                                                                                    "norm_not_norm": 0, "edit_prediction": 1}],
+                                                                                                                    "norm_not_norm": 0,
+                                                                                                                    "edit_prediction": 1}],
                                                                                    scale_ls=[1])
 
 
@@ -241,7 +243,7 @@ if __name__ == "__main__":
                    label_grid=LABEL_GRID,
                    epochs=1,
                    test_before_run=test_before_run,
-                   debug=False,
+                   debug=True,
                    scoring_func_sequence_pred="exact_match",
                    warmup=warmup)
           if row is not None:

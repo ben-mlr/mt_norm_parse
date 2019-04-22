@@ -33,10 +33,14 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None,
 
     printing("Creating dictionary in {} ".format(dict_path), verbose=verbose, verbose_level=1)
     word_dictionary, word_norm_dictionary, char_dictionary, pos_dictionary, \
-    xpos_dictionary, type_dictionary = create_dict(dict_path, train_path, dev_path, test_path,  dry_run,
+    xpos_dictionary, type_dictionary = create_dict(dict_path,
+                                                   train_path=train_path,
+                                                   dev_path=dev_path,
+                                                   test_path= test_path,  dry_run=dry_run,
                                                    word_embed_dict=word_embed_dict,
                                                    expand_vocab_bool=expand_vocab, add_start_char=add_start_char,
-                                                   pos_specific_data_set=pos_specific_data_set,tasks=tasks,
+                                                   pos_specific_data_set=pos_specific_data_set,
+                                                   tasks=tasks,
                                                    word_normalization=word_normalization, verbose=verbose)
   else:
     # ??
@@ -85,7 +89,7 @@ def pos_specific_dic_builder(pos_specific_data_set, pos_dictionary):
   return pos_dictionary
 
 
-def create_dict(dict_path, train_path, dev_path, test_path,tasks,
+def create_dict(dict_path, train_path, dev_path, test_path, tasks,
                 dry_run, word_normalization=False, expand_vocab_bool=False, add_start_char=0,
                 min_occurence=0, pos_specific_data_set=None,word_embed_dict=None, verbose=1,
                ):
@@ -614,8 +618,9 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
       word_norm_not_norm = word_norm_not_norm[index]
     if edit is not None:
       edit = edit[index]
-  return words, word_norm, chars[index], chars_norm, word_norm_not_norm, edit, pos[index], xpos[index], heads[index], \
-         types[index], masks[index], lengths[index], order_inputs[index]
+  return words, word_norm, chars[index], chars_norm, word_norm_not_norm, edit, pos[index], xpos[index], heads[index], types[index],\
+         masks[index], lengths[index], order_inputs[index], raw, normalized_str, raw_lines
+
 
 
 def iterate_batch_variable(data, batch_size, unk_replace=0.,

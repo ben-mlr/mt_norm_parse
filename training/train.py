@@ -292,6 +292,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
                                                        word_dictionary=model.word_dictionary,
                                                        char_dictionary=model.char_dictionary,
                                                        pos_dictionary=model.pos_dictionary,
+                                                       word_dictionary_norm=model.word_nom_dictionary,
                                                        get_batch_mode=get_batch_mode_all,
                                                        extend_n_batch=extend_n_batch,
                                                        dropout_input=dropout_input,
@@ -334,6 +335,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
         batchIter_eval = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_dev, batch_size=batch_size,
                                                             word_dictionary=model.word_dictionary,
                                                             char_dictionary=model.char_dictionary,
+                                                            word_dictionary_norm=model.word_nom_dictionary,
                                                             pos_dictionary=model.pos_dictionary, dropout_input=0,
                                                             extend_n_batch=1, get_batch_mode=False, verbose=verbose)
         _create_iter_time, start = get_timing(start)
