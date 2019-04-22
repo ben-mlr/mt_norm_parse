@@ -93,7 +93,8 @@ def getOOVWords(word_dictionary, test_path):
 
 
 class Sentence(object):
-  def __init__(self, words, word_ids, char_seqs, char_id_seqs, lines,
+  def __init__(self, words, word_ids,
+               char_seqs, char_id_seqs, lines,
                word_norm=None, word_norm_ids=None,
                char_norm_seq=None, char_norm_ids_seq=None):
     self.words = words

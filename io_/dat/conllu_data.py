@@ -85,9 +85,8 @@ def pos_specific_dic_builder(pos_specific_data_set, pos_dictionary):
   return pos_dictionary
 
 
-def create_dict(dict_path, train_path, dev_path, test_path,
+def create_dict(dict_path, train_path, dev_path, test_path,tasks,
                 dry_run, word_normalization=False, expand_vocab_bool=False, add_start_char=0,
-                tasks=None,
                 min_occurence=0, pos_specific_data_set=None,word_embed_dict=None, verbose=1,
                ):
   """
@@ -362,7 +361,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
     for bucket_id, bucket_size in enumerate(_buckets):
       if inst_size < bucket_size or bucket_id == last_bucket_id:
         data[bucket_id].append([sent.word_ids, sent.word_norm_ids, sent.char_id_seqs, sent.char_norm_ids_seq, inst.pos_ids, inst.heads, inst.type_ids,
-                                counter, sent.words, sent.raw_lines, inst.xpos_ids])
+                                counter, sent.words, sent.word_norm, sent.raw_lines, inst.xpos_ids])
         max_char_len = max([len(char_seq) for char_seq in sent.char_seqs])
         if normalization:
           max_char_norm_len = max([len(char_norm_seq) for char_norm_seq in sent.char_norm_ids_seq])
@@ -452,11 +451,12 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
     
     order_inputs = np.empty(bucket_size, dtype=np.int64)
     raw_word_inputs, raw_lines = [], []
+    words_normalized_str = []
 
     for i, inst in enumerate(data[bucket_id]):
       ss[bucket_id] += 1
       ss1[bucket_id] = bucket_length
-      wids, wids_norm, cid_seqs, cid_norm_seqs, pids, hids, tids, orderid, word_raw, lines, xpids = inst
+      wids, wids_norm, cid_seqs, cid_norm_seqs, pids, hids, tids, orderid, word_raw, normalized_str, lines, xpids = inst
       # TODO : have to handle case were wids is null
       assert len(cid_seqs) == len(wids), "ERROR cid_seqs {} and wids {} are different len".format(cid_seqs, wids)
       if len(wids_norm) > 0 and normalization:
@@ -467,6 +467,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       lengths_inputs[i] = inst_size
       order_inputs[i] = orderid
       raw_word_inputs.append(word_raw)
+      words_normalized_str.append(normalized_str)
       # word ids
       wid_inputs[i, :inst_size] = wids
       wid_inputs[i, inst_size:] = PAD_ID_WORD
@@ -504,9 +505,11 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
           #we want room to padd it
           cids_norm[i, word_index, len(cids)+shift+shift_end:] = PAD_ID_CHAR
           if "norm_not_norm" in tasks:
-            word_norm_not_norm[i, word_index] = get_transform_normalized_standart(cids_norm, cid_inputs, sent_index=i, word_index=word_index, task="norm_not_norm")
+            word_norm_not_norm[i, word_index] = get_transform_normalized_standart(cids_norm, cid_inputs, sent_index=i,
+                                                                                  word_index=word_index, task="norm_not_norm")
           if "edit_prediction" in tasks:
-            edit[i, word_index] = get_transform_normalized_standart(cids_norm, cid_inputs, sent_index=i, word_index=word_index, task="edit_prediction")
+            edit[i, word_index] = get_transform_normalized_standart(cids_norm, cid_inputs, sent_index=i,
+                                                                    word_index=word_index, task="edit_prediction")
 
         cids_norm[i, inst_size:, :] = PAD_ID_CHAR
         if "norm_not_norm" in tasks:
@@ -569,7 +572,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       #single = single.cuda()
       lengths = lengths.cuda()
     data_variable.append((words, word_norm, chars, chars_norm, word_norm_not_norm, edit, pos, xpos, heads, types,
-                          masks, single, lengths, order_inputs, raw_word_inputs, raw_lines))
+                          masks, single, lengths, order_inputs, raw_word_inputs, words_normalized_str, raw_lines))
   return data_variable, bucket_sizes, _buckets, max_char_length_dic["n_sent"]
 
 
@@ -590,7 +593,7 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
   bucket_id = min([i for i in range(len(buckets_scale)) if buckets_scale[i] > random_number])
   bucket_length = _buckets[bucket_id]
 
-  words, word_norm, chars, chars_norm, word_norm_not_norm, edit, pos, xpos, heads, types, masks, single, lengths, order_inputs, raw, raw_lines = data_variable[bucket_id]
+  words, word_norm, chars, chars_norm, word_norm_not_norm, edit, pos, xpos, heads, types, masks, single, lengths, order_inputs, raw, normalized_str, raw_lines = data_variable[bucket_id]
   bucket_size = bucket_sizes[bucket_id]
   batch_size = min(bucket_size, batch_size)
   index = torch.randperm(bucket_size).long()[:batch_size]
@@ -630,7 +633,8 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
     bucket_length = _buckets[bucket_id]
     if bucket_size == 0:
       continue
-    words, word_norm, chars, chars_norm, word_norm_not_norm, edit, pos, xpos, heads, types, masks, single, lengths, order_ids, raw_word_inputs, raw_lines = data_variable[bucket_id]
+    words, word_norm, chars, chars_norm, word_norm_not_norm, edit, pos, xpos, heads, types, masks, single, lengths, order_ids, \
+    raw_word_inputs, normalized_str, raw_lines = data_variable[bucket_id]
 
     if unk_replace:
       ones = Variable(single.data.new(bucket_size, bucket_length).fill_(1))
@@ -669,4 +673,4 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
             pos[excerpt], xpos[excerpt], heads[excerpt], \
             types[excerpt],  \
             masks[excerpt], lengths[excerpt], order_ids[excerpt], \
-            raw_word_inputs[excerpt], raw_lines[excerpt]
+            raw_word_inputs[excerpt], normalized_str[excerpt], raw_lines[excerpt]

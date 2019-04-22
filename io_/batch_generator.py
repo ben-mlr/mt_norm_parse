@@ -15,8 +15,12 @@ def subsequent_mask(size):
 
 class MaskBatch(object):
     def __init__(self, input_seq, output_seq,
+                 raw_input=None, raw_output=None,
                  output_word=None, pos=None, input_word=None,edit=None,
                  output_norm_not_norm=None, pad=PAD_ID_CHAR, verbose=0, timing=False, dropout_input=0.):
+
+        self.raw_input = raw_input
+        self.raw_output = raw_output
 
         self.input_seq = input_seq
         self.pos = pos
@@ -55,9 +59,12 @@ class MaskBatch(object):
             self.input_seq_len = self.input_seq_len.cuda()
 
         get_len_input, start = get_timing(start)
-        printing("BATCH : SOURCE true dim size {} ", var=(self.input_seq.size()), verbose=verbose, verbose_level=3)
-        printing("BATCH : SOURCE input_seq_len  {} ", var=(self.input_seq_len), verbose=verbose, verbose_level=5)
-        printing("BATCH : SOURCE input_seq_len size {} ", var=(self.input_seq_len.size()), verbose=verbose,
+        printing("BATCH : SOURCE true dim size {} ",
+                 var=(self.input_seq.size()), verbose=verbose, verbose_level=3)
+        printing("BATCH : SOURCE input_seq_len  {} ",
+                 var=(self.input_seq_len), verbose=verbose, verbose_level=5)
+        printing("BATCH : SOURCE input_seq_len size {} ",
+                 var=(self.input_seq_len.size()), verbose=verbose,
                  verbose_level=5)
         self.output_seq = output_seq
         if output_seq is not None:
@@ -131,14 +138,27 @@ class MaskBatch(object):
             # we reshape so that it fits tthe generated sequence
             self.output_seq_y = self.output_seq_y.view(output_y_shape[0], -1, torch.max(lenghts))
             reshape_output_seq_y, start = get_timing(start)
-            printing("self.output_seq_y 1 {} ", var=(self.output_seq_y), verbose=verbose, verbose_level=6)
-            printing("BATCH : TARGET true dim {} ", var=(self.output_seq_y.size()), verbose=verbose, verbose_level=3)
-            printing("BATCH : TARGET after packed true {} ", var=(self.output_seq_y), verbose=verbose, verbose_level=5)
+            printing("self.output_seq_y 1 {} ", var=(self.output_seq_y),
+                     verbose=verbose, verbose_level=6)
+            printing("BATCH : TARGET true dim {} ", var=(self.output_seq_y.size()),
+                     verbose=verbose, verbose_level=3)
+            printing("BATCH : TARGET after packed true {} ",
+                     var=(self.output_seq_y),
+                     verbose=verbose, verbose_level=5)
             if timing:
-                print("Batch TIMING {}".format(OrderedDict([("reshape_output_seq_y",reshape_output_seq_y), ("reorder_output_y",reorder_output_y), ("pad_output_y",pad_output_y), ("zero_last_output_len",zero_last_output_len),
-                                                            ("reorder_output", reorder_output), ("reshape_output_seq_and_len", reshape_output_seq_and_len), ("get_n_token", get_n_token),
-                                                            ("get_len_output", get_len_output), ("zero_mask_output", zero_mask_output), ("get_mask_output", get_mask_output),
-                                                            ("zero_last_output", zero_last_output),  ("get_len_input", get_len_input), ("zero_last", zero_last),
+                print("Batch TIMING {}".format(OrderedDict([("reshape_output_seq_y", reshape_output_seq_y),
+                                                            ("reorder_output_y", reorder_output_y),
+                                                            ("pad_output_y", pad_output_y),
+                                                            ("zero_last_output_len", zero_last_output_len),
+                                                            ("reorder_output", reorder_output),
+                                                            ("reshape_output_seq_and_len", reshape_output_seq_and_len),
+                                                            ("get_n_token", get_n_token),
+                                                            ("get_len_output", get_len_output),
+                                                            ("zero_mask_output", zero_mask_output),
+                                                            ("get_mask_output", get_mask_output),
+                                                            ("zero_last_output", zero_last_output),
+                                                            ("get_len_input", get_len_input),
+                                                            ("zero_last", zero_last),
                                                             ("get_seq_mask", get_seq_mask)])))
 
     @staticmethod

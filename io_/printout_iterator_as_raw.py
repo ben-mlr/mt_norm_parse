@@ -6,8 +6,9 @@ from io_.info_print import printing
 
 
 def outputing_raw_data_from_iterator(words, word_norm, chars, chars_norm, word_norm_not_norm, pos,
-                                     verbose, print_raw, normalization, char_dictionary, word_dictionary, pos_dictionary):
-
+                                     verbose, print_raw, normalization, char_dictionary, word_dictionary,
+                                     word_norm_dictionary,
+                                     pos_dictionary):
 
     _verbose = 5 if print_raw else verbose
 
@@ -17,6 +18,12 @@ def outputing_raw_data_from_iterator(words, word_norm, chars, chars_norm, word_n
             " | NORM : {} |SENT {} WORD {}| ".format(word_norm_not_norm[sent, word_ind], sent, word_ind) for
             ind_sent, sent in enumerate(range(chars.size(0)))
             for ind_w, word_ind in enumerate(range(chars.size(1)))]
+        if word_norm is not None:
+            assert word_norm_dictionary is not None
+            word_norm_display = " ".join([word_norm_dictionary.get_instance(word_norm[sent, word_ind]) for word_ind in range(word_norm.size(1)) for sent in range(word_norm.size(0))])
+        else:
+            print("No word level normalized word (only char)")
+            word_norm_display = ["NONE"]
 
         word_display = [word_dictionary.get_instance(words[batch, word_ind]) + " "
                         for batch in range(chars.size(0)) for word_ind in range(chars.size(1))]
@@ -47,6 +54,7 @@ def outputing_raw_data_from_iterator(words, word_norm, chars, chars_norm, word_n
                  var=(character_display, character_norm_display),
                  verbose=_verbose, verbose_level=5)
         printing("Feeding source words {} ", var=[word_display], verbose=_verbose, verbose_level=5)
+        printing("Feeding Word normalized (word level) {}", var=[word_norm_display], verbose=_verbose, verbose_level=5)
         printing("Feeding source pos {} ", var=[pos_display], verbose=_verbose, verbose_level=5)
         printing("TYPE {} char before batch chars_norm {} ", var=(chars.is_cuda, chars_norm.is_cuda),
                  verbose=verbose, verbose_level=5)

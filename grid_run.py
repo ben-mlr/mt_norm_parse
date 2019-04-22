@@ -7,7 +7,7 @@ from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, C
     LIU_DEV, DEV, DIR_TWEET_W2V, TEST, DIR_TWEET_W2V, DIR_FASTEXT_WIKI_NEWS_W2V, CHECKPOINT_DIR, DEMO, DEMO2, CP_PASTE_WR_TRAIN, \
     CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST, EWT_DEV, EWT_TEST, \
     LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO, EN_LINES_EWT_TRAIN, EN_LINES_DEV, EN_LINES_EWT_TRAIN,\
-    PERMUTATION_TRAIN, PERMUTATION_TEST,\
+    PERMUTATION_TRAIN, PERMUTATION_TEST, LEX_TRAIN, LEX_TEST,\
     MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST, RUN_SCRIPTS_DIR, GPU_AVAILABLE_DEFAULT_LS, DEFAULT_SCORING_FUNCTION, WARMUP_N_EPOCHS, PERMUTATION_TRAIN_DIC
 
 from toolbox.git_related import get_commit_id
@@ -138,9 +138,12 @@ if __name__ == "__main__":
           # default not used but could be
           #train_path, dev_path = MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV#MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
           # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#[TEST, TEST],#[EWT_TEST, EWT_DEV, EN_LINES_EWT_TRAIN, TEST], # [TEST_SENT, MTNT_EN_FR_TEST, MTNT_EN_FR_DEV],#
-          train_path = [[PERMUTATION_TRAIN_DIC[100]]]
-          dev_path = [[PERMUTATION_TRAIN_DIC[100]]]
-          test_path = [[[PERMUTATION_TRAIN_DIC[100]]]]
+          #train_path = [[DEMO,DEMO2]]
+          #dev_path = [[DEMO, DEMO2]]
+          #test_path = [[[DEMO], [DEMO2]]]
+          train_path = [[LEX_TRAIN]]
+          dev_path = [[LEX_TEST]]
+          test_path = [[[LEX_TEST]]]
           # TODO : test with normalize and other multi tasks !!
           params, labels, default_all, analysed, fixed = grid_param_label_generate(params_strong_tryal,
                                                                                    train_ls=train_path,
@@ -249,10 +252,10 @@ if __name__ == "__main__":
           if NORMALIZE:
               epochs = 100
               #train_path, dev_path = CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
-              n_sents = 10000
-              train_path = [[PERMUTATION_TRAIN_DIC[n_sents]]]
-              dev_path = [[PERMUTATION_TEST]]
-              test_path = [[[PERMUTATION_TEST, PERMUTATION_TRAIN_DIC[n_sents]]]]
+              #n_sents = 10000
+              train_path = [[LEX_TRAIN]]
+              dev_path = [[LEX_TEST]]
+              test_path = [[[LEX_TEST, TEST]]]
               dir_script, row = script_generation(grid_label=LABEL_GRID, 
                                                   init_param=params_strong_tryal,#params_dozat,#params_strong,#params_dozat,
                                                   warmup=test_before_run, test_before_run=test_before_run,
@@ -260,11 +263,11 @@ if __name__ == "__main__":
                                                   stable_decoding_state_ls=[0],
                                                   word_decoding_ls=[0],
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
-                                                  batch_size_ls=[20, 60],
+                                                  batch_size_ls=[40],
                                                   word_embed_ls=[0],
                                                   dir_sent_encoder_ls=[2], dir_word_encoder_ls=[2],
                                                   n_layers_sent_cell_ls=[1], n_layers_word_encoder_ls=[1],
-                                                  lr_ls=[0.0001, 0.0005, 0.001],
+                                                  lr_ls=[0.0001, 0.001],
                                                   word_embed_init_ls=[None],
                                                   teacher_force_ls=[1],
                                                   word_recurrent_cell_encoder_ls=["LSTM"],
@@ -277,7 +280,7 @@ if __name__ == "__main__":
                                                   tasks_ls=[["normalize"]],
                                                   char_src_attention_ls=[1], attention_tagging_ls=[0],
                                                   unrolling_word_ls=[1],
-                                                  scale_ls=[1, 5, 20],
+                                                  scale_ls=[10, 20, 30],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   description_comment=description_comment,
                                                   train_path=train_path, dev_path=dev_path,
@@ -285,7 +288,7 @@ if __name__ == "__main__":
                                                   gpu_mode="random",
                                                   gpus_ls=gpu_ls,
                                                   scoring_func="exact_match",
-                                                  dropout_input_ls=[0.0],
+                                                  dropout_input_ls=[0.0, 0.2, 0.4],
                                                   multi_task_loss_ponderation_ls=[{"pos": 0, "normalize": 1, "norm_not_norm":0, "edit_prediction":0}],
                                                   write_to_dir=RUN_SCRIPTS_DIR)
           

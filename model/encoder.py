@@ -32,10 +32,10 @@ class CharEncoder(nn.Module):
         # attention projection project
         dim_last_layer_state = hidden_size_encoder * n_layers_word_cell * dir_word_encoder
         dim_attention = (hidden_size_encoder * dir_word_encoder) * int(attention_tagging)
-        if n_layers_word_cell>1:
+        if n_layers_word_cell > 1 :
             printing("WARNING : ENCODER : n_layers_word_cell is {} : all layers of cell/hidden state "
                      "are used", var=n_layers_word_cell, verbose=verbose, verbose_level=1)
-        if n_layers_sent_cell >1:
+        if n_layers_sent_cell > 1 :
             printing("WARNING : ENCODER : n_layers_sent_cell is {} : all layers of cell/hidden state "
                      "are used", var=n_layers_sent_cell, verbose=verbose, verbose_level=1)
         self.char_level_encoding_projection = nn.Linear(dim_attention+dim_last_layer_state,

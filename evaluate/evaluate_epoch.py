@@ -107,10 +107,13 @@ def evaluate(batch_size, data_path, tasks, evaluated_task,
     for score_name, formula in formulas.items():
         if isinstance(formula, tuple) and len(formula) > 1:
             (num, denom) = formula
-            score_value = score_dic_new[num]/score_dic_new[denom] if score_dic_new[denom]>0 else None
+            score_value = score_dic_new[num]/score_dic_new[denom] if score_dic_new[denom] > 0 else None
             #score_value_per_sent =
             if score_dic_new[denom] == 0:
-                print("WARNING Score {} has denumerator {} null and numerator {} equal to  {}".format(score_name, denom,num, score_dic_new[num]))
+                print("WARNING Score {} has denumerator {} null and numerator {} equal to  {}".format(score_name, denom,
+                                                                                                      num,
+                                                                                                      score_dic_new[num]
+                                                                                                      ))
             reg = re.match("([^-]+)-([^-]+)-.*", num)
             mode_norm = reg.group(1)
             task = reg.group(2)
@@ -191,7 +194,8 @@ if __name__ == "__main__":
                            dict_path=os.path.join(PROJECT_PATH, "checkpoints", folder_name, "dictionaries"),
                            label_report="eval_again", use_gpu=None,
                            overall_label=ablation_id+"-"+str(batch_size)+"-"+str(get_batch_mode_evaluate)+"_get_batch",
-                           mode_norm_ls=None, #score_to_compute_ls=["norm_not_norm-Recall"],
+                           mode_norm_ls=None,
+                           #score_to_compute_ls=["norm_not_norm-Recall"],
                            normalization=True, model_specific_dictionary=True, batch_size=batch_size,
                            debug=True, bucket=False,
                            compute_mean_score_per_sent=True,

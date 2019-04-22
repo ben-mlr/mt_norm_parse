@@ -72,8 +72,8 @@ LIU_DEV_LABEL, LIU_DEV = "liu_dev", os.path.join(PROJECT_PATH, "./data/LiLiu/257
 LIU_TRAIN_LABEL, LIU_TRAIN = "liu_train", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-train_2009.conll")
 
 
-LEX_TRAIN_LABEL, LEX_TRAIN = "lex_norm2015_train", os.path.join(PROJECT_PATH, "./data/lexnorm2015/train_data.conll")
-LEX_TEST_LABEL, LEX_TEST = "lex_norm2015_test", os.path.join(PROJECT_PATH, "./data/lexnorm2015/test_truth.conll")
+LEX_TRAIN_LABEL, LEX_TRAIN = "lex_norm2015_train", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/train_data.conll")
+LEX_TEST_LABEL, LEX_TEST = "lex_norm2015_test", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/test_truth.conll")
 
 LEX_LIU_LABEL, LEX_LIU_TRAIN = "lex_train+liu", os.path.join(PROJECT_PATH, "./data/lexnorm2015/lex_norm_train+liu_2577.conll")
 
@@ -148,6 +148,10 @@ ERIC_ORIGINAL_DEMO_LABEL, ERIC_ORIGINAL_DEMO = "eric_frmg_original-demo", \
                                      os.path.join(PROJECT_PATH,
                                                   "./data/eric_normalization/frmg_normalize4/collect2.nw100-demo1000.conllu")
 
+# WNUT-2015 ressources
+EMNLP12_DIC_LABEL, EMNLP12_DIC = "emnlp-dic-wnut", os.path.join(PROJECT_PATH, "data/wnut-2015-ressources/emnlp2012-lexnorm/emnlp_dict.txt")
+
+
 REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO2: DEMO2_LABEL,
                 TEST: TEST_LABEL, LIU: LIU_LABEL,
                 LEX_TRAIN:LEX_TRAIN_LABEL,
@@ -170,7 +174,8 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 MTNT_EN_TOK_DEV_CONLL: MTNT_EN_TOK_DEV_CONLL_LABEL, MTNT_EN_TOK_DEV_DEMO_CONLL:MTNT_EN_TOK_DEV_DEMO_CONLL_LABEL,
                 EMOJIS_LS: EMOJI_LS_LABEL,
                 PERMUTATION_TRAIN: PERMUTATION_TRAIN_LABEL, PERMUTATION_TEST: PERMUTATION_TEST_LABEL,
-                ERIC_ORIGINAL: ERIC_ORIGINAL_LABEL
+                ERIC_ORIGINAL: ERIC_ORIGINAL_LABEL,
+                EMNLP12_DIC:EMNLP12_DIC_LABEL
                 }
 
 for n_sent in [100, 1000, 10000, 50000, 100000, 200000]:

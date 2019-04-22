@@ -9,7 +9,6 @@ from io_.info_print import printing, print_char_seq, disable_tqdm_level
 from io_.printout_iterator_as_raw import outputing_raw_data_from_iterator
 from toolbox.sanity_check import get_timing
 
-
 NORM2NOISY = False
 
 
@@ -17,7 +16,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                     batch_size,task_info="",
                     get_batch_mode=True,
                     padding=PAD_ID_CHAR, print_raw=False, normalization=False, pos_dictionary=None,
-                    extend_n_batch=1,dropout_input=None,
+                    extend_n_batch=1, dropout_input=0,
                     timing=False,
                     verbose=0):
 
@@ -33,34 +32,44 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                      nbatch,
                      batch_size,
                      n_sents, extend_n_batch), verbose=verbose, verbose_level=1)
-    printing("ITERATOR INFO : 1 epoch is {} iteration/step/batch (extension is {}) ", var=[nbatch,extend_n_batch], verbose=verbose, verbose_level=1)
+    printing("ITERATOR INFO : 1 epoch is {} iteration/step/batch (extension is {}) ", var=[nbatch,
+                                                                                           extend_n_batch],
+             verbose=verbose, verbose_level=1)
     nbatch = 1 if nbatch == 0 else nbatch
     # deterministic run over all the dataset (for evaluation)
     if not normalization:
-        printing("WARNING : Normalisation is False : model is a autoencoder (BOTH iteration and get cases)  (get_batch_mode:{}) ",var=[get_batch_mode], verbose=verbose, verbose_level=0)
+        printing("WARNING : Normalisation is False : model is a autoencoder (BOTH iteration and get cases)  "
+                 "(get_batch_mode:{}) ",
+                 var=[get_batch_mode], verbose=verbose, verbose_level=0)
     if not get_batch_mode:
         for batch in tqdm(conllu_data.iterate_batch_variable(data, batch_size=batch_size,
                                                              normalization=normalization),
                           disable=disable_tqdm_level(verbose, verbose_level=2)):
 
-            words, word_norm, chars, chars_norm, word_norm_not_norm, edit, pos, xpos, heads, types, masks, lengths, order_ids, raw_word_inputs, raw_lines = batch
+            words, word_norm, chars, chars_norm, word_norm_not_norm, edit, pos, xpos, heads, types, \
+                masks, lengths, order_ids, raw_word_inputs, normalized_str, raw_lines = batch
 
             if not normalization:
                 chars_norm = chars.clone()
 
+            pdb.set_trace()
             outputing_raw_data_from_iterator(words, word_norm, chars, chars_norm, word_norm_not_norm, pos,
-                                             word_dictionary=word_dictionary, pos_dictionary=pos_dictionary, char_dictionary=char_dictionary,
+                                             word_dictionary=word_dictionary, pos_dictionary=pos_dictionary,
+                                             word_norm_dictionary=word_dictionary_norm,
+                                             char_dictionary=char_dictionary,
                                              verbose=verbose, print_raw=print_raw, normalization=normalization)
 
             if not NORM2NOISY:
                 yield MaskBatch(chars, chars_norm,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
                                 edit=edit,
-                                output_word=word_norm, pos=pos, input_word=words,dropout_input=dropout_input,
+                                output_word=word_norm, pos=pos, input_word=words, dropout_input=dropout_input,
+                                raw_input=raw_word_inputs, raw_output=normalized_str,
                                 verbose=verbose), order_ids
             else:
                 yield MaskBatch(chars_norm, chars,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
-                                output_word=word_norm, pos=pos, input_word=words,dropout_input=dropout_input,
+                                output_word=word_norm, pos=pos, input_word=words, dropout_input=dropout_input,
                                 edit=edit,
+                                raw_input=raw_word_inputs, raw_output=normalized_str,
                                 verbose=verbose), order_ids
 
 
@@ -69,7 +78,8 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
         for ibatch in tqdm(range(1, nbatch+1), disable=disable_tqdm_level(verbose, verbose_level=2)):
             # word, char, pos, xpos, heads, types, masks, lengths, morph
             printing("Data : getting {} out of {} batches", var=(ibatch, nbatch+1), verbose= verbose, verbose_level=2)
-            word, word_norm, char, chars_norm, word_norm_not_norm, edit, pos, _, _, _, _, lenght, order_ids = \
+            word, word_norm, char, chars_norm, word_norm_not_norm, edit, pos, _, _, _, raw_word_inputs, normalized_str,\
+            lenght, order_ids = \
                 conllu_data.get_batch_variable(data,
                                                batch_size=batch_size,
                                                normalization=normalization,
@@ -89,7 +99,6 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                 chars_norm = char.clone()
 
             __word_ind = 0
-
             if normalization:
                 if word_norm_not_norm is not None:
                     printing("norm not norm {} ", var=(word_norm_not_norm[:, __word_ind]), verbose=verbose,
@@ -101,16 +110,17 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             outputing_raw_data_from_iterator(word, word_norm, char, chars_norm, word_norm_not_norm, pos,
                                              word_dictionary=word_dictionary, pos_dictionary=pos_dictionary,
                                              char_dictionary=char_dictionary,
+                                             word_norm_dictionary=word_dictionary_norm,
                                              verbose=verbose, print_raw=print_raw, normalization=normalization)
 
             if NORM2NOISY:
                 print("WARNING !! NORM2NOISY ON ")
-                yield MaskBatch(chars_norm, char, output_word=word_norm,edit=edit,
-                                output_norm_not_norm=word_norm_not_norm,dropout_input=dropout_input,
+                yield MaskBatch(chars_norm, char, output_word=word_norm, edit=edit,
+                                output_norm_not_norm=word_norm_not_norm, dropout_input=dropout_input,
                                 pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose), order_ids
             else:
-                yield MaskBatch(char, chars_norm, output_word=word_norm,edit=edit,
-                                output_norm_not_norm=word_norm_not_norm,dropout_input=dropout_input,
+                yield MaskBatch(char, chars_norm, output_word=word_norm, edit=edit,
+                                output_norm_not_norm=word_norm_not_norm, dropout_input=dropout_input,
                                 pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose), order_ids
 
 
@@ -194,7 +204,7 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
 def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary, char_dictionary, pos_dictionary,extend_n_batch,
                                        batch_size,  get_batch_mode, mode_batch_sampling="proportional",
                                        padding=PAD_ID_CHAR,
-                                       dropout_input=None,
+                                       dropout_input=0, print_raw=False,
                                        verbose=1):
     "multitask learning iterator"
     assert len(tasks) == len(readers)
@@ -204,12 +214,12 @@ def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary, char_dic
     n_sents_per_task_dataset_cumul = {}
     cumul_n_sent = 0
     for task in tasks:
-        iterator[task] = data_gen_conllu(data=readers[task], word_dictionary=word_dictionary,task_info=task,
+        iterator[task] = data_gen_conllu(data=readers[task], word_dictionary=word_dictionary, task_info=task,
                                          char_dictionary=char_dictionary, pos_dictionary=pos_dictionary,
                                          batch_size=batch_size, extend_n_batch=extend_n_batch,
                                          get_batch_mode=get_batch_mode, dropout_input=dropout_input,
                                          padding=padding,
-                                         print_raw=False, normalization=TASKS_PARAMETER[task]["normalization"],
+                                         print_raw=print_raw, normalization=TASKS_PARAMETER[task]["normalization"],
                                          verbose=verbose)
         end_task_flag[task] = False
         cumul_n_sent += readers[task][-1]
@@ -281,32 +291,41 @@ if __name__=="__main__":
         add_start_char = 1
         add_end_char = 1
         extend_n_batch = 1
+        word_decoder = True
         word_dictionary,word_dictionary_norm , char_dictionary, pos_dictionary,\
         xpos_dictionary, type_dictionary = conllu_data.create_dict(dict_path=dict_path,
                                                                    train_path=LIU_DEV,
                                                                    dev_path=LIU_DEV,
                                                                    test_path=None,
                                                                    word_embed_dict={},
+                                                                   word_normalization=word_decoder,
+                                                                   tasks=["normalize"],
                                                                    dry_run=False, pos_specific_data_set=EN_LINES_EWT_TRAIN,
                                                                    add_start_char=add_start_char)
 
-        data_set = [LIU_DEV, DEMO]
-        tasks = ["normalize"]
+        data_set = [DEMO]
+        tasks = ["norm_not_norm"]
 
-        readers = readers_load(datasets=data_set, tasks=tasks,word_dictionary= word_dictionary,
+        readers = readers_load(datasets=data_set, tasks=tasks, word_dictionary= word_dictionary,
                                word_dictionary_norm=word_dictionary_norm, char_dictionary=char_dictionary,
-                               pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary, type_dictionary=type_dictionary, use_gpu=None,
-                               norm_not_norm=False, word_decoder=False,
+                               pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
+                               type_dictionary=type_dictionary, use_gpu=None,
+                               norm_not_norm=True, word_decoder=word_decoder,
                                add_start_char=1, add_end_char=1, symbolic_end=True, symbolic_root=True,
                                verbose=1)
         iterator_multi = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers, batch_size=2,
-                                                            word_dictionary=word_dictionary, char_dictionary=char_dictionary,
-                                                            pos_dictionary=pos_dictionary,extend_n_batch=1,
+                                                            word_dictionary=word_dictionary,
+                                                            char_dictionary=char_dictionary,
+                                                            pos_dictionary=pos_dictionary,
+                                                            extend_n_batch=1, print_raw=True,
                                                             get_batch_mode=False,
                                                             verbose=1)
         while True:
             try:
-                print(iterator_multi.__next__())
-            except:
+
+                batch = iterator_multi.__next__()
+                pdb.set_trace()
+            except StopIteration as e:
+                print(Exception(e))
                 break
 
