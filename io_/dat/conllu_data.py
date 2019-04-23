@@ -17,18 +17,17 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None,
               dry_run=0, expand_vocab=False, add_start_char=None,
               force_new_dic=False,verbose=1):
 
+  # TODO : CLEAN THIS to_create
   to_create = False
-
   for dict_type in ["word", "character", "pos", "xpos", "type"]:
-
     if not os.path.isfile(os.path.join(dict_path, "{}.json".format(dict_type))):
-
       to_create = True
 
   to_create = True if force_new_dic else to_create
 
   if to_create:
-
+    assert isinstance(train_path, list) and isinstance(dev_path, list), \
+      "ERROR : TRAIN:{} not list or DEV:{} not list ".format(train_path, dev_path)
     assert train_path is not None and dev_path is not None and add_start_char is not None
 
     printing("Creating dictionary in {} ".format(dict_path), verbose=verbose, verbose_level=1)
@@ -145,7 +144,7 @@ def create_dict(dict_path, train_path, dev_path, test_path, tasks,
   # read training file add to Vocab directly except for words (not word_norm)
   # ## for which we need filtering so we add them to vocab()
 
-  if isinstance(train_path,list):
+  if isinstance(train_path, list):
     assert tasks is not None, "ERROR : we need tasks information along with dataset to know how to commute label dictionary"
   else:
     train_path = [train_path]

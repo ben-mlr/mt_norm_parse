@@ -26,5 +26,6 @@ def print_char_seq(active=False, nbatch=None, sent_len=None, word_len=None, char
             print("raw text : ", e)
 
 
+
 def disable_tqdm_level(verbose, verbose_level):
     return False if verbose >= verbose_level else True

@@ -48,7 +48,10 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
 # Bert
-from pytorch_pretrained_bert import  BertForTokenClassification
+try:
+	from pytorch_pretrained_bert import  BertForTokenClassification
+except Exception as e :
+	print("IMPORT ERROR {}".format(e))
 
 
 # SEED INITIALIZATION

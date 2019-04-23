@@ -258,7 +258,7 @@ if __name__ == "__main__":
               #n_sents = 10000
               train_path = [[PERMUTATION_TRAIN]]
               dev_path = [[PERMUTATION_TEST]]
-              test_path = [[[PERMUTATION_TRAIN,PERMUTATION_TEST, TEST]]]
+              test_path = [[[PERMUTATION_TRAIN, PERMUTATION_TEST, TEST]]]
               dir_script, row = script_generation(grid_label=LABEL_GRID, 
                                                   init_param=params_strong_tryal,#params_dozat,#params_strong,#params_dozat,
                                                   warmup=test_before_run, test_before_run=test_before_run,
@@ -266,11 +266,11 @@ if __name__ == "__main__":
                                                   stable_decoding_state_ls=[0],
                                                   word_decoding_ls=[0],
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
-                                                  batch_size_ls=[20,200],
+                                                  batch_size_ls=[20],
                                                   word_embed_ls=[0],
                                                   dir_sent_encoder_ls=[2], dir_word_encoder_ls=[2],
                                                   n_layers_sent_cell_ls=[1], n_layers_word_encoder_ls=[1],
-                                                  lr_ls=[0.0005, 0.001, 0.002],
+                                                  lr_ls=[0.001],
                                                   word_embed_init_ls=[None],
                                                   teacher_force_ls=[1],
                                                   word_recurrent_cell_encoder_ls=["LSTM"],
@@ -283,7 +283,7 @@ if __name__ == "__main__":
                                                   tasks_ls=[["normalize"]],
                                                   char_src_attention_ls=[1], attention_tagging_ls=[0],
                                                   unrolling_word_ls=[1],
-                                                  scale_ls=[5, 10,100],
+                                                  scale_ls=[1, 5, 10, 100],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   description_comment=description_comment,
                                                   train_path=train_path, dev_path=dev_path,
@@ -291,7 +291,7 @@ if __name__ == "__main__":
                                                   gpu_mode="random",
                                                   gpus_ls=gpu_ls,
                                                   scoring_func="exact_match",
-                                                  dropout_input_ls=[0.0,0.2],
+                                                  dropout_input_ls=[0.0, 0.2],
                                                   multi_task_loss_ponderation_ls=[{"pos": 0, "normalize": 1, "norm_not_norm":0, "edit_prediction":0}],
                                                   write_to_dir=RUN_SCRIPTS_DIR)
           

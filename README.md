@@ -59,6 +59,26 @@ When any new features is implemented the impact the training process :
 verbose == 4 to see decoding
 
 
+## ABOUT BERT 
+
+### About BPE tokenization 
+
+Some statistics on the impact of BPE tokenization on the word noisy-clean alignement 
+- dataset : /normpar/data/lexnorm.integrated  
+	- Out of 328 batch of 1 sentences each : 46 batch aligned ; 277 with at least 1 sentence noisy MORE SPLITTED ; 4 with  LESS SPLITTED  
+- dataset : owoputi : Out of 306 batch of 1 sentences each : 58 batch aligned ; 226 with at least 1 sentence noisy MORE SPLITTED ; 21 with  LESS SPLITTED  
+- dataset : LIU TRAIN
+	- Out of 2009 batch of 1 sentences each : 444 batch aligned ; 1243 with at least 1 sentence noisy MORE SPLITTED ; 321 with  LESS SPLITTED  
+- dataset : LIU DEV 
+	- Out of 569 batch of 1 sentences each : 135 batch aligned ; 342 with at least 1 sentence noisy MORE SPLITTED ; 91 with  LESS SPLITTED  
+- LEXNORM TRAIN 
+	- Out of 1000 batch of 1 sentences each : 483 batch aligned ; 249 with at least 1 sentence noisy MORE SPLITTED ; 268 with  LESS SPLITTED  
+- LEXNORM DEV
+	- Out of 1000 batch of 1 sentences each : 476 batch aligned ; 260 with at least 1 sentence noisy MORE SPLITTED ; 264 with  LESS SPLITTED  
+
+FOR liu, lexnorm.integrated  and owoputi not have to handle 1 to n 
+For lexnorm_train, dev have to 
+
 ### TODO 
 
 #### To document

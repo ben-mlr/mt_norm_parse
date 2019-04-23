@@ -115,7 +115,7 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
         assert model_full_name is None and model_dir is None
 
     if not debug:
-        pdb.set_trace = lambda: 1
+        pdb.set_trace = lambda: None
 
     loss_training = []
     loss_developing = []
