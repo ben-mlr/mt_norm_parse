@@ -10,6 +10,10 @@ RUN_SCRIPTS_DIR = os.path.join(PROJECT_PATH, "run_scripts")
 # MODELS
 # checkpoint dir if not checkpoint_dir as defined in args.json not found
 CHECKPOINT_DIR = os.path.join(PROJECT_PATH, "checkpoints")
+# SPECIFIC LCATION FOR BERT CHECKPOINT
+CHECKPOINT_BERT_DIR = os.path.join(PROJECT_PATH, "checkpoints","bert")
+
+assert os.path.isdir(CHECKPOINT_BERT_DIR ), "ERROR : {} CHECKPOINT_BERT_DIR  does not exist  ".format(CHECKPOINT_BERT_DIR)
 
 CLIENT_GOOGLE_CLOUD = os.path.join(PROJECT_PATH, "tracking/google_api")
 SHEET_NAME_DEFAULT, TAB_NAME_DEFAULT = "model_evaluation", "experiments_tracking"

@@ -123,8 +123,8 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor, input_alignement_w
     return output_tokens_tensor_aligned, _1_to_n_token
 
 
-def epoch_train(batchIter_train, tokenizer, n_iter_max,bert_with_classifier,
-                skip_1_t_n=True,
+def epoch_run(batchIter_train, tokenizer, iter,n_iter_max,bert_with_classifier,
+                skip_1_t_n=True,writer=None,optimizer=None,
                 verbose=0):
 
     batch_i = 0
@@ -132,6 +132,9 @@ def epoch_train(batchIter_train, tokenizer, n_iter_max,bert_with_classifier,
     noisy_under_splitted = 0
     aligned = 0
     skipping_batch_n_to_1 = 0
+
+    loss = 0
+
     while True:
 
         try:
@@ -195,27 +198,64 @@ def epoch_train(batchIter_train, tokenizer, n_iter_max,bert_with_classifier,
             output_tokens_tensor_aligned = output_tokens_tensor_aligned
             token_type_ids = torch.zeros_like(input_tokens_tensor)
 
-            logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,labels=output_tokens_tensor_aligned)
-            optimizer = dptx.get_optimizer(bert_with_classifier.parameters(), lr=0.0001)
+            logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask, labels=output_tokens_tensor_aligned)
+            loss += logits
             logits.backward()
-            optimizer.step()
-            optimizer.zero_grad()
+            if optimizer is not None:
+                optimizer.step()
+                optimizer.zero_grad()
+                mode = "train"
+            else:
+                mode = "dev"
 
+            if writer is not None:
+
+                writer.add_scalars("loss",
+                                    {"loss-{}-bpe".format(mode):
+                                     logits.clone().cpu().data.numpy()}, iter+batch_i)
         except StopIteration:
             break
 
-    printing("Out of {} batch of {} sentences each : {} batch aligned ; {} with at least 1 sentence noisy MORE SPLITTED ; {} with  LESS SPLITTED  (skipped {} ) (CORRUPTED BATCH {}) ",
+    printing("Out of {} batch of {} sentences each : {} batch aligned ; {} with at least 1 sentence noisy MORE SPLITTED "
+             "; {} with  LESS SPLITTED  (skipped {} ) (CORRUPTED BATCH {}) ",
              var=[batch_i, batch.input_seq.size(0), aligned, noisy_over_splitted, noisy_under_splitted, skip_1_t_n,
                   skipping_batch_n_to_1],
              verbose=verbose, verbose_level=0)
+    iter += batch_i
+    return loss, iter
 
 
-def run(tasks, dict_path, train_path, dev_path, n_iter_max_per_epoch,
+def setup_repoting_location(model_suffix="", verbose=1):
+    model_local_id = str(uuid4())[:5]
+    if model_suffix != "":
+        model_local_id += "-"+model_suffix
+    model_location = os.path.join(CHECKPOINT_BERT_DIR, model_local_id)
+    dictionaries = os.path.join(CHECKPOINT_BERT_DIR, model_local_id, "dictionaries")
+    tensorboard_log = os.path.join(CHECKPOINT_BERT_DIR, model_local_id, "tensorboard")
+    os.mkdir(model_location)
+    os.mkdir(dictionaries)
+    os.mkdir(tensorboard_log)
+    printing("CHECKPOINTING {} for checkpoints {} for dictionaries created", var=[model_location, dictionaries], verbose_level=1, verbose=verbose)
+    return model_local_id, model_location, dictionaries, tensorboard_log
+
+
+def run(tasks,  train_path, dev_path, n_iter_max_per_epoch,
         voc_tokenizer, auxilliary_task_norm_not_norm,bert_with_classifier,
+        report=True,model_suffix="",
         debug=False, use_gpu=False, batch_size=2, n_epoch=1, verbose=1):
 
     if not debug:
-        pdb.set_trace = lambda : None
+        pdb.set_trace = lambda: None
+
+    iter_train = 0
+    iter_dev = 0
+
+    model_id, model_location, dict_path, tensorboard_log = setup_repoting_location(model_suffix=model_suffix,verbose=verbose)
+    if report:
+        printing("CHECKPOINTING : tensorboard logs will be held {}", var=[tensorboard_log], verbose=verbose, verbose_level=1)
+        writer = SummaryWriter(log_dir=tensorboard_log)
+    else:
+        writer = None
 
     # build or make dictionaries
     word_dictionary, word_norm_dictionary, char_dictionary, pos_dictionary, \
@@ -253,7 +293,6 @@ def run(tasks, dict_path, train_path, dev_path, n_iter_max_per_epoch,
     tokenizer = BertTokenizer.from_pretrained(voc_tokenizer)
 
     for epoch in range(n_epoch):
-
         # build iterator on the loaded data
         batchIter_train = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_train, batch_size=batch_size,
                                                              word_dictionary=word_dictionary,
@@ -273,11 +312,24 @@ def run(tasks, dict_path, train_path, dev_path, n_iter_max_per_epoch,
                                                            extend_n_batch=1,
                                                            dropout_input=0.0,
                                                            verbose=verbose)
+        # TODO add optimizer (if not : devv loss)
+        optimizer = dptx.get_optimizer(bert_with_classifier.parameters(), lr=0.0001)
+        bert_with_classifier.train()
+        loss_train, iter_train = epoch_run(batchIter_train, tokenizer,
+                               bert_with_classifier=bert_with_classifier, writer=writer,iter=iter_train,
+                               optimizer=optimizer,
+                               n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
-        epoch_train(batchIter_train, tokenizer,
-                    bert_with_classifier=bert_with_classifier,
-                    n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+        bert_with_classifier.eval()
+        loss_dev, iter_dev = epoch_run(batchIter_dev, tokenizer,iter=iter_dev,
+                             bert_with_classifier=bert_with_classifier, writer=writer,
+                             n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
+        printing("TRAINING : loss train:{} dev:{} for epoch {}  out of {}", var=[loss_train, loss_dev, epoch, n_epoch],
+                 verbose=1, verbose_level=1)
+    if writer is not None:
+        writer.close()
+        printing("LOG available {} ", var=[tensorboard_log], verbose_level=1, verbose=verbose)
 
 train_path = [LIU_TRAIN]
 dev_path = [DEMO]
@@ -299,15 +351,17 @@ if True:
         output_layer = torch.cat((model.bert.embeddings.word_embeddings.weight.data, torch.rand((1, 768))), dim=0)
         model.classifier.weight = nn.Parameter(output_layer)
 
-    run(voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path, use_gpu=use_gpu,
-        debug=True,
-        auxilliary_task_norm_not_norm=True, batch_size=1, dict_path=dict_path, n_iter_max_per_epoch=2500,
-        bert_with_classifier=model,
+    run(bert_with_classifier=model,
+        voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path, use_gpu=use_gpu,
+        auxilliary_task_norm_not_norm=True,
+        batch_size=1, n_iter_max_per_epoch=2, n_epoch=3,
+        model_suffix="init",
+        debug=True,report=True,
         verbose=1)
-    pdb.set_trace()
+
 
     # WE ADD THE NULL TOKEN THAT WILL CORRESPOND TO the bpe_embedding_layer.size(0) index
-    NULL_TOKEN_INDEX = bpe_embedding_layer.size(0)
+    #NULL_TOKEN_INDEX = bpe_embedding_layer.size(0)
 
 
     #pdb.set_trace()

@@ -105,4 +105,5 @@ def run_epoch(data_iter, model, loss_compute,
 
     total_loss_details = divide_loss_details_n_tokens(total_loss_details, total_tokens)
     step = step+i
+
     return float(total_loss) / int(total_tokens), total_loss_details, step
