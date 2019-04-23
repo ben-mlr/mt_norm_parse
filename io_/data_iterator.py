@@ -53,7 +53,6 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             if not normalization:
                 chars_norm = chars.clone()
 
-            pdb.set_trace()
             outputing_raw_data_from_iterator(words, word_norm, chars, chars_norm, word_norm_not_norm, pos,
                                              word_dictionary=word_dictionary, pos_dictionary=pos_dictionary,
                                              word_norm_dictionary=word_dictionary_norm,
@@ -83,7 +82,6 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             word, word_norm, char, chars_norm, word_norm_not_norm, edit, pos, _, _, _, \
             _, lenght, order_ids, raw_word_inputs, normalized_str, _ = conllu_data.get_batch_variable(data,batch_size=batch_size,
                                                normalization=normalization, unk_replace=0)
-            pdb.set_trace()
             if char.size(0) <= 1:
                 print("WARNING : NOT Skip character ")
                 #continue
@@ -110,7 +108,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                                              word_dictionary=word_dictionary, pos_dictionary=pos_dictionary,
                                              char_dictionary=char_dictionary,
                                              word_norm_dictionary=word_dictionary_norm,
-                                             verbose=verbose, print_raw=print_raw, normalization=normalization)
+                                             verbose=verbose, print_raw=True, normalization=normalization)
 
             if NORM2NOISY:
                 print("WARNING !! NORM2NOISY ON ")

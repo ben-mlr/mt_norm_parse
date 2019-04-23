@@ -61,7 +61,6 @@ class CharDecoder(nn.Module):
         printing("MODEL Decoder : word_recurrent_cell has been set to {} ".format(str(word_recurrent_cell)),
                  verbose=verbose, verbose_level=1)
         #self.attn_param = nn.Linear(hidden_size_decoder*1) if char_src_attention else None
-        self.dropout_char_in = nn.Dropout(0.3)
         self.attn_layer = Attention(hidden_size_word_decoder=hidden_size_decoder,
                                     char_embedding_dim=self.char_embedding_decoder.embedding_dim,
                                     time=self.timing,
@@ -97,6 +96,7 @@ class CharDecoder(nn.Module):
             # we align what we decode
             state_hiden = state_hiden[:, :char_seq_hidden_encoder.size(0), :]
             attention_weights = self.attn_layer(char_state_decoder=state_hiden.squeeze(0),
+                                                char_embedding_current=char_vec_current_batch,
                                                 word_src_sizes=char_vecs_sizes, encoder_outputs=char_seq_hidden_encoder)
             printing("DECODER STEP : attention context {} char_seq_hidden_encoder {} ", var=[attention_weights.size(), char_seq_hidden_encoder.size()],
                      verbose_level=3, verbose=self.verbose)
@@ -123,13 +123,9 @@ class CharDecoder(nn.Module):
             else:
                 context = torch.cat((word_stable_context, attention_context), dim=2)
             context = self.context_proj(context)
-            # MISS ALIGNEMENT SOURCE CHAR LEVEL CONTEXT PER WORD AND WORD THAT WE DECODE PER CHAR
-            # output_word_len is incorrect --> char_vec_current_batch incorrect to at test time were
-            try:
-                char_vec_current_batch = torch.cat((context, char_vec_current_batch), dim=2)
-            except:
-                pdb.set_trace()
-                char_vec_current_batch = torch.cat((context, char_vec_current_batch), dim=2)
+
+            char_vec_current_batch = torch.cat((context, char_vec_current_batch), dim=2)
+
         else:
             # no word level context passed so --> char_vec_current is only the current character vector  
             pass
@@ -222,7 +218,7 @@ class CharDecoder(nn.Module):
                     printing("DECODER state_decoder_current {} ", var=[state_i[0].size()], verbose=self.verbose,
                              verbose_level=3)
                     printing("DECODER emb_char {} ", var=[emb_char.size()], verbose=self.verbose, verbose_level=3)
-                    if char_seq_hidden_encoder.size(0)!=emb_char.size(0):
+                    if char_seq_hidden_encoder.size(0) != emb_char.size(0):
                         pass
                     all_states, state_i, attention_weights = self.word_encoder_target_step(
                                                                     char_vec_current_batch=emb_char,
@@ -379,8 +375,6 @@ class CharDecoder(nn.Module):
         output_word_len = output_word_len.view(output_word_len.size(0) * output_word_len.size(1))
         reshape_len, start = get_timing(start)
         printing("TARGET output before word encoder {}", var=[output_seq.size()], verbose=verbose, verbose_level=3)
-        if output_seq.size(0) != char_seq_hidden_encoder.size(0):
-            pass
         output_w_decoder, attention_weight_all = self.word_encoder_target(output_seq, conditioning, output_word_len,
                                                                           word_src_sizes=word_src_sizes,
                                                                           proportion_pred_train=proportion_pred_train,

@@ -1,6 +1,8 @@
 
 # IMPORTS
+
 # python basics
+import numpy as np
 import os
 from uuid import uuid4
 import argparse
@@ -10,25 +12,25 @@ import git
 import sys
 from tqdm import tqdm
 import io
-import numpy as np
+import codecs
 import time
 import json
 import re
 import random
 from collections import OrderedDict, Iterable
+
 # visualization / report
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from tensorboardX import SummaryWriter
 
-# measuring erros
+# measuring errors
 from nltk.translate.bleu_score import SmoothingFunction, sentence_bleu
 from scipy.stats import hmean
 from nltk import edit_distance
 # statistics
 from scipy.stats import hmean
 
-import codecs
 
 # torch related
 import torch
@@ -38,6 +40,8 @@ from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence, pack_s
 from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 from toolbox.deep_learning_toolbox import get_cumulated_list
 from torch.nn.utils.rnn import pack_sequence
+import torch.nn.functional as F
+
 
 # google sheet
 import gspread

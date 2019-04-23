@@ -21,6 +21,7 @@ GRID = 1
 
 def run_grid(parameters, labels, dir_grid, label_grid,
              scoring_func_sequence_pred=DEFAULT_SCORING_FUNCTION,
+             print_raw=False,
              epochs=50, test_before_run=False, debug=False, warmup=False):
     i = 0
 
@@ -53,7 +54,7 @@ def run_grid(parameters, labels, dir_grid, label_grid,
                                                 expand_vocab_dev_test=True,
                                                 test_path=param["test_path"],
                                                 overall_report_dir=dir_grid, overall_label=LABEL_GRID,
-                                                compute_mean_score_per_sent=True, print_raw=False,
+                                                compute_mean_score_per_sent=True, print_raw=print_raw,
                                                 get_batch_mode_all=True, compute_scoring_curve=True,
                                                 freq_scoring=1, freq_checkpointing=1,
                                                 bucketing_train=True,
@@ -142,9 +143,9 @@ if __name__ == "__main__":
           #train_path = [[DEMO,DEMO2]]
           #dev_path = [[DEMO, DEMO2]]
           #test_path = [[[DEMO], [DEMO2]]]
-          train_path = [[DEMO]]
-          dev_path = [[DEMO]]
-          test_path = [[[DEMO]]]
+          train_path = [[DEMO2]]
+          dev_path = [[DEMO2]]
+          test_path = [[[DEMO2]]]
           # TODO : test with normalize and other multi tasks !!
           params, labels, default_all, analysed, fixed = grid_param_label_generate(params_strong_tryal,
                                                                                    train_ls=train_path,
@@ -241,9 +242,9 @@ if __name__ == "__main__":
           print("row:{}".format(row))
           run_grid(parameters=params, labels=labels, dir_grid=dir_grid,
                    label_grid=LABEL_GRID,
-                   epochs=1,
+                   epochs=30,
                    test_before_run=test_before_run,
-                   debug=True,
+                   debug=True, print_raw=True,
                    scoring_func_sequence_pred="exact_match",
                    warmup=warmup)
           if row is not None:
@@ -252,12 +253,12 @@ if __name__ == "__main__":
           train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV#MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
           NORMALIZE = True
           if NORMALIZE:
-              epochs = 100
+              epochs = 200
               #train_path, dev_path = CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
               #n_sents = 10000
-              train_path = [[LEX_TRAIN]]
-              dev_path = [[LEX_TEST]]
-              test_path = [[[LEX_TEST, TEST]]]
+              train_path = [[PERMUTATION_TRAIN]]
+              dev_path = [[PERMUTATION_TEST]]
+              test_path = [[[PERMUTATION_TRAIN,PERMUTATION_TEST, TEST]]]
               dir_script, row = script_generation(grid_label=LABEL_GRID, 
                                                   init_param=params_strong_tryal,#params_dozat,#params_strong,#params_dozat,
                                                   warmup=test_before_run, test_before_run=test_before_run,
@@ -265,11 +266,11 @@ if __name__ == "__main__":
                                                   stable_decoding_state_ls=[0],
                                                   word_decoding_ls=[0],
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
-                                                  batch_size_ls=[40],
+                                                  batch_size_ls=[20,200],
                                                   word_embed_ls=[0],
                                                   dir_sent_encoder_ls=[2], dir_word_encoder_ls=[2],
                                                   n_layers_sent_cell_ls=[1], n_layers_word_encoder_ls=[1],
-                                                  lr_ls=[0.0001, 0.001],
+                                                  lr_ls=[0.0005, 0.001, 0.002],
                                                   word_embed_init_ls=[None],
                                                   teacher_force_ls=[1],
                                                   word_recurrent_cell_encoder_ls=["LSTM"],
@@ -282,7 +283,7 @@ if __name__ == "__main__":
                                                   tasks_ls=[["normalize"]],
                                                   char_src_attention_ls=[1], attention_tagging_ls=[0],
                                                   unrolling_word_ls=[1],
-                                                  scale_ls=[10, 20, 30],
+                                                  scale_ls=[5, 10,100],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   description_comment=description_comment,
                                                   train_path=train_path, dev_path=dev_path,
@@ -290,7 +291,7 @@ if __name__ == "__main__":
                                                   gpu_mode="random",
                                                   gpus_ls=gpu_ls,
                                                   scoring_func="exact_match",
-                                                  dropout_input_ls=[0.0, 0.2, 0.4],
+                                                  dropout_input_ls=[0.0,0.2],
                                                   multi_task_loss_ponderation_ls=[{"pos": 0, "normalize": 1, "norm_not_norm":0, "edit_prediction":0}],
                                                   write_to_dir=RUN_SCRIPTS_DIR)
           
