@@ -53,7 +53,7 @@ def sanity_check_data_len(tokens_tensor, segments_tensors, tokenized_ls, aligned
     for index, segment, token_str, index in zip(tokens_tensor, segments_tensors, tokenized_ls, aligned_index):
         n_token = len(index)
         try:
-            assert len(segment) == n_token, "ERROR sentence {} segment not same len as index {}".format(segment, index)
+            #assert len(segment) == n_token, "ERROR sentence {} segment not same len as index {}".format(segment, index)
             assert len(token_str) == n_token, "ERROR sentence {} token_str not same len as index {}".format(token_str, index)
             assert len(index) == n_token, "ERROR sentence {} index not same len as index {}".format(index, index)
         except AssertionError as e:
@@ -327,12 +327,17 @@ def run(tasks,  train_path, dev_path, n_iter_max_per_epoch,
 
         printing("TRAINING : loss train:{} dev:{} for epoch {}  out of {}", var=[loss_train, loss_dev, epoch, n_epoch],
                  verbose=1, verbose_level=1)
+        checkpoint_dir = os.path.join(model_location, "{}-ep{}-checkpoint.pt".format(model_id, epoch))
+        printing("CHECKPOINT : saving model {} ",var=[checkpoint_dir], verbose=verbose, verbose_level=1)
+        saving_every_epoch = 10
+        if epoch % saving_every_epoch == 0:
+            torch.save(model.state_dict(), checkpoint_dir)
     if writer is not None:
         writer.close()
-        printing("LOG available {} ", var=[tensorboard_log], verbose_level=1, verbose=verbose)
+        printing("tensorboard --logdir={} host=localhost --port=1234 ", var=[tensorboard_log], verbose_level=1, verbose=verbose)
 
 train_path = [LIU_TRAIN]
-dev_path = [DEMO]
+dev_path = [TEST]
 tasks = ["normalize"]
 use_gpu = False
 dict_path = "../dictionaries"
@@ -354,9 +359,9 @@ if True:
     run(bert_with_classifier=model,
         voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path, use_gpu=use_gpu,
         auxilliary_task_norm_not_norm=True,
-        batch_size=1, n_iter_max_per_epoch=2, n_epoch=3,
+        batch_size=1, n_iter_max_per_epoch=2, n_epoch=50,
         model_suffix="init",
-        debug=True,report=True,
+        debug=False, report=True,
         verbose=1)
 
 
