@@ -21,9 +21,10 @@ from model.decoder import WordDecoder
 from evaluate.evaluate_loss_sanity_test import get_loss
 
 
-TEMPLATE_INFO_CHECKPOINT = {"n_epochs": 0, "batch_size": None,
-                            "train_data_path": None, "dev_data_path": None,
-                            "other": None, "git_id": None}
+TEMPLATE_INFO_CHECKPOINT = {"n_epochs": 0,
+                            "batch_size": None,
+                            "train_data_path": None,
+                            "dev_data_path": None, "other": None, "git_id": None}
 
 
 class LexNormalizer(nn.Module):

@@ -67,6 +67,9 @@ When any new features is implemented the impact the training process :
 - 4 : add masking info + packed_sequence info + type info 
 - 5 : printing data 
 
+### Special verbosisty 
+
+if verbose="cuda" will printout CUDA sanity check (only supported for BERT SO FAR)
 
 ### Sequence
 

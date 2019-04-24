@@ -623,7 +623,7 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
 
 def iterate_batch_variable(data, batch_size, unk_replace=0.,
                            word_decoding=False,
-                           lattice=None, normalization=False):
+                           lattice=None, normalization=False, verbose=1):
   """
   Iterate over the dataset based on read_data_to_variable() object (used a evaluation)
   """
@@ -662,15 +662,18 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
         #TODO : should make _word_norm_not_norm  and char norm independant !!
         _word_norm_not_norm = None
       if chars[excerpt].size(0) <= 1:
-        print("WARNING : We are NOT skipping a batch because size is {} char ".format(chars[excerpt].size()))
+        printing("WARNING : We are NOT skipping a batch because size is {} char ".format(chars[excerpt].size()),
+                 verbose=verbose, verbose_level=1)
         #continue
       if normalization:
         if chars_norm_.size(0) <= 1:
-          print("WARNING : We are NOT skipping a batch because size is {} for char_nor  ".format(chars_norm_.size()))
+          printing("WARNING : We are NOT skipping a batch because size is {} for char_nor  ".format(chars_norm_.size()),
+                   verbose=verbose, verbose_level=1)
           #continue
       if word_norm is not None:
         if word_norm.size(0) <= 0:
-          print("WARNING : We are skipping a batch because word_norm {} {}".format(word_norm.size(), word_norm))
+          printing("WARNING : We are skipping a batch because word_norm {} {}".format(word_norm.size(), word_norm),
+                   verbose=verbose, verbose_level=1)
           continue
       yield words[excerpt], _word_norm, chars[excerpt], chars_norm_, _word_norm_not_norm, _edit, \
             pos[excerpt], xpos[excerpt], heads[excerpt], \

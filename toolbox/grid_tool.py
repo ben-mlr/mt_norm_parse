@@ -174,6 +174,7 @@ def grid_param_label_generate(param,
               "n_layers_word_encoder": n_layers_word_encoder_ls,"multi_task_loss_ponderation":multi_task_loss_ponderation_ls,
               "tasks": tasks_ls, "dropout_input": dropout_input_ls,"checkpointing_metric": checkpointing_metric_ls,
               "word_embed": word_embed_ls}
+
   ind_model = 0
   for batch in batch_size_ls:
     #for aux in auxilliary_task_norm_not_norm_ls:

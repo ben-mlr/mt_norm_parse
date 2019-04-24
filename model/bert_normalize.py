@@ -62,8 +62,9 @@ def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu):
     ids_ls = [tokenizer.convert_tokens_to_ids(inp) for inp in tokenized_ls]
     max_sent_len = max([len(inp) for inp in tokenized_ls])
     ids_padded = [inp + [PAD_ID_BERT for _ in range(max_sent_len - len(inp))] for inp in ids_ls]
+    aligned_index_padded = [[e for e in inp] + [1000 for _ in range(max_sent_len - len(inp))] for inp in aligned_index]
     segments_padded = [inp + [PAD_ID_BERT for _ in range(max_sent_len - len(inp))] for inp in segments_ids]
-    mask = [[1 for _ in inp]+[0 for _ in  range(max_sent_len - len(inp))] for inp in segments_ids]
+    mask = [[1 for _ in inp]+[0 for _ in range(max_sent_len - len(inp))] for inp in segments_ids]
 
     mask = torch.LongTensor(mask)
     tokens_tensor = torch.LongTensor(ids_padded)
@@ -77,43 +78,71 @@ def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu):
 
     sanity_check_data_len(tokens_tensor, segments_tensors, tokenized_ls, aligned_index, raising_error=True)
 
-    return tokens_tensor, segments_tensors, tokenized_ls, aligned_index, mask
+
+    return tokens_tensor, segments_tensors, tokenized_ls, aligned_index_padded, mask
 
 
-def aligned_output(input_tokens_tensor, output_tokens_tensor, input_alignement_with_raw, output_alignement_with_raw):
+def aligned_output(input_tokens_tensor, output_tokens_tensor, input_alignement_with_raw, output_alignement_with_raw,
+                   verbose=1):
 
-    not_the_end_of_input = True
-    _i_input = 0
-    _i_output = 0
     output_tokens_tensor_aligned = torch.empty_like(input_tokens_tensor)
-    _1_to_n_token = False
-    for ind_sent, (_input_alignement_with_raw, _output_alignement_with_raw) in enumerate(
-            zip(input_alignement_with_raw, output_alignement_with_raw)):
+
+    for ind_sent, (_input_alignement_with_raw, _output_alignement_with_raw) in enumerate(zip(input_alignement_with_raw,
+                                                                                             output_alignement_with_raw)):
+        _i_input = 0
+        _i_output = 0
+        _1_to_n_token = False
+        not_the_end_of_input = True
         output_tokens_tensor_aligned_sent = []
+
+        padded_reached_ind = 0
         while not_the_end_of_input:
-            n_to_1_token = _input_alignement_with_raw[_i_input] < _output_alignement_with_raw[_i_output]
-            _1_to_n_token = _input_alignement_with_raw[_i_input] > _output_alignement_with_raw[_i_output]
+
+            padded_reach = _input_alignement_with_raw[_i_input] == 1000
+            if not (padded_reach and len(_output_alignement_with_raw)==_i_output):
+                # usual case
+                n_to_1_token = _input_alignement_with_raw[_i_input] < _output_alignement_with_raw[_i_output]
+                _1_to_n_token = _input_alignement_with_raw[_i_input] > _output_alignement_with_raw[_i_output]
+                end_output_with_padded_reach = 0
+            else:
+                # we reach padding on input and the end on the output
+                end_output_with_padded_reach = 1
+                n_to_1_token, _1_to_n_token = 0, 0
             # if the otuput token don't change we have to shift the input of one
             if _1_to_n_token:
                 print("WARNING : _1_to_n_token --> next batch ")
                 break
+            if padded_reach and not n_to_1_token:
+                # we assert we also reached padding in the output
+                # if we are in n_to_1_token it's different maybe not true # same if we reached the end we handle the case with end_output_with_padded_reach
+                if len(_output_alignement_with_raw) != _i_output:
+                    assert _output_alignement_with_raw[_i_output] == 1000
+                padded_reached_ind = 1
             if n_to_1_token:
-                output_tokens_tensor_aligned_sent.append(NULL_TOKEN_INDEX)
+                appending = NULL_TOKEN_INDEX
+                output_tokens_tensor_aligned_sent.append(appending)
+            elif not end_output_with_padded_reach:
+                appending = output_tokens_tensor[ind_sent, _i_output]
+                output_tokens_tensor_aligned_sent.append(appending)
             else:
-                output_tokens_tensor_aligned_sent.append(output_tokens_tensor[ind_sent, _i_output])
-
+                output_tokens_tensor_aligned_sent.append(0)
             _i_input += 1
-            _i_output += (1 - n_to_1_token)
+            # padded_reached_ind is to make sure we 're not facing problem in the output
+            _i_output += (1 - n_to_1_token - padded_reached_ind )
 
             if _i_input == len(_input_alignement_with_raw):
                 not_the_end_of_input = False
 
         if _1_to_n_token:
             break
+        printing("TO FILL output {} index {}", var=[output_tokens_tensor_aligned_sent, ind_sent], verbose=verbose, verbose_level=3)
         output_tokens_tensor_aligned[ind_sent] = torch.Tensor(output_tokens_tensor_aligned_sent)
+
+
     if input_tokens_tensor.is_cuda:
         output_tokens_tensor_aligned = output_tokens_tensor_aligned.cuda()
     return output_tokens_tensor_aligned, _1_to_n_token
+
 
 
 def epoch_run(batchIter_train, tokenizer, iter,n_iter_max,bert_with_classifier,
@@ -179,7 +208,8 @@ def epoch_run(batchIter_train, tokenizer, iter,n_iter_max,bert_with_classifier,
 
             # aligning output BPE with input (we are rejecting batch with at least one 1 to n case (that we don't want to handle)
             output_tokens_tensor_aligned, _1_to_n_token = aligned_output(input_tokens_tensor, output_tokens_tensor,
-                                                                         input_alignement_with_raw, output_alignement_with_raw)
+                                                                         input_alignement_with_raw,
+                                                                         output_alignement_with_raw)
 
             if batch_i == n_iter_max:
                 break
@@ -197,7 +227,11 @@ def epoch_run(batchIter_train, tokenizer, iter,n_iter_max,bert_with_classifier,
             printing("CUDA SANITY CHECK input_tokens:{}  type:{} input_mask:{}  label:{}", var=[input_tokens_tensor.is_cuda,
                                                          token_type_ids.is_cuda, input_mask.is_cuda, output_tokens_tensor_aligned.is_cuda],
                      verbose=verbose, verbose_level="cuda")
-            logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask, labels=output_tokens_tensor_aligned)
+            try:
+                logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask, labels=output_tokens_tensor_aligned)
+            except RuntimeError as e:
+                print(e)
+                pdb.set_trace()
             loss += logits
             logits.backward()
             if optimizer is not None:
@@ -256,8 +290,10 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
 
     model_id, model_location, dict_path, tensorboard_log = setup_repoting_location(model_suffix=model_suffix,verbose=verbose)
     if report:
-        printing("CHECKPOINTING : tensorboard logs will be held {}", var=[tensorboard_log], verbose=verbose, verbose_level=1)
         writer = SummaryWriter(log_dir=tensorboard_log)
+        printing("CHECKPOINTING : starting writing log \ntensorboard --logdir={} host=localhost --port=1234 ",
+                 var=[tensorboard_log], verbose_level=1,
+                 verbose=verbose)
     else:
         writer = None
 

@@ -10,7 +10,7 @@ PAD_BERT = "[PAD]"
 train_path = [LIU_TRAIN]
 dev_path = [TEST]
 tasks = ["normalize"]
-use_gpu = False
+
 
 if True:
 
@@ -30,6 +30,5 @@ if True:
     run(bert_with_classifier=model,
         voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
         auxilliary_task_norm_not_norm=True,
-        batch_size=1, n_iter_max_per_epoch=1000, n_epoch=50,
-        model_suffix="init",
-        debug=False, report=True,verbose="cuda")
+        batch_size=3, n_iter_max_per_epoch=1000, n_epoch=50,
+        model_suffix="init", debug=True, report=True, verbose=1)

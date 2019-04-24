@@ -5,7 +5,6 @@ DEBUG = False
 
 LOGGING_SPECIFIC_INFO_AVAILABLE = ["cuda"]
 
-
 def printing(message, verbose, verbose_level, var=None):
     """
     # if verbose is string then has to be in LOGGING_SPECIFIC_INFO_AVAILABLE

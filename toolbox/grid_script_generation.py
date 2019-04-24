@@ -89,7 +89,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
 
     for ind, (param, model_id_pref) in enumerate(zip(params, labels)):
         script = "CUDA_VISIBLE_DEVICES={} {} {}".format(0,#ind % len(gpus_ls),
-                                                        os.environ.get("PYTHON_CONDA","python"), os.path.join(PROJECT_PATH, "train_evaluate_run.py"))
+                                                        os.environ.get("PYTHON_CONDA", "python"), os.path.join(PROJECT_PATH, "train_evaluate_run.py"))
         for arg, val in param.items():
             # args in NONE ARGS ARE NOT ADDED TO THE SCRIPT MAKER (they will be handle by default behavior later in the code)
             if val is None:
@@ -182,6 +182,8 @@ if __name__ == "__main__":
                       epochs=epochs ,
                       gpu_mode="random",
                       write_to_dir=RUN_SCRIPTS_DIR, description_comment="")
+
+    
 # default not used but could be
 
 # HANDLE SPECIFIC BEHAVIOR
