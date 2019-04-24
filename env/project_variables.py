@@ -6,12 +6,13 @@ SEED_TORCH = 123
 # ENVIRONMENT VARIABLES
 PROJECT_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 RUN_SCRIPTS_DIR = os.path.join(PROJECT_PATH, "run_scripts")
+LM_PROJECT = os.path.join(PROJECT_PATH, "..", "representation", "lm")
 
 # MODELS
 # checkpoint dir if not checkpoint_dir as defined in args.json not found
 CHECKPOINT_DIR = os.path.join(PROJECT_PATH, "checkpoints")
 # SPECIFIC LCATION FOR BERT CHECKPOINT
-CHECKPOINT_BERT_DIR = os.path.join(PROJECT_PATH, "checkpoints","bert")
+CHECKPOINT_BERT_DIR = os.path.join(PROJECT_PATH, "checkpoints", "bert")
 
 assert os.path.isdir(CHECKPOINT_BERT_DIR ), "ERROR : {} CHECKPOINT_BERT_DIR  does not exist  ".format(CHECKPOINT_BERT_DIR)
 
@@ -181,6 +182,8 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 ERIC_ORIGINAL: ERIC_ORIGINAL_LABEL,
                 EMNLP12_DIC:EMNLP12_DIC_LABEL
                 }
+
+
 
 for n_sent in [100, 1000, 10000, 50000, 100000, 200000]:
     REPO_DATASET[PERMUTATION_TRAIN_DIC[n_sent]] = PERMUTATION_TRAIN_LABEL_DIC[n_sent]

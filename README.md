@@ -4,7 +4,21 @@ Multitask learning framework for sequence prediction and sequence labelling
 
 ## Environment setup 
 
-- Install conda environment with mt_norm_parse.yml 
+### setup 
+
+This project works under two versions of pytorch : torch 0.4 and torch 1.0  
+
+Therefore two possible conda env : 
+- Install conda environment with mt_norm_parse.yml (0.4)
+- Install conda environment with lm.yml  (1.0) (ALLENNLP missing, pip install --upgrade oauth2client !)
+
+
+NB : in rioc loading conda and gcc might be required 
+
+### test environment 
+
+sh test_/run_py_env_test.sh
+
 
 ## Highlights
 

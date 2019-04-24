@@ -1,28 +1,15 @@
-from env.importing import *
-from pytorch_pretrained_bert import BertForTokenClassification, BertConfig, BertTokenizer
 
+import sys
+sys.path.insert(0,".")
+from env.importing import *
 from env.project_variables import *
+from env.models_dir import *
 from io_.data_iterator import readers_load, conllu_data, data_gen_multi_task_sampling_batch
 from io_.info_print import printing
 import toolbox.deep_learning_toolbox as dptx
+from toolbox.gpu_related import use_gpu_
 
-if False:
-    input_ids = torch.LongTensor([[31, 51, 0]])
-    input_mask = torch.LongTensor([[1, 1, 0]])
-    token_type_ids = torch.LongTensor([[0, 0, 0]])
-    labels = torch.LongTensor([[0, 32000, 1]])
-    config = BertConfig(vocab_size_or_config_json_file=32000, hidden_size=768,
-                        num_hidden_layers=12, num_attention_heads=12, intermediate_size=3072)
-    num_labels = 32001
-    model = BertForTokenClassification(config, num_labels)
-    logits = model(input_ids, token_type_ids, input_mask, labels=labels)
-    print("logits original",logits)
-    optimizer = dptx.get_optimizer(model.parameters(), lr=0.0001)
-    logits.backward()
-    optimizer.step()
-    optimizer.zero_grad()
-    logits = model(input_ids, token_type_ids, input_mask, labels=torch.LongTensor([[0, 1, 1]]))
-    print("new logits", logits)
+from model.bert_tools_from_core_code.tokenization import BertTokenizer
 
 TOKEN_BPE_BERT_START = "[CLS]"
 TOKEN_BPE_BERT_SEP = "[SEP]"
@@ -239,10 +226,12 @@ def setup_repoting_location(model_suffix="", verbose=1):
     return model_local_id, model_location, dictionaries, tensorboard_log
 
 
-def run(tasks,  train_path, dev_path, n_iter_max_per_epoch,
-        voc_tokenizer, auxilliary_task_norm_not_norm,bert_with_classifier,
-        report=True,model_suffix="",
-        debug=False, use_gpu=False, batch_size=2, n_epoch=1, verbose=1):
+def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
+        voc_tokenizer, auxilliary_task_norm_not_norm, bert_with_classifier,
+        report=True, model_suffix="",
+        debug=False,  batch_size=2, n_epoch=1, verbose=1):
+
+    use_gpu = use_gpu_(use_gpu=None, verbose=verbose)
 
     if not debug:
         pdb.set_trace = lambda: None
@@ -303,7 +292,7 @@ def run(tasks,  train_path, dev_path, n_iter_max_per_epoch,
                                                              extend_n_batch=1,
                                                              dropout_input=0.0,
                                                              verbose=verbose)
-        batchIter_dev = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_train, batch_size=batch_size,
+        batchIter_dev = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_dev, batch_size=batch_size,
                                                            word_dictionary=word_dictionary,
                                                            char_dictionary=char_dictionary,
                                                            pos_dictionary=pos_dictionary,
@@ -328,22 +317,25 @@ def run(tasks,  train_path, dev_path, n_iter_max_per_epoch,
         printing("TRAINING : loss train:{} dev:{} for epoch {}  out of {}", var=[loss_train, loss_dev, epoch, n_epoch],
                  verbose=1, verbose_level=1)
         checkpoint_dir = os.path.join(model_location, "{}-ep{}-checkpoint.pt".format(model_id, epoch))
-        printing("CHECKPOINT : saving model {} ",var=[checkpoint_dir], verbose=verbose, verbose_level=1)
+
         saving_every_epoch = 10
         if epoch % saving_every_epoch == 0:
+            printing("CHECKPOINT : saving model {} ", var=[checkpoint_dir], verbose=verbose, verbose_level=1)
             torch.save(model.state_dict(), checkpoint_dir)
     if writer is not None:
         writer.close()
         printing("tensorboard --logdir={} host=localhost --port=1234 ", var=[tensorboard_log], verbose_level=1, verbose=verbose)
 
+
+
 train_path = [LIU_TRAIN]
 dev_path = [TEST]
 tasks = ["normalize"]
 use_gpu = False
-dict_path = "../dictionaries"
 
 if True:
-    voc_tokenizer = "/Users/bemuller/Documents/Work/INRIA/dev/representation/lm/bert_models/bert-base-cased-vocab.txt"
+
+    voc_tokenizer = BERT_CASED_DIR
 
     config = BertConfig(vocab_size_or_config_json_file=32000, hidden_size=768,
                         num_hidden_layers=12, num_attention_heads=12, intermediate_size=3072)
@@ -357,9 +349,9 @@ if True:
         model.classifier.weight = nn.Parameter(output_layer)
 
     run(bert_with_classifier=model,
-        voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path, use_gpu=use_gpu,
+        voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
         auxilliary_task_norm_not_norm=True,
-        batch_size=1, n_iter_max_per_epoch=2, n_epoch=50,
+        batch_size=1, n_iter_max_per_epoch=1000, n_epoch=50,
         model_suffix="init",
         debug=False, report=True,
         verbose=1)

@@ -255,10 +255,10 @@ if __name__ == "__main__":
           if NORMALIZE:
               epochs = 200
               #train_path, dev_path = CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
-              #n_sents = 10000
-              train_path = [[PERMUTATION_TRAIN]]
+              n_sents = 10000
+              train_path = [[PERMUTATION_TRAIN_DIC[n_sents]]]
               dev_path = [[PERMUTATION_TEST]]
-              test_path = [[[PERMUTATION_TRAIN, PERMUTATION_TEST, TEST]]]
+              test_path = [[[PERMUTATION_TRAIN_DIC[n_sents], PERMUTATION_TEST, TEST]]]
               dir_script, row = script_generation(grid_label=LABEL_GRID, 
                                                   init_param=params_strong_tryal,#params_dozat,#params_strong,#params_dozat,
                                                   warmup=test_before_run, test_before_run=test_before_run,
@@ -283,7 +283,7 @@ if __name__ == "__main__":
                                                   tasks_ls=[["normalize"]],
                                                   char_src_attention_ls=[1], attention_tagging_ls=[0],
                                                   unrolling_word_ls=[1],
-                                                  scale_ls=[1, 5, 10, 100],
+                                                  scale_ls=[1, 5, 10],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   description_comment=description_comment,
                                                   train_path=train_path, dev_path=dev_path,
@@ -291,7 +291,7 @@ if __name__ == "__main__":
                                                   gpu_mode="random",
                                                   gpus_ls=gpu_ls,
                                                   scoring_func="exact_match",
-                                                  dropout_input_ls=[0.0, 0.2],
+                                                  dropout_input_ls=[0.0, 0.2, 0.4],
                                                   multi_task_loss_ponderation_ls=[{"pos": 0, "normalize": 1, "norm_not_norm":0, "edit_prediction":0}],
                                                   write_to_dir=RUN_SCRIPTS_DIR)
           
