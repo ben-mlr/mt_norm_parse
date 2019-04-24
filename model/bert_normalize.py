@@ -6,8 +6,10 @@ from env.models_dir import *
 from io_.data_iterator import readers_load, conllu_data, data_gen_multi_task_sampling_batch
 from io_.info_print import printing
 import toolbox.deep_learning_toolbox as dptx
-from toolbox.gpu_related import use_gpu_
+from tracking.reporting_google_sheet import append_reporting_sheet, update_status
 
+from toolbox.gpu_related import use_gpu_
+from toolbox import git_related as gr
 from model.bert_tools_from_core_code.tokenization import BertTokenizer
 
 TOKEN_BPE_BERT_START = "[CLS]"
@@ -15,7 +17,7 @@ TOKEN_BPE_BERT_SEP = "[SEP]"
 PAD_ID_BERT = 0
 PAD_BERT = "[PAD]"
 NULL_TOKEN_INDEX = 32000
-
+NULL_STR = "[SPACE]"
 
 def preprocess_batch_string_for_bert(batch):
     #batch = batch[0]
@@ -144,12 +146,39 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor, input_alignement_w
     return output_tokens_tensor_aligned, _1_to_n_token
 
 
+def write_from_bpe_token_to_conll(bpe_tensor, topk, pred_mode, tokenizer):
+    """
+    pred_mode allow to handle gold data also (which only have 2 dim and not three)
+    :param bpe_tensor:
+    :param topk: int : number of top prediction : will arrange them with all the top1 all the 2nd all the third...
+    :param pred_mode: book
+    :return:
+    """
+    predictions_topk_ls = [[[bpe_tensor[sent, word, top].item() if pred_mode else bpe_tensor[sent, word].item()
+                             for word in range(bpe_tensor.size(1))] for sent in range(bpe_tensor.size(0))] for top in
+                           range(topk)]
+    sent_ls_top = [[tokenizer.convert_ids_to_tokens(sent_bpe, special_extra_token=NULL_TOKEN_INDEX,
+                                                    special_token_string=NULL_STR)
+                    for sent_bpe in predictions_topk] for predictions_topk in predictions_topk_ls]
+    if not pred_mode:
+        sent_ls_top = sent_ls_top[0]
+    return sent_ls_top
 
-def epoch_run(batchIter_train, tokenizer, iter,n_iter_max,bert_with_classifier,
+
+def epoch_run(batchIter, tokenizer,
+              iter, n_iter_max, bert_with_classifier,
               use_gpu,
-              skip_1_t_n=True,writer=None,optimizer=None,
+              skip_1_t_n=True,
+              writer=None, optimizer=None,
+              predict_mode=False, topk=None,
+              print_pred=False,
               verbose=0):
 
+
+    if predict_mode and topk is None:
+        topk = 1
+        print_pred = True
+        printing("PREDICITON MODE : setting topk to default 1 ", verbose_level=1, verbose=verbose)
     batch_i = 0
     noisy_over_splitted = 0
     noisy_under_splitted = 0
@@ -162,7 +191,8 @@ def epoch_run(batchIter_train, tokenizer, iter,n_iter_max,bert_with_classifier,
 
         try:
             batch_i += 1
-            batch = batchIter_train.__next__()
+
+            batch = batchIter.__next__()
             batch.raw_input = preprocess_batch_string_for_bert(batch.raw_input)
             batch.raw_output = preprocess_batch_string_for_bert(batch.raw_output)
             input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = get_indexes(batch.raw_input, tokenizer, verbose,use_gpu)
@@ -174,15 +204,15 @@ def epoch_run(batchIter_train, tokenizer, iter,n_iter_max,bert_with_classifier,
             _verbose = verbose if isinstance(verbose, int) else 0
 
             if input_tokens_tensor.size(1) != output_tokens_tensor.size(1):
-                print("-------------- Alignement broken")
+                printing("-------------- Alignement broken", verbose=verbose, verbose_level=2)
                 if input_tokens_tensor.size(1) > output_tokens_tensor.size(1):
-                    print("N to 1 like : NOISY splitted MORE than standard")
+                    printing("N to 1 like : NOISY splitted MORE than standard", verbose=verbose, verbose_level=2)
                     noisy_over_splitted += 1
                 elif input_tokens_tensor.size(1) < output_tokens_tensor.size(1):
-                    print("1 to N : NOISY splitted LESS than standard")
+                    printing("1 to N : NOISY splitted LESS than standard", verbose=verbose, verbose_level=2)
                     noisy_under_splitted += 1
                     if skip_1_t_n:
-                        print("WE SKIP IT ")
+                        printing("WE SKIP IT ", verbose=verbose, verbose_level=2)
                         continue
                 _verbose += 1
             else:
@@ -228,12 +258,28 @@ def epoch_run(batchIter_train, tokenizer, iter,n_iter_max,bert_with_classifier,
                                                          token_type_ids.is_cuda, input_mask.is_cuda, output_tokens_tensor_aligned.is_cuda],
                      verbose=verbose, verbose_level="cuda")
             try:
-                logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask, labels=output_tokens_tensor_aligned)
+                _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask, labels=output_tokens_tensor_aligned)
+                if predict_mode:
+                    logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask)
+                    predictions_topk = torch.argsort(logits, dim=-1, descending=True)[:, :, :topk]
+
+                    pdb.set_trace()
+                    sent_ls_top = write_from_bpe_token_to_conll(predictions_topk, topk, tokenizer=tokenizer, pred_mode=True)
+                    gold = write_from_bpe_token_to_conll(output_tokens_tensor_aligned, topk, tokenizer=tokenizer, pred_mode=False)
+                    source_preprocessed = write_from_bpe_token_to_conll(input_tokens_tensor, topk, tokenizer=tokenizer,  pred_mode=False)
+                    if print_pred:
+                        printing("TRAINING : eval gold {}", var=[gold], verbose=verbose, verbose_level=1)
+                        printing("TRAINING : eval pred {}" ,var=[sent_ls_top], verbose=verbose, verbose_level=1)
+                        printing("TRAINING : eval src {}", var=[source_preprocessed], verbose=verbose, verbose_level=1)
+                        # TODO : detokenize
+                        #  write to conll
+                        #  compute prediction score
             except RuntimeError as e:
                 print(e)
                 pdb.set_trace()
-            loss += logits
-            logits.backward()
+
+            loss += _loss
+            _loss.backward()
             if optimizer is not None:
                 optimizer.step()
                 optimizer.zero_grad()
@@ -245,7 +291,7 @@ def epoch_run(batchIter_train, tokenizer, iter,n_iter_max,bert_with_classifier,
 
                 writer.add_scalars("loss",
                                     {"loss-{}-bpe".format(mode):
-                                     logits.clone().cpu().data.numpy()}, iter+batch_i)
+                                     _loss.clone().cpu().data.numpy()}, iter+batch_i)
         except StopIteration:
             break
 
@@ -266,6 +312,7 @@ def setup_repoting_location(model_suffix="", verbose=1):
     dictionaries = os.path.join(CHECKPOINT_BERT_DIR, model_local_id, "dictionaries")
     tensorboard_log = os.path.join(CHECKPOINT_BERT_DIR, model_local_id, "tensorboard")
     os.mkdir(model_location)
+    printing("CHECKPOINTING model ID:{}", var=[model_local_id], verbose=verbose, verbose_level=1)
     os.mkdir(dictionaries)
     os.mkdir(tensorboard_log)
     printing("CHECKPOINTING {} for checkpoints {} for dictionaries created", var=[model_location, dictionaries], verbose_level=1, verbose=verbose)
@@ -274,9 +321,11 @@ def setup_repoting_location(model_suffix="", verbose=1):
 
 def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
         voc_tokenizer, auxilliary_task_norm_not_norm, bert_with_classifier,
-        report=True, model_suffix="",
+        report=True, model_suffix="",description="",
+        saving_every_epoch=10,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
 
+    printing("CHECKPOINTING info : saving model every {}", var=saving_every_epoch, verbose=verbose, verbose_level=1)
     use_gpu = use_gpu_(use_gpu=None, verbose=verbose)
 
     if use_gpu:
@@ -289,6 +338,17 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
     iter_dev = 0
 
     model_id, model_location, dict_path, tensorboard_log = setup_repoting_location(model_suffix=model_suffix,verbose=verbose)
+    try:
+        row, col = append_reporting_sheet(git_id=gr.get_commit_id(), tasks="BERT NORMALIZE",
+                                          rioc_job=os.environ.get("OAR_JOB_ID", "no"), description=description,
+                                          log_dir=tensorboard_log, target_dir=model_location,
+                                          env="?", status="running {}".format("by hand"),
+                                          verbose=1)
+    except Exception as e:
+        print("REPORTING TO GOOGLE SHEET FAILED")
+        print(e)
+        row = None
+
     if report:
         writer = SummaryWriter(log_dir=tensorboard_log)
         printing("CHECKPOINTING : starting writing log \ntensorboard --logdir={} host=localhost --port=1234 ",
@@ -363,24 +423,26 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
         bert_with_classifier.eval()
         loss_dev, iter_dev = epoch_run(batchIter_dev, tokenizer,iter=iter_dev, use_gpu=use_gpu,
                                        bert_with_classifier=bert_with_classifier, writer=writer,
+                                       predict_mode=True,
                                        n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
         printing("TRAINING : loss train:{} dev:{} for epoch {}  out of {}", var=[loss_train, loss_dev, epoch, n_epoch],
                  verbose=1, verbose_level=1)
         checkpoint_dir = os.path.join(model_location, "{}-ep{}-checkpoint.pt".format(model_id, epoch))
 
-        saving_every_epoch = 10
-        if epoch % saving_every_epoch == 0:
-            printing("CHECKPOINT : saving model {} ", var=[checkpoint_dir], verbose=verbose, verbose_level=1)
+        if epoch % saving_every_epoch == 0 or epoch == (n_epoch-1):
+            last_model = ""
+            if epoch == (n_epoch-1):
+                last_model = "last"
+            printing("CHECKPOINT : saving {} model {} ", var=[last_model,checkpoint_dir], verbose=verbose, verbose_level=1)
             torch.save(bert_with_classifier.state_dict(), checkpoint_dir)
+
     if writer is not None:
         writer.close()
         printing("tensorboard --logdir={} host=localhost --port=1234 ", var=[tensorboard_log], verbose_level=1, verbose=verbose)
 
-
-
-
-
+    if row is not None:
+        update_status(row=row, new_status="done ", verbose=1)
 
     # WE ADD THE NULL TOKEN THAT WILL CORRESPOND TO the bpe_embedding_layer.size(0) index
     #NULL_TOKEN_INDEX = bpe_embedding_layer.size(0)

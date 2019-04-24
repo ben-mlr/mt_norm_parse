@@ -8,11 +8,11 @@ from env.project_variables import CLIENT_GOOGLE_CLOUD, SHEET_NAME_DEFAULT, TAB_N
 SCOPES_GOOGLE_SHEET = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
 
 
-creds = ServiceAccountCredentials.from_json_keyfile_name(os.path.join(CLIENT_GOOGLE_CLOUD ,'client.json'), SCOPES_GOOGLE_SHEET)
+creds = ServiceAccountCredentials.from_json_keyfile_name(os.path.join(CLIENT_GOOGLE_CLOUD, 'client.json'), SCOPES_GOOGLE_SHEET)
 # Extract and print all of the values
 
 
-def open_client(credientials=creds,sheet_name=SHEET_NAME_DEFAULT, tab_name=TAB_NAME_DEFAULT):
+def open_client(credientials=creds, sheet_name=SHEET_NAME_DEFAULT, tab_name=TAB_NAME_DEFAULT):
     client = gspread.authorize(credientials)
     sheet = client.open(sheet_name)
     sheet = sheet.worksheet(tab_name)

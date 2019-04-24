@@ -26,6 +26,7 @@ from io import open
 
 from model.bert_tools_from_core_code.tools import *
 
+
 logger = logging.getLogger(__name__)
 
 PRETRAINED_VOCAB_ARCHIVE_MAP = {
@@ -114,11 +115,16 @@ class BertTokenizer(object):
             )
         return ids
 
-    def convert_ids_to_tokens(self, ids):
+    def convert_ids_to_tokens(self, ids, special_extra_token=None, special_token_string=None):
         """Converts a sequence of ids in wordpiece tokens using the vocab."""
         tokens = []
         for i in ids:
-            tokens.append(self.ids_to_tokens[i])
+            if special_extra_token is not None and i == special_extra_token:
+                assert special_token_string is not None
+                appending = special_token_string
+            else:
+                appending = self.ids_to_tokens[i]
+            tokens.append(appending )
         return tokens
 
     @classmethod

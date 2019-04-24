@@ -30,5 +30,7 @@ if True:
     run(bert_with_classifier=model,
         voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
         auxilliary_task_norm_not_norm=True,
-        batch_size=3, n_iter_max_per_epoch=1000, n_epoch=50,
-        model_suffix="init", debug=True, report=True, verbose=1)
+        saving_every_epoch=10,
+        batch_size=3, n_iter_max_per_epoch=2, n_epoch=2,
+        model_suffix="init", debug=False,
+        report=True, verbose=1)
