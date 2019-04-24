@@ -54,7 +54,7 @@ class MaskBatch(object):
         ##- still last dimension : maybe 3
         # NB : Have to use numpy here cause inconsistent implementation of argmin in pytorch
         #self.input_seq_len = torch.argmin(_input_seq_mask.cpu(), dim=-1) # # PYTORCH 0.4
-        self.input_seq_len = torch.Tensor(np.argmin(np.array(_input_seq_mask), axis=-1)).int()## PYTORCH 1.0 (or O.4)
+        self.input_seq_len = torch.Tensor(np.argmin(np.array(_input_seq_mask.cpu()), axis=-1)).int()## PYTORCH 1.0 (or O.4)
         if _input_seq_mask.is_cuda:
             self.input_seq_len = self.input_seq_len.cuda()
 
@@ -86,7 +86,7 @@ class MaskBatch(object):
             zero_mask_output, start = get_timing(start)
             self.output_seq_y = output_seq[:, :, 1:]
             ##- last dim also
-            self.output_seq_len = torch.Tensor(np.argmin(np.array(_output_mask_x), axis=-1)).int()  ## PYTORCH 1.0 (or O.4)
+            self.output_seq_len = torch.Tensor(np.argmin(np.array(_output_mask_x.cpu()), axis=-1)).int()  ## PYTORCH 1.0 (or O.4)
             #self.output_seq_len = torch.argmin(_output_mask_x.cpu(), dim=-1) ## PYTORCH WARNING : THEY MIGH BE A PROBLEM HERE
             if _output_mask_x.is_cuda:
                 self.output_seq_len = self.output_seq_len.cuda()
@@ -132,7 +132,7 @@ class MaskBatch(object):
             pad_output_y, start = get_timing(start)
             #useless but bug raised of not packeding (would like to remove packing which I think is useless ?)
 
-            self.output_seq_y = self.output_seq_y[inverse_perm_idx,:]
+            self.output_seq_y = self.output_seq_y[inverse_perm_idx, :]
             reorder_output_y, start = get_timing(start)
             #print("Warning confirm shape of")
             # we reshape so that it fits tthe generated sequence
@@ -170,21 +170,22 @@ class MaskBatch(object):
 
 
 # test
+
 if __name__=="__main__":
+
     plt.figure(figsize=(5, 5))
     plt.imshow(subsequent_mask(20)[0])
     #plt.show()
-    data_out = torch.cat((torch.empty(1, 4, dtype=torch.long).random_(2,5), torch.ones(1,4,dtype=torch.long)),  dim=1)
+    data_out = torch.cat((torch.empty(1, 4, dtype=torch.long).random_(2, 5), torch.ones(1, 4, dtype=torch.long)),  dim=1)
     data_out = torch.cat((data_out, data_out), dim=0)
-    data_in = torch.cat((torch.empty(1, 4, dtype=torch.long).random_(2,4), torch.zeros(1,3,dtype=torch.long)), dim=1)
-    data_in[:,0] = 2
-    data_out[:,0] = 2
+    data_in = torch.cat((torch.empty(1, 4, dtype=torch.long).random_(2, 4), torch.zeros(1, 3, dtype=torch.long)), dim=1)
+    data_in[:, 0] = 2
+    data_out[:, 0] = 2
     #data_in = torch.cat((data_in, data_in), dim=0)
     #data_out = data_out.unsqueeze(0)
     #data_in = data_in.unsqueeze(0)
-
-    print("DATA IN {} {} ".format(data_in,data_in.size()))
-    print("DATA OUT {} {} ".format(data_out,data_out.size()))
+    print("DATA IN {} {} ".format(data_in, data_in.size()))
+    print("DATA OUT {} {} ".format(data_out, data_out.size()))
     batch = MaskBatch(data_in, data_out, pad=1, verbose=5)
     print("INPUT MASK {} , output mask {} ".format(batch.input_seq_mask, batch.output_mask))
 

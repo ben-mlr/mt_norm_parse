@@ -1,6 +1,5 @@
 
 import sys
-sys.path.insert(0,".")
 from env.importing import *
 from env.project_variables import *
 from env.models_dir import *
@@ -15,6 +14,7 @@ TOKEN_BPE_BERT_START = "[CLS]"
 TOKEN_BPE_BERT_SEP = "[SEP]"
 PAD_ID_BERT = 0
 PAD_BERT = "[PAD]"
+NULL_TOKEN_INDEX = 32000
 
 
 def preprocess_batch_string_for_bert(batch):
@@ -50,7 +50,7 @@ def sanity_check_data_len(tokens_tensor, segments_tensors, tokenized_ls, aligned
                 print(e)
 
 
-def get_indexes(list_pretokenized_str, tokenizer, verbose):
+def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu):
 
     all_tokenized_ls = [tokenizer.tokenize(inp) for inp in list_pretokenized_str]
     tokenized_ls = [tup[0] for tup in all_tokenized_ls]
@@ -68,6 +68,10 @@ def get_indexes(list_pretokenized_str, tokenizer, verbose):
     mask = torch.LongTensor(mask)
     tokens_tensor = torch.LongTensor(ids_padded)
     segments_tensors = torch.LongTensor(segments_padded)
+    if use_gpu:
+        mask = mask.cuda()
+        tokens_tensor = tokens_tensor.cuda()
+        segments_tensors = segments_tensors.cuda()
 
     printing("DATA {}", var=[tokens_tensor], verbose=verbose, verbose_level=2)
 
@@ -107,12 +111,15 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor, input_alignement_w
         if _1_to_n_token:
             break
         output_tokens_tensor_aligned[ind_sent] = torch.Tensor(output_tokens_tensor_aligned_sent)
+    if input_tokens_tensor.is_cuda:
+        output_tokens_tensor_aligned = output_tokens_tensor_aligned.cuda()
     return output_tokens_tensor_aligned, _1_to_n_token
 
 
 def epoch_run(batchIter_train, tokenizer, iter,n_iter_max,bert_with_classifier,
-                skip_1_t_n=True,writer=None,optimizer=None,
-                verbose=0):
+              use_gpu,
+              skip_1_t_n=True,writer=None,optimizer=None,
+              verbose=0):
 
     batch_i = 0
     noisy_over_splitted = 0
@@ -129,12 +136,13 @@ def epoch_run(batchIter_train, tokenizer, iter,n_iter_max,bert_with_classifier,
             batch = batchIter_train.__next__()
             batch.raw_input = preprocess_batch_string_for_bert(batch.raw_input)
             batch.raw_output = preprocess_batch_string_for_bert(batch.raw_output)
-            input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = get_indexes(batch.raw_input, tokenizer, verbose)
-            output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask = get_indexes(batch.raw_output, tokenizer, verbose)
+            input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = get_indexes(batch.raw_input, tokenizer, verbose,use_gpu)
+            output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask = get_indexes(batch.raw_output, tokenizer, verbose,use_gpu)
 
             printing("DATA dim : {} input {} output ", var=[input_tokens_tensor.size(), output_tokens_tensor.size()],
                      verbose_level=1, verbose=verbose)
-            _verbose = verbose
+
+            _verbose = verbose if isinstance(verbose, int) else 0
 
             if input_tokens_tensor.size(1) != output_tokens_tensor.size(1):
                 print("-------------- Alignement broken")
@@ -184,7 +192,11 @@ def epoch_run(batchIter_train, tokenizer, iter,n_iter_max,bert_with_classifier,
             # we consider only 1 sentence case
             output_tokens_tensor_aligned = output_tokens_tensor_aligned
             token_type_ids = torch.zeros_like(input_tokens_tensor)
-
+            if input_tokens_tensor.is_cuda:
+                token_type_ids = token_type_ids.cuda()
+            printing("CUDA SANITY CHECK input_tokens:{}  type:{} input_mask:{}  label:{}", var=[input_tokens_tensor.is_cuda,
+                                                         token_type_ids.is_cuda, input_mask.is_cuda, output_tokens_tensor_aligned.is_cuda],
+                     verbose=verbose, verbose_level="cuda")
             logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask, labels=output_tokens_tensor_aligned)
             loss += logits
             logits.backward()
@@ -233,6 +245,9 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
 
     use_gpu = use_gpu_(use_gpu=None, verbose=verbose)
 
+    if use_gpu:
+        bert_with_classifier.to("cuda")
+    
     if not debug:
         pdb.set_trace = lambda: None
 
@@ -305,14 +320,14 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
         optimizer = dptx.get_optimizer(bert_with_classifier.parameters(), lr=0.0001)
         bert_with_classifier.train()
         loss_train, iter_train = epoch_run(batchIter_train, tokenizer,
-                               bert_with_classifier=bert_with_classifier, writer=writer,iter=iter_train,
-                               optimizer=optimizer,
-                               n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+                                           bert_with_classifier=bert_with_classifier, writer=writer,iter=iter_train,
+                                           optimizer=optimizer, use_gpu=use_gpu,
+                                           n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
         bert_with_classifier.eval()
-        loss_dev, iter_dev = epoch_run(batchIter_dev, tokenizer,iter=iter_dev,
-                             bert_with_classifier=bert_with_classifier, writer=writer,
-                             n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+        loss_dev, iter_dev = epoch_run(batchIter_dev, tokenizer,iter=iter_dev, use_gpu=use_gpu,
+                                       bert_with_classifier=bert_with_classifier, writer=writer,
+                                       n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
         printing("TRAINING : loss train:{} dev:{} for epoch {}  out of {}", var=[loss_train, loss_dev, epoch, n_epoch],
                  verbose=1, verbose_level=1)
@@ -321,40 +336,14 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
         saving_every_epoch = 10
         if epoch % saving_every_epoch == 0:
             printing("CHECKPOINT : saving model {} ", var=[checkpoint_dir], verbose=verbose, verbose_level=1)
-            torch.save(model.state_dict(), checkpoint_dir)
+            torch.save(bert_with_classifier.state_dict(), checkpoint_dir)
     if writer is not None:
         writer.close()
         printing("tensorboard --logdir={} host=localhost --port=1234 ", var=[tensorboard_log], verbose_level=1, verbose=verbose)
 
 
 
-train_path = [LIU_TRAIN]
-dev_path = [TEST]
-tasks = ["normalize"]
-use_gpu = False
 
-if True:
-
-    voc_tokenizer = BERT_CASED_DIR
-
-    config = BertConfig(vocab_size_or_config_json_file=32000, hidden_size=768,
-                        num_hidden_layers=12, num_attention_heads=12, intermediate_size=3072)
-
-    num_labels = 32001
-    NULL_TOKEN_INDEX = 32000
-    initialize_bpe_layer = False
-    model = BertForTokenClassification(config, num_labels)
-    if initialize_bpe_layer:
-        output_layer = torch.cat((model.bert.embeddings.word_embeddings.weight.data, torch.rand((1, 768))), dim=0)
-        model.classifier.weight = nn.Parameter(output_layer)
-
-    run(bert_with_classifier=model,
-        voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
-        auxilliary_task_norm_not_norm=True,
-        batch_size=1, n_iter_max_per_epoch=1000, n_epoch=50,
-        model_suffix="init",
-        debug=False, report=True,
-        verbose=1)
 
 
     # WE ADD THE NULL TOKEN THAT WILL CORRESPOND TO the bpe_embedding_layer.size(0) index

@@ -27,7 +27,9 @@ def outputing_raw_data_from_iterator(words, word_norm, chars, chars_norm, word_n
     :param pos_dictionary:
     :return:
     """
-    _verbose = 5 if print_raw else verbose
+    _verbose = verbose if isinstance(verbose, int) else 0
+    if print_raw:
+        _verbose = 5
 
     if _verbose >= 5:
         if word_norm_not_norm is not None:
