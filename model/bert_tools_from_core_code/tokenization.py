@@ -124,7 +124,7 @@ class BertTokenizer(object):
                 appending = special_token_string
             else:
                 appending = self.ids_to_tokens[i]
-            tokens.append(appending )
+            tokens.append(appending)
         return tokens
 
     @classmethod
