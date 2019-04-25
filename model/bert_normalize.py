@@ -18,6 +18,7 @@ PAD_ID_BERT = 0
 PAD_BERT = "[PAD]"
 NULL_TOKEN_INDEX = 32000
 NULL_STR = "[SPACE]"
+NULL_STR_TO_SHOW = "_"
 
 def preprocess_batch_string_for_bert(batch):
     #batch = batch[0]
@@ -146,7 +147,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor, input_alignement_w
     return output_tokens_tensor_aligned, _1_to_n_token
 
 
-def write_from_bpe_token_to_conll(bpe_tensor, topk, pred_mode, tokenizer):
+def from_bpe_token_to_str(bpe_tensor, topk, pred_mode, tokenizer):
     """
     pred_mode allow to handle gold data also (which only have 2 dim and not three)
     :param bpe_tensor:
@@ -165,20 +166,135 @@ def write_from_bpe_token_to_conll(bpe_tensor, topk, pred_mode, tokenizer):
     return sent_ls_top
 
 
+def realigne(ls_sent_str, input_alignement_with_raw, remove_null_str=True, remove_extra_predicted_token=False):
+    """
+    - detokenization of ls_sent_str based on input_alignement_with_raw index
+    - we remove paddding and end detokenization at symbol [SEP] that we take as the end of sentence signal
+    """
+
+    assert len(ls_sent_str) == len(input_alignement_with_raw), \
+        "ls_sent_str {} input_alignement_with_raw {} ".format(len(ls_sent_str), len(input_alignement_with_raw))
+    new_sent_ls = []
+    for sent, index_ls in zip(ls_sent_str, input_alignement_with_raw):
+        assert len(sent) == len(index_ls)
+        former_index = -1
+        new_sent = []
+        former_token = ""
+        for _i, (token, index) in enumerate(zip(sent, index_ls)):
+            trigger_end_sent = False
+            if remove_extra_predicted_token:
+                if index == 1000:
+                    # we reach the end according to gold data
+                    # (this means we just stop looking at the prediciton of the model (we can do that because we assumed word alignement))
+                    trigger_end_sent = True
+            if token == NULL_STR:
+                token = NULL_STR_TO_SHOW if not remove_null_str else ""
+            if index == former_index:
+                if token.startswith("##"):
+                    former_token += token[2:]
+                else:
+                    former_token += token
+            if index != former_index or _i + 1 == len(index_ls):
+                new_sent.append(former_token)
+                former_token = token
+                if trigger_end_sent:
+                    break
+            if former_token == TOKEN_BPE_BERT_SEP or _i+1 == len(index_ls) :
+                new_sent.append(token)
+                break
+            former_index = index
+        new_sent_ls.append(new_sent[1:])
+    return new_sent_ls
+
+
+def word_level_scoring(metric, gold, topk_pred, topk):
+
+    assert metric in ["exact_match"]
+    if topk > 1:
+        assert metric == "exact_match", "ERROR : only exact_match allows for looking into topk prediction "
+    assert len(topk_pred) == topk, "ERROR : inconsinstent provided topk and what I got "
+    if metric == "exact_match":
+        for pred in topk_pred:
+            if gold == pred:
+                return 1
+        return 0
+
+
+def agg_func_batch_score(overall_ls_sent_score, agg_func):
+
+    sum_ = sum([score for score_ls in overall_ls_sent_score for score in score_ls])
+    n_tokens = sum([1 for score_ls in overall_ls_sent_score for _ in score_ls])
+    n_sents = len(overall_ls_sent_score)
+
+    if agg_func == "sum":
+        return sum_
+    if agg_func == "n_tokens":
+        return n_tokens
+    if agg_func == "n_sents":
+        return n_sents
+    if agg_func == "mean":
+        return sum_/n_tokens
+
+    if agg_func == "mean_mean_per_sent":
+        sum_per_sent = [sum(score_ls) for score_ls in overall_ls_sent_score]
+        token_per_sent = [len(score_ls) for score_ls in overall_ls_sent_score]
+        sum_mean_per_sent_score = sum([sum_/token_len for sum_, token_len in zip(sum_per_sent, token_per_sent)])
+        return sum_mean_per_sent_score/n_sent
+
+
+def overall_word_level_metric_measure(gold_sent_ls, pred_sent_ls_topk, topk,
+                                      metric="exact_match", agg_func_ls=["sum"]):
+    """
+    'metric' based on a word level comparison of (pred,gold) : e.g : exact_match , edit
+    'agg_func' based on a aggrefaiton func to get the overall batch score : e.g : sum
+    :param metric:
+    :param agg_func:
+    :return batch : score, number of token measured
+    """
+    assert isinstance(agg_func_ls, list)
+    assert len(pred_sent_ls_topk) == topk, "ERROR topk not consistent with prediction list " \
+        .format(len(pred_sent_ls_topk), topk)
+    overall_score_ls_sent = []
+    for gold_ind_sent, gold_sent in enumerate(gold_sent_ls):
+        # TODO test for all topk
+        assert len(gold_sent) == len(pred_sent_ls_topk[0][gold_ind_sent])
+        score_sent = []
+        for ind_word in range(len(gold_sent)):
+            gold_token = gold_sent[ind_word]
+            topk_word_pred = [pred_sent_ls_topk[top][gold_ind_sent][ind_word] for top in range(topk)]
+            score_sent.append(word_level_scoring(metric=metric, gold=gold_token, topk_pred=topk_word_pred, topk=topk))
+        overall_score_ls_sent.append(score_sent)
+
+    result = []
+    for agg_func in agg_func_ls:
+        result.append({"score": agg_func_batch_score(overall_ls_sent_score=overall_score_ls_sent, agg_func=agg_func),
+                       "agg_func": agg_func,
+                       "metric": "exact_match",
+                       "n_tokens": agg_func_batch_score(overall_ls_sent_score=overall_score_ls_sent,
+                                                        agg_func="n_token"),
+                       "n_sents": agg_func_batch_score(overall_ls_sent_score=overall_score_ls_sent,
+                                                       agg_func="n_sents")})
+    return result
+
+
 def epoch_run(batchIter, tokenizer,
               iter, n_iter_max, bert_with_classifier,
-              use_gpu,
+              use_gpu, data_label,
               skip_1_t_n=True,
               writer=None, optimizer=None,
-              predict_mode=False, topk=None,
+              predict_mode=False, topk=None, metric=None,
               print_pred=False,
               verbose=0):
 
-
-    if predict_mode and topk is None:
-        topk = 1
+    if predict_mode :
+        if topk is None:
+            topk = 1
+            printing("PREDICITON MODE : setting topk to default 1 ", verbose_level=1, verbose=verbose)
         print_pred = True
-        printing("PREDICITON MODE : setting topk to default 1 ", verbose_level=1, verbose=verbose)
+        if metric is None:
+            printing("PREDICITON MODE : setting metric to default 'exact_match' ", verbose_level=1, verbose=verbose)
+
+
     batch_i = 0
     noisy_over_splitted = 0
     noisy_under_splitted = 0
@@ -186,6 +302,9 @@ def epoch_run(batchIter, tokenizer,
     skipping_batch_n_to_1 = 0
 
     loss = 0
+    score = 0
+    n_tokens = 0
+    n_sents = 0
 
     while True:
 
@@ -195,8 +314,14 @@ def epoch_run(batchIter, tokenizer,
             batch = batchIter.__next__()
             batch.raw_input = preprocess_batch_string_for_bert(batch.raw_input)
             batch.raw_output = preprocess_batch_string_for_bert(batch.raw_output)
-            input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = get_indexes(batch.raw_input, tokenizer, verbose,use_gpu)
-            output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask = get_indexes(batch.raw_output, tokenizer, verbose,use_gpu)
+            input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = get_indexes(batch.raw_input,
+                                                                                                                                tokenizer,
+                                                                                                                                verbose,
+                                                                                                                                use_gpu)
+            output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask = get_indexes(batch.raw_output,
+                                                                                                                                    tokenizer,
+                                                                                                                                    verbose,
+                                                                                                                                    use_gpu)
 
             printing("DATA dim : {} input {} output ", var=[input_tokens_tensor.size(), output_tokens_tensor.size()],
                      verbose_level=1, verbose=verbose)
@@ -235,8 +360,8 @@ def epoch_run(batchIter, tokenizer,
                      verbose=_verbose)
             printing("DATA : BPE tokenized output  {}", var=[out_bpe_tokenized], verbose_level=4,
                      verbose=_verbose)
-
-            # aligning output BPE with input (we are rejecting batch with at least one 1 to n case (that we don't want to handle)
+            # aligning output BPE with input (we are rejecting batch with at least one 1 to n case
+            # (that we don't want to handle)
             output_tokens_tensor_aligned, _1_to_n_token = aligned_output(input_tokens_tensor, output_tokens_tensor,
                                                                          input_alignement_with_raw,
                                                                          output_alignement_with_raw)
@@ -254,22 +379,38 @@ def epoch_run(batchIter, tokenizer,
             token_type_ids = torch.zeros_like(input_tokens_tensor)
             if input_tokens_tensor.is_cuda:
                 token_type_ids = token_type_ids.cuda()
-            printing("CUDA SANITY CHECK input_tokens:{}  type:{} input_mask:{}  label:{}", var=[input_tokens_tensor.is_cuda,
-                                                         token_type_ids.is_cuda, input_mask.is_cuda, output_tokens_tensor_aligned.is_cuda],
+            printing("CUDA SANITY CHECK input_tokens:{}  type:{} input_mask:{}  label:{}",
+                     var=[input_tokens_tensor.is_cuda, token_type_ids.is_cuda, input_mask.is_cuda,
+                          output_tokens_tensor_aligned.is_cuda],
                      verbose=verbose, verbose_level="cuda")
             try:
                 _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask, labels=output_tokens_tensor_aligned)
                 if predict_mode:
                     logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask)
                     predictions_topk = torch.argsort(logits, dim=-1, descending=True)[:, :, :topk]
+                    # from bpe index to string
+                    sent_ls_top = from_bpe_token_to_str(predictions_topk, topk, tokenizer=tokenizer, pred_mode=True)
+                    gold = from_bpe_token_to_str(output_tokens_tensor_aligned, topk, tokenizer=tokenizer, pred_mode=False)
+                    source_preprocessed = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer, pred_mode=False)
 
+                    # de BPE-tokenize
+                    src_detokenized = realigne(source_preprocessed, input_alignement_with_raw)
+                    gold_detokenized = realigne(gold, input_alignement_with_raw, remove_null_str=True)
+                    pred_detokenized_topk = []
+                    for sent_ls in sent_ls_top:
+                        pred_detokenized_topk.append(realigne(sent_ls, input_alignement_with_raw, remove_null_str=True,
+                                                              remove_extra_predicted_token=True))
                     pdb.set_trace()
-                    sent_ls_top = write_from_bpe_token_to_conll(predictions_topk, topk, tokenizer=tokenizer, pred_mode=True)
-                    gold = write_from_bpe_token_to_conll(output_tokens_tensor_aligned, topk, tokenizer=tokenizer, pred_mode=False)
-                    source_preprocessed = write_from_bpe_token_to_conll(input_tokens_tensor, topk, tokenizer=tokenizer,  pred_mode=False)
+
+                    perf_prediction = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk, topk, metric=metric, agg_func_ls=["sum"])
+                    score += perf_prediction[0]["score"]
+                    n_tokens += perf_prediction[0]["n_tokens"]
+                    n_sents += perf_prediction[0]["n_sents"]
+                    pdb.set_trace()
+
                     if print_pred:
                         printing("TRAINING : eval gold {}", var=[gold], verbose=verbose, verbose_level=1)
-                        printing("TRAINING : eval pred {}" ,var=[sent_ls_top], verbose=verbose, verbose_level=1)
+                        printing("TRAINING : eval pred {}", var=[sent_ls_top], verbose=verbose, verbose_level=1)
                         printing("TRAINING : eval src {}", var=[source_preprocessed], verbose=verbose, verbose_level=1)
                         # TODO : detokenize
                         #  write to conll
@@ -288,20 +429,29 @@ def epoch_run(batchIter, tokenizer,
                 mode = "dev"
 
             if writer is not None:
-
                 writer.add_scalars("loss",
                                     {"loss-{}-bpe".format(mode):
                                      _loss.clone().cpu().data.numpy()}, iter+batch_i)
         except StopIteration:
             break
-
     printing("Out of {} batch of {} sentences each : {} batch aligned ; {} with at least 1 sentence noisy MORE SPLITTED "
              "; {} with  LESS SPLITTED  (skipped {} ) (CORRUPTED BATCH {}) ",
              var=[batch_i, batch.input_seq.size(0), aligned, noisy_over_splitted, noisy_under_splitted, skip_1_t_n,
                   skipping_batch_n_to_1],
              verbose=verbose, verbose_level=0)
+    if predict_mode:
+        report = {"score": score/n_tokens, "agg_func":"mean",
+                  "subsample": "all", "data": data_label,
+                  "metric": metric, "n_tokens": n_tokens,"n_sents": n_sents}
+        if writer is not None:
+            writer.add_scalars("prediction_score",
+                               {"exact_match-all".format(mode):
+                                    report["score"]}, iter)
+
+    else:
+        report = None
     iter += batch_i
-    return loss, iter
+    return loss, iter, report
 
 
 def setup_repoting_location(model_suffix="", verbose=1):
@@ -322,7 +472,7 @@ def setup_repoting_location(model_suffix="", verbose=1):
 def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
         voc_tokenizer, auxilliary_task_norm_not_norm, bert_with_classifier,
         report=True, model_suffix="",description="",
-        saving_every_epoch=10,
+        saving_every_epoch=10, lr=0.0001, fine_tuning_strategy="standart",
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
 
     printing("CHECKPOINTING info : saving model every {}", var=saving_every_epoch, verbose=verbose, verbose_level=1)
@@ -413,18 +563,18 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                                                            dropout_input=0.0,
                                                            verbose=verbose)
         # TODO add optimizer (if not : devv loss)
-        optimizer = dptx.get_optimizer(bert_with_classifier.parameters(), lr=0.0001)
+        optimizer = dptx.get_optimizer(bert_with_classifier.parameters(), lr=lr)
         bert_with_classifier.train()
-        loss_train, iter_train = epoch_run(batchIter_train, tokenizer,
-                                           bert_with_classifier=bert_with_classifier, writer=writer,iter=iter_train,
-                                           optimizer=optimizer, use_gpu=use_gpu,
-                                           n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+        loss_train, iter_train, _ = epoch_run(batchIter_train, tokenizer, data_label=REPO_DATASET[train_path],
+                                              bert_with_classifier=bert_with_classifier, writer=writer,iter=iter_train,
+                                              optimizer=optimizer, use_gpu=use_gpu,
+                                              n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
         bert_with_classifier.eval()
-        loss_dev, iter_dev = epoch_run(batchIter_dev, tokenizer,iter=iter_dev, use_gpu=use_gpu,
-                                       bert_with_classifier=bert_with_classifier, writer=writer,
-                                       predict_mode=True,
-                                       n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+        loss_dev, iter_dev, perf_report = epoch_run(batchIter_dev, tokenizer,iter=iter_dev, use_gpu=use_gpu,
+                                                    bert_with_classifier=bert_with_classifier, writer=writer,
+                                                    predict_mode=True, data_label=REPO_DATASET[dev_path],
+                                                    n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
         printing("TRAINING : loss train:{} dev:{} for epoch {}  out of {}", var=[loss_train, loss_dev, epoch, n_epoch],
                  verbose=1, verbose_level=1)
