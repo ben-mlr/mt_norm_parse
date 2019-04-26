@@ -5,6 +5,7 @@ from io_.info_print import printing
 from env.project_variables import SUPPORED_WORD_ENCODER
 from io_.dat.constants import PAD_ID_CHAR
 from io_.dat.constants import MAX_CHAR_LENGTH
+from toolbox.deep_learning_toolbox import get_cumulated_list
 
 
 class CharEncoder(nn.Module):
@@ -259,6 +260,7 @@ class CharEncoder(nn.Module):
                                  h_w), dim=-1)
             elif self.mode_word_encoding == "sum":
                 h_w = word_embed_input+h_w
+
         sent_len_cumulated = get_cumulated_list(sent_len)
         # we want to pack the sequence so we tranqform it as a list
         # NB ; sent_len and sent_len_cumulated are aligned with permuted input and therefore input_char_vec and h_w

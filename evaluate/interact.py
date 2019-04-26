@@ -1,5 +1,6 @@
 from env.importing import *
 from predict.prediction_batch import  greedy_decode_batch
+from predict.predict_string_bert import interact_bert
 from predict.prediction_string import decode_seq_str, decode_interacively
 from model.loss import LossCompute
 from io_.info_print import printing
@@ -55,15 +56,14 @@ def interact(dic_path, model_full_name,
     #1eeb9-WARMUP-unrolling-False0-model_1-model_1_fd8c-folder-50-False_get_batchNEW-repo-folder
 
 
-import torchvision
-
-from PIL import Image
-import socket
-import visdom
-
-from env.importing import *
-
-import matplotlib.pyplot as plt
+def interact_bert_wrap(tokenizer, model, topk=1):
+    while True:
+        source, answer = interact_bert(tokenizer=tokenizer, bert_token_classification=model, topk=topk)
+        if answer == 0:
+            break
+        print("SRC: {}".format(source))
+        for top in range(topk):
+            print("NORMALIZED: top-pred {} : {}".format(top, answer[top]))
 
 
 def show_plot_visdom():

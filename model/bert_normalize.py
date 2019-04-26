@@ -138,7 +138,8 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor, input_alignement_w
 
         if _1_to_n_token:
             break
-        printing("TO FILL output {} index {}", var=[output_tokens_tensor_aligned_sent, ind_sent], verbose=verbose, verbose_level=3)
+        printing("TO FILL output {} index {}", var=[output_tokens_tensor_aligned_sent, ind_sent], verbose=verbose,
+                 verbose_level=3)
         output_tokens_tensor_aligned[ind_sent] = torch.Tensor(output_tokens_tensor_aligned_sent)
 
     if input_tokens_tensor.is_cuda:
@@ -325,10 +326,10 @@ def epoch_run(batchIter, tokenizer,
             batch = batchIter.__next__()
             batch.raw_input = preprocess_batch_string_for_bert(batch.raw_input)
             batch.raw_output = preprocess_batch_string_for_bert(batch.raw_output)
-            input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = get_indexes(batch.raw_input,
-                                                                                                                                tokenizer,
-                                                                                                                                verbose,
-                                                                                                                                use_gpu)
+
+            pdb.set_trace()
+
+            input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = get_indexes(batch.raw_input, tokenizer, verbose, use_gpu)
             output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask = get_indexes(batch.raw_output,
                                                                                                                                     tokenizer,
                                                                                                                                     verbose,
@@ -405,7 +406,7 @@ def epoch_run(batchIter, tokenizer,
                     gold = from_bpe_token_to_str(output_tokens_tensor_aligned, topk, tokenizer=tokenizer, pred_mode=False)
                     source_preprocessed = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer, pred_mode=False)
 
-                    # de BPE-tokenize
+                    # de-BPE-tokenize
                     src_detokenized = realigne(source_preprocessed, input_alignement_with_raw)
                     gold_detokenized = realigne(gold, input_alignement_with_raw, remove_null_str=True)
                     pred_detokenized_topk = []

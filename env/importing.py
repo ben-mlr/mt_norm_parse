@@ -23,6 +23,11 @@ from collections import OrderedDict, Iterable
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from tensorboardX import SummaryWriter
+import torchvision
+from PIL import Image
+import socket
+import visdom
+
 
 # measuring errors
 from nltk.translate.bleu_score import SmoothingFunction, sentence_bleu
@@ -31,6 +36,11 @@ from nltk import edit_distance
 # statistics
 from scipy.stats import hmean
 
+
+
+
+
+import matplotlib.pyplot as plt
 
 # torch related
 import torch
@@ -66,4 +76,4 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 np.random.seed(SEED_NP)
 
-print("ALL IMPORTS SUCESSFULLY LOADED with exception : {}  ".format(exception if exception!="" else "NONE"))
+print("ALL IMPORTS SUCESSFULLY LOADED {}  ".format("with exception : "+exception if exception != "" else ""))
