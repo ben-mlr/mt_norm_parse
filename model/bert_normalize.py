@@ -102,7 +102,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor, input_alignement_w
         while not_the_end_of_input:
 
             padded_reach = _input_alignement_with_raw[_i_input] == 1000
-            if not (padded_reach and len(_output_alignement_with_raw)==_i_output):
+            if not (padded_reach and len(_output_alignement_with_raw) ==_i_output):
                 # usual case
                 n_to_1_token = _input_alignement_with_raw[_i_input] < _output_alignement_with_raw[_i_output]
                 _1_to_n_token = _input_alignement_with_raw[_i_input] > _output_alignement_with_raw[_i_output]
@@ -113,11 +113,13 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor, input_alignement_w
                 n_to_1_token, _1_to_n_token = 0, 0
             # if the otuput token don't change we have to shift the input of one
             if _1_to_n_token:
-                print("WARNING : _1_to_n_token --> next batch ")
+                printing("WARNING : _1_to_n_token --> next batch ",
+                         verbose=verbose, verbose_level=2)
                 break
             if padded_reach and not n_to_1_token:
                 # we assert we also reached padding in the output
-                # if we are in n_to_1_token it's different maybe not true # same if we reached the end we handle the case with end_output_with_padded_reach
+                # if we are in n_to_1_token it's different maybe not true
+                #  same if we reached the end we handle the case with end_output_with_padded_reach
                 if len(_output_alignement_with_raw) != _i_output:
                     assert _output_alignement_with_raw[_i_output] == 1000
                 padded_reached_ind = 1
@@ -131,7 +133,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor, input_alignement_w
                 output_tokens_tensor_aligned_sent.append(0)
             _i_input += 1
             # padded_reached_ind is to make sure we 're not facing problem in the output
-            _i_output += (1 - n_to_1_token - padded_reached_ind )
+            _i_output += (1 - n_to_1_token - padded_reached_ind)
 
             if _i_input == len(_input_alignement_with_raw):
                 not_the_end_of_input = False
@@ -317,7 +319,7 @@ def epoch_run(batchIter, tokenizer,
     score = 0
     n_tokens = 0
     n_sents = 0
-    skipping_all = 0
+    skipping_evaluated_batch = 0
     while True:
 
         try:
@@ -336,7 +338,7 @@ def epoch_run(batchIter, tokenizer,
                                                                                                                                     use_gpu)
 
             printing("DATA dim : {} input {} output ", var=[input_tokens_tensor.size(), output_tokens_tensor.size()],
-                     verbose_level=1, verbose=verbose)
+                     verbose_level=2, verbose=verbose)
 
             _verbose = verbose if isinstance(verbose, int) else 0
 
@@ -415,7 +417,7 @@ def epoch_run(batchIter, tokenizer,
                                                               remove_extra_predicted_token=True))
 
                     perf_prediction, skipping = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk, topk, metric=metric, agg_func_ls=["sum"])
-                    skipping_all+=skipping
+                    skipping_evaluated_batch += skipping
                     score += perf_prediction[0]["score"]
                     n_tokens += perf_prediction[0]["n_tokens"]
                     n_sents += perf_prediction[0]["n_sents"]
@@ -447,11 +449,12 @@ def epoch_run(batchIter, tokenizer,
         except StopIteration:
             break
 
-    printing("Out of {} batch of {} sentences each : {} batch aligned ; {} with at least 1 sentence noisy MORE SPLITTED "
-             "; {} with  LESS SPLITTED  (skipped {} ) (+  BATCH with Skipped 1 to n {}) ",
-             var=[batch_i, batch.input_seq.size(0), aligned, noisy_over_splitted, noisy_under_splitted, skip_1_t_n,
+    printing("WARNING : Out of {} batch of {} sentences each : {} batch aligned ; {} with at least 1 sentence noisy MORE SPLITTED "
+             "; {} with  LESS SPLITTED {}  +  BATCH with Skipped 1 to n {} ",
+             var=[batch_i, batch.input_seq.size(0), aligned, noisy_over_splitted, noisy_under_splitted,"SKIPPED" if skip_1_t_n else "",
                   skipping_batch_n_to_1],
              verbose=verbose, verbose_level=0)
+    printing("WARNING : ON THE EVALUATION SIDE we skipped {} ", var=skipping_evaluated_batch)
     if predict_mode:
         report = {"score": score/n_tokens, "agg_func":"mean",
                   "subsample": "all", "data": data_label,
@@ -465,7 +468,6 @@ def epoch_run(batchIter, tokenizer,
     else:
         report = None
     iter += batch_i
-    print("SKIPPING", skipping_all)
     return loss, iter, report
 
 
@@ -583,17 +585,17 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
             train_data_label = "|".join([REPO_DATASET[_train_path] for _train_path in train_path])
             dev_data_label = "|".join([REPO_DATASET[_dev_path] for _dev_path in dev_path])
             loss_train, iter_train, perf_report_train = epoch_run(batchIter_train, tokenizer, data_label=train_data_label,
-                                                  bert_with_classifier=bert_with_classifier, writer=writer,
-                                                  iter=iter_train, epoch=epoch,
-                                                  optimizer=optimizer, use_gpu=use_gpu, predict_mode=True,
-                                                  n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+                                                                  bert_with_classifier=bert_with_classifier, writer=writer,
+                                                                  iter=iter_train, epoch=epoch,
+                                                                  optimizer=optimizer, use_gpu=use_gpu, predict_mode=True,
+                                                                  n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
             bert_with_classifier.eval()
             loss_dev, iter_dev, perf_report_dev = epoch_run(batchIter_dev, tokenizer,
-                                                        iter=iter_dev, use_gpu=use_gpu,
-                                                        bert_with_classifier=bert_with_classifier, writer=writer,
-                                                        predict_mode=True, data_label=dev_data_label, epoch=epoch,
-                                                        n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+                                                            iter=iter_dev, use_gpu=use_gpu,
+                                                            bert_with_classifier=bert_with_classifier, writer=writer,
+                                                            predict_mode=True, data_label=dev_data_label, epoch=epoch,
+                                                            n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
             printing("TRAINING : loss train:{} dev:{} for epoch {}  out of {}", var=[loss_train, loss_dev, epoch, n_epoch], verbose=1, verbose_level=1)
             checkpoint_dir = os.path.join(model_location, "{}-ep{}-checkpoint.pt".format(model_id, epoch))

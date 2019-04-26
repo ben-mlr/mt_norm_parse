@@ -56,9 +56,9 @@ def interact(dic_path, model_full_name,
     #1eeb9-WARMUP-unrolling-False0-model_1-model_1_fd8c-folder-50-False_get_batchNEW-repo-folder
 
 
-def interact_bert_wrap(tokenizer, model, topk=1):
+def interact_bert_wrap(tokenizer, model, topk=1, verbose=1):
     while True:
-        source, answer = interact_bert(tokenizer=tokenizer, bert_token_classification=model, topk=topk)
+        source, answer = interact_bert(tokenizer=tokenizer, bert_token_classification=model, topk=topk, verbose=verbose)
         if answer == 0:
             break
         print("SRC: {}".format(source))

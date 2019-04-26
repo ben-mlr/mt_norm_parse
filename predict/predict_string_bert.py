@@ -34,6 +34,7 @@ def interact_bert(bert_token_classification,  tokenizer, topk=1, verbose=1, use_
                  verbose_level=2, verbose=verbose)
         realign_sent = " ".join(realign_sent[0])
         sentence_pred_aligned.append(realign_sent)
+        
 
     return input_string, sentence_pred_aligned
 

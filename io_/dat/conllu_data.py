@@ -662,18 +662,18 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
         #TODO : should make _word_norm_not_norm  and char norm independant !!
         _word_norm_not_norm = None
       if chars[excerpt].size(0) <= 1:
-        printing("WARNING : We are NOT skipping a batch because size is {} char ".format(chars[excerpt].size()),
-                 verbose=verbose, verbose_level=1)
+        printing("WARNING : batch_size 1 {} char ".format(chars[excerpt].size()),
+                 verbose=verbose, verbose_level=2)
         #continue
       if normalization:
         if chars_norm_.size(0) <= 1:
-          printing("WARNING : We are NOT skipping a batch because size is {} for char_nor  ".format(chars_norm_.size()),
-                   verbose=verbose, verbose_level=1)
+          printing("WARNING : batch_size 1  {} for char_nor  ".format(chars_norm_.size()),
+                   verbose=verbose, verbose_level=2)
           #continue
       if word_norm is not None:
         if word_norm.size(0) <= 0:
           printing("WARNING : We are skipping a batch because word_norm {} {}".format(word_norm.size(), word_norm),
-                   verbose=verbose, verbose_level=1)
+                   verbose=verbose, verbose_level=2)
           continue
       yield words[excerpt], _word_norm, chars[excerpt], chars_norm_, _word_norm_not_norm, _edit, \
             pos[excerpt], xpos[excerpt], heads[excerpt], \

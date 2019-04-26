@@ -15,8 +15,8 @@ train_path = [LIU_TRAIN]
 dev_path = [TEST]
 tasks = ["normalize"]
 
-train = False
-playwith = True
+train = True
+playwith = False
 
 if train:
 
@@ -38,15 +38,15 @@ if train:
         output_layer = torch.cat((model.bert.embeddings.word_embeddings.weight.data, torch.rand((1, 768))), dim=0)
         model.classifier.weight = nn.Parameter(output_layer)
     lr = 0.0001
-    batch_size = 30
+    batch_size = 10
     pref_suffix = "local_init"
 
     run(bert_with_classifier=model,
         voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
         auxilliary_task_norm_not_norm=True,
         saving_every_epoch=10, lr=lr,
-        batch_size=batch_size, n_iter_max_per_epoch=2000, n_epoch=50,
-        model_suffix="{}-{}batch-{}lr".format(pref_suffix, batch_size, lr), debug=True, report=True, verbose=1)
+        batch_size=batch_size, n_iter_max_per_epoch=2000, n_epoch=1,
+        model_suffix="{}-{}batch-{}lr".format(pref_suffix, batch_size, lr), debug=False, report=True, verbose=1)
 
 if playwith:
     vocab_size = BERT_MODEL_DIC["bert-cased"]["vocab_size"]
@@ -61,7 +61,7 @@ if playwith:
     checkpoint_dir = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/checkpoints/bert/6c95d-real-30batch-0.0001lr/6c95d-real-30batch-0.0001lr-ep49-checkpoint.pt"
     model.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
 
-    interact_bert_wrap(tokenizer, model, topk=5)
+    interact_bert_wrap(tokenizer, model, topk=5, verbose=2)
 
 
 
