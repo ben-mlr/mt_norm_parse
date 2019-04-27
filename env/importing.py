@@ -26,7 +26,7 @@ from tensorboardX import SummaryWriter
 import torchvision
 from PIL import Image
 import socket
-import visdom
+
 
 
 # measuring errors
@@ -63,7 +63,11 @@ try:
 except Exception as e :
 	print("IMPORT ERROR {}".format(e))
 	exception += " | " +str(e)
-
+try:
+	import visdom
+except Exception as e :
+	print("IMPORT ERROR {}".format(e))
+	exception += " | " +str(e)
 
 # SEED INITIALIZATION
 print("...initializing seeds")

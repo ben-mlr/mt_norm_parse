@@ -4,6 +4,20 @@ from model.bert_normalize import get_indexes, from_bpe_token_to_str, realigne
 from io_.info_print import printing
 
 
+def prediction_topk_to_string(predictions_topk, input_alignement_with_raw, topk, tokenizer, verbose=1):
+
+    sentence_pred = from_bpe_token_to_str(predictions_topk, topk, tokenizer=tokenizer, pred_mode=True)
+    sentence_pred_aligned = []
+    for top in range(topk):
+        realign_sent = realigne(sentence_pred[top], input_alignement_with_raw, remove_null_str=True)
+        assert len(realign_sent) == 1, "ERROR : only batch len 1 accepted here (we are doing interaction)"
+        printing("{} top-pred : bpe {}", var=[top, realign_sent],
+                 verbose_level=2, verbose=verbose)
+        realign_sent = " ".join(realign_sent[0])
+        sentence_pred_aligned.append(realign_sent)
+    return sentence_pred_aligned
+
+
 def interact_bert(bert_token_classification,  tokenizer, topk=1, verbose=1, use_gpu=False):
 
     printing("INFO : input_string should be white space tokenized", verbose=verbose, verbose_level=1)
@@ -23,18 +37,7 @@ def interact_bert(bert_token_classification,  tokenizer, topk=1, verbose=1, use_
 
     predictions_topk = torch.argsort(logits, dim=-1, descending=True)[:, :, :topk]
 
-    sentence_pred = from_bpe_token_to_str(predictions_topk, topk, tokenizer=tokenizer, pred_mode=True)
-
-    sentence_pred_aligned = []
-
-    for top in range(topk):
-        realign_sent = realigne(sentence_pred[top], input_alignement_with_raw, remove_null_str=True)
-        assert len(realign_sent) == 1, "ERROR : only batch len 1 accepted here (we are doing interaction)"
-        printing("{} top-pred : bpe {}", var=[top, realign_sent],
-                 verbose_level=2, verbose=verbose)
-        realign_sent = " ".join(realign_sent[0])
-        sentence_pred_aligned.append(realign_sent)
-        
+    sentence_pred_aligned = prediction_topk_to_string(predictions_topk, input_alignement_with_raw, topk, tokenizer)
 
     return input_string, sentence_pred_aligned
 

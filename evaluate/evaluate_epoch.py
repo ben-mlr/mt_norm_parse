@@ -155,25 +155,9 @@ def evaluate(batch_size, data_path, tasks, evaluated_task,
         all_report = _all_report
     return all_report
 
-#4538 , 4578
 
 if __name__ == "__main__":
     list_all_dir = os.listdir(os.path.join(PROJECT_PATH, "checkpoints"))
-    #for ablation_id in ["aaad"]:#,"bd55","0153","f178"]:
-    #for ablation_id in ["42a20-WARMUP-unrolling-False0.1_scale_aux-True_aux-0.1do_char_dec-False_char_src_atten-model_13_db74-folder"]:
-    #for ablation_id in ["5754c-bestbest"]:
-    #for ablation_id in ["08661","d6960"]:
-    #for ablation_id in ["f2f2-batchXdropout_char0.1-to_char_src-1_dir_sent-10_batch_size-model_18_aa04","8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_1_33ca"]:
-    #for ablation_id in ["e390","24f9d"]:
-    #for ablation_id in ["01880"]:
-    #for ablation_id in ["d6960-new_data-batchXdropout_char0-to_char_src-1_dir_sent-10_batch_size-model_2_be5d","08661-new_data-batchXdropout_char0-to_char_src-2_dir_sent-20_batch_size-model_5_c8b2"]:
-    #for ablation_id in ["8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_1_33ca","8d9a0-new_data-batchXdropout_char0.2-to_char_src-1_dir_sent-20_batch_size-dir_word_encoder_1-model_2_e437"]:
-    #for ablation_id in ["21cc8-fixed_all_context-aux_dense1dir_word-200_aux-0do_char_dec-False_char_src-model_12_4d49"]:
-    #for ablation_id in ["28aa3-schedule-policy_2"]:
-      #for data in [DEMO,DEMO2]:
-    #for ablation_id in ["97440_rioc-64c34-ATTbatch-aux-scale-shared_contex-Falseteach_Falseaux-model_2_61d6-folder"]:
-    # tag : 101089-B-model_55_32bb-folder
-    # norm  9122945-B-model_1_b5fe-folder
     PRED_AND_EVAL = True
     if PRED_AND_EVAL:
         #

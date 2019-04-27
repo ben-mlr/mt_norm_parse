@@ -12,6 +12,8 @@ from toolbox.gpu_related import use_gpu_
 from toolbox import git_related as gr
 from model.bert_tools_from_core_code.tokenization import BertTokenizer
 
+from io_.dat.normalized_writer import write_conll
+
 TOKEN_BPE_BERT_START = "[CLS]"
 TOKEN_BPE_BERT_SEP = "[SEP]"
 PAD_ID_BERT = 0
@@ -298,6 +300,7 @@ def epoch_run(batchIter, tokenizer,
               writer=None, optimizer=None,
               predict_mode=False, topk=None, metric=None,
               print_pred=False,
+              writing_pred=False, dir_end_pred=None,
               verbose=0):
 
     if predict_mode:
@@ -308,6 +311,13 @@ def epoch_run(batchIter, tokenizer,
         if metric is None:
             metric = "exact_match"
             printing("PREDICITON MODE : setting metric to default 'exact_match' ", verbose_level=1, verbose=verbose)
+
+    if writing_pred:
+        assert dir_end_pred is not None
+        dir_normalized = os.path.join(dir_end_pred, "{}_ep-prediction.conll".format(epoch))
+        dir_normalized_original_only = os.path.join(dir_end_pred, "{}_ep-prediction_src.conll".format(epoch))
+        dir_gold = os.path.join(dir_end_pred, "{}_ep-gold.conll".format(epoch))
+        dir_gold_original_only = os.path.join(dir_end_pred, "{}_ep-gold_src.conll".format(epoch))
 
     batch_i = 0
     noisy_over_splitted = 0
@@ -320,6 +330,8 @@ def epoch_run(batchIter, tokenizer,
     n_tokens = 0
     n_sents = 0
     skipping_evaluated_batch = 0
+    mode = "?"
+    new_file = True
     while True:
 
         try:
@@ -416,6 +428,20 @@ def epoch_run(batchIter, tokenizer,
                         pred_detokenized_topk.append(realigne(sent_ls, input_alignement_with_raw, remove_null_str=True,
                                                               remove_extra_predicted_token=True))
 
+                    if writing_pred:
+
+                        write_conll(format="conll", dir_normalized=dir_normalized,
+                                    dir_original=dir_normalized_original_only,
+                                    src_text_ls=src_detokenized,
+                                    text_decoded_ls=pred_detokenized_topk[0], pred_pos_ls=None, src_text_pos=None,
+                                    tasks=["normalize"], ind_batch=iter+batch_i, new_file=new_file,
+                                    verbose=verbose)
+                        write_conll(format="conll", dir_normalized=dir_gold, dir_original=dir_gold_original_only,
+                                    src_text_ls=src_detokenized,
+                                    text_decoded_ls=gold_detokenized, pred_pos_ls=None, src_text_pos=None,
+                                    tasks=["normalize"], ind_batch=iter + batch_i, new_file=new_file, verbose=verbose)
+                        new_file = False
+
                     perf_prediction, skipping = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk, topk, metric=metric, agg_func_ls=["sum"])
                     skipping_evaluated_batch += skipping
                     score += perf_prediction[0]["score"]
@@ -423,12 +449,20 @@ def epoch_run(batchIter, tokenizer,
                     n_sents += perf_prediction[0]["n_sents"]
 
                     if print_pred:
-                        printing("TRAINING : eval gold {}", var=[gold], verbose=verbose, verbose_level=1)
-                        printing("TRAINING : eval pred {}", var=[sent_ls_top], verbose=verbose, verbose_level=1)
-                        printing("TRAINING : eval src {}", var=[source_preprocessed], verbose=verbose, verbose_level=1)
+                        printing("TRAINING : Score : {} / {} tokens / {} sentences", var=[perf_prediction[0]["score"],
+                                                                                          perf_prediction[0]["n_tokens"],
+                                                                                          perf_prediction[0]["n_sents"]],
+                                 verbose=verbose, verbose_level=1)
+                        printing("TRAINING : eval gold {}-{} {}", var=[iter, batch_i, gold_detokenized], verbose=verbose,
+                                 verbose_level=1)
+                        printing("TRAINING : eval pred {}-{} {}", var=[iter, batch_i, pred_detokenized_topk], verbose=verbose,
+                                 verbose_level=1)
+                        printing("TRAINING : eval src {}-{} {}", var=[iter, batch_i, src_detokenized],
+                                 verbose=verbose, verbose_level=1)
                         # TODO : detokenize
                         #  write to conll
                         #  compute prediction score
+
             except RuntimeError as e:
                 print(e)
                 pdb.set_trace()
@@ -439,8 +473,10 @@ def epoch_run(batchIter, tokenizer,
                 optimizer.step()
                 optimizer.zero_grad()
                 mode = "train"
+                print("MODE data {} optimizing".format(data_label))
             else:
                 mode = "dev"
+                print("MODE data {} optimizing".format(data_label))
 
             if writer is not None:
                 writer.add_scalars("loss",
@@ -449,21 +485,26 @@ def epoch_run(batchIter, tokenizer,
         except StopIteration:
             break
 
-    printing("WARNING : Out of {} batch of {} sentences each : {} batch aligned ; {} with at least 1 sentence noisy MORE SPLITTED "
-             "; {} with  LESS SPLITTED {}  +  BATCH with Skipped 1 to n {} ",
-             var=[batch_i, batch.input_seq.size(0), aligned, noisy_over_splitted, noisy_under_splitted,"SKIPPED" if skip_1_t_n else "",
+    printing("WARNING on {} : Out of {} batch of {} sentences each : {} batch aligned ; {} with at least 1 sentence "
+             "noisy MORE SPLITTED "
+             "; {} with  LESS SPLITTED {} + BATCH with skipped_1_to_n : {} ",
+             var=[data_label, batch_i, batch.input_seq.size(0), aligned, noisy_over_splitted, noisy_under_splitted,
+                  "SKIPPED" if skip_1_t_n else "",
                   skipping_batch_n_to_1],
              verbose=verbose, verbose_level=0)
-    printing("WARNING : ON THE EVALUATION SIDE we skipped {} ", var=skipping_evaluated_batch)
+    printing("WARNING on {} ON THE EVALUATION SIDE we skipped extra {} batch ", var=[data_label,skipping_evaluated_batch], verbose_level=1, verbose=1)
     if predict_mode:
-        report = {"score": score/n_tokens, "agg_func":"mean",
-                  "subsample": "all", "data": data_label,
-                  "metric": metric, "n_tokens": n_tokens,"n_sents": n_sents}
+        try:
+            report = {"score": score/n_tokens, "agg_func": "mean",
+                      "subsample": "all", "data": data_label,
+                      "metric": metric, "n_tokens": n_tokens,"n_sents": n_sents}
+        except Exception as e:
+            print(e)
+            report = []
         if writer is not None:
             writer.add_scalars("prediction_score",
                                {"exact_match-all-{}".format(mode):
                                     report["score"]}, epoch)
-
 
     else:
         report = None
@@ -478,12 +519,14 @@ def setup_repoting_location(model_suffix="", verbose=1):
     model_location = os.path.join(CHECKPOINT_BERT_DIR, model_local_id)
     dictionaries = os.path.join(CHECKPOINT_BERT_DIR, model_local_id, "dictionaries")
     tensorboard_log = os.path.join(CHECKPOINT_BERT_DIR, model_local_id, "tensorboard")
+    end_predictions = os.path.join(CHECKPOINT_BERT_DIR, model_local_id, "end_predictions")
     os.mkdir(model_location)
     printing("CHECKPOINTING model ID:{}", var=[model_local_id], verbose=verbose, verbose_level=1)
     os.mkdir(dictionaries)
     os.mkdir(tensorboard_log)
-    printing("CHECKPOINTING {} for checkpoints {} for dictionaries created", var=[model_location, dictionaries], verbose_level=1, verbose=verbose)
-    return model_local_id, model_location, dictionaries, tensorboard_log
+    os.mkdir(end_predictions)
+    printing("CHECKPOINTING \n- {} for checkpoints \n- {} for dictionaries created \n- {} predictions", var=[model_location, dictionaries, end_predictions], verbose_level=1, verbose=verbose)
+    return model_local_id, model_location, dictionaries, tensorboard_log, end_predictions
 
 
 def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
@@ -504,12 +547,12 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
     iter_train = 0
     iter_dev = 0
 
-    model_id, model_location, dict_path, tensorboard_log = setup_repoting_location(model_suffix=model_suffix,verbose=verbose)
+    model_id, model_location, dict_path, tensorboard_log, end_predictions = setup_repoting_location(model_suffix=model_suffix,verbose=verbose)
     try:
         row, col = append_reporting_sheet(git_id=gr.get_commit_id(), tasks="BERT NORMALIZE",
                                           rioc_job=os.environ.get("OAR_JOB_ID", "no"), description=description,
                                           log_dir=tensorboard_log, target_dir=model_location,
-                                          env="?", status="running {}".format("by hand"),
+                                          env=os.environ.get("ENV", "local"), status="running",
                                           verbose=1)
     except Exception as e:
         print("REPORTING TO GOOGLE SHEET FAILED")
@@ -560,6 +603,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
 
     try:
         for epoch in range(n_epoch):
+
+            checkpointing_model_data = (epoch % saving_every_epoch == 0 or epoch == (n_epoch - 1))
             # build iterator on the loaded data
             batchIter_train = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_train, batch_size=batch_size,
                                                                  word_dictionary=word_dictionary,
@@ -584,9 +629,12 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
             bert_with_classifier.train()
             train_data_label = "|".join([REPO_DATASET[_train_path] for _train_path in train_path])
             dev_data_label = "|".join([REPO_DATASET[_dev_path] for _dev_path in dev_path])
-            loss_train, iter_train, perf_report_train = epoch_run(batchIter_train, tokenizer, data_label=train_data_label,
+
+            loss_train, iter_train, perf_report_train = epoch_run(batchIter_train, tokenizer,
+                                                                  data_label=train_data_label,
                                                                   bert_with_classifier=bert_with_classifier, writer=writer,
                                                                   iter=iter_train, epoch=epoch,
+                                                                  writing_pred=checkpointing_model_data, dir_end_pred=end_predictions,
                                                                   optimizer=optimizer, use_gpu=use_gpu, predict_mode=True,
                                                                   n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
@@ -594,13 +642,17 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
             loss_dev, iter_dev, perf_report_dev = epoch_run(batchIter_dev, tokenizer,
                                                             iter=iter_dev, use_gpu=use_gpu,
                                                             bert_with_classifier=bert_with_classifier, writer=writer,
+                                                            writing_pred=checkpointing_model_data, dir_end_pred=end_predictions,
                                                             predict_mode=True, data_label=dev_data_label, epoch=epoch,
                                                             n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+
+            printing("PERFORMANCE {} TRAIN", var=[epoch, perf_report_train],verbose=verbose, verbose_level=1)
+            printing("PERFORMANCE {} DEV", [epoch, perf_report_dev], verbose=verbose, verbose_level=1)
 
             printing("TRAINING : loss train:{} dev:{} for epoch {}  out of {}", var=[loss_train, loss_dev, epoch, n_epoch], verbose=1, verbose_level=1)
             checkpoint_dir = os.path.join(model_location, "{}-ep{}-checkpoint.pt".format(model_id, epoch))
 
-            if epoch % saving_every_epoch == 0 or epoch == (n_epoch-1):
+            if checkpointing_model_data :
                 last_model = ""
                 if epoch == (n_epoch-1):
                     last_model = "last"
@@ -612,8 +664,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
             writer.close()
             printing("tensorboard --logdir={} --host=localhost --port=1234 ", var=[tensorboard_log], verbose_level=1,
                      verbose=verbose)
-        print("PERFORMANCE TRAIN", perf_report_train)
-        print("PERFORMANCE DEV", perf_report_dev)
+        print("PERFORMANCE LAST {} TRAIN".format(epoch), perf_report_train)
+        print("PERFORMANCE LAST {} DEV".format(epoch), perf_report_dev)
         if row is not None:
             update_status(row=row, new_status="done ", verbose=1)
         print("DONE")

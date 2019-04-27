@@ -44,7 +44,7 @@ class CoNLLWriter(object):
           ind_id = ind 
 
       if is_id:
-        tweet_id_written = "# tweet_id ="+ raw_lines[1][ind_id][8:].strip()+"\n"
+        tweet_id_written = "# tweet_id =" + raw_lines[1][ind_id][8:].strip()+"\n"
         self.__source_file.write(tweet_id_written)
         #self.__source_file.write(raw_lines[1][ind_id].strip()+"\n")
         continue

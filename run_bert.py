@@ -3,8 +3,8 @@ from model.bert_normalize import run
 from evaluate.interact import interact_bert_wrap
 from model.bert_tools_from_core_code.tokenization import BertTokenizer
 from predict.predict_string_bert import interact_bert
-TOKEN_BPE_BERT_START = "[CLS]"
-TOKEN_BPE_BERT_SEP = "[SEP]"
+from io_.dat.constants import TOKEN_BPE_BERT_START, TOKEN_BPE_BERT_SEP
+
 PAD_ID_BERT = 0
 PAD_BERT = "[PAD]"
 
@@ -12,7 +12,7 @@ PAD_BERT = "[PAD]"
 train_path = [PERMUTATION_TRAIN_DIC[10000]]
 dev_path = [PERMUTATION_TEST]
 train_path = [LIU_TRAIN]
-dev_path = [TEST]
+dev_path = [LIU_DEV]
 tasks = ["normalize"]
 
 train = True
@@ -29,7 +29,7 @@ if train:
     # QUESTION : WHERE IS THE MODEL ACTUALLY BEING LOADED ???
     num_labels = vocab_size+1
     NULL_TOKEN_INDEX = vocab_size
-    initialize_bpe_layer = True 
+    initialize_bpe_layer = True
     model = BertForTokenClassification(config, num_labels)
 
     model = model.from_pretrained(model_dir, num_labels=num_labels)
@@ -37,15 +37,18 @@ if train:
     if initialize_bpe_layer:
         output_layer = torch.cat((model.bert.embeddings.word_embeddings.weight.data, torch.rand((1, 768))), dim=0)
         model.classifier.weight = nn.Parameter(output_layer)
+    
     lr = 0.0001
-    batch_size = 10
+    batch_size = 2
     pref_suffix = "local_init"
+    description = "BERT_NORM:{}-{}batch-{}lr-trained:{}-LIUDEV".format(pref_suffix, batch_size, lr, REPO_DATASET[train_path[0]])
 
     run(bert_with_classifier=model,
         voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
         auxilliary_task_norm_not_norm=True,
         saving_every_epoch=10, lr=lr,
         batch_size=batch_size, n_iter_max_per_epoch=2000, n_epoch=1,
+        description=description,
         model_suffix="{}-{}batch-{}lr".format(pref_suffix, batch_size, lr), debug=False, report=True, verbose=1)
 
 if playwith:
