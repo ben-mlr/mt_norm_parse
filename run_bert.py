@@ -1,5 +1,6 @@
 from env.models_dir import *
-from model.bert_normalize import run, get_bert_token_classification
+from model.bert_normalize import get_bert_token_classification
+from training.fine_tune_bert import run
 from evaluate.interact import interact_bert_wrap
 from model.bert_tools_from_core_code.tokenization import BertTokenizer
 from predict.predict_string_bert import interact_bert
