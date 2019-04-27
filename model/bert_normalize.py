@@ -4,7 +4,6 @@ from env.models_dir import *
 from io_.info_print import printing
 
 
-
 def get_bert_token_classification(vocab_size,
                                    pretrained_model_dir=None, checkpoint_dir=None,
                                    initialize_bpe_layer=None, verbose=1):

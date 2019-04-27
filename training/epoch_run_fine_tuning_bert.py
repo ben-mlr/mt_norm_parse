@@ -16,7 +16,7 @@ def epoch_run(batchIter, tokenizer,
               writer=None, optimizer=None,
               predict_mode=False, topk=None, metric=None,
               print_pred=False,
-              writing_pred=False, dir_end_pred=None,
+              writing_pred=False, dir_end_pred=None, extra_label_for_prediction="",
               verbose=0):
 
     if predict_mode:
@@ -30,10 +30,16 @@ def epoch_run(batchIter, tokenizer,
 
     if writing_pred:
         assert dir_end_pred is not None
-        dir_normalized = os.path.join(dir_end_pred, "{}_ep-prediction.conll".format(epoch))
-        dir_normalized_original_only = os.path.join(dir_end_pred, "{}_ep-prediction_src.conll".format(epoch))
-        dir_gold = os.path.join(dir_end_pred, "{}_ep-gold.conll".format(epoch))
-        dir_gold_original_only = os.path.join(dir_end_pred, "{}_ep-gold_src.conll".format(epoch))
+        if extra_label_for_prediction != "":
+            extra_label_for_prediction = "-"+extra_label_for_prediction
+        dir_normalized = os.path.join(dir_end_pred, "{}_ep-prediction{}.conll".format(epoch,
+                                                                                      extra_label_for_prediction))
+        dir_normalized_original_only = os.path.join(dir_end_pred, "{}_ep-prediction_src{}.conll".format(epoch,
+                                                                                                        extra_label_for_prediction))
+        dir_gold = os.path.join(dir_end_pred, "{}_ep-gold.conll{}".format(epoch,
+                                                                          extra_label_for_prediction))
+        dir_gold_original_only = os.path.join(dir_end_pred, "{}_ep-gold_src{}.conll".format(epoch,
+                                                                                            extra_label_for_prediction))
 
     batch_i = 0
     noisy_over_splitted = 0
@@ -200,8 +206,7 @@ def epoch_run(batchIter, tokenizer,
 
             if writer is not None:
                 writer.add_scalars("loss",
-                                    {"loss-{}-bpe".format(mode):
-                                     _loss.clone().cpu().data.numpy()}, iter+batch_i)
+                                {"loss-{}-bpe".format(mode): _loss.clone().cpu().data.numpy()}, iter+batch_i)
         except StopIteration:
             break
 

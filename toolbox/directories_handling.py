@@ -14,7 +14,7 @@ def setup_repoting_location(root_dir_checkpoints, model_suffix="" , verbose=1):
     model_location = os.path.join(root_dir_checkpoints, model_local_id)
     dictionaries = os.path.join(root_dir_checkpoints, model_local_id, "dictionaries")
     tensorboard_log = os.path.join(root_dir_checkpoints, model_local_id, "tensorboard")
-    end_predictions = os.path.join(root_dir_checkpoints, model_local_id, "end_predictions")
+    end_predictions = os.path.join(root_dir_checkpoints, model_local_id, "predictions")
     os.mkdir(model_location)
     printing("CHECKPOINTING model ID:{}", var=[model_local_id], verbose=verbose, verbose_level=1)
     os.mkdir(dictionaries)
