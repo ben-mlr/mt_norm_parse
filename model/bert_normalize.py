@@ -1,5 +1,3 @@
-
-import sys
 from env.importing import *
 from env.project_variables import *
 from env.models_dir import *
@@ -10,292 +8,19 @@ from tracking.reporting_google_sheet import append_reporting_sheet, update_statu
 
 from toolbox.gpu_related import use_gpu_
 from toolbox import git_related as gr
+from toolbox.sanity_check import sanity_check_data_len
+
 from model.bert_tools_from_core_code.tokenization import BertTokenizer
 
 from io_.dat.normalized_writer import write_conll
-
-TOKEN_BPE_BERT_START = "[CLS]"
-TOKEN_BPE_BERT_SEP = "[SEP]"
-PAD_ID_BERT = 0
-PAD_BERT = "[PAD]"
-NULL_TOKEN_INDEX = BERT_MODEL_DIC["bert-cased"]["vocab_size"]# based on bert cased vocabulary
-NULL_STR = "[SPACE]"
-NULL_STR_TO_SHOW = "_"
-
-
-def preprocess_batch_string_for_bert(batch):
-    #batch = batch[0]
-    for i in range(len(batch)):
-        batch[i][0] = TOKEN_BPE_BERT_START
-        batch[i][-1] = TOKEN_BPE_BERT_SEP
-        batch[i] = " ".join(batch[i])
-    return batch
-
-
-def sanity_check_data_len(tokens_tensor, segments_tensors, tokenized_ls, aligned_index, raising_error=True):
-    n_sentence = len(tokens_tensor)
-    try:
-        assert len(segments_tensors) == n_sentence, "ERROR BATCH segments_tensors {} not same len as tokens ids {}".format(segments_tensors, n_sentence)
-        assert len(tokenized_ls) == n_sentence, "ERROR BATCH  tokenized_ls {} not same len as tokens ids {}".format(tokenized_ls, n_sentence)
-        assert len(aligned_index) == n_sentence, "ERROR BATCH aligned_index {} not same len as tokens ids {}".format(aligned_index, n_sentence)
-    except AssertionError as e:
-        if raising_error:
-            raise(e)
-        else:
-            print(e)
-    for index, segment, token_str, index in zip(tokens_tensor, segments_tensors, tokenized_ls, aligned_index):
-        n_token = len(index)
-        try:
-            #assert len(segment) == n_token, "ERROR sentence {} segment not same len as index {}".format(segment, index)
-            assert len(token_str) == n_token, "ERROR sentence {} token_str not same len as index {}".format(token_str, index)
-            assert len(index) == n_token, "ERROR sentence {} index not same len as index {}".format(index, index)
-        except AssertionError as e:
-            if raising_error:
-                raise(e)
-            else:
-                print(e)
-
-
-def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu):
-
-    all_tokenized_ls = [tokenizer.tokenize(inp) for inp in list_pretokenized_str]
-    tokenized_ls = [tup[0] for tup in all_tokenized_ls]
-    aligned_index = [tup[1] for tup in all_tokenized_ls]
-    segments_ids = [[0 for _ in range(len(tokenized))] for tokenized in tokenized_ls]
-
-    printing("DATA : bpe tokenized {}", var=[tokenized_ls], verbose=verbose, verbose_level=2)
-
-    ids_ls = [tokenizer.convert_tokens_to_ids(inp) for inp in tokenized_ls]
-    max_sent_len = max([len(inp) for inp in tokenized_ls])
-    ids_padded = [inp + [PAD_ID_BERT for _ in range(max_sent_len - len(inp))] for inp in ids_ls]
-    aligned_index_padded = [[e for e in inp] + [1000 for _ in range(max_sent_len - len(inp))] for inp in aligned_index]
-    segments_padded = [inp + [PAD_ID_BERT for _ in range(max_sent_len - len(inp))] for inp in segments_ids]
-    mask = [[1 for _ in inp]+[0 for _ in range(max_sent_len - len(inp))] for inp in segments_ids]
-
-    mask = torch.LongTensor(mask)
-    tokens_tensor = torch.LongTensor(ids_padded)
-    segments_tensors = torch.LongTensor(segments_padded)
-    if use_gpu:
-        mask = mask.cuda()
-        tokens_tensor = tokens_tensor.cuda()
-        segments_tensors = segments_tensors.cuda()
-
-    printing("DATA {}", var=[tokens_tensor], verbose=verbose, verbose_level=2)
-
-    sanity_check_data_len(tokens_tensor, segments_tensors, tokenized_ls, aligned_index, raising_error=True)
-
-    return tokens_tensor, segments_tensors, tokenized_ls, aligned_index_padded, mask
-
-
-def aligned_output(input_tokens_tensor, output_tokens_tensor, input_alignement_with_raw, output_alignement_with_raw,
-                   verbose=1):
-
-    output_tokens_tensor_aligned = torch.empty_like(input_tokens_tensor)
-
-    for ind_sent, (_input_alignement_with_raw, _output_alignement_with_raw) in enumerate(zip(input_alignement_with_raw,
-                                                                                             output_alignement_with_raw)):
-        _i_input = 0
-        _i_output = 0
-        _1_to_n_token = False
-        not_the_end_of_input = True
-        output_tokens_tensor_aligned_sent = []
-
-        padded_reached_ind = 0
-        while not_the_end_of_input:
-
-            padded_reach = _input_alignement_with_raw[_i_input] == 1000
-            if not (padded_reach and len(_output_alignement_with_raw) ==_i_output):
-                # usual case
-                n_to_1_token = _input_alignement_with_raw[_i_input] < _output_alignement_with_raw[_i_output]
-                _1_to_n_token = _input_alignement_with_raw[_i_input] > _output_alignement_with_raw[_i_output]
-                end_output_with_padded_reach = 0
-            else:
-                # we reach padding on input and the end on the output
-                end_output_with_padded_reach = 1
-                n_to_1_token, _1_to_n_token = 0, 0
-            # if the otuput token don't change we have to shift the input of one
-            if _1_to_n_token:
-                printing("WARNING : _1_to_n_token --> next batch ",
-                         verbose=verbose, verbose_level=2)
-                break
-            if padded_reach and not n_to_1_token:
-                # we assert we also reached padding in the output
-                # if we are in n_to_1_token it's different maybe not true
-                #  same if we reached the end we handle the case with end_output_with_padded_reach
-                if len(_output_alignement_with_raw) != _i_output:
-                    assert _output_alignement_with_raw[_i_output] == 1000
-                padded_reached_ind = 1
-            if n_to_1_token:
-                appending = NULL_TOKEN_INDEX
-                output_tokens_tensor_aligned_sent.append(appending)
-            elif not end_output_with_padded_reach:
-                appending = output_tokens_tensor[ind_sent, _i_output]
-                output_tokens_tensor_aligned_sent.append(appending)
-            else:
-                output_tokens_tensor_aligned_sent.append(0)
-            _i_input += 1
-            # padded_reached_ind is to make sure we 're not facing problem in the output
-            _i_output += (1 - n_to_1_token - padded_reached_ind)
-
-            if _i_input == len(_input_alignement_with_raw):
-                not_the_end_of_input = False
-
-        if _1_to_n_token:
-            break
-        printing("TO FILL output {} index {}", var=[output_tokens_tensor_aligned_sent, ind_sent], verbose=verbose,
-                 verbose_level=3)
-        output_tokens_tensor_aligned[ind_sent] = torch.Tensor(output_tokens_tensor_aligned_sent)
-
-    if input_tokens_tensor.is_cuda:
-        output_tokens_tensor_aligned = output_tokens_tensor_aligned.cuda()
-    return output_tokens_tensor_aligned, _1_to_n_token
-
-
-def from_bpe_token_to_str(bpe_tensor, topk, pred_mode, tokenizer):
-    """
-    pred_mode allow to handle gold data also (which only have 2 dim and not three)
-    :param bpe_tensor:
-    :param topk: int : number of top prediction : will arrange them with all the top1 all the 2nd all the third...
-    :param pred_mode: book
-    :return:
-    """
-    predictions_topk_ls = [[[bpe_tensor[sent, word, top].item() if pred_mode else bpe_tensor[sent, word].item()
-                             for word in range(bpe_tensor.size(1))] for sent in range(bpe_tensor.size(0))] for top in
-                           range(topk)]
-    sent_ls_top = [[tokenizer.convert_ids_to_tokens(sent_bpe, special_extra_token=NULL_TOKEN_INDEX,
-                                                    special_token_string=NULL_STR)
-                    for sent_bpe in predictions_topk] for predictions_topk in predictions_topk_ls]
-    if not pred_mode:
-        sent_ls_top = sent_ls_top[0]
-    return sent_ls_top
-
-
-def realigne(ls_sent_str, input_alignement_with_raw, remove_null_str=True, remove_extra_predicted_token=False):
-    """
-    ** remove_extra_predicted_token used iif pred mode **
-    - detokenization of ls_sent_str based on input_alignement_with_raw index
-    - we remove paddding and end detokenization at symbol [SEP] that we take as the end of sentence signal
-    """
-
-    assert len(ls_sent_str) == len(input_alignement_with_raw), \
-        "ls_sent_str {} input_alignement_with_raw {} ".format(len(ls_sent_str), len(input_alignement_with_raw))
-    new_sent_ls = []
-    for sent, index_ls in zip(ls_sent_str, input_alignement_with_raw):
-        assert len(sent) == len(index_ls)
-        former_index = -1
-        new_sent = []
-        former_token = ""
-        for _i, (token, index) in enumerate(zip(sent, index_ls)):
-            trigger_end_sent = False
-            if remove_extra_predicted_token:
-                if index == 1000:
-                    # we reach the end according to gold data
-                    # (this means we just stop looking at the prediciton of the model (we can do that because we assumed word alignement))
-                    trigger_end_sent = True
-            if token == NULL_STR:
-                token = NULL_STR_TO_SHOW if not remove_null_str else ""
-            if index == former_index:
-                if token.startswith("##"):
-                    former_token += token[2:]
-                else:
-                    former_token += token
-            if index != former_index or _i + 1 == len(index_ls):
-                new_sent.append(former_token)
-                former_token = token
-                if trigger_end_sent:
-                    break
-            # if not pred mode : always not trigger_end_sent : True (required for the model to not stop too early if predict SEP too soon)
-            if (former_token == TOKEN_BPE_BERT_SEP or _i+1 == len(index_ls) and not remove_extra_predicted_token) or \
-                ((remove_extra_predicted_token and (former_token == TOKEN_BPE_BERT_SEP and trigger_end_sent) or  _i+1 == len(index_ls))):
-                new_sent.append(token)
-                break
-            former_index = index
-        new_sent_ls.append(new_sent[1:])
-    return new_sent_ls
-
-
-def word_level_scoring(metric, gold, topk_pred, topk):
-
-    assert metric in ["exact_match"], "metric is {} ".format(metric)
-    if topk > 1:
-        assert metric == "exact_match", "ERROR : only exact_match allows for looking into topk prediction "
-    assert len(topk_pred) == topk, "ERROR : inconsinstent provided topk and what I got "
-    if metric == "exact_match":
-        for pred in topk_pred:
-            if gold == pred:
-                return 1
-        return 0
-
-
-def agg_func_batch_score(overall_ls_sent_score, agg_func):
-
-    sum_ = sum([score for score_ls in overall_ls_sent_score for score in score_ls])
-    n_tokens = sum([1 for score_ls in overall_ls_sent_score for _ in score_ls])
-    n_sents = len(overall_ls_sent_score)
-
-    if agg_func == "sum":
-        return sum_
-    elif agg_func == "n_tokens":
-        return n_tokens
-    elif agg_func == "n_sents":
-        return n_sents
-    elif agg_func == "mean":
-        return sum_/n_tokens
-    elif agg_func == "sum_mean_per_sent":
-        sum_per_sent = [sum(score_ls) for score_ls in overall_ls_sent_score]
-        token_per_sent = [len(score_ls) for score_ls in overall_ls_sent_score]
-        sum_mean_per_sent_score = sum([sum_/token_len for sum_, token_len in zip(sum_per_sent, token_per_sent)])
-        return sum_mean_per_sent_score
-    else:
-        raise(Exception("agg_func: {} not supported".format(agg_func)))
-
-
-def overall_word_level_metric_measure(gold_sent_ls, pred_sent_ls_topk, topk,
-                                      metric="exact_match", agg_func_ls=["sum"]):
-    """
-    'metric' based on a word level comparison of (pred,gold) : e.g : exact_match , edit
-    'agg_func' based on a aggrefaiton func to get the overall batch score : e.g : sum
-    :param metric:
-    :param agg_func:
-    :return batch : score, number of token measured
-    """
-    assert isinstance(agg_func_ls, list)
-    assert len(pred_sent_ls_topk) == topk, "ERROR topk not consistent with prediction list " \
-        .format(len(pred_sent_ls_topk), topk)
-    overall_score_ls_sent = []
-    skipping_sent = 0
-    for gold_ind_sent, gold_sent in enumerate(gold_sent_ls):
-        # TODO test for all topk
-        try:
-            assert len(gold_sent) == len(pred_sent_ls_topk[0][gold_ind_sent])
-        except Exception as e:
-            print(e)
-            skipping_sent += len(gold_sent_ls)
-            overall_score_ls_sent = [[0]]
-            pdb.set_trace()
-            break
-        score_sent = []
-        for ind_word in range(len(gold_sent)):
-            gold_token = gold_sent[ind_word]
-            topk_word_pred = [pred_sent_ls_topk[top][gold_ind_sent][ind_word] for top in range(topk)]
-            score_sent.append(word_level_scoring(metric=metric, gold=gold_token, topk_pred=topk_word_pred, topk=topk))
-        overall_score_ls_sent.append(score_sent)
-
-    result = []
-    for agg_func in agg_func_ls:
-        result.append({"score": agg_func_batch_score(overall_ls_sent_score=overall_score_ls_sent, agg_func=agg_func),
-                       "agg_func": agg_func,
-                       "metric": "exact_match",
-                       "n_tokens": agg_func_batch_score(overall_ls_sent_score=overall_score_ls_sent,
-                                                        agg_func="n_tokens"),
-                       "n_sents": agg_func_batch_score(overall_ls_sent_score=overall_score_ls_sent,
-                                                       agg_func="n_sents")})
-    return result, skipping_sent
-
+from io_.dat.constants import TOKEN_BPE_BERT_SEP, TOKEN_BPE_BERT_START, PAD_ID_BERT, PAD_BERT
+from io_.bert_iterators_tools.string_processing import preprocess_batch_string_for_bert, from_bpe_token_to_str, get_indexes
+from io_.bert_iterators_tools.alignement import aligned_output, realigne
+from evaluate.scoring.report import overall_word_level_metric_measure
 
 def epoch_run(batchIter, tokenizer,
               iter, n_iter_max, bert_with_classifier, epoch,
-              use_gpu, data_label,
+              use_gpu, data_label, null_token_index, null_str,
               skip_1_t_n=True,
               writer=None, optimizer=None,
               predict_mode=False, topk=None, metric=None,
@@ -390,7 +115,8 @@ def epoch_run(batchIter, tokenizer,
             # (that we don't want to handle)
             output_tokens_tensor_aligned, _1_to_n_token = aligned_output(input_tokens_tensor, output_tokens_tensor,
                                                                          input_alignement_with_raw,
-                                                                         output_alignement_with_raw)
+                                                                         output_alignement_with_raw,
+                                                                         null_token_index=null_token_index)
 
             if batch_i == n_iter_max:
                 break
@@ -416,17 +142,20 @@ def epoch_run(batchIter, tokenizer,
                     predictions_topk = torch.argsort(logits, dim=-1, descending=True)[:, :, :topk]
                     # from bpe index to string
 
-                    sent_ls_top = from_bpe_token_to_str(predictions_topk, topk, tokenizer=tokenizer, pred_mode=True)
-                    gold = from_bpe_token_to_str(output_tokens_tensor_aligned, topk, tokenizer=tokenizer, pred_mode=False)
-                    source_preprocessed = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer, pred_mode=False)
+                    sent_ls_top = from_bpe_token_to_str(predictions_topk, topk, tokenizer=tokenizer, pred_mode=True,
+                                                        null_token_index=null_token_index, null_str=null_str)
+                    gold = from_bpe_token_to_str(output_tokens_tensor_aligned, topk, tokenizer=tokenizer,
+                                                 pred_mode=False, null_token_index=null_token_index,null_str=null_str)
+                    source_preprocessed = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer,
+                                                                pred_mode=False, null_token_index=null_token_index,null_str=null_str)
 
                     # de-BPE-tokenize
-                    src_detokenized = realigne(source_preprocessed, input_alignement_with_raw)
-                    gold_detokenized = realigne(gold, input_alignement_with_raw, remove_null_str=True)
+                    src_detokenized = realigne(source_preprocessed, input_alignement_with_raw, null_str=null_str)
+                    gold_detokenized = realigne(gold, input_alignement_with_raw, remove_null_str=True,null_str=null_str)
                     pred_detokenized_topk = []
                     for sent_ls in sent_ls_top:
                         pred_detokenized_topk.append(realigne(sent_ls, input_alignement_with_raw, remove_null_str=True,
-                                                              remove_extra_predicted_token=True))
+                                                              remove_extra_predicted_token=True,null_str=null_str))
 
                     if writing_pred:
 
@@ -513,6 +242,12 @@ def epoch_run(batchIter, tokenizer,
 
 
 def setup_repoting_location(model_suffix="", verbose=1):
+    """
+    create an id for a model and locations for checkpoints, dictionaries, tensorboard logs, data
+    :param model_suffix:
+    :param verbose:
+    :return:
+    """
     model_local_id = str(uuid4())[:5]
     if model_suffix != "":
         model_local_id += "-"+model_suffix
@@ -525,12 +260,14 @@ def setup_repoting_location(model_suffix="", verbose=1):
     os.mkdir(dictionaries)
     os.mkdir(tensorboard_log)
     os.mkdir(end_predictions)
-    printing("CHECKPOINTING \n- {} for checkpoints \n- {} for dictionaries created \n- {} predictions", var=[model_location, dictionaries, end_predictions], verbose_level=1, verbose=verbose)
+    printing("CHECKPOINTING \n- {} for checkpoints \n- {} for dictionaries created \n- {} predictions",
+             var=[model_location, dictionaries, end_predictions], verbose_level=1, verbose=verbose)
     return model_local_id, model_location, dictionaries, tensorboard_log, end_predictions
 
 
 def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
         voc_tokenizer, auxilliary_task_norm_not_norm, bert_with_classifier,
+        null_token_index, null_str,
         report=True, model_suffix="",description="",
         saving_every_epoch=10, lr=0.0001, fine_tuning_strategy="standart",
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
@@ -636,6 +373,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                                                                   iter=iter_train, epoch=epoch,
                                                                   writing_pred=checkpointing_model_data, dir_end_pred=end_predictions,
                                                                   optimizer=optimizer, use_gpu=use_gpu, predict_mode=True,
+                                                                  null_token_index=null_token_index,null_str=null_str,
                                                                   n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
             bert_with_classifier.eval()
@@ -644,10 +382,11 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                                                             bert_with_classifier=bert_with_classifier, writer=writer,
                                                             writing_pred=checkpointing_model_data, dir_end_pred=end_predictions,
                                                             predict_mode=True, data_label=dev_data_label, epoch=epoch,
+                                                            null_token_index=null_token_index,null_str=null_str,
                                                             n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
             printing("PERFORMANCE {} TRAIN", var=[epoch, perf_report_train],verbose=verbose, verbose_level=1)
-            printing("PERFORMANCE {} DEV", [epoch, perf_report_dev], verbose=verbose, verbose_level=1)
+            printing("PERFORMANCE {} DEV", var=[epoch, perf_report_dev], verbose=verbose, verbose_level=1)
 
             printing("TRAINING : loss train:{} dev:{} for epoch {}  out of {}", var=[loss_train, loss_dev, epoch, n_epoch], verbose=1, verbose_level=1)
             checkpoint_dir = os.path.join(model_location, "{}-ep{}-checkpoint.pt".format(model_id, epoch))
@@ -677,22 +416,52 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
     #NULL_TOKEN_INDEX = bpe_embedding_layer.size(0)
 
 
-    #pdb.set_trace()
-#logits = model(input_ids, token_type_ids, input_mask, labels=torch.LongTensor([[0, 1, 1]]))
-#model.bert.embeddings.word_embeddings.weight
-# DEFINE ITERATOR
+def get_bert_token_classification(vocab_size,
+                                   pretrained_model_dir=None, checkpoint_dir=None,
+                                   initialize_bpe_layer=None, verbose=1):
+    """
+    two use case :
+    - initialize bert based on pretrained_model_dir and add a token prediction module based or not on initialize_bpe_layer
+    - reload from checkpoint bert+tokenclassification
+    :param vocab_size:
+    :param pretrained_model_dir:
+    :param checkpoint_dir:
+    :param initialize_bpe_layer:
+    :param verbose:
+    :return:
+    """
+    assert checkpoint_dir is not None or pretrained_model_dir is not None, \
+        "Neither checkpoint_dir or pretrained_model_dir was provided"
+    assert pretrained_model_dir is None or checkpoint_dir is None, \
+        "Only one of checkpoint_dir or pretrained_model_dir should be provided "
 
-# TRAIN
-## - iterate on data
-## - tokenize for BERT
-## - index for BERT
-## - FEED INTO BERT
-## FREEZE BERT FIRST
-## - COMPTUTE LOSS AND BACKPROP
-## REPORT IN TENSORBOARD
-## DONE
+    config = BertConfig(vocab_size_or_config_json_file=vocab_size, hidden_size=768,
+                        num_hidden_layers=12, num_attention_heads=12, intermediate_size=3072)
+    # QUESTION : WHERE IS THE MODEL ACTUALLY BEING LOADED ???
+    num_labels = vocab_size + 1
+    model = BertForTokenClassification(config, num_labels)
 
+    if pretrained_model_dir is not None:
+        assert initialize_bpe_layer is not None, "ERROR initialize_bpe_layer should not be None "
+        model = model.from_pretrained(pretrained_model_dir, num_labels=num_labels)
+        printing("MODEL : loading pretrained BERT and adding extra module for token classification based on {}",
+                 var=[pretrained_model_dir],
+                 verbose=verbose,
+                 verbose_level=1)
+        if initialize_bpe_layer:
+            output_layer = torch.cat((model.bert.embeddings.word_embeddings.weight.data, torch.rand((1, 768))),
+                                     dim=0)
+            model.classifier.weight = nn.Parameter(output_layer)
+            printing("MODEL : initializing output layer with embedding layer + extra token ",
+                     verbose=verbose,
+                     verbose_level=1)
+    elif checkpoint_dir is not None:
+        assert initialize_bpe_layer is None, "ERROR initialize_bpe_layer should b None as loading from existing checkpoint"
+        model.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
+        printing("MODEL : loading model BERT+token classification pretrained from checkpoint {}",
+                 var=[checkpoint_dir],
+                 verbose=verbose,
+                 verbose_level=1)
 
-# THEN
-## ADD EARLY STOPPING
-## GRADUAL UNFREEZING
+    return model
+

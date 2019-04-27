@@ -21,9 +21,12 @@ def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_
             with open(dir_original, mode_write) as original:
                 print("write_output tasks", tasks, src_ls, pred_ls)
                 for ind_sent, (original_sent, normalized_sent) in enumerate(zip(src_ls, pred_ls)):
-                    assert len(original_sent) == len(normalized_sent), "ERROR : original_sent len {} {} \n  " \
+                    try:
+                        assert len(original_sent) == len(normalized_sent), "ERROR : original_sent len {} {} \n  " \
                                                                      "normalized_sent len {} {} " \
                                                                      "".format(len(original_sent), original_sent, len(normalized_sent),normalized_sent)
+                    except AssertionError as e:
+                        print(e)
                     norm_file.write("#\n")
                     original.write("#\n")
                     norm_file.write("#sent_id = {} \n".format(ind_sent+ind_batch+1))

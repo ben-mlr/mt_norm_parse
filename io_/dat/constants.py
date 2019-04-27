@@ -39,7 +39,10 @@ SCALE_RAND_W2V = 0.2
 # BERT
 TOKEN_BPE_BERT_START = "[CLS]"
 TOKEN_BPE_BERT_SEP = "[SEP]"
-
+PAD_ID_BERT = 0
+PAD_BERT = "[PAD]"
+NULL_STR = "[SPACE]"
+NULL_STR_TO_SHOW = "_"
 
 import re
 DIGIT_RE = re.compile(br"\d")
