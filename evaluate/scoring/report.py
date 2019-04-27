@@ -26,7 +26,6 @@ def overall_word_level_metric_measure(gold_sent_ls,
             print(e)
             skipping_sent += len(gold_sent_ls)
             overall_score_ls_sent = [[0]]
-            pdb.set_trace()
             break
         score_sent = []
         for ind_word in range(len(gold_sent)):

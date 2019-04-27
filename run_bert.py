@@ -13,7 +13,8 @@ train_path = [PERMUTATION_TRAIN_DIC[10000]]
 dev_path = [PERMUTATION_TEST]
 train_path = [DEMO]
 dev_path = [DEMO2]
-test_paths_ls = [[LIU_TRAIN], [LIU_DEV], [TEST], [DEV]]
+#test_paths_ls = [[LIU_TRAIN], [LIU_DEV], [TEST], [DEV]]
+test_paths_ls = [[DEMO2]]
 tasks = ["normalize"]
 
 
@@ -44,7 +45,8 @@ if train:
                 batch_size=batch_size, n_iter_max_per_epoch=5, n_epoch=1,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
-                model_suffix="{}-{}batch-{}lr".format(pref_suffix, batch_size, lr), debug=False, report=True, verbose=1)
+                model_suffix="{}-{}batch-{}lr".format(pref_suffix, batch_size, lr), debug=False,
+                report=True, verbose=1)
 
 
 null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary

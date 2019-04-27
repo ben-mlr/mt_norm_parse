@@ -155,7 +155,6 @@ def epoch_run(batchIter, tokenizer,
                                                               remove_extra_predicted_token=True,null_str=null_str))
 
                     if writing_pred:
-
                         write_conll(format="conll", dir_normalized=dir_normalized,
                                     dir_original=dir_normalized_original_only,
                                     src_text_ls=src_detokenized,

@@ -57,8 +57,9 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
     else:
         assert dict_path is not None
         assert end_predictions is not None
-    if report and run_mode == "train":
+    if report:
         writer = SummaryWriter(log_dir=tensorboard_log)
+
         printing("CHECKPOINTING : starting writing log \ntensorboard --logdir={} --host=localhost --port=1234 ",
                  var=[tensorboard_log], verbose_level=1,
                  verbose=verbose)
@@ -163,10 +164,6 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                              verbose_level=1)
                     torch.save(bert_with_classifier.state_dict(), checkpoint_dir)
 
-            if writer is not None:
-                writer.close()
-                printing("tensorboard --logdir={} --host=localhost --port=1234 ", var=[tensorboard_log], verbose_level=1,
-                         verbose=verbose)
             print("PERFORMANCE LAST {} TRAIN".format(epoch), perf_report_train)
             print("PERFORMANCE LAST {} DEV".format(epoch), perf_report_dev)
 
@@ -178,7 +175,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
             if row is not None:
                 update_status(row=row, new_status="ERROR", verbose=1)
             raise(e)
-    if run_mode in ["train", "test"]:
+    if run_mode in ["train", "test"] and test_path_ls is not None:
         bert_with_classifier.eval()
         assert len(test_path_ls[0]) == 1, "ERROR 1 task supported so far for bert"
         for test_path in test_path_ls:
@@ -212,5 +209,18 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                                                                null_token_index=null_token_index, null_str=null_str,
                                                                n_iter_max=n_iter_max_per_epoch, verbose=verbose)
             print("PERFORMANCE TEST on data {} is {} ".format(label_data, perf_report_test))
+            if writer is not None:
+                writer.add_text("Accuracy-{}".format(label_data),
+                            "After {} epochs with {} : performance is \n {} ".format(n_epoch, description, str(perf_report_test)),
+                            0)
+            else:
+                printing("WARNING : could not add accuracy to tensorboard cause writer was found None", verbose=verbose, verbose_level=1)
+        else:
+            printing("EVALUATION none cause {} empty", var=[test_path_ls], verbose_level=1, verbose=verbose)
+
+    if writer is not None:
+        writer.close()
+        printing("tensorboard --logdir={} --host=localhost --port=1234 ", var=[tensorboard_log], verbose_level=1,
+                 verbose=verbose)
 
     return bert_with_classifier
