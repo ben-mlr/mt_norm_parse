@@ -13,6 +13,15 @@ sys.path.insert(0, os.path.join(PROJECT_PATH, "..", "experimental_pipe"))
 from reporting.write_to_performance_repo import report_template, write_dic
 
 
+def accumulate_scores_across_sents(agg_func_ls, sample_ls, dic_prediction_score, score_dic, n_tokens_dic, n_sents_dic):
+    for agg_func in agg_func_ls:
+        for sample in sample_ls:
+            score_dic[agg_func][sample] += dic_prediction_score[agg_func][sample]["score"]
+            n_tokens_dic[agg_func][sample] += dic_prediction_score[agg_func][sample]["n_tokens"]
+            n_sents_dic[agg_func][sample] += dic_prediction_score[agg_func][sample]["n_sents"]
+    return score_dic, n_tokens_dic, n_sents_dic
+
+
 def epoch_run(batchIter, tokenizer,
               iter, n_iter_max, bert_with_classifier, epoch,
               use_gpu, data_label, null_token_index, null_str,
@@ -23,7 +32,38 @@ def epoch_run(batchIter, tokenizer,
               print_pred=False, args_dir=None,
               writing_pred=False, dir_end_pred=None, extra_label_for_prediction="",
               verbose=0):
-
+    """
+    About Evaluation :
+    Logic : compare gold and prediction topk using a word level scoring fucntion
+            then accumulates for each sentences and foea each batch to get global score
+            CAN add SAMPLE Parameter to get scores on specific subsample of the data : e.g. NEED_NORM, NORMED...
+            Can also have different aggregation function
+            TODO : TEST those scoring fucntions
+    :param batchIter:
+    :param tokenizer:
+    :param iter:
+    :param n_iter_max:
+    :param bert_with_classifier:
+    :param epoch:
+    :param use_gpu:
+    :param data_label:
+    :param null_token_index:
+    :param null_str:
+    :param model_id:
+    :param skip_1_t_n:
+    :param writer:
+    :param optimizer:
+    :param predict_mode:
+    :param topk:
+    :param metric:
+    :param print_pred:
+    :param args_dir:
+    :param writing_pred:
+    :param dir_end_pred:
+    :param extra_label_for_prediction:
+    :param verbose:
+    :return:
+    """
     if predict_mode:
         if topk is None:
             topk = 1
@@ -53,9 +93,11 @@ def epoch_run(batchIter, tokenizer,
     skipping_batch_n_to_1 = 0
 
     loss = 0
-    score = 0
-    n_tokens = 0
-    n_sents = 0
+    samples = ["all", "NEED_NORM", "NORMED"]
+    agg_func_ls = ["sum"]
+    score_dic = {agg_func:{sample:0 for sample in samples} for agg_func in agg_func_ls }
+    n_tokens_dic = {agg_func:{sample:0 for sample in samples}  for agg_func in agg_func_ls}
+    n_sents_dic = {agg_func:{sample:0 for sample in samples}  for agg_func in agg_func_ls}
     skipping_evaluated_batch = 0
     mode = "?"
     new_file = True
@@ -135,65 +177,71 @@ def epoch_run(batchIter, tokenizer,
                      var=[input_tokens_tensor.is_cuda, token_type_ids.is_cuda, input_mask.is_cuda,
                           output_tokens_tensor_aligned.is_cuda],
                      verbose=verbose, verbose_level="cuda")
-            try:
-                _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask, labels=output_tokens_tensor_aligned)
-                if predict_mode:
-                    logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask)
-                    predictions_topk = torch.argsort(logits, dim=-1, descending=True)[:, :, :topk]
-                    # from bpe index to string
 
-                    sent_ls_top = from_bpe_token_to_str(predictions_topk, topk, tokenizer=tokenizer, pred_mode=True,
-                                                        null_token_index=null_token_index, null_str=null_str)
-                    gold = from_bpe_token_to_str(output_tokens_tensor_aligned, topk, tokenizer=tokenizer,
-                                                 pred_mode=False, null_token_index=null_token_index,null_str=null_str)
-                    source_preprocessed = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer,
-                                                                pred_mode=False, null_token_index=null_token_index,null_str=null_str)
+            _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask, labels=output_tokens_tensor_aligned)
 
-                    # de-BPE-tokenize
-                    src_detokenized = realigne(source_preprocessed, input_alignement_with_raw, null_str=null_str)
-                    gold_detokenized = realigne(gold, input_alignement_with_raw, remove_null_str=True, null_str=null_str)
-                    pred_detokenized_topk = []
-                    for sent_ls in sent_ls_top:
-                        pred_detokenized_topk.append(realigne(sent_ls, input_alignement_with_raw, remove_null_str=True,
-                                                              remove_extra_predicted_token=True,null_str=null_str))
+            if predict_mode:
+                # if predict more : will evaluate the model and write its predictions 
+                logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask)
+                predictions_topk = torch.argsort(logits, dim=-1, descending=True)[:, :, :topk]
+                # from bpe index to string
 
-                    if writing_pred:
-                        write_conll(format="conll", dir_normalized=dir_normalized,
-                                    dir_original=dir_normalized_original_only,
-                                    src_text_ls=src_detokenized,
-                                    text_decoded_ls=pred_detokenized_topk[0], pred_pos_ls=None, src_text_pos=None,
-                                    tasks=["normalize"], ind_batch=iter+batch_i, new_file=new_file,
-                                    verbose=verbose)
-                        write_conll(format="conll", dir_normalized=dir_gold, dir_original=dir_gold_original_only,
-                                    src_text_ls=src_detokenized,
-                                    text_decoded_ls=gold_detokenized, pred_pos_ls=None, src_text_pos=None,
-                                    tasks=["normalize"], ind_batch=iter + batch_i, new_file=new_file, verbose=verbose)
-                        new_file = False
+                sent_ls_top = from_bpe_token_to_str(predictions_topk, topk, tokenizer=tokenizer, pred_mode=True,
+                                                    null_token_index=null_token_index, null_str=null_str)
+                gold = from_bpe_token_to_str(output_tokens_tensor_aligned, topk, tokenizer=tokenizer,
+                                             pred_mode=False, null_token_index=null_token_index,null_str=null_str)
+                source_preprocessed = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer,
+                                                            pred_mode=False, null_token_index=null_token_index,null_str=null_str)
 
-                    perf_prediction, skipping = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk, topk, metric=metric, agg_func_ls=["sum"])
-                    skipping_evaluated_batch += skipping
-                    score += perf_prediction[0]["score"]
-                    n_tokens += perf_prediction[0]["n_tokens"]
-                    n_sents += perf_prediction[0]["n_sents"]
+                # de-BPE-tokenize
+                src_detokenized = realigne(source_preprocessed, input_alignement_with_raw, null_str=null_str)
+                gold_detokenized = realigne(gold, input_alignement_with_raw, remove_null_str=True, null_str=null_str)
+                pred_detokenized_topk = []
+                for sent_ls in sent_ls_top:
+                    pred_detokenized_topk.append(realigne(sent_ls, input_alignement_with_raw, remove_null_str=True,
+                                                          remove_extra_predicted_token=True,null_str=null_str))
 
-                    if print_pred:
-                        printing("TRAINING : Score : {} / {} tokens / {} sentences", var=[perf_prediction[0]["score"],
-                                                                                          perf_prediction[0]["n_tokens"],
-                                                                                          perf_prediction[0]["n_sents"]],
-                                 verbose=verbose, verbose_level=1)
-                        printing("TRAINING : eval gold {}-{} {}", var=[iter, batch_i, gold_detokenized], verbose=verbose,
-                                 verbose_level=1)
-                        printing("TRAINING : eval pred {}-{} {}", var=[iter, batch_i, pred_detokenized_topk], verbose=verbose,
-                                 verbose_level=1)
-                        printing("TRAINING : eval src {}-{} {}", var=[iter, batch_i, src_detokenized],
-                                 verbose=verbose, verbose_level=1)
-                        # TODO : detokenize
-                        #  write to conll
-                        #  compute prediction score
+                if writing_pred:
+                    write_conll(format="conll", dir_normalized=dir_normalized,
+                                dir_original=dir_normalized_original_only,
+                                src_text_ls=src_detokenized,
+                                text_decoded_ls=pred_detokenized_topk[0], pred_pos_ls=None, src_text_pos=None,
+                                tasks=["normalize"], ind_batch=iter+batch_i, new_file=new_file,
+                                verbose=verbose)
+                    write_conll(format="conll", dir_normalized=dir_gold, dir_original=dir_gold_original_only,
+                                src_text_ls=src_detokenized,
+                                text_decoded_ls=gold_detokenized, pred_pos_ls=None, src_text_pos=None,
+                                tasks=["normalize"], ind_batch=iter + batch_i, new_file=new_file, verbose=verbose)
+                    new_file = False
 
-            except RuntimeError as e:
-                print(e)
+                perf_prediction, skipping = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk,
+                                                                              topk, metric=metric,
+                                                                              samples=samples,
+                                                                              agg_func_ls=agg_func_ls,
+                                                                              src_detokenized=src_detokenized)
+
+                score_dic, n_tokens_dic, n_sents_dic = accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=samples,dic_prediction_score=perf_prediction,
+                                                                    score_dic=score_dic, n_tokens_dic=n_tokens_dic, n_sents_dic=n_sents_dic)
+
                 pdb.set_trace()
+                skipping_evaluated_batch += skipping
+
+                if print_pred:
+                    printing("TRAINING : Score : {} / {} tokens / {} sentences", var=[
+                                                                                      perf_prediction["sum"]["all"]["score"],
+                                                                                      perf_prediction["sum"]["all"]["n_tokens"],
+                                                                                      perf_prediction["sum"]["all"]["n_sents"]
+                                                                                      ],
+                             verbose=verbose, verbose_level=1)
+                    printing("TRAINING : eval gold {}-{} {}", var=[iter, batch_i, gold_detokenized], verbose=verbose,
+                             verbose_level=1)
+                    printing("TRAINING : eval pred {}-{} {}", var=[iter, batch_i, pred_detokenized_topk], verbose=verbose,
+                             verbose_level=1)
+                    printing("TRAINING : eval src {}-{} {}", var=[iter, batch_i, src_detokenized],
+                             verbose=verbose, verbose_level=1)
+                    # TODO : detokenize
+                    #  write to conll
+                    #  compute prediction score
 
             loss += _loss
             _loss.backward()
@@ -221,15 +269,23 @@ def epoch_run(batchIter, tokenizer,
              verbose=verbose, verbose_level=0)
     printing("WARNING on {} ON THE EVALUATION SIDE we skipped extra {} batch ", var=[data_label,skipping_evaluated_batch], verbose_level=1, verbose=1)
     if predict_mode:
+        reports = []
         try:
+            for agg_func in agg_func_ls:
+                for sample in samples:
+                    print("agg_func", agg_func)
+                    score = score_dic[agg_func][sample]
+                    n_tokens = n_tokens_dic[agg_func][sample]
+                    n_sents = n_sents_dic[agg_func][sample]
+                    report = report_template(metric_val="accuracy", subsample=sample, info_score_val=None,
+                                             score_val=score/n_tokens, n_sents=n_sents, avg_per_sent=0, n_tokens_score=n_tokens,
+                                             model_full_name_val=model_id, task=["normalize"],
+                                             evaluation_script_val="exact_match",
+                                             model_args_dir=args_dir,
+                                             report_path_val=None,
+                                             data_val=data_label)
+                    reports.append(report)
             pdb.set_trace()
-            report = report_template(metric_val="accuracy", subsample="all", info_score_val=None,
-                                     score_val=score/n_tokens, n_sents=n_sents, avg_per_sent=0, n_tokens_score=n_tokens,
-                                     model_full_name_val=model_id, task=["normalize"],
-                                     evaluation_script_val="exact_match",
-                                     model_args_dir=args_dir,
-                                     report_path_val=None,
-                                     data_val=data_label)
 
             #report = {"score": score/n_tokens, "agg_func": "mean","subsample": "all", "data": data_label,"metric": metric, "n_tokens": n_tokens, "n_sents": n_sents}
 
@@ -245,4 +301,4 @@ def epoch_run(batchIter, tokenizer,
     else:
         report = None
     iter += batch_i
-    return loss, iter, report
+    return loss, iter, reports

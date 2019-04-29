@@ -19,8 +19,8 @@ test_paths_ls = [[TEST]]
 tasks = ["normalize"]
 
 
-train = True
-playwith = False
+train = False
+playwith = True
 
 if train:
 
