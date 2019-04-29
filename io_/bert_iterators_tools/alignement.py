@@ -3,7 +3,8 @@ from io_.info_print import printing
 from io_.dat.constants import NULL_STR_TO_SHOW, TOKEN_BPE_BERT_START, TOKEN_BPE_BERT_SEP
 
 
-def aligned_output(input_tokens_tensor, output_tokens_tensor, input_alignement_with_raw, output_alignement_with_raw,
+def aligned_output(input_tokens_tensor, output_tokens_tensor,
+                   input_alignement_with_raw, output_alignement_with_raw,
                    null_token_index,
                    verbose=1):
     """
@@ -41,7 +42,8 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor, input_alignement_w
             # if the otuput token don't change we have to shift the input of one
             if _1_to_n_token:
                 printing("WARNING : _1_to_n_token --> next batch ",
-                         verbose=verbose, verbose_level=2)
+                         verbose=verbose, verbose_level="raw_data")
+
                 break
             if padded_reach and not n_to_1_token:
                 # we assert we also reached padding in the output

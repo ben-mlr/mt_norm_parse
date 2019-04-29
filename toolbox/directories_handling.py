@@ -1,6 +1,7 @@
 from env.importing import *
 from io_.info_print import printing
 
+
 def setup_repoting_location(root_dir_checkpoints, model_suffix="" , verbose=1):
     """
     create an id for a model and locations for checkpoints, dictionaries, tensorboard logs, data

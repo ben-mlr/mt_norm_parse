@@ -10,13 +10,15 @@ from io_.data_iterator import readers_load, conllu_data, data_gen_multi_task_sam
 from model.bert_tools_from_core_code.tokenization import BertTokenizer
 from training.epoch_run_fine_tuning_bert import epoch_run
 
+from toolbox.report_tools import write_args
+
 
 def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
         voc_tokenizer, auxilliary_task_norm_not_norm, bert_with_classifier,
-        null_token_index, null_str,
+        null_token_index, null_str, initialize_bpe_layer=None,
         run_mode="train", test_path_ls = None, dict_path=None, end_predictions=None,
         report=True, model_suffix="", description="",
-        saving_every_epoch=10, lr=0.0001, fine_tuning_strategy="standart",
+        saving_every_epoch=10, lr=0.0001, fine_tuning_strategy="standart", model_location=None, model_id=None,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
@@ -32,7 +34,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
     if run_mode == "train":
         printing("CHECKPOINTING info : saving model every {}", var=saving_every_epoch, verbose=verbose, verbose_level=1)
     use_gpu = use_gpu_(use_gpu=None, verbose=verbose)
-
+    train_data_label = "|".join([REPO_DATASET[_train_path] for _train_path in train_path])
+    dev_data_label = "|".join([REPO_DATASET[_dev_path] for _dev_path in dev_path])
     if use_gpu:
         bert_with_classifier.to("cuda")
 
@@ -41,7 +44,9 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
 
     iter_train = 0
     iter_dev = 0
+    row = None
     if run_mode == "train":
+        assert model_location is None and model_id is None, "ERROR we are creating a new one "
         model_id, model_location, dict_path, tensorboard_log, end_predictions = \
             setup_repoting_location(model_suffix=model_suffix, root_dir_checkpoints=CHECKPOINT_BERT_DIR, verbose=verbose)
         try:
@@ -50,18 +55,28 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                                               log_dir=tensorboard_log, target_dir=model_location,
                                               env=os.environ.get("ENV", "local"), status="running",
                                               verbose=1)
+
+
+
         except Exception as e:
             print("REPORTING TO GOOGLE SHEET FAILED")
             print(e)
-            row = None
+
+        hyperparameters = OrderedDict([("lr", lr),
+                                       ("model", "bert+token_classficiation"),
+                                       ("initialize_bpe_layer", initialize_bpe_layer)])
+        args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
+
     else:
         assert dict_path is not None
         assert end_predictions is not None
-    if report:
+        assert model_location is not None and model_id is not None
+        args_dir = os.path.join(model_location, "{}-args.json".format(model_id))
+    if report and run_mode == "train":
         writer = SummaryWriter(log_dir=tensorboard_log)
 
         printing("CHECKPOINTING : starting writing log \ntensorboard --logdir={} --host=localhost --port=1234 ",
-                 var=[tensorboard_log], verbose_level=1,
+                 var=[os.path.join(model_id, "tensorboard")], verbose_level=1,
                  verbose=verbose)
     else:
         writer = None
@@ -129,15 +144,15 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                 # TODO add optimizer (if not : devv loss)
                 optimizer = dptx.get_optimizer(bert_with_classifier.parameters(), lr=lr)
                 bert_with_classifier.train()
-                train_data_label = "|".join([REPO_DATASET[_train_path] for _train_path in train_path])
-                dev_data_label = "|".join([REPO_DATASET[_dev_path] for _dev_path in dev_path])
+
                 loss_train, iter_train, perf_report_train = epoch_run(batchIter_train, tokenizer,
                                                                       data_label=train_data_label,
                                                                       bert_with_classifier=bert_with_classifier, writer=writer,
                                                                       iter=iter_train, epoch=epoch,
                                                                       writing_pred=checkpointing_model_data, dir_end_pred=end_predictions,
                                                                       optimizer=optimizer, use_gpu=use_gpu, predict_mode=True,
-                                                                      null_token_index=null_token_index ,null_str=null_str,
+                                                                      model_id=model_id,
+                                                                      null_token_index=null_token_index, null_str=null_str,
                                                                       n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
                 bert_with_classifier.eval()
@@ -146,7 +161,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                                                                 bert_with_classifier=bert_with_classifier, writer=writer,
                                                                 writing_pred=checkpointing_model_data, dir_end_pred=end_predictions,
                                                                 predict_mode=True, data_label=dev_data_label, epoch=epoch,
-                                                                null_token_index=null_token_index ,null_str=null_str,
+                                                                null_token_index=null_token_index, null_str=null_str, model_id=model_id,
                                                                 n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
                 printing("PERFORMANCE {} TRAIN", var=[epoch, perf_report_train],
@@ -163,13 +178,18 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                     printing("CHECKPOINT : saving {} model {} ", var=[last_model, checkpoint_dir], verbose=verbose,
                              verbose_level=1)
                     torch.save(bert_with_classifier.state_dict(), checkpoint_dir)
+                    args_dir = write_args(dir=model_location, checkpoint_dir=checkpoint_dir,
+                                          model_id=model_id,
+                                          info_checkpoint=OrderedDict([("n_epochs", epoch+1), ("batch_size", batch_size),
+                                                                       ("training_data", train_data_label),
+                                                                       ("dev_data", dev_data_label)]),
+                                          verbose=verbose)
 
             print("PERFORMANCE LAST {} TRAIN".format(epoch), perf_report_train)
             print("PERFORMANCE LAST {} DEV".format(epoch), perf_report_dev)
 
             if row is not None:
-                update_status(row=row, new_status="done ", verbose=1)
-            print("DONE")
+                update_status(row=row, new_status="training-done", verbose=1)
 
         except Exception as e:
             if row is not None:
@@ -203,6 +223,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                                                                iter=iter_dev, use_gpu=use_gpu,
                                                                bert_with_classifier=bert_with_classifier, writer=None,
                                                                writing_pred=True,
+                                                               args_dir=args_dir, model_id=model_id,
                                                                dir_end_pred=end_predictions,
                                                                predict_mode=True, data_label=label_data,
                                                                epoch="LAST", extra_label_for_prediction=label_data,
@@ -220,7 +241,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
 
     if writer is not None:
         writer.close()
-        printing("tensorboard --logdir={} --host=localhost --port=1234 ", var=[tensorboard_log], verbose_level=1,
+        printing("tensorboard --logdir={} --host=localhost --port=1234 ", var=[os.path.join(model_id, "tensorboard")], verbose_level=1,
                  verbose=verbose)
-
+    if row is not None:
+        update_status(row=row, new_status="done", verbose=1)
     return bert_with_classifier

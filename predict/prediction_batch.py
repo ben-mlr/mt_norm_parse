@@ -105,7 +105,6 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, task_simu
                         scoring_func_sequence_pred="exact_match",
                         write_output=False, write_to="conll",
                         dir_normalized=None, dir_original=None,
-
                         verbose=0):
         "We decode batch by batch simultaneous ls of tasks at a time "
         score_dic = _init_metric_report(score_to_compute_ls, mode_norm_score_ls)

@@ -9,13 +9,18 @@ from io_.bert_iterators_tools.alignement import aligned_output, realigne
 from evaluate.scoring.report import overall_word_level_metric_measure
 
 
+sys.path.insert(0, os.path.join(PROJECT_PATH, "..", "experimental_pipe"))
+from reporting.write_to_performance_repo import report_template, write_dic
+
+
 def epoch_run(batchIter, tokenizer,
               iter, n_iter_max, bert_with_classifier, epoch,
               use_gpu, data_label, null_token_index, null_str,
+              model_id,
               skip_1_t_n=True,
               writer=None, optimizer=None,
               predict_mode=False, topk=None, metric=None,
-              print_pred=False,
+              print_pred=False, args_dir=None,
               writing_pred=False, dir_end_pred=None, extra_label_for_prediction="",
               verbose=0):
 
@@ -63,19 +68,15 @@ def epoch_run(batchIter, tokenizer,
             batch.raw_input = preprocess_batch_string_for_bert(batch.raw_input)
             batch.raw_output = preprocess_batch_string_for_bert(batch.raw_output)
 
-            pdb.set_trace()
-
-            input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = get_indexes(batch.raw_input, tokenizer, verbose, use_gpu)
-            output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask = get_indexes(batch.raw_output,
-                                                                                                                                    tokenizer,
-                                                                                                                                    verbose,
-                                                                                                                                    use_gpu)
+            input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask \
+                = get_indexes(batch.raw_input, tokenizer, verbose, use_gpu)
+            output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask =\
+                get_indexes(batch.raw_output, tokenizer, verbose, use_gpu)
 
             printing("DATA dim : {} input {} output ", var=[input_tokens_tensor.size(), output_tokens_tensor.size()],
                      verbose_level=2, verbose=verbose)
 
-            _verbose = verbose if isinstance(verbose, int) else 0
-
+            _verbose = verbose
             if input_tokens_tensor.size(1) != output_tokens_tensor.size(1):
                 printing("-------------- Alignement broken", verbose=verbose, verbose_level=2)
                 if input_tokens_tensor.size(1) > output_tokens_tensor.size(1):
@@ -87,18 +88,20 @@ def epoch_run(batchIter, tokenizer,
                     if skip_1_t_n:
                         printing("WE SKIP IT ", verbose=verbose, verbose_level=2)
                         continue
-                _verbose += 1
+                if isinstance(verbose, int) :
+                    _verbose += 1
+
             else:
                 aligned += 1
 
             # logging
-            printing("DATA : pre-tokenized input {} ", var=[batch.raw_input], verbose_level=3,
+            printing("DATA : pre-tokenized input {} ", var=[batch.raw_input], verbose_level="raw_data",
                      verbose=_verbose)
             printing("DATA : BPEtokenized input ids {}", var=[input_tokens_tensor], verbose_level=3,
                      verbose=verbose)
 
             printing("DATA : pre-tokenized output {} ", var=[batch.raw_output],
-                     verbose_level=4,
+                     verbose_level="raw_data",
                      verbose=_verbose)
             printing("DATA : BPE tokenized output ids  {}", var=[output_tokens_tensor],
                      verbose_level=4,
@@ -113,7 +116,7 @@ def epoch_run(batchIter, tokenizer,
             output_tokens_tensor_aligned, _1_to_n_token = aligned_output(input_tokens_tensor, output_tokens_tensor,
                                                                          input_alignement_with_raw,
                                                                          output_alignement_with_raw,
-                                                                         null_token_index=null_token_index)
+                                                                         null_token_index=null_token_index, verbose=verbose)
 
             if batch_i == n_iter_max:
                 break
@@ -148,7 +151,7 @@ def epoch_run(batchIter, tokenizer,
 
                     # de-BPE-tokenize
                     src_detokenized = realigne(source_preprocessed, input_alignement_with_raw, null_str=null_str)
-                    gold_detokenized = realigne(gold, input_alignement_with_raw, remove_null_str=True,null_str=null_str)
+                    gold_detokenized = realigne(gold, input_alignement_with_raw, remove_null_str=True, null_str=null_str)
                     pred_detokenized_topk = []
                     for sent_ls in sent_ls_top:
                         pred_detokenized_topk.append(realigne(sent_ls, input_alignement_with_raw, remove_null_str=True,
@@ -219,17 +222,26 @@ def epoch_run(batchIter, tokenizer,
     printing("WARNING on {} ON THE EVALUATION SIDE we skipped extra {} batch ", var=[data_label,skipping_evaluated_batch], verbose_level=1, verbose=1)
     if predict_mode:
         try:
-            report = {"score": score/n_tokens, "agg_func": "mean",
-                      "subsample": "all", "data": data_label,
-                      "metric": metric, "n_tokens": n_tokens,"n_sents": n_sents}
+            pdb.set_trace()
+            report = report_template(metric_val="accuracy", subsample="all", info_score_val=None,
+                                     score_val=score/n_tokens, n_sents=n_sents, avg_per_sent=0, n_tokens_score=n_tokens,
+                                     model_full_name_val=model_id, task=["normalize"],
+                                     evaluation_script_val="exact_match",
+                                     model_args_dir=args_dir,
+                                     report_path_val=None,
+                                     data_val=data_label)
+
+            #report = {"score": score/n_tokens, "agg_func": "mean","subsample": "all", "data": data_label,"metric": metric, "n_tokens": n_tokens, "n_sents": n_sents}
+
         except Exception as e:
             print(e)
             report = []
         if writer is not None:
             writer.add_scalars("prediction_score",
-                               {"exact_match-all-{}".format(mode):
-                                    report["score"]}, epoch)
-
+                               {
+                                   "exact_match-all-{}".format(mode): report["score"]
+                               },
+                               epoch)
     else:
         report = None
     iter += batch_i

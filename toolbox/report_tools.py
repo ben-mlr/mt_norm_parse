@@ -1,5 +1,5 @@
 from env.importing import *
-
+from io_.info_print import printing
 
 def get_score(scores, metric, info_score, task, data):
     for report in scores:
@@ -72,3 +72,26 @@ def pred_word_to_list(pred_word, special_symb_ls):
             new_word.extend(list(word))
 
     return new_word
+
+
+def write_args(dir, model_id, checkpoint_dir=None,
+               hyperparameters=None,
+               info_checkpoint=None, verbose=1):
+
+    args_dir = os.path.join(dir, "{}-args.json".format(model_id))
+    if os.path.isfile(args_dir):
+        info = "updated"
+        args = json.load(open(args_dir, "r"))
+        args["checkpoint_dir"] = checkpoint_dir
+        args["info_checkpoint"] = info_checkpoint
+        json.dump(args, open(args_dir, "w"))
+    else:
+        assert hyperparameters is not None, "REPORT : args.json created for the first time : hyperparameters dic required "
+        assert info_checkpoint is None, "REPORT : args. created for the first time : no checkpoint yet "
+        info = "new"
+        json.dump(OrderedDict([("checkpoint_dir", checkpoint_dir),
+                               ("hyperparameters", hyperparameters),
+                               ("info_checkpoint", None)]), open(args_dir, "w"))
+    printing("MODEL args.json {} written {} ".format(info, args_dir), verbose_level=1, verbose=verbose)
+    return args_dir
+

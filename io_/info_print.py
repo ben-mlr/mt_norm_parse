@@ -3,7 +3,8 @@ from env.importing import *
 VERBOSE_1_LOG_EVERY_x_BATCH = 25
 DEBUG = False
 
-LOGGING_SPECIFIC_INFO_AVAILABLE = ["cuda"]
+LOGGING_SPECIFIC_INFO_AVAILABLE = ["cuda", "raw_data"]
+
 
 def printing(message, verbose, verbose_level, var=None):
     """
@@ -29,8 +30,11 @@ def printing(message, verbose, verbose_level, var=None):
             else:
                 print(message)
     elif isinstance(verbose, str) and isinstance(verbose_level, str):
-        if verbose == "cuda":
-            print(message.format(*var))
+        if verbose == verbose_level:
+            if isinstance(var, Iterable):
+                print(message.format(*var))
+            else:
+                print(message.format(var))
     sys.stdout.flush()
 
 
