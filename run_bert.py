@@ -13,7 +13,7 @@ train_path = [PERMUTATION_TRAIN_DIC[10000]]
 dev_path = [PERMUTATION_TEST]
 train_path = [LEX_TRAIN]
 dev_path = [LEX_TEST]
-test_paths_ls = [[TEST], [LIU_TRAIN], [LIU_DEV], [DEV], [LEX_TEST], [LEX_TRAIN], [LEX_LIU_TRAIN]]
+#test_paths_ls = [[TEST], [LIU_TRAIN], [LIU_DEV], [DEV], [LEX_TEST], [LEX_TRAIN], [LEX_LIU_TRAIN]]
 test_paths_ls = [[TEST]]
 
 tasks = ["normalize"]
@@ -46,7 +46,7 @@ if train:
                 voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
                 auxilliary_task_norm_not_norm=True,
                 saving_every_epoch=10, lr=lr,
-                batch_size=batch_size, n_iter_max_per_epoch=2500, n_epoch=30,
+                batch_size=batch_size, n_iter_max_per_epoch=2, n_epoch=1,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
                 model_suffix="{}".format(description), debug=False,

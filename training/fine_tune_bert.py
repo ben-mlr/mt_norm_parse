@@ -58,9 +58,9 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
             writer = SummaryWriter(log_dir=tensorboard_log)
             writer.add_text("INFO-ARGUMENT-MODEL".format(model_id), str(hyperparameters), 0)
         try:
-            description += "data:{}".format(train_data_label)+ " {}".format(" ".join(["{},{}".format(key, value) for key, value in hyperparameters.items()]))
+            description += ",data:{}".format(train_data_label)+ " {}".format(" ".join(["{},{}".format(key, value) for key, value in hyperparameters.items()]))
             row, col = append_reporting_sheet(git_id=gr.get_commit_id(), tasks="BERT NORMALIZE",
-                                              rioc_job=os.environ.get("OAR_JOB_ID", "no"), description=description,
+                                              rioc_job=os.environ.get("OAR_JOB_ID", "local"), description=description,
                                               log_dir=tensorboard_log, target_dir=model_location,
                                               env=os.environ.get("ENV", "local"), status="running",
                                               verbose=1)
@@ -248,6 +248,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                  verbose=verbose)
     if row is not None:
         update_status(row=row, new_status="done", verbose=1)
+        update_status(row=row, new_status=tensorboard_log, verbose=1, col_number=10)
 
     report_dir = os.path.join(model_location, model_id+"-report.json")
     json.dump(report_all, open(report_dir, "w"))
