@@ -30,7 +30,7 @@ def get_perf_rate(metric, score_dic, n_tokens_dic, agg_func, task="normalize"):
             return score_dic[agg_func][TASKS_PARAMETER[task]["predicted_classes"][0]] / negative_obs, \
                    negative_obs
     if metric == "f1":
-        if recall is not None and precision is not None:
+        if recall is not None and precision is not None and recall>0 and precision>0:
             return hmean([recall, precision]), negative_obs + positive_obs
         else:
             return None, negative_obs + positive_obs

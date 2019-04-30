@@ -11,9 +11,9 @@ PAD_BERT = "[PAD]"
 
 train_path = [PERMUTATION_TRAIN_DIC[10000]]
 dev_path = [PERMUTATION_TEST]
-train_path = [LIU_TRAIN]
-dev_path = [LIU_DEV]
-#test_paths_ls = [[TEST], [LIU_TRAIN], [LIU_DEV], [DEV], [LEX_TEST], [LEX_TRAIN]]#, [LEX_LIU_TRAIN]]
+train_path = [LEX_TRAIN]
+dev_path = [LEX_TEST]
+test_paths_ls = [[TEST], [LIU_TRAIN], [LIU_DEV], [DEV], [LEX_TEST], [LEX_TRAIN], [LEX_LIU_TRAIN]]
 test_paths_ls = [[TEST]]
 
 tasks = ["normalize"]
@@ -23,8 +23,6 @@ train = True
 playwith = False
 
 if train:
-
-
     # TODO : WARNING : why the delis still loaded even in vocab size not consistent with what is suppose to be the vocabulary of the model loaded
     voc_tokenizer = BERT_MODEL_DIC["bert-cased"]["vocab"]
     model_dir = BERT_MODEL_DIC["bert-cased"]["model"]
@@ -38,16 +36,20 @@ if train:
     lr = 0.0001
     batch_size = 1
     null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary
-    pref_suffix = "sample_details"
-    description = "BERT_NORM:{}-{}batch-{}lr-trained:{}-LIUDEV".format(pref_suffix, batch_size, lr, REPO_DATASET[train_path[0]])
+    description = "BERT_NORM"
+    print("{} lr batch_size initialize_bpe_layer training_data".format(REPORT_FLAG_VARIABLES_ENRICH_STR))
+    print("{} tnr accuracy f1 tnr precision recall npvr".format(REPORT_FLAG_VARIABLES_EXPAND_STR))
+    print("{} ".format(REPORT_FLAG_VARIABLES_FIXED_STR))
+    print("{} lr batch_size initialize_bpe_layer training_data".format(REPORT_FLAG_VARIABLES_ANALYSED_STR))
+
     model = run(bert_with_classifier=model,
                 voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
                 auxilliary_task_norm_not_norm=True,
                 saving_every_epoch=10, lr=lr,
-                batch_size=batch_size, n_iter_max_per_epoch=5, n_epoch=2,
+                batch_size=batch_size, n_iter_max_per_epoch=2500, n_epoch=30,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
-                model_suffix="{}-{}batch-{}lr".format(pref_suffix, batch_size, lr), debug=False,
+                model_suffix="{}".format(description), debug=False,
                 initialize_bpe_layer=initialize_bpe_layer,
                 report=True, verbose=1)
 

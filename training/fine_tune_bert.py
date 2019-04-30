@@ -45,11 +45,20 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
     iter_train = 0
     iter_dev = 0
     row = None
+    writer = None
     if run_mode == "train":
         assert model_location is None and model_id is None, "ERROR we are creating a new one "
         model_id, model_location, dict_path, tensorboard_log, end_predictions = \
             setup_repoting_location(model_suffix=model_suffix, root_dir_checkpoints=CHECKPOINT_BERT_DIR, verbose=verbose)
+
+        hyperparameters = OrderedDict([("model", "bert+token_classficiation"),("lr", lr),
+                                       ("initialize_bpe_layer", initialize_bpe_layer)])
+        args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
+        if report:
+            writer = SummaryWriter(log_dir=tensorboard_log)
+            writer.add_text("INFO-ARGUMENT-MODEL".format(model_id), str(hyperparameters), 0)
         try:
+            description += "data:{}".format(train_data_label)+ " {}".format(" ".join(["{},{}".format(key, value) for key, value in hyperparameters.items()]))
             row, col = append_reporting_sheet(git_id=gr.get_commit_id(), tasks="BERT NORMALIZE",
                                               rioc_job=os.environ.get("OAR_JOB_ID", "no"), description=description,
                                               log_dir=tensorboard_log, target_dir=model_location,
@@ -62,24 +71,16 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
             print("REPORTING TO GOOGLE SHEET FAILED")
             print(e)
 
-        hyperparameters = OrderedDict([("lr", lr),
-                                       ("model", "bert+token_classficiation"),
-                                       ("initialize_bpe_layer", initialize_bpe_layer)])
-        args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
-
     else:
         assert dict_path is not None
         assert end_predictions is not None
         assert model_location is not None and model_id is not None
         args_dir = os.path.join(model_location, "{}-args.json".format(model_id))
-    if report and run_mode == "train":
-        writer = SummaryWriter(log_dir=tensorboard_log)
 
         printing("CHECKPOINTING : starting writing log \ntensorboard --logdir={} --host=localhost --port=1234 ",
                  var=[os.path.join(model_id, "tensorboard")], verbose_level=1,
                  verbose=verbose)
-    else:
-        writer = None
+
 
     # build or make dictionaries
 
@@ -196,6 +197,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                 update_status(row=row, new_status="ERROR", verbose=1)
             raise(e)
     if run_mode in ["train", "test"] and test_path_ls is not None:
+        report_all = []
         bert_with_classifier.eval()
         assert len(test_path_ls[0]) == 1, "ERROR 1 task supported so far for bert"
         for test_path in test_path_ls:
@@ -232,10 +234,11 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
             print("PERFORMANCE TEST on data {} is {} ".format(label_data, perf_report_test))
             if writer is not None:
                 writer.add_text("Accuracy-{}".format(label_data),
-                            "After {} epochs with {} : performance is \n {} ".format(n_epoch, description, str(perf_report_test)),
-                            0)
+                                "After {} epochs with {} : performance is \n {} ".format(n_epoch, description,
+                                                                                         str(perf_report_test)), 0)
             else:
                 printing("WARNING : could not add accuracy to tensorboard cause writer was found None", verbose=verbose, verbose_level=1)
+            report_all.extend(perf_report_test)
         else:
             printing("EVALUATION none cause {} empty", var=[test_path_ls], verbose_level=1, verbose=verbose)
 
@@ -245,4 +248,9 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                  verbose=verbose)
     if row is not None:
         update_status(row=row, new_status="done", verbose=1)
+
+    report_dir = os.path.join(model_location, model_id+"-report.json")
+    json.dump(report_all, open(report_dir, "w"))
+    printing("{} {} ", var=[REPORT_FLAG_DIR_STR , report_dir], verbose=verbose, verbose_level=0)
+
     return bert_with_classifier

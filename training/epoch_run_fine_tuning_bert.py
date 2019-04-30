@@ -294,7 +294,7 @@ def epoch_run(batchIter, tokenizer,
                 n_tokens = n_tokens_dic[agg_func][sample]
                 n_sents = n_sents_dic[agg_func][sample]
                 report = report_template(metric_val="accuracy-exact", subsample=sample, info_score_val=None,
-                                         score_val=score/n_tokens, n_sents=n_sents, avg_per_sent=0,
+                                         score_val=score/n_tokens if n_tokens>0 else None, n_sents=n_sents, avg_per_sent=0,
                                          n_tokens_score=n_tokens,
                                          model_full_name_val=model_id, task=["normalize"],
                                          evaluation_script_val="exact_match",
