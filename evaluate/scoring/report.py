@@ -21,8 +21,9 @@ def overall_word_level_metric_measure(gold_sent_ls,
         samples = ["all"]
     if agg_func_ls is None:
         agg_func_ls = ["sum"]
+
     assert isinstance(samples, list)
-    assert len(set(samples)&set(AVAILABLE_EVALUATION_SAMPLE_FILTER))>0, \
+    assert len(set(samples) & set(AVAILABLE_EVALUATION_SAMPLE_FILTER)) > 0, \
         "ERROR : one of the samples in {} not supported {}".format(samples, AVAILABLE_EVALUATION_SAMPLE_FILTER)
 
     assert isinstance(agg_func_ls, list)
@@ -51,7 +52,7 @@ def overall_word_level_metric_measure(gold_sent_ls,
             topk_word_pred = [pred_sent_ls_topk[top][gold_ind_sent][ind_word] for top in range(topk)]
             score_sent.append(word_level_scoring(metric=metric, gold=gold_token, topk_pred=topk_word_pred, topk=topk))
             for _sample in samples:
-                filter_sent[_sample].append(word_level_filter(sample=_sample,gold=gold_token, topk_pred=topk_word_pred,
+                filter_sent[_sample].append(word_level_filter(sample=_sample, gold=gold_token, topk_pred=topk_word_pred,
                                                               topk=topk, src=src_detokenized[gold_ind_sent][ind_word]))
         for _sample in samples:
             overall_filter_ls[_sample].append(filter_sent[_sample])
@@ -61,8 +62,9 @@ def overall_word_level_metric_measure(gold_sent_ls,
 
     for agg_func in agg_func_ls:
         for sample in samples:
-            result[agg_func][sample] = {"score": agg_func_batch_score(overall_ls_sent_score=overall_score_ls_sent, agg_func=agg_func,
-                                                         overall_filter=overall_filter_ls[sample]),
+            result[agg_func][sample] = {"score": agg_func_batch_score(overall_ls_sent_score=overall_score_ls_sent,
+                                                                      agg_func=agg_func,
+                                                                      overall_filter=overall_filter_ls[sample]),
                                         "agg_func": agg_func,
                                         "metric": "exact_match",
                                         "n_tokens": agg_func_batch_score(overall_ls_sent_score=overall_score_ls_sent,

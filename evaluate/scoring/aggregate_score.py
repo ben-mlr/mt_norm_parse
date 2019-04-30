@@ -3,10 +3,15 @@
 def agg_func_batch_score(overall_ls_sent_score, overall_filter, agg_func):
 
     # sanity check
-    assert len(overall_ls_sent_score) == len(overall_filter), "ERROR : filter uncorrect len "
-    for ind in range(len(overall_ls_sent_score)):
-        assert len(overall_ls_sent_score[ind]) == len(overall_filter[ind]), "ERROR : filter uncorrect len "
-
+    try:
+        assert len(overall_ls_sent_score) == len(overall_filter), "ERROR : filter uncorrect score:{} filter:{}".format(overall_ls_sent_score, overall_filter)
+        for ind in range(len(overall_ls_sent_score)):
+            assert len(overall_ls_sent_score[ind]) == len(overall_filter[ind]), "ERROR : filter uncorrect " \
+                                                                                "len sent score={} filter={} ".format(overall_ls_sent_score, overall_filter[ind])
+    except AssertionError as e:
+        print(e)
+        print("SKIPED,batch+1 : score:{} filter:{}".format(overall_ls_sent_score, overall_filter))
+        return 0
     # if filter 1 we keep otherise we ignore the token (and its score) in evaluation
     sum_ = sum([score for score_ls, filter_ls in zip(overall_ls_sent_score, overall_filter) for score, filter in zip(score_ls, filter_ls) if filter])
     n_tokens = sum([1 for score_ls, filter_ls in zip(overall_ls_sent_score, overall_filter) for _, filter in

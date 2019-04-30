@@ -8,7 +8,6 @@ from io_.bert_iterators_tools.alignement import aligned_output, realigne
 
 from evaluate.scoring.report import overall_word_level_metric_measure
 
-
 sys.path.insert(0, os.path.join(PROJECT_PATH, "..", "experimental_pipe"))
 from reporting.write_to_performance_repo import report_template, write_dic
 
@@ -215,13 +214,18 @@ def epoch_run(batchIter, tokenizer,
                     new_file = False
 
                 perf_prediction, skipping = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk,
-                                                                              topk, metric=metric,
+                                                                              topk,
+                                                                              metric=metric,
                                                                               samples=samples,
                                                                               agg_func_ls=agg_func_ls,
                                                                               src_detokenized=src_detokenized)
 
-                score_dic, n_tokens_dic, n_sents_dic = accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=samples,dic_prediction_score=perf_prediction,
-                                                                    score_dic=score_dic, n_tokens_dic=n_tokens_dic, n_sents_dic=n_sents_dic)
+                score_dic, n_tokens_dic, n_sents_dic = accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
+                                                                                      sample_ls=samples,
+                                                                                      dic_prediction_score=perf_prediction,
+                                                                                      score_dic=score_dic,
+                                                                                      n_tokens_dic=n_tokens_dic,
+                                                                                      n_sents_dic=n_sents_dic)
 
                 pdb.set_trace()
                 skipping_evaluated_batch += skipping
@@ -260,14 +264,15 @@ def epoch_run(batchIter, tokenizer,
         except StopIteration:
             break
 
-    printing("WARNING on {} : Out of {} batch of {} sentences each : {} batch aligned ; {} with at least 1 sentence "
+    printing("WARNING on {} : Out of {} batch of {} sentences each {} skipped ({} batch aligned ; {} with at least 1 sentence "
              "noisy MORE SPLITTED "
-             "; {} with  LESS SPLITTED {} + BATCH with skipped_1_to_n : {} ",
-             var=[data_label, batch_i, batch.input_seq.size(0), aligned, noisy_over_splitted, noisy_under_splitted,
+             "; {} with  LESS SPLITTED {} + BATCH with skipped_1_to_n : {}) ",
+             var=[data_label, batch_i, batch.input_seq.size(0), noisy_under_splitted+skipping_batch_n_to_1, aligned,
+                  noisy_over_splitted, noisy_under_splitted,
                   "SKIPPED" if skip_1_t_n else "",
                   skipping_batch_n_to_1],
              verbose=verbose, verbose_level=0)
-    printing("WARNING on {} ON THE EVALUATION SIDE we skipped extra {} batch ", var=[data_label,skipping_evaluated_batch], verbose_level=1, verbose=1)
+    printing("WARNING on {} ON THE EVALUATION SIDE we skipped extra {} batch ", var=[data_label, skipping_evaluated_batch], verbose_level=1, verbose=1)
     if predict_mode:
         reports = []
         try:
@@ -282,6 +287,7 @@ def epoch_run(batchIter, tokenizer,
                                              model_full_name_val=model_id, task=["normalize"],
                                              evaluation_script_val="exact_match",
                                              model_args_dir=args_dir,
+                                             token_type="word",
                                              report_path_val=None,
                                              data_val=data_label)
                     reports.append(report)
