@@ -15,6 +15,7 @@ TEST_SCORING_IN_CODE = False
 
 
 def _init_metric_report(score_to_compute_ls, mode_norm_score_ls):
+
     if score_to_compute_ls is not None:
         dic = {score+"-"+norm_mode: 0 for score in score_to_compute_ls for norm_mode in mode_norm_score_ls}
         dic.update({score + "-" + norm_mode + "-" + "n_sents": 0 for score in score_to_compute_ls for norm_mode in
@@ -285,3 +286,4 @@ def greedy_decode_batch(batchIter, model, char_dictionary, batch_size, task_simu
                 score_formulas = None
 
             return counter_correct, score_formulas
+

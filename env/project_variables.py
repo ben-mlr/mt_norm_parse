@@ -202,7 +202,10 @@ REPO_W2V = {
 
 
 # for some task we need normalize = True for getting the label
-TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact_match"},
+# NB : predicted_classes does not necessarily mean that the task is to predict those classes but that
+# it can be deduced in a straitforward way from he prediciton !!
+TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact_match",
+                                 "predicted_classes": ["NORMED", "NEED_NORM"]},
                    "norm_not_norm": {"normalization": True},
                    "edit_prediction": {"normalization": True},
                    "pos": {"normalization": False, "default_metric": "accuracy-pos"},

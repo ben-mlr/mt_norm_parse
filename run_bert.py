@@ -13,8 +13,8 @@ train_path = [PERMUTATION_TRAIN_DIC[10000]]
 dev_path = [PERMUTATION_TEST]
 train_path = [LIU_TRAIN]
 dev_path = [LIU_DEV]
-test_paths_ls = [[TEST], [LIU_TRAIN], [LIU_DEV], [DEV], [LEX_TEST], [LEX_TRAIN]]#, [LEX_LIU_TRAIN]]
-#test_paths_ls = [[TEST]]
+#test_paths_ls = [[TEST], [LIU_TRAIN], [LIU_DEV], [DEV], [LEX_TEST], [LEX_TRAIN]]#, [LEX_LIU_TRAIN]]
+test_paths_ls = [[TEST]]
 
 tasks = ["normalize"]
 

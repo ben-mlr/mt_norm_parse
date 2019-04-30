@@ -7,6 +7,7 @@ from io_.bert_iterators_tools.string_processing import preprocess_batch_string_f
 from io_.bert_iterators_tools.alignement import aligned_output, realigne
 
 from evaluate.scoring.report import overall_word_level_metric_measure
+from evaluate.scoring.confusion_matrix_rates import get_perf_rate
 
 sys.path.insert(0, os.path.join(PROJECT_PATH, "..", "experimental_pipe"))
 from reporting.write_to_performance_repo import report_template, write_dic
@@ -94,9 +95,9 @@ def epoch_run(batchIter, tokenizer,
     loss = 0
     samples = ["all", "NEED_NORM", "NORMED"]
     agg_func_ls = ["sum"]
-    score_dic = {agg_func:{sample:0 for sample in samples} for agg_func in agg_func_ls }
-    n_tokens_dic = {agg_func:{sample:0 for sample in samples}  for agg_func in agg_func_ls}
-    n_sents_dic = {agg_func:{sample:0 for sample in samples}  for agg_func in agg_func_ls}
+    score_dic = {agg_func: {sample: 0 for sample in samples} for agg_func in agg_func_ls }
+    n_tokens_dic = {agg_func: {sample: 0 for sample in samples} for agg_func in agg_func_ls}
+    n_sents_dic = {agg_func: {sample: 0 for sample in samples} for agg_func in agg_func_ls}
     skipping_evaluated_batch = 0
     mode = "?"
     new_file = True
@@ -264,7 +265,8 @@ def epoch_run(batchIter, tokenizer,
         except StopIteration:
             break
 
-    printing("WARNING on {} : Out of {} batch of {} sentences each {} skipped ({} batch aligned ; {} with at least 1 sentence "
+    printing("WARNING on {} : Out of {} batch of {} sentences each {} skipped ({} batch aligned ; "
+             "{} with at least 1 sentence "
              "noisy MORE SPLITTED "
              "; {} with  LESS SPLITTED {} + BATCH with skipped_1_to_n : {}) ",
              var=[data_label, batch_i, batch.input_seq.size(0), noisy_under_splitted+skipping_batch_n_to_1, aligned,
@@ -275,15 +277,45 @@ def epoch_run(batchIter, tokenizer,
     printing("WARNING on {} ON THE EVALUATION SIDE we skipped extra {} batch ", var=[data_label, skipping_evaluated_batch], verbose_level=1, verbose=1)
     if predict_mode:
         reports = []
-        try:
-            for agg_func in agg_func_ls:
-                for sample in samples:
-                    print("agg_func", agg_func)
-                    score = score_dic[agg_func][sample]
-                    n_tokens = n_tokens_dic[agg_func][sample]
-                    n_sents = n_sents_dic[agg_func][sample]
-                    report = report_template(metric_val="accuracy", subsample=sample, info_score_val=None,
-                                             score_val=score/n_tokens, n_sents=n_sents, avg_per_sent=0, n_tokens_score=n_tokens,
+        for agg_func in agg_func_ls:
+            for sample in samples:
+                print("agg_func", agg_func)
+                # for binary classification : having 3 samples define [class Positive, class Negative, All]
+                #  e.g [NORMED, NEED_NORM , all] for a given agg_func
+                # TP : score_dic[agg_func][Positive Class]
+                # TN : score_dic[agg_func][Negative Class]
+                # P observations = n_tokens_dic[agg_func][Positive Class]
+                # N observations  = n_tokens_dic[agg_func][Negative Class]
+                # PP predictions = FP + TP = (N-TN) + TP
+                # NP predictions = FN + TN = (P-TP) + TN
+                # recall = TP/P , precision = TP/PP,  tnr = TN/N , npr = TN/NP
+                # f1 = hmean(recall, precision) , accuracy = (TN+TP)/(N+P)
+                score = score_dic[agg_func][sample]
+                n_tokens = n_tokens_dic[agg_func][sample]
+                n_sents = n_sents_dic[agg_func][sample]
+                report = report_template(metric_val="accuracy-exact", subsample=sample, info_score_val=None,
+                                         score_val=score/n_tokens, n_sents=n_sents, avg_per_sent=0,
+                                         n_tokens_score=n_tokens,
+                                         model_full_name_val=model_id, task=["normalize"],
+                                         evaluation_script_val="exact_match",
+                                         model_args_dir=args_dir,
+                                         token_type="word",
+                                         report_path_val=None,
+                                         data_val=data_label)
+                reports.append(report)
+            # class negative 0 , class positive 1
+            # TODO : make that more consistent with user needs !
+            if "all" in samples and TASKS_PARAMETER["normalize"]["predicted_classes"][0] in samples and TASKS_PARAMETER["normalize"]["predicted_classes"][1] in samples:
+
+                # then we can compute all the confusion matrix rate
+
+                for metric_val in ["recall", "precision", "f1", "tnr", "npvr", "accuracy"]:
+                    score, n_rate_universe = get_perf_rate(metric=metric_val, n_tokens_dic=n_tokens_dic,
+                                                           score_dic=score_dic, agg_func=agg_func)
+                    report = report_template(metric_val=metric_val, subsample="rates", info_score_val=None,
+                                             score_val=score, n_sents=n_sents_dic[agg_func]["all"],
+                                             avg_per_sent=0,
+                                             n_tokens_score=n_rate_universe,
                                              model_full_name_val=model_id, task=["normalize"],
                                              evaluation_script_val="exact_match",
                                              model_args_dir=args_dir,
@@ -291,13 +323,8 @@ def epoch_run(batchIter, tokenizer,
                                              report_path_val=None,
                                              data_val=data_label)
                     reports.append(report)
-            pdb.set_trace()
 
-            #report = {"score": score/n_tokens, "agg_func": "mean","subsample": "all", "data": data_label,"metric": metric, "n_tokens": n_tokens, "n_sents": n_sents}
 
-        except Exception as e:
-            print(e)
-            report = []
         if writer is not None:
             writer.add_scalars("prediction_score",
                                {
@@ -305,6 +332,6 @@ def epoch_run(batchIter, tokenizer,
                                },
                                epoch)
     else:
-        report = None
+        reports = None
     iter += batch_i
     return loss, iter, reports
