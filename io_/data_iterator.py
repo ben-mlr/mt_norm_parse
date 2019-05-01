@@ -72,7 +72,6 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                                 raw_input=raw_word_inputs, raw_output=normalized_str,
                                 verbose=verbose), order_ids
 
-
     # get_batch randomly (for training purpose)
     elif get_batch_mode:
         for ibatch in tqdm(range(1, nbatch+1), disable=disable_tqdm_level(verbose, verbose_level=2)):
@@ -150,7 +149,6 @@ def data_gen(V, batch, nbatches,seq_len=10):
 import numpy as np
 
 
-
 MODE_BATCH_SAMPLING_AVAILABLE = ["proportional", "uniform"]
 
 
@@ -195,6 +193,7 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
                                                           add_end_char=add_end_char, tasks=[task],
                                                           max_char_len=max_char_len,
                                                           word_norm_dictionary=word_dictionary_norm, verbose=verbose)
+
     return readers
 
 

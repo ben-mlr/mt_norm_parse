@@ -36,7 +36,7 @@ def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_
                                                                                  normalized_sent)):
                         # WE REMOVE SPECIAL TOKENS ONLY IF THEY APPEAR AT THE BEGINING OR AT THE END
                         # on the source token !! (it tells us when we stop) (we nevern want to use gold information)
-                        if original_token in SPECIAL_TOKEN_LS  and (ind+1 == len(original_sent) or ind == 0):
+                        if original_token in SPECIAL_TOKEN_LS and (ind+1 == len(original_sent) or ind == 0):
                             ind_adjust = 1
                             continue
 

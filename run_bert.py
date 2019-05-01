@@ -11,10 +11,11 @@ PAD_BERT = "[PAD]"
 
 train_path = [PERMUTATION_TRAIN_DIC[10000]]
 dev_path = [PERMUTATION_TEST]
-train_path = [LEX_TRAIN]
-dev_path = [LEX_TEST]
-#test_paths_ls = [[TEST], [LIU_TRAIN], [LIU_DEV], [DEV], [LEX_TEST], [LEX_TRAIN], [LEX_LIU_TRAIN]]
-test_paths_ls = [[TEST]]
+train_path = [DEMO]
+#dev_path = [DEV]#[LIU_DEV]#[DEMO2]
+dev_path = None
+test_paths_ls = [[DEV],[LIU_DEV], [TEST]]#, [LIU_TRAIN], [LIU_DEV], [DEV], [LEX_TEST], [LEX_TRAIN], [LEX_LIU_TRAIN]]
+test_paths_ls = [[DEMO2]]
 
 tasks = ["normalize"]
 
@@ -29,14 +30,17 @@ if train:
     vocab_size = BERT_MODEL_DIC["bert-cased"]["vocab_size"]
 
     initialize_bpe_layer = True
+    freeze_parameters = True
+    freeze_layer_prefix_ls = ["bert"]
     model = get_bert_token_classification(pretrained_model_dir=model_dir,
                                           vocab_size=vocab_size,
+                                          freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                                           initialize_bpe_layer=initialize_bpe_layer)
 
     lr = 0.0001
     batch_size = 1
     null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary
-    description = "BERT_NORM"
+    description = "OTHER_DEV"
     print("{} lr batch_size initialize_bpe_layer training_data".format(REPORT_FLAG_VARIABLES_ENRICH_STR))
     print("{} tnr accuracy f1 tnr precision recall npvr".format(REPORT_FLAG_VARIABLES_EXPAND_STR))
     print("{} ".format(REPORT_FLAG_VARIABLES_FIXED_STR))
@@ -46,10 +50,11 @@ if train:
                 voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
                 auxilliary_task_norm_not_norm=True,
                 saving_every_epoch=10, lr=lr,
-                batch_size=batch_size, n_iter_max_per_epoch=2, n_epoch=1,
+                batch_size=batch_size, n_iter_max_per_epoch=2000, n_epoch=10,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
                 model_suffix="{}".format(description), debug=False,
+                freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                 initialize_bpe_layer=initialize_bpe_layer,
                 report=True, verbose=1)
 

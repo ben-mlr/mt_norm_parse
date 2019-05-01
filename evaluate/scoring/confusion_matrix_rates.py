@@ -1,8 +1,9 @@
 from env.importing import hmean
 from env.project_variables import TASKS_PARAMETER
+from io_.info_print import printing
 
 
-def get_perf_rate(metric, score_dic, n_tokens_dic, agg_func, task="normalize"):
+def get_perf_rate(metric, score_dic, n_tokens_dic, agg_func, task="normalize", verbose=1):
     """
     provides metric : the confusion matrix standart rates for the given task
     :param metric:
@@ -13,7 +14,9 @@ def get_perf_rate(metric, score_dic, n_tokens_dic, agg_func, task="normalize"):
     """
     if metric in ["recall", "f1", "accuracy"]:
         positive_obs = n_tokens_dic[agg_func][TASKS_PARAMETER[task]["predicted_classes"][1]]
-        recall = score_dic[agg_func][TASKS_PARAMETER[task]["predicted_classes"][1]] / positive_obs
+        recall = score_dic[agg_func][TASKS_PARAMETER[task]["predicted_classes"][1]] / positive_obs if positive_obs>0 else None
+        if positive_obs==0:
+            printing("WARNING : no positive observation were seen ", verbose=verbose, verbose_level=1)
         if metric == "recall":
             return recall, positive_obs
     if metric in ["precision", "f1", "accuracy"]:

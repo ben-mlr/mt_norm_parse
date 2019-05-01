@@ -19,6 +19,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
         run_mode="train", test_path_ls = None, dict_path=None, end_predictions=None,
         report=True, model_suffix="", description="",
         saving_every_epoch=10, lr=0.0001, fine_tuning_strategy="standart", model_location=None, model_id=None,
+        freeze_parameters=None, freeze_layer_prefix_ls=None,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
@@ -35,7 +36,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
         printing("CHECKPOINTING info : saving model every {}", var=saving_every_epoch, verbose=verbose, verbose_level=1)
     use_gpu = use_gpu_(use_gpu=None, verbose=verbose)
     train_data_label = "|".join([REPO_DATASET[_train_path] for _train_path in train_path])
-    dev_data_label = "|".join([REPO_DATASET[_dev_path] for _dev_path in dev_path])
+    dev_data_label = "|".join([REPO_DATASET[_dev_path] for _dev_path in dev_path]) if dev_path is not None else None
     if use_gpu:
         bert_with_classifier.to("cuda")
 
@@ -51,8 +52,10 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
         model_id, model_location, dict_path, tensorboard_log, end_predictions = \
             setup_repoting_location(model_suffix=model_suffix, root_dir_checkpoints=CHECKPOINT_BERT_DIR, verbose=verbose)
 
-        hyperparameters = OrderedDict([("model", "bert+token_classficiation"),("lr", lr),
-                                       ("initialize_bpe_layer", initialize_bpe_layer)])
+        hyperparameters = OrderedDict([("model", "bert+token_classficiation"), ("lr", lr),
+                                       ("initialize_bpe_layer", initialize_bpe_layer),
+                                       ("freeze_parameters", freeze_parameters),
+                                       ("freeze_layer_prefix", freeze_layer_prefix_ls)])
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
         if report:
             writer = SummaryWriter(log_dir=tensorboard_log)
@@ -64,8 +67,6 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                                               log_dir=tensorboard_log, target_dir=model_location,
                                               env=os.environ.get("ENV", "local"), status="running",
                                               verbose=1)
-
-
 
         except Exception as e:
             print("REPORTING TO GOOGLE SHEET FAILED")
@@ -83,12 +84,12 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
 
 
     # build or make dictionaries
-
+    _dev_path = dev_path if dev_path is not None else train_path
     word_dictionary, word_norm_dictionary, char_dictionary, pos_dictionary, \
     xpos_dictionary, type_dictionary = \
         conllu_data.load_dict(dict_path=dict_path,
                               train_path=train_path if run_mode == "train" else None,
-                              dev_path=dev_path if run_mode == "train" else None,
+                              dev_path=_dev_path if run_mode == "train" else None,
                               test_path=None,
                               word_embed_dict={},
                               dry_run=False,
@@ -109,6 +110,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                                  add_start_char=1, add_end_char=1, symbolic_end=1,
                                  symbolic_root=1, bucket=True, max_char_len=20,
                                  verbose=verbose)
+
     readers_dev = readers_load(datasets=dev_path, tasks=tasks, word_dictionary=word_dictionary,
                                word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
                                pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
@@ -116,7 +118,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                                norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=True,
                                add_start_char=1, add_end_char=1,
                                symbolic_end=1, symbolic_root=1, bucket=True, max_char_len=20,
-                               verbose=verbose)
+                               verbose=verbose) if dev_path is not None else None
     # Load tokenizer
     if run_mode == "train":
         try:
@@ -124,6 +126,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
 
                 checkpointing_model_data = (epoch % saving_every_epoch == 0 or epoch == (n_epoch - 1))
                 # build iterator on the loaded data
+                print("DEBUG:iter_train", tasks, train_path)
                 batchIter_train = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_train, batch_size=batch_size,
                                                                      word_dictionary=word_dictionary,
                                                                      char_dictionary=char_dictionary,
@@ -133,6 +136,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                                                                      extend_n_batch=1,
                                                                      dropout_input=0.0,
                                                                      verbose=verbose)
+                print("DEBUG:iter_dev", tasks, dev_path)
+
                 batchIter_dev = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_dev, batch_size=batch_size,
                                                                    word_dictionary=word_dictionary,
                                                                    char_dictionary=char_dictionary,
@@ -141,7 +146,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                                                                    get_batch_mode=False,
                                                                    extend_n_batch=1,
                                                                    dropout_input=0.0,
-                                                                   verbose=verbose)
+                                                                   verbose=verbose) if dev_path is not None else None
                 # TODO add optimizer (if not : devv loss)
                 optimizer = dptx.get_optimizer(bert_with_classifier.parameters(), lr=lr)
                 bert_with_classifier.train()
@@ -163,7 +168,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                                                                 writing_pred=checkpointing_model_data, dir_end_pred=end_predictions,
                                                                 predict_mode=True, data_label=dev_data_label, epoch=epoch,
                                                                 null_token_index=null_token_index, null_str=null_str, model_id=model_id,
-                                                                n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+                                                                n_iter_max=n_iter_max_per_epoch, verbose=verbose) if dev_path is not None else None, 0, None
 
                 printing("PERFORMANCE {} TRAIN", var=[epoch, perf_report_train],
                          verbose=verbose, verbose_level=1)
@@ -225,6 +230,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                                                                iter=iter_dev, use_gpu=use_gpu,
                                                                bert_with_classifier=bert_with_classifier, writer=None,
                                                                writing_pred=True,
+                                                               optimizer=None,
                                                                args_dir=args_dir, model_id=model_id,
                                                                dir_end_pred=end_predictions,
                                                                predict_mode=True, data_label=label_data,

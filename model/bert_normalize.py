@@ -5,8 +5,9 @@ from io_.info_print import printing
 
 
 def get_bert_token_classification(vocab_size,
-                                   pretrained_model_dir=None, checkpoint_dir=None,
-                                   initialize_bpe_layer=None, verbose=1):
+                                  pretrained_model_dir=None, checkpoint_dir=None,
+                                  freeze_parameters=False, freeze_layer_prefix_ls=None,
+                                  initialize_bpe_layer=None, verbose=1):
     """
     two use case :
     - initialize bert based on pretrained_model_dir and add a token prediction module based or not on initialize_bpe_layer
@@ -43,6 +44,13 @@ def get_bert_token_classification(vocab_size,
             printing("MODEL : initializing output layer with embedding layer + extra token ",
                      verbose=verbose,
                      verbose_level=1)
+        if freeze_parameters:
+            assert freeze_layer_prefix_ls is not None, "ERROR freeze_layer_prefix should bot be None "
+            for name, param in model.named_parameters():
+                for prefix in freeze_layer_prefix_ls:
+                    if name.startswith(prefix):
+                        param.requires_grad = False
+                        printing("TRAINING : freezing {} parameter ", var=[name], verbose=verbose, verbose_level=1)
     elif checkpoint_dir is not None:
         assert initialize_bpe_layer is None, "ERROR initialize_bpe_layer should b None as loading from existing checkpoint"
         model.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))

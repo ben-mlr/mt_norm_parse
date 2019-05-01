@@ -26,7 +26,7 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None,
   to_create = True if force_new_dic else to_create
 
   if to_create:
-    assert isinstance(train_path, list) and isinstance(dev_path, list), \
+    assert isinstance(train_path, list) and (isinstance(dev_path, list) or dev_path is None), \
       "ERROR : TRAIN:{} not list or DEV:{} not list ".format(train_path, dev_path)
     assert train_path is not None and dev_path is not None and add_start_char is not None
 

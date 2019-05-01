@@ -130,7 +130,7 @@ def epoch_run(batchIter, tokenizer,
                     if skip_1_t_n:
                         printing("WE SKIP IT ", verbose=verbose, verbose_level=2)
                         continue
-                if isinstance(verbose, int) :
+                if isinstance(verbose, int):
                     _verbose += 1
 
             else:
@@ -257,7 +257,7 @@ def epoch_run(batchIter, tokenizer,
                 print("MODE data {} optimizing".format(data_label))
             else:
                 mode = "dev"
-                print("MODE data {} optimizing".format(data_label))
+                print("MODE data {} not optimizing".format(data_label))
 
             if writer is not None:
                 writer.add_scalars("loss",
@@ -323,7 +323,6 @@ def epoch_run(batchIter, tokenizer,
                                              report_path_val=None,
                                              data_val=data_label)
                     reports.append(report)
-
 
         if writer is not None:
             writer.add_scalars("prediction_score",
