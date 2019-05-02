@@ -2,7 +2,8 @@ from env.importing import *
 from io_.info_print import printing
 
 
-def setup_repoting_location(root_dir_checkpoints, model_suffix="" , verbose=1):
+def setup_repoting_location(root_dir_checkpoints, model_suffix="", shared_id=None,
+                            verbose=1):
     """
     create an id for a model and locations for checkpoints, dictionaries, tensorboard logs, data
     :param model_suffix:
@@ -10,6 +11,8 @@ def setup_repoting_location(root_dir_checkpoints, model_suffix="" , verbose=1):
     :return:
     """
     model_local_id = str(uuid4())[:5]
+    if shared_id is not None:
+        model_local_id = shared_id+"-"+model_local_id
     if model_suffix != "":
         model_local_id += "-"+model_suffix
     model_location = os.path.join(root_dir_checkpoints, model_local_id)

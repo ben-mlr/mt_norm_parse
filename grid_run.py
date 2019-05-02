@@ -396,7 +396,7 @@ if __name__ == "__main__":
                                                   batch_size_ls=[1, 2],
                                                   lr_ls=[0.001], tasks_ls=[["normalize"]],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
-                                                  train_path=[[DEV]], dev_path=[[TEST]], test_paths=[[[TEST]]],
+                                                  train_path=[[LIU_DEV]], dev_path=[[DEV]], test_paths=[[[DEV], [LIU_DEV], [TEST]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,

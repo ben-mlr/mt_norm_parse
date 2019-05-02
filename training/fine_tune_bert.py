@@ -20,6 +20,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
         report=True, model_suffix="", description="",
         saving_every_epoch=10, lr=0.0001, fine_tuning_strategy="standart", model_location=None, model_id=None,
         freeze_parameters=None, freeze_layer_prefix_ls=None,
+        report_full_path_shared=None, shared_id=None,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
@@ -50,7 +51,9 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
     if run_mode == "train":
         assert model_location is None and model_id is None, "ERROR we are creating a new one "
         model_id, model_location, dict_path, tensorboard_log, end_predictions = \
-            setup_repoting_location(model_suffix=model_suffix, root_dir_checkpoints=CHECKPOINT_BERT_DIR, verbose=verbose)
+            setup_repoting_location(model_suffix=model_suffix, root_dir_checkpoints=CHECKPOINT_BERT_DIR,
+                                    shared_id=shared_id,
+                                    verbose=verbose)
 
         hyperparameters = OrderedDict([("model", "bert+token_classficiation"), ("lr", lr),
                                        ("initialize_bpe_layer", initialize_bpe_layer),
@@ -258,6 +261,15 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
 
     report_dir = os.path.join(model_location, model_id+"-report.json")
     json.dump(report_all, open(report_dir, "w"))
-    printing("{} {} ", var=[REPORT_FLAG_DIR_STR , report_dir], verbose=verbose, verbose_level=0)
+    if report_full_path_shared is not None:
+        report = json.load(open(report_full_path_shared, "r"))
+        report.append(report_all)
+        json.dump(report, open(report_full_path_shared, "w"))
+        printing("{} {} ", var=[REPORT_FLAG_DIR_STR, report_dir], verbose=verbose, verbose_level=0)
+
+    json.dump(report, open(report_dir, "w"))
+
+    if report_full_path_shared is None:
+        printing("{} {} ", var=[REPORT_FLAG_DIR_STR , report_dir], verbose=verbose, verbose_level=0)
 
     return bert_with_classifier

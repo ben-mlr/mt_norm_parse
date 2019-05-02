@@ -250,8 +250,8 @@ def epoch_run(batchIter, tokenizer,
                     #  compute prediction score
 
             loss += _loss
-            if optimizer is not None:
-                _loss.backward()
+
+            _loss.backward()
             if optimizer is not None:
                 optimizer.step()
                 optimizer.zero_grad()

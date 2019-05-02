@@ -1,3 +1,4 @@
+from env.importing import os
 from training.bert_normalize.fine_tune_bert import run
 from model.bert_normalize import get_bert_token_classification
 from io_.dat.constants import TOKEN_BPE_BERT_START, TOKEN_BPE_BERT_SEP, NULL_STR, PAD_BERT, PAD_ID_BERT
@@ -30,6 +31,8 @@ def train_eval_bert_normalize(args, verbose=1):
     batch_size = args.batch_size
     null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary
     description = "grid"
+    dir_grid = args.overall_report_dir
+    report_full_dir = os.path.join(dir_grid , args.overall_label+"-report.json")
     run(bert_with_classifier=model,
         voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=args.train_path, dev_path=args.dev_path,
         auxilliary_task_norm_not_norm=True,
@@ -39,7 +42,7 @@ def train_eval_bert_normalize(args, verbose=1):
         description=description, null_token_index=null_token_index, null_str=NULL_STR,
         model_suffix="{}".format(args.model_id_pref), debug=False,
         freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
-        initialize_bpe_layer=initialize_bpe_layer,
+        initialize_bpe_layer=initialize_bpe_layer, report_full_path_shared=report_full_dir, shared_id=args.overall_label,
         report=True, verbose=1)
 
     printing("MODEL {} trained and evaluated", var=[args.model_id_pref], verbose_level=1, verbose=verbose)
