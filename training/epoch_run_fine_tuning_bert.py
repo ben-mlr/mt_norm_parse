@@ -101,6 +101,7 @@ def epoch_run(batchIter, tokenizer,
     skipping_evaluated_batch = 0
     mode = "?"
     new_file = True
+
     while True:
 
         try:
@@ -177,9 +178,9 @@ def epoch_run(batchIter, tokenizer,
                      var=[input_tokens_tensor.is_cuda, token_type_ids.is_cuda, input_mask.is_cuda,
                           output_tokens_tensor_aligned.is_cuda],
                      verbose=verbose, verbose_level="cuda")
-
+            
+            print("DEBUG epoch_run_fine_tune optimizer is not None : computing loss")
             _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask, labels=output_tokens_tensor_aligned)
-
             if predict_mode:
                 # if predict more : will evaluate the model and write its predictions 
                 logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask)
@@ -249,7 +250,8 @@ def epoch_run(batchIter, tokenizer,
                     #  compute prediction score
 
             loss += _loss
-            _loss.backward()
+            if optimizer is not None:
+                _loss.backward()
             if optimizer is not None:
                 optimizer.step()
                 optimizer.zero_grad()
@@ -261,7 +263,8 @@ def epoch_run(batchIter, tokenizer,
 
             if writer is not None:
                 writer.add_scalars("loss",
-                                {"loss-{}-bpe".format(mode): _loss.clone().cpu().data.numpy()}, iter+batch_i)
+                                {"loss-{}-bpe".format(mode): _loss.clone().cpu().data.numpy() if not isinstance(_loss,int) else 0},
+                                   iter+batch_i)
         except StopIteration:
             break
 

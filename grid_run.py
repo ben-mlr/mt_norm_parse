@@ -90,7 +90,7 @@ if __name__ == "__main__":
         assert os.environ.get("MODE_RUN") in ["DISTRIBUTED", "SINGLE"]
         run_standart = os.environ.get("MODE_RUN") != "DISTRIBUTED"
       else:
-          run_standart = True
+          run_standart = False
           print("LOCAL")
 
       params = []
@@ -251,7 +251,7 @@ if __name__ == "__main__":
               update_status(row=row, new_status="done {}".format(warmup_desc), verbose=1)
       else:
           train_path, dev_path = EN_LINES_EWT_TRAIN, EWT_DEV#MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
-          NORMALIZE = True
+          NORMALIZE = False
           if NORMALIZE:
               epochs = 150
               #train_path, dev_path = CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV  # MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV # MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV #MTNT_TOK_TRAIN, MTNT_TOK_DEV#EN_LINES_EWT_TRAIN, EWT_DEV#CP_PASTE_WR_TRAIN, CP_WR_PASTE_DEV#TRAINING, EWT_DEV #LIU_TRAIN, LIU_DEV ## EWT_DEV, DEV
@@ -379,12 +379,42 @@ if __name__ == "__main__":
                                                 description_comment=description_comment,
                                                 gpu_mode="random",
                                                 gpus_ls=gpu_ls,
+
                                                 scoring_func="exact_match",
                                                 dropout_input_ls=[0.33, 0.4],
                                                 multi_task_loss_ponderation_ls=[{"pos": 1, "normalize": 0,
                                                                                  "norm_not_norm": 0,
                                                                                  "edit_prediction":0}],
                                                 write_to_dir=RUN_SCRIPTS_DIR)
+
+          BERT_NORMALIZE = True
+          if BERT_NORMALIZE:
+              epochs = 5
+              dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
+                                                  init_param=None,
+                                                  grid_label=LABEL_GRID,
+                                                  batch_size_ls=[1, 2],
+                                                  lr_ls=[0.001], tasks_ls=[["normalize"]],
+                                                  overall_report_dir=dir_grid, overall_label=LABEL_GRID,
+                                                  train_path=[[DEV]], dev_path=[[TEST]], test_paths=[[[TEST]]],
+                                                  warmup=test_before_run, test_before_run=test_before_run,
+                                                  dir_grid=dir_grid, environment=environment, dir_log=log,
+                                                  epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
+                                                  gpu_mode="random", gpus_ls=gpu_ls,
+                                                  write_to_dir=RUN_SCRIPTS_DIR, description_comment=description_comment,
+                                                  bert_model_ls=["cased"], initialize_bpe_layer_ls=[1],
+                                                  freeze_parameters_ls=[0], freeze_layer_prefix_ls_ls=[None],
+                                                  word_recurrent_cell_encoder_ls=None,dropout_word_encoder_cell_ls=None,stable_decoding_state_ls=None,
+                                                  word_decoding_ls=None,word_embed_ls=None, dir_sent_encoder_ls=None, dir_word_encoder_ls=None,
+                                                  word_embed_init_ls=None, attention_tagging_ls=None, char_src_attention_ls=None, teacher_force_ls=None,
+                                                  proportion_pred_train_ls=None, shared_context_ls=None, word_embedding_projected_dim_ls=None,
+                                                  char_level_embedding_projection_dim_ls=None, n_layers_sent_cell_ls=None, n_layers_word_encoder_ls=None,
+                                                  unrolling_word_ls=None, scoring_func=None, mode_word_encoding_ls=None,
+                                                  dropout_input_ls=None, multi_task_loss_ponderation_ls=None,
+                                                  scale_ls=[1])
+                                # arguments that are specific to script generation
+
+
           print("row:{}".format(row))
           print("dir_script:{}".format(dir_script))
 

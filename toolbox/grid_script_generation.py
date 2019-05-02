@@ -1,4 +1,5 @@
 from env.importing import *
+from toolbox.grid_tool import is_arg_available
 
 from env.project_variables import PROJECT_PATH
 from toolbox.grid_tool import grid_param_label_generate, get_experimented_tasks
@@ -20,6 +21,7 @@ params_dozat = {"hidden_size_encoder": 200, "output_dim": 100, "char_embedding_d
                 "hidden_size_sent_encoder": 200, "hidden_size_decoder": 100, "batch_size": 500}
 
 
+
 def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir_log, epochs,
                       train_path, dev_path, test_paths, overall_report_dir, overall_label,
                       stable_decoding_state_ls, word_decoding_ls, batch_size_ls,
@@ -31,16 +33,21 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                       n_layers_sent_cell_ls, unrolling_word_ls,attention_tagging_ls, n_layers_word_encoder_ls, multi_task_loss_ponderation_ls,dir_word_encoder_ls,
                       dropout_input_ls,
                       scale_ls, checkpointing_metric_ls=None, pos_specific_path=None, gpu_mode="random", description_comment="",
-                      gpus_ls=None, write_to_dir=None,test_before_run=False, scoring_func=None):
+                      gpus_ls=None, write_to_dir=None,test_before_run=False, scoring_func=None,
+                      initialize_bpe_layer_ls=None,
+                      freeze_layer_prefix_ls_ls=None,
+                      freeze_parameters_ls=None,
+                      bert_model_ls=None,
+                      py_script="train_evaluate_run"):
 
-    test_paths = [[",".join(path) for path in test_path_grid ] for test_path_grid in test_paths ]
+    test_paths = [[",".join(path) for path in test_path_grid] for test_path_grid in test_paths]
     if write_to_dir is not None:
         script_dir = os.path.join(write_to_dir, "{}-run.sh".format(overall_label))
     warmup_desc = "warmup" if warmup else ""
     if test_before_run:
         warmup_desc += " test_before_run"
     params, labels, default_all, analysed, fixed = grid_param_label_generate(
-                                                                            init_param,
+                                                                            init_param, py_script=py_script,
                                                                             train_ls=train_path, dev_ls=dev_path, test_ls=test_paths, checkpointing_metric_ls=checkpointing_metric_ls,
                                                                             scoring_func=scoring_func,
                                                                             grid_label=grid_label,
@@ -66,7 +73,12 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                                                                             char_level_embedding_projection_dim_ls=char_level_embedding_projection_dim_ls,
                                                                             unrolling_word_ls=unrolling_word_ls,
                                                                             n_layers_word_encoder_ls=n_layers_word_encoder_ls, dropout_input_ls=dropout_input_ls,
-                                                                            scale_ls=scale_ls, gpu_mode=gpu_mode, gpus_ls=gpus_ls)
+                                                                            scale_ls=scale_ls, gpu_mode=gpu_mode, gpus_ls=gpus_ls,
+                                                                            initialize_bpe_layer_ls=initialize_bpe_layer_ls,
+                                                                            freeze_layer_prefix_ls_ls=freeze_layer_prefix_ls_ls,
+                                                                            freeze_parameters_ls=freeze_parameters_ls,
+                                                                            bert_model_ls=bert_model_ls,
+                                                                            )
     if gpu_mode == "random":
         if gpus_ls is None:
             gpus_ls = GPU_AVAILABLE_DEFAULT_LS
@@ -78,20 +90,25 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                                                                                  description_comment,mode_run, analysed, fixed)
     try:
         row, col = append_reporting_sheet(git_id=get_commit_id(),tasks=get_experimented_tasks(params),
-                                      rioc_job=os.environ.get("OAR_JOB_ID", grid_label), description=description,
-                                      log_dir=dir_log, target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR,
-                                                                                              "{}*".format(grid_label)),
-                                      env=environment, status="running {}".format(warmup_desc),
-                                      verbose=1)
+                                          rioc_job=os.environ.get("OAR_JOB_ID", grid_label), description=description,
+                                          log_dir=dir_log, target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR,
+                                                                                                  "{}*".format(grid_label)),
+                                          env=environment, status="running {}".format(warmup_desc),
+                                          verbose=1)
     except:
         printing("GOOGLE SHEET CONNECTION FAILED", verbose=1, verbose_level=1)
         row = None
 
     for ind, (param, model_id_pref) in enumerate(zip(params, labels)):
         script = "CUDA_VISIBLE_DEVICES={} {} {}".format(0,#ind % len(gpus_ls),
-                                                        os.environ.get("PYTHON_CONDA", "python"), os.path.join(PROJECT_PATH, "train_evaluate_run.py"))
+                                                        os.environ.get("PYTHON_CONDA", "python"),
+                                                        os.path.join(PROJECT_PATH, "{}.py".format(py_script)))
         for arg, val in param.items():
             # args in NONE ARGS ARE NOT ADDED TO THE SCRIPT MAKER (they will be handle by default behavior later in the code)
+            if not is_arg_available(script=py_script, arg=arg):
+                continue
+            #pdb.set_trace()
+
             if val is None:
                 continue
             if arg in BOOL_ARGS:
@@ -138,12 +155,15 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
 
 
 if __name__ == "__main__":
-    from uuid import uuid4
-    test_before_run=False
-    epochs=1
-    LABEL_GRID= str(uuid4())[0:5]
 
-    script_generation(init_param=params_dozat,
+    from uuid import uuid4
+
+    test_before_run=False
+    epochs = 1
+    LABEL_GRID = str(uuid4())[0:5]
+
+    script_generation(py_script="train_evaluate_bert_normalizer",
+                      init_param=params_dozat,
                       grid_label=LABEL_GRID,
                       word_recurrent_cell_encoder_ls=["LSTM"],
                       dropout_word_encoder_cell_ls=[0.1],
@@ -151,23 +171,23 @@ if __name__ == "__main__":
                       word_decoding_ls=[0],
                       batch_size_ls=[50, 80],
                       word_embed_ls=[0],
-                      dir_sent_encoder_ls=[2],dir_word_encoder_ls=[2],
+                      dir_sent_encoder_ls=[2], dir_word_encoder_ls=[2],
                       lr_ls=[0.001],
                       word_embed_init_ls=[None],#, DIR_FASTEXT_WIKI_NEWS_W2V, DIR_TWEET_W2V],
-                      attention_tagging_ls=[1, 0],
-                      char_src_attention_ls=[1, 0],
+                      attention_tagging_ls=[1],
+                      char_src_attention_ls=[1],
                       teacher_force_ls=[1],
                       proportion_pred_train_ls=[None],
                       shared_context_ls=["all"],
                       word_embedding_projected_dim_ls=[125],
                       char_level_embedding_projection_dim_ls=[125],
-                      tasks_ls=[["pos"]],
+                      tasks_ls=[["normalize"]],
                       n_layers_sent_cell_ls=[2],
                       n_layers_word_encoder_ls=[1],
                       unrolling_word_ls=[1],
                       scoring_func="exact_match",
                       mode_word_encoding_ls=["sum"],
-                      dropout_input_ls=[0.4, 0.5],
+                      dropout_input_ls=[0.4],
                       multi_task_loss_ponderation_ls=[{"pos": 1, "normalize": 0, "norm_not_norm": 0, "edit_prediction":0},
                                                       # {"pos": 1, "normalize": 0, "norm_not_norm": 0.4, "edit_prediction":0},
                                                       # {"pos": 1, "normalize": 0, "norm_not_norm": 0.1 ,"edit_prediction":0},
@@ -179,9 +199,12 @@ if __name__ == "__main__":
                       train_path=[[DEV]], dev_path=[[TEST]], test_paths=[[[TEST, DEV]]],
                       warmup=test_before_run, test_before_run=test_before_run,
                       dir_grid="./", environment="local", dir_log="./",
-                      epochs=epochs ,
+                      epochs=epochs,
                       gpu_mode="random",
-                      write_to_dir=RUN_SCRIPTS_DIR, description_comment="")
+                      write_to_dir=RUN_SCRIPTS_DIR, description_comment="",
+                      bert_model_ls=["cased"], initialize_bpe_layer_ls=[1], freeze_parameters_ls=[0],
+                      freeze_layer_prefix_ls_ls=[None],
+                      )
 
 
 # default not used but could be

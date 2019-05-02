@@ -70,7 +70,7 @@ except Exception as e :
 	exception += " | " +str(e)
 
 # SEED INITIALIZATION
-print("...initializing seeds")
+print("IMPORTS : initializing seeds...")
 sys.path.insert(0,".")
 from env.project_variables import SEED_NP, SEED_TORCH
 # SEED_TORCH used for any model related randomness + batch picking, dropouts, ..
@@ -80,4 +80,4 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 np.random.seed(SEED_NP)
 
-print("ALL IMPORTS SUCESSFULLY LOADED {}  ".format("with exception : "+exception if exception != "" else ""))
+print("IMPORTS : all imports successfully loaded {}  ".format("with exception : "+exception if exception != "" else ""))

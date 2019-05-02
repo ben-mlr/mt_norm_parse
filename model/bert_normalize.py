@@ -45,7 +45,7 @@ def get_bert_token_classification(vocab_size,
                      verbose=verbose,
                      verbose_level=1)
         if freeze_parameters:
-            assert freeze_layer_prefix_ls is not None, "ERROR freeze_layer_prefix should bot be None "
+            assert freeze_layer_prefix_ls is not None, "ERROR freeze_layer_prefix should not be None "
             for name, param in model.named_parameters():
                 for prefix in freeze_layer_prefix_ls:
                     if name.startswith(prefix):

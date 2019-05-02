@@ -1,5 +1,20 @@
 
+# ALLOWED PARAMETERS
 
+AVAILABLE_TRAINING_EVAL_SCRIPT = ["train_evaluate_run", "train_evaluate_bert_normalizer"]
+# 1 means all accepted
+ARGUMENT_AVAILABLE_ALL = ["train_path", "dev_path", "test_path"]
+ARGUMENT_AVAILABLE_BERT = ["batch_size", "lr", "initialize_bpe_layer", "freeze_parameters",  "freeze_layer_prefix_ls", "bert_model"]
+ARGUMENT_AVAILABLE_BERT.extend(ARGUMENT_AVAILABLE_ALL)
+
+ARGUMENT_AVAIALBLE_SEQ2SEQ = [1]
+
+ARGS_AVAILABLE_PER_MODEL = {"train_evaluate_run": ARGUMENT_AVAIALBLE_SEQ2SEQ,
+                            "train_evaluate_bert_normalizer": ARGUMENT_AVAILABLE_BERT}
+
+
+# PARAMETERS
+## DEFAULT FOR SEQ2SEQ
 DEFAULT_LR = 0.001
 DEFAULT_WORD_EMBED_INIT = None
 DEFAULT_SHARED_CONTEXT = "all"

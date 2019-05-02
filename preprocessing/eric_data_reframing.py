@@ -119,5 +119,16 @@ if __name__ == "__main__":
 
     #conll_eric_to_conll_lexnorm(ERIC_ORIGINAL_DEMO, ERIC_ORIGINAL_DEMO+"-ttt_TEST-skped.conllu",
     # skipping_mwe_sent=True)
-    conll_eric_to_conll_lexnorm(ERIC_ORIGINAL, ERIC_ORIGINAL[:-7] + "-only_1to1.txt",
-                                skipping_mwe_sent=True, mode="3cols")
+    #conll_eric_to_conll_lexnorm(ERIC_ORIGINAL, ERIC_ORIGINAL[:-7] + "-only_1to1-test.txt",
+    #                            skipping_mwe_sent=True, mode="3cols")
+
+    with open(ERIC_ORIGINAL[:-7] + "-only_1to1-test.txt","r") as f:
+        with open(ERIC_ORIGINAL[:-7] + "-only_1to1-test-src.txt","w") as write_to:
+            for line in f:
+                if len(line.strip()) == 0:
+                    write_to.write(line)
+                else:
+                    write_to.write(line.strip().split("\t")[0]+"\n")
+
+        print("DONE")
+
