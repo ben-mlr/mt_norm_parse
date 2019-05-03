@@ -36,7 +36,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                       initialize_bpe_layer_ls=None,
                       freeze_layer_prefix_ls_ls=None,
                       freeze_parameters_ls=None,
-                      bert_model_ls=None,
+                      bert_model_ls=None, dropout_classifier_ls=None,
                       py_script="train_evaluate_run"):
 
     test_paths = [[",".join(path) for path in test_path_grid] for test_path_grid in test_paths]
@@ -77,6 +77,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                                                                             freeze_layer_prefix_ls_ls=freeze_layer_prefix_ls_ls,
                                                                             freeze_parameters_ls=freeze_parameters_ls,
                                                                             bert_model_ls=bert_model_ls,
+                                                                            dropout_classifier_ls=dropout_classifier_ls
                                                                             )
     if gpu_mode == "random":
         if gpus_ls is None:
@@ -107,8 +108,8 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
             if not is_arg_available(script=py_script, arg=arg):
                 continue
             #pdb.set_trace()
-
             if val is None:
+                # WE SKIP NONE VALUE : (None --> default ArgumentParser value for the given argument)
                 continue
             if arg in BOOL_ARGS:
                 val = int(val)

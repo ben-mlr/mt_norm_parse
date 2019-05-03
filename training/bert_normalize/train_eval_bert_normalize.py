@@ -25,6 +25,7 @@ def train_eval_bert_normalize(args, verbose=1):
                                           vocab_size=vocab_size,
                                           freeze_parameters=freeze_parameters,
                                           freeze_layer_prefix_ls=freeze_layer_prefix_ls,
+                                          dropout_classifier=args.dropout_classifier,
                                           initialize_bpe_layer=initialize_bpe_layer)
 
     lr = args.lr
@@ -32,7 +33,6 @@ def train_eval_bert_normalize(args, verbose=1):
     null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary
     description = "grid"
     dir_grid = args.overall_report_dir
-    report_full_dir = os.path.join(dir_grid , args.overall_label+"-report.json")
     run(bert_with_classifier=model,
         voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=args.train_path, dev_path=args.dev_path,
         auxilliary_task_norm_not_norm=True,
@@ -42,7 +42,8 @@ def train_eval_bert_normalize(args, verbose=1):
         description=description, null_token_index=null_token_index, null_str=NULL_STR,
         model_suffix="{}".format(args.model_id_pref), debug=False,
         freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls, bert_model=args.bert_model,
-        initialize_bpe_layer=initialize_bpe_layer, report_full_path_shared=report_full_dir, shared_id=args.overall_label,
+        initialize_bpe_layer=initialize_bpe_layer, report_full_path_shared=dir_grid, shared_id=args.overall_label,
+        args=args,
         report=True, verbose=1)
 
     printing("MODEL {} trained and evaluated", var=[args.model_id_pref], verbose_level=1, verbose=verbose)

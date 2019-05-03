@@ -1,12 +1,13 @@
-from env.importing import *
-from env.project_variables import *
 from env.models_dir import *
 from io_.info_print import printing
+
+from model.bert_tools_from_core_code.modeling import BertForTokenClassification, BertConfig
 
 
 def get_bert_token_classification(vocab_size,
                                   pretrained_model_dir=None, checkpoint_dir=None,
                                   freeze_parameters=False, freeze_layer_prefix_ls=None,
+                                  dropout_classifier=None,
                                   initialize_bpe_layer=None, verbose=1):
     """
     two use case :
@@ -28,7 +29,7 @@ def get_bert_token_classification(vocab_size,
                         num_hidden_layers=12, num_attention_heads=12, intermediate_size=3072)
     # QUESTION : WHERE IS THE MODEL ACTUALLY BEING LOADED ???
     num_labels = vocab_size + 1
-    model = BertForTokenClassification(config, num_labels)
+    model = BertForTokenClassification(config, num_labels, dropout_classifier=dropout_classifier)
 
     if pretrained_model_dir is not None:
         assert initialize_bpe_layer is not None, "ERROR initialize_bpe_layer should not be None "

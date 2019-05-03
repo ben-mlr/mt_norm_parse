@@ -1,6 +1,6 @@
 from env.models_dir import *
 from model.bert_normalize import get_bert_token_classification
-from training.fine_tune_bert import run
+from training.DEP_fine_tune_bert import run
 from evaluate.interact import interact_bert_wrap
 from model.bert_tools_from_core_code.tokenization import BertTokenizer
 from predict.predict_string_bert import interact_bert
@@ -20,13 +20,11 @@ test_paths_ls = [[DEV], [LIU_DEV], [TEST],[LIU_TRAIN]]#, [LIU_TRAIN], [LIU_DEV],
 tasks = ["normalize"]
 
 
-train = False
-playwith = True
+train = True
+playwith = False
 
 if train:
     # TODO : WARNING : why the delis still loaded even in vocab size not consistent with what is suppose to be the vocabulary of the model loaded
-
-
 
     voc_tokenizer = BERT_MODEL_DIC["bert-cased"]["vocab"]
     model_dir = BERT_MODEL_DIC["bert-cased"]["model"]

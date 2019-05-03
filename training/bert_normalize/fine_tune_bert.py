@@ -13,7 +13,7 @@ from training.epoch_run_fine_tuning_bert import epoch_run
 from toolbox.report_tools import write_args
 
 
-def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
+def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
         voc_tokenizer, auxilliary_task_norm_not_norm, bert_with_classifier,
         null_token_index, null_str, initialize_bpe_layer=None,
         run_mode="train", test_path_ls = None, dict_path=None, end_predictions=None,
@@ -57,11 +57,14 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
         hyperparameters = OrderedDict([("bert_model", bert_model), ("lr", lr),
                                        ("initialize_bpe_layer", initialize_bpe_layer),
                                        ("freeze_parameters", freeze_parameters),
-                                       ("freeze_layer_prefix", freeze_layer_prefix_ls)])
+                                       ("freeze_layer_prefix_ls", freeze_layer_prefix_ls),
+                                       ("dropout_classifier", args.dropout_classifier)])
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
         if report:
-            writer = SummaryWriter(log_dir=tensorboard_log)
-            writer.add_text("INFO-ARGUMENT-MODEL".format(model_id), str(hyperparameters), 0)
+            if report_full_path_shared is not None:
+                tensorboard_log = os.path.join(report_full_path_shared, "tensorboard")
+                writer = SummaryWriter(log_dir=tensorboard_log)
+            writer.add_text("INFO-ARGUMENT-MODEL-{}".format(model_id), str(hyperparameters), 0)
         try:
             if False:
               description += ",data:{}".format(train_data_label)+ " {}".format(" ".join(["{},{}".format(key, value) for key, value in hyperparameters.items()]))
@@ -170,7 +173,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                                                                 bert_with_classifier=bert_with_classifier, writer=writer,
                                                                 writing_pred=checkpointing_model_data, dir_end_pred=end_predictions,
                                                                 predict_mode=True, data_label=dev_data_label, epoch=epoch,
-                                                                null_token_index=null_token_index, null_str=null_str, model_id=model_id,
+                                                                null_token_index=null_token_index, null_str=null_str,
+                                                                model_id=model_id,
                                                                 n_iter_max=n_iter_max_per_epoch, verbose=verbose) if dev_path is not None else None, 0, None
 
                 printing("PERFORMANCE {} TRAIN", var=[epoch, perf_report_train],
@@ -242,18 +246,19 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                                                                n_iter_max=n_iter_max_per_epoch, verbose=verbose)
             print("PERFORMANCE TEST on data {} is {} ".format(label_data, perf_report_test))
             if writer is not None:
-                writer.add_text("Accuracy-{}".format(label_data),
+                writer.add_text("Accuracy-{}-{}-{}".format(model_id, label_data, run_mode),
                                 "After {} epochs with {} : performance is \n {} ".format(n_epoch, description,
                                                                                          str(perf_report_test)), 0)
             else:
-                printing("WARNING : could not add accuracy to tensorboard cause writer was found None", verbose=verbose, verbose_level=1)
+                printing("WARNING : could not add accuracy to tensorboard cause writer was found None", verbose=verbose,
+                         verbose_level=1)
             report_all.extend(perf_report_test)
         else:
             printing("EVALUATION none cause {} empty", var=[test_path_ls], verbose_level=1, verbose=verbose)
 
     if writer is not None:
         writer.close()
-        printing("tensorboard --logdir={} --host=localhost --port=1234 ", var=[os.path.join(model_id, "tensorboard")], verbose_level=1,
+        printing("tensorboard --logdir={} --host=localhost --port=1234 ", var=[tensorboard_log], verbose_level=1,
                  verbose=verbose)
     if row is not None:
         update_status(row=row, new_status="done", verbose=1)
@@ -261,14 +266,15 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
 
     report_dir = os.path.join(model_location, model_id+"-report.json")
     if report_full_path_shared is not None:
-        if os.path.isfile(report_full_path_shared):
-            report = json.load(open(report_full_path_shared, "r"))
+        report_full_dir = os.path.join(report_full_path_shared, shared_id + "-report.json")
+        if os.path.isfile(report_full_dir):
+            report = json.load(open(report_full_dir, "r"))
         else:
             report = []
             printing("REPORT = creating overall report at {} ", var=[report_dir], verbose=verbose, verbose_level=1)
         report.extend(report_all)
-        json.dump(report, open(report_full_path_shared, "w"))
-        printing("{} {} ", var=[REPORT_FLAG_DIR_STR, report_full_path_shared], verbose=verbose, verbose_level=0)
+        json.dump(report, open(report_full_dir, "w"))
+        printing("{} {} ", var=[REPORT_FLAG_DIR_STR, report_full_dir], verbose=verbose, verbose_level=0)
 
     json.dump(report_all, open(report_dir, "w"))
 

@@ -71,7 +71,8 @@ def grid_param_label_generate(param,
                               dropout_input_ls=None,
                               proportion_pred_train_ls=None,  attention_tagging_ls=None, multi_task_loss_ponderation_ls=None,
                               grid_label="", gpu_mode="random", gpus_ls=None, printout_info_var=True,
-                              initialize_bpe_layer_ls=None, freeze_parameters_ls=None, freeze_layer_prefix_ls_ls=None, bert_model_ls=None):
+
+                              initialize_bpe_layer_ls=None, freeze_parameters_ls=None, freeze_layer_prefix_ls_ls=None, bert_model_ls=None,dropout_classifier_ls=None):
 
   assert gpu_mode in GPU_MODE_SUPPORTED, "ERROR gpu_mode not in {}".format(str(GPU_MODE_SUPPORTED))
   assert py_script in AVAILABLE_TRAINING_EVAL_SCRIPT
@@ -213,20 +214,24 @@ def grid_param_label_generate(param,
         if args.startswith(lab):
           args = lab
           _args=lab+"_path"
-      dic_grid[_args] = eval(args+"_ls")
+      if _args != "test_path":
+        dic_grid[_args] = eval(args+"_ls")
     list_of_list_of_args = [lis_values for arg_dic, lis_values in dic_grid.items()]
 
   ind_model = 0
   if py_script == "train_evaluate_bert_normalizer":
     arg_free_combination = list(itertools.product(*list_of_list_of_args))
     printing("GRID : running free combination of argument !! ", verbose_level=1, verbose=1)
+    #pdb.set_trace()
     param0 = OrderedDict()
     # TODO : do the same for train_evaluate_run
     for combination in arg_free_combination:
       assert len(combination) == len(list(dic_grid.keys()))
       for argument, arg_value in zip(list(dic_grid.keys()), combination):
         param0[argument] = arg_value
-      params.append(param0)
+      assert len(test_ls) == 1, "ONLY 1 task supported "
+      param0["test_path"] = test_ls[0]
+      params.append(param0.copy())
       labels.append("{}-model_{}".format(grid_label, ind_model))
       ind_model += 1
   elif py_script == "train_evaluate_run":
@@ -353,7 +358,7 @@ def grid_param_label_generate(param,
       printing("GRID HYPERPARAMETERS : analysed variables ", var=[var, vals], verbose=1, verbose_level=1)
       studied_vars.append(var)
       if var not in KEEP_ONLY_REMOVE:
-        print("GRID_INFO values ",var, " ".join([str(val) for val in vals]))
+        print("GRID_INFO values ", var, " ".join([str(val) for val in vals]))
     else:
       printing("GRID HYPERPARAMETERS : fixed {} {} ", var=[var, vals], verbose=1, verbose_level=1)
       if var in KEEP_ONLY_REMOVE:
@@ -375,5 +380,5 @@ def grid_param_label_generate(param,
     print("GRID_INFO enrch vars=  ", to_enrich)
     print("GRID_INFO analy vars=  ", to_analysed)
     print("GRID_INFO fixed vals=   ", to_keep_only)
-
+  pdb.set_trace()
   return params, labels, info_default, studied_vars, fixed_vars

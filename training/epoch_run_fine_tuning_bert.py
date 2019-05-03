@@ -180,9 +180,9 @@ def epoch_run(batchIter, tokenizer,
                      verbose=verbose, verbose_level="cuda")
             
             print("DEBUG epoch_run_fine_tune optimizer is not None : computing loss")
-            _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask, labels=output_tokens_tensor_aligned)
-            if optimizer is None:
-                _loss = _loss.detach()
+            _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
+                                         labels=output_tokens_tensor_aligned)
+            
             if predict_mode:
                 # if predict more : will evaluate the model and write its predictions 
                 logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask)
@@ -251,8 +251,7 @@ def epoch_run(batchIter, tokenizer,
                     #  write to conll
                     #  compute prediction score
 
-            loss += _loss
-
+            loss += _loss.detach()
             if optimizer is not None:
                 _loss.backward()
                 optimizer.step()
@@ -265,7 +264,7 @@ def epoch_run(batchIter, tokenizer,
 
             if writer is not None:
                 writer.add_scalars("loss",
-                                {"loss-{}-bpe".format(mode): _loss.clone().cpu().data.numpy() if not isinstance(_loss,int) else 0},
+                                   {"loss-{}-{}-bpe".format(mode, model_id): _loss.clone().cpu().data.numpy() if not isinstance(_loss,int) else 0},
                                    iter+batch_i)
         except StopIteration:
             break
@@ -328,6 +327,11 @@ def epoch_run(batchIter, tokenizer,
                                              report_path_val=None,
                                              data_val=data_label)
                     reports.append(report)
+                    if writer is not None:
+                        writer.add_scalars("perf-{}".format(mode),
+                                       {"{}-{}-{}-bpe".format(metric_val, mode, model_id): score if score is not None else 0
+                                        },
+                                       iter + batch_i)
 
 
     else:
