@@ -20,7 +20,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
         report=True, model_suffix="", description="",
         saving_every_epoch=10, lr=0.0001, fine_tuning_strategy="standart", model_location=None, model_id=None,
         freeze_parameters=None, freeze_layer_prefix_ls=None,
-        report_full_path_shared=None, shared_id=None,
+        report_full_path_shared=None, shared_id=None, bert_model=None,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
@@ -54,7 +54,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
             setup_repoting_location(model_suffix=model_suffix, root_dir_checkpoints=CHECKPOINT_BERT_DIR, shared_id=shared_id,
                                     verbose=verbose)
 
-        hyperparameters = OrderedDict([("model", "bert+token_classficiation"), ("lr", lr),
+        hyperparameters = OrderedDict([("bert_model", bert_model), ("lr", lr),
                                        ("initialize_bpe_layer", initialize_bpe_layer),
                                        ("freeze_parameters", freeze_parameters),
                                        ("freeze_layer_prefix", freeze_layer_prefix_ls)])
@@ -63,12 +63,13 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
             writer = SummaryWriter(log_dir=tensorboard_log)
             writer.add_text("INFO-ARGUMENT-MODEL".format(model_id), str(hyperparameters), 0)
         try:
-            description += ",data:{}".format(train_data_label)+ " {}".format(" ".join(["{},{}".format(key, value) for key, value in hyperparameters.items()]))
-            row, col = append_reporting_sheet(git_id=gr.get_commit_id(), tasks="BERT NORMALIZE",
-                                              rioc_job=os.environ.get("OAR_JOB_ID", "local"), description=description,
-                                              log_dir=tensorboard_log, target_dir=model_location,
-                                              env=os.environ.get("ENV", "local"), status="running",
-                                              verbose=1)
+            if False:
+              description += ",data:{}".format(train_data_label)+ " {}".format(" ".join(["{},{}".format(key, value) for key, value in hyperparameters.items()]))
+              row, col = append_reporting_sheet(git_id=gr.get_commit_id(), tasks="BERT NORMALIZE",
+                                                rioc_job=os.environ.get("OAR_JOB_ID", "local"), description=description,
+                                                log_dir=tensorboard_log, target_dir=model_location,
+                                                env=os.environ.get("ENV", "local"), status="running",
+                                                verbose=1)
 
         except Exception as e:
             print("REPORTING TO GOOGLE SHEET FAILED")
@@ -189,8 +190,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
                     args_dir = write_args(dir=model_location, checkpoint_dir=checkpoint_dir,
                                           model_id=model_id,
                                           info_checkpoint=OrderedDict([("n_epochs", epoch+1), ("batch_size", batch_size),
-                                                                       ("training_data", train_data_label),
-                                                                       ("dev_data", dev_data_label)]),
+                                                                       ("train_path", train_data_label),
+                                                                       ("dev_path", dev_data_label)]),
                                           verbose=verbose)
 
             print("PERFORMANCE LAST {} TRAIN".format(epoch), perf_report_train)
@@ -259,21 +260,20 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,
         update_status(row=row, new_status=tensorboard_log, verbose=1, col_number=10)
 
     report_dir = os.path.join(model_location, model_id+"-report.json")
-    json.dump(report_all, open(report_dir, "w"))
     if report_full_path_shared is not None:
         if os.path.isfile(report_full_path_shared):
             report = json.load(open(report_full_path_shared, "r"))
         else:
             report = []
             printing("REPORT = creating overall report at {} ", var=[report_dir], verbose=verbose, verbose_level=1)
-        report.append(report_all)
+        report.extend(report_all)
         json.dump(report, open(report_full_path_shared, "w"))
-        printing("{} {} ", var=[REPORT_FLAG_DIR_STR, report_dir], verbose=verbose, verbose_level=0)
+        printing("{} {} ", var=[REPORT_FLAG_DIR_STR, report_full_path_shared], verbose=verbose, verbose_level=0)
 
-    json.dump(report, open(report_dir, "w"))
+    json.dump(report_all, open(report_dir, "w"))
 
     if report_full_path_shared is None:
-        printing("{} {} ", var=[REPORT_FLAG_DIR_STR , report_dir], verbose=verbose, verbose_level=0)
+        printing("{} {} ", var=[REPORT_FLAG_DIR_STR, report_dir], verbose=verbose, verbose_level=0)
 
 
     return bert_with_classifier

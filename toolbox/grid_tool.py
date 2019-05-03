@@ -14,8 +14,11 @@ GPU_MODE_SUPPORTED = ["random", "fixed", "CPU"]
 
 
 def get_experimented_tasks(params):
-  tasks_ls = ["+".join(param["tasks"]) for param in params]
-  return str((set(tasks_ls)))
+  try:
+    tasks_ls = ["+".join(param["tasks"]) for param in params]
+    return str((set(tasks_ls)))
+  except:
+    return "?"
 
 
 def get_gpu_id(gpu_mode, gpus_ls, verbose):
@@ -183,8 +186,9 @@ def grid_param_label_generate(param,
   for def_ in default:
     info_default.append((def_[0], def_[1])) #" "+str(def_[0])+","+str(def_[0])
     printing("GRID : {} argument defaulted to {} ", var=[str(def_)[:-6], def_], verbose=0, verbose_level=0)
-
+  # dic_grid will be used for logging (used for reports)
   if py_script == "train_evaluate_run":
+
     dic_grid = {"batch_size": batch_size_ls,# "auxilliary_task_norm_not_norm": auxilliary_task_norm_not_norm_ls,
               "shared_context": shared_context_ls,
               "lr": lr_ls, "word_embed_init": word_embed_init_ls, "dir_word_encoder": dir_word_encoder_ls,

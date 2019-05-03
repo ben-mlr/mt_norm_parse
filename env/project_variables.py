@@ -44,7 +44,7 @@ AVAILABLE_AGGREGATION_FUNC_AUX_TASKS = ["norm_not_norm", "edit_prediction"]
 
 
 TASKS_2_METRICS_STR = {"all": ["accuracy-normalize","InV-accuracy-normalize","OOV-accuracy-normalize","npv-normalize","recall-normalize","precision-normalize","tnr-normalize","accuracy-pos"],
-                       "normalize": ["accuracy-normalize","InV-accuracy-normalize","OOV-accuracy-normalize","npv-normalize","recall-normalize","precision-normalize","tnr-normalize"],
+                       "normalize": ["accuracy-normalize", "InV-accuracy-normalize", "OOV-accuracy-normalize", "npv-normalize", "recall-normalize", "precision-normalize", "tnr-normalize"],
                        "pos": ["accuracy-pos"],
                        "edit_prediction": [""],
                        "norm_not_norm": ["IoU-pred-normed","recall-norm_not_norm","accuracy-norm_not_norm","IoU-pred-need_norm","precision-norm_not_norm"]}

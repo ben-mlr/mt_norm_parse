@@ -21,7 +21,6 @@ params_dozat = {"hidden_size_encoder": 200, "output_dim": 100, "char_embedding_d
                 "hidden_size_sent_encoder": 200, "hidden_size_decoder": 100, "batch_size": 500}
 
 
-
 def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir_log, epochs,
                       train_path, dev_path, test_paths, overall_report_dir, overall_label,
                       stable_decoding_state_ls, word_decoding_ls, batch_size_ls,
@@ -87,20 +86,20 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
             gpus_ls = ["0"]
     mode_run = "dist"
     description = "{} - {} ({}) : Analysing : {} with regard to {} fixed".format(len(params) if not warmup else str(1)+"_WARMUP",
-                                                                                 description_comment,mode_run, analysed, fixed)
+                                                                                 description_comment, mode_run, analysed, fixed)
     try:
-        row, col = append_reporting_sheet(git_id=get_commit_id(),tasks=get_experimented_tasks(params),
+        row, col = append_reporting_sheet(git_id=get_commit_id(), tasks=get_experimented_tasks(params),
                                           rioc_job=os.environ.get("OAR_JOB_ID", grid_label), description=description,
                                           log_dir=dir_log, target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR,
                                                                                                   "{}*".format(grid_label)),
                                           env=environment, status="running {}".format(warmup_desc),
                                           verbose=1)
-    except:
-        printing("GOOGLE SHEET CONNECTION FAILED", verbose=1, verbose_level=1)
+    except Exception as e:
+        printing("GOOGLE SHEET CONNECTION FAILED {}", var=[e], verbose=1, verbose_level=1)
         row = None
 
     for ind, (param, model_id_pref) in enumerate(zip(params, labels)):
-        script = "CUDA_VISIBLE_DEVICES={} {} {}".format(0,#ind % len(gpus_ls),
+        script = "CUDA_VISIBLE_DEVICES={} {} {}".format(ind % len(gpus_ls),
                                                         os.environ.get("PYTHON_CONDA", "python"),
                                                         os.path.join(PROJECT_PATH, "{}.py".format(py_script)))
         for arg, val in param.items():

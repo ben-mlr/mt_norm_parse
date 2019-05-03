@@ -41,7 +41,7 @@ def train_eval_bert_normalize(args, verbose=1):
         test_path_ls=args.test_paths,
         description=description, null_token_index=null_token_index, null_str=NULL_STR,
         model_suffix="{}".format(args.model_id_pref), debug=False,
-        freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
+        freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls, bert_model=args.bert_model,
         initialize_bpe_layer=initialize_bpe_layer, report_full_path_shared=report_full_dir, shared_id=args.overall_label,
         report=True, verbose=1)
 

@@ -181,6 +181,8 @@ def epoch_run(batchIter, tokenizer,
             
             print("DEBUG epoch_run_fine_tune optimizer is not None : computing loss")
             _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask, labels=output_tokens_tensor_aligned)
+            if optimizer is None:
+                _loss = _loss.detach()
             if predict_mode:
                 # if predict more : will evaluate the model and write its predictions 
                 logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask)
@@ -251,8 +253,8 @@ def epoch_run(batchIter, tokenizer,
 
             loss += _loss
 
-            _loss.backward()
             if optimizer is not None:
+                _loss.backward()
                 optimizer.step()
                 optimizer.zero_grad()
                 mode = "train"
@@ -311,8 +313,8 @@ def epoch_run(batchIter, tokenizer,
             if "all" in samples and TASKS_PARAMETER["normalize"]["predicted_classes"][0] in samples and TASKS_PARAMETER["normalize"]["predicted_classes"][1] in samples:
 
                 # then we can compute all the confusion matrix rate
-
-                for metric_val in ["recall", "precision", "f1", "tnr", "npvr", "accuracy"]:
+                # TODO : factore with TASKS_2_METRICS_STR
+                for metric_val in ["recall-normalize", "precision-normalize", "f1-normalize", "tnr-normalize", "npv-normalize", "accuracy-normalize"]:
                     score, n_rate_universe = get_perf_rate(metric=metric_val, n_tokens_dic=n_tokens_dic,
                                                            score_dic=score_dic, agg_func=agg_func)
                     report = report_template(metric_val=metric_val, subsample="rates", info_score_val=None,
@@ -327,12 +329,7 @@ def epoch_run(batchIter, tokenizer,
                                              data_val=data_label)
                     reports.append(report)
 
-        if writer is not None:
-            writer.add_scalars("prediction_score",
-                               {
-                                   "exact_match-all-{}".format(mode): report["score"]
-                               },
-                               epoch)
+
     else:
         reports = None
     iter += batch_i
