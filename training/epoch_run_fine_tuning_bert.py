@@ -30,6 +30,7 @@ def epoch_run(batchIter, tokenizer,
               writer=None, optimizer=None,
               predict_mode=False, topk=None, metric=None,
               print_pred=False, args_dir=None,
+              reference_word_dic=None,
               writing_pred=False, dir_end_pred=None, extra_label_for_prediction="",
               verbose=0):
     """
@@ -93,7 +94,7 @@ def epoch_run(batchIter, tokenizer,
     skipping_batch_n_to_1 = 0
 
     loss = 0
-    samples = ["all", "NEED_NORM", "NORMED"]
+    samples = ["all", "NEED_NORM", "NORMED", "InV", "OOV"]
     agg_func_ls = ["sum"]
     score_dic = {agg_func: {sample: 0 for sample in samples} for agg_func in agg_func_ls }
     n_tokens_dic = {agg_func: {sample: 0 for sample in samples} for agg_func in agg_func_ls}
@@ -179,7 +180,6 @@ def epoch_run(batchIter, tokenizer,
                           output_tokens_tensor_aligned.is_cuda],
                      verbose=verbose, verbose_level="cuda")
             
-            print("DEBUG epoch_run_fine_tune optimizer is not None : computing loss")
             _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
                                          labels=output_tokens_tensor_aligned)
             
@@ -222,6 +222,7 @@ def epoch_run(batchIter, tokenizer,
                                                                               metric=metric,
                                                                               samples=samples,
                                                                               agg_func_ls=agg_func_ls,
+                                                                              reference_word_dic=reference_word_dic,
                                                                               src_detokenized=src_detokenized)
 
                 score_dic, n_tokens_dic, n_sents_dic = accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
@@ -231,7 +232,6 @@ def epoch_run(batchIter, tokenizer,
                                                                                       n_tokens_dic=n_tokens_dic,
                                                                                       n_sents_dic=n_sents_dic)
 
-                pdb.set_trace()
                 skipping_evaluated_batch += skipping
 
                 if print_pred:
@@ -252,6 +252,9 @@ def epoch_run(batchIter, tokenizer,
                     #  compute prediction score
 
             loss += _loss.detach()
+            #if writer is not None:
+
+
             if optimizer is not None:
                 _loss.backward()
                 optimizer.step()
@@ -283,7 +286,7 @@ def epoch_run(batchIter, tokenizer,
         reports = []
         for agg_func in agg_func_ls:
             for sample in samples:
-                print("agg_func", agg_func)
+                print("sample", sample)
                 # for binary classification : having 3 samples define [class Positive, class Negative, All]
                 #  e.g [NORMED, NEED_NORM , all] for a given agg_func
                 # TP : score_dic[agg_func][Positive Class]
@@ -329,12 +332,14 @@ def epoch_run(batchIter, tokenizer,
                     reports.append(report)
                     if writer is not None:
                         writer.add_scalars("perf-{}".format(mode),
-                                       {"{}-{}-{}-bpe".format(metric_val, mode, model_id): score if score is not None else 0
-                                        },
+                                           {"{}-{}-{}-bpe".format(metric_val, mode, model_id):
+                                                score if score is not None else 0
+                                            },
                                        iter + batch_i)
 
 
     else:
         reports = None
     iter += batch_i
+    pdb.set_trace()
     return loss, iter, reports

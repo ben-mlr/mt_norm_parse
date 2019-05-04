@@ -58,13 +58,14 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                        ("initialize_bpe_layer", initialize_bpe_layer),
                                        ("freeze_parameters", freeze_parameters),
                                        ("freeze_layer_prefix_ls", freeze_layer_prefix_ls),
-                                       ("dropout_classifier", args.dropout_classifier)])
+                                       ("dropout_classifier", args.dropout_classifier if args is not None else "UNK")])
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
         if report:
             if report_full_path_shared is not None:
                 tensorboard_log = os.path.join(report_full_path_shared, "tensorboard")
                 writer = SummaryWriter(log_dir=tensorboard_log)
-            writer.add_text("INFO-ARGUMENT-MODEL-{}".format(model_id), str(hyperparameters), 0)
+            if writer is not None:
+                writer.add_text("INFO-ARGUMENT-MODEL-{}".format(model_id), str(hyperparameters), 0)
         try:
             if False:
               description += ",data:{}".format(train_data_label)+ " {}".format(" ".join(["{},{}".format(key, value) for key, value in hyperparameters.items()]))
@@ -99,11 +100,13 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                               test_path=None,
                               word_embed_dict={},
                               dry_run=False,
+                              expand_vocab=False,
                               word_normalization=True,
                               force_new_dic=True if run_mode == "train" else False,
                               tasks=tasks,
                               add_start_char=1 if run_mode == "train" else None,
                               verbose=1)
+    inv_word_dic = word_dictionary.instance2index
 
     # load , mask, bucket and index data
     tokenizer = BertTokenizer.from_pretrained(voc_tokenizer)
@@ -164,6 +167,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                       writing_pred=checkpointing_model_data, dir_end_pred=end_predictions,
                                                                       optimizer=optimizer, use_gpu=use_gpu, predict_mode=True,
                                                                       model_id=model_id,
+                                                                      reference_word_dic={"InV":inv_word_dic},
                                                                       null_token_index=null_token_index, null_str=null_str,
                                                                       n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
@@ -175,6 +179,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                 predict_mode=True, data_label=dev_data_label, epoch=epoch,
                                                                 null_token_index=null_token_index, null_str=null_str,
                                                                 model_id=model_id,
+                                                                reference_word_dic={"InV": inv_word_dic},
                                                                 n_iter_max=n_iter_max_per_epoch, verbose=verbose) if dev_path is not None else None, 0, None
 
                 printing("PERFORMANCE {} TRAIN", var=[epoch, perf_report_train],
@@ -235,7 +240,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
 
             loss_test, iter_test, perf_report_test = epoch_run(batchIter_test, tokenizer,
                                                                iter=iter_dev, use_gpu=use_gpu,
-                                                               bert_with_classifier=bert_with_classifier, writer=None,
+                                                               bert_with_classifier=bert_with_classifier,
+                                                               writer=None,
                                                                writing_pred=True,
                                                                optimizer=None,
                                                                args_dir=args_dir, model_id=model_id,
@@ -243,6 +249,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                predict_mode=True, data_label=label_data,
                                                                epoch="LAST", extra_label_for_prediction=label_data,
                                                                null_token_index=null_token_index, null_str=null_str,
+                                                               reference_word_dic={"InV":inv_word_dic},
                                                                n_iter_max=n_iter_max_per_epoch, verbose=verbose)
             print("PERFORMANCE TEST on data {} is {} ".format(label_data, perf_report_test))
             if writer is not None:
@@ -280,6 +287,5 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
 
     if report_full_path_shared is None:
         printing("{} {} ", var=[REPORT_FLAG_DIR_STR, report_dir], verbose=verbose, verbose_level=0)
-
 
     return bert_with_classifier

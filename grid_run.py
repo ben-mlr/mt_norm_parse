@@ -3,13 +3,7 @@ from env.importing import *
 from io_.info_print import printing
 from training.train_eval import train_eval
 from toolbox.grid_tool import grid_param_label_generate, get_experimented_tasks
-from env.project_variables import PROJECT_PATH, TRAINING,LIU_TRAIN, DEMO_SENT, CP_WR_PASTE_TEST_269, \
-    LIU_DEV, DEV, DIR_TWEET_W2V, TEST, DIR_TWEET_W2V, DIR_FASTEXT_WIKI_NEWS_W2V, CHECKPOINT_DIR, DEMO, DEMO2, CP_PASTE_WR_TRAIN, \
-    CP_WR_PASTE_DEV, CP_WR_PASTE_TEST, CP_PASTE_DEV, CP_PASTE_TRAIN, CP_PASTE_TEST, EWT_DEV, EWT_TEST, \
-    LIU_DEV_SENT, LIU_TRAIN_SENT, DEV_SENT, TEST_SENT, DEMO_SENT, TRAINING_DEMO, EN_LINES_EWT_TRAIN, EN_LINES_DEV, EN_LINES_EWT_TRAIN,\
-    PERMUTATION_TRAIN, PERMUTATION_TEST, LEX_TRAIN, LEX_TEST,\
-    MTNT_TOK_TRAIN, MTNT_TOK_DEV, MTNT_EN_FR_TRAIN, MTNT_EN_FR_DEV, MTNT_EN_FR_TEST,\
-    RUN_SCRIPTS_DIR, GPU_AVAILABLE_DEFAULT_LS, DEFAULT_SCORING_FUNCTION, WARMUP_N_EPOCHS, PERMUTATION_TRAIN_DIC
+from env.project_variables import *
 
 from toolbox.git_related import get_commit_id
 from tracking.reporting_google_sheet import update_status, append_reporting_sheet
@@ -389,14 +383,16 @@ if __name__ == "__main__":
 
           BERT_NORMALIZE = True
           if BERT_NORMALIZE:
-              epochs = 30
+              epochs = 15
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
-                                                  batch_size_ls=[1],
-                                                  lr_ls=[0.001], tasks_ls=[["normalize"]], dropout_classifier_ls=[0.2, None],
+                                                  batch_size_ls=[5, 1],
+                                                  lr_ls=[0.0001, 0.00005], tasks_ls=[["normalize"]],
+                                                  dropout_classifier_ls=[None, 0.5],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
-                                                  train_path=[[LIU_DEV]], dev_path=[[DEV]], test_paths=[[[DEV], [LIU_DEV], [TEST]]],
+                                                  train_path=[[LEX_TRAIN]],  dev_path=[[LEX_TEST]],
+                                                  test_paths=[[[DEV], [LIU_DEV], [LEX_TEST], [TEST]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
@@ -404,11 +400,17 @@ if __name__ == "__main__":
                                                   write_to_dir=RUN_SCRIPTS_DIR, description_comment=description_comment,
                                                   bert_model_ls=["cased"], initialize_bpe_layer_ls=[1],
                                                   freeze_parameters_ls=[0], freeze_layer_prefix_ls_ls=[None],
-                                                  word_recurrent_cell_encoder_ls=None,dropout_word_encoder_cell_ls=None,stable_decoding_state_ls=None,
-                                                  word_decoding_ls=None,word_embed_ls=None, dir_sent_encoder_ls=None, dir_word_encoder_ls=None,
-                                                  word_embed_init_ls=None, attention_tagging_ls=None, char_src_attention_ls=None, teacher_force_ls=None,
-                                                  proportion_pred_train_ls=None, shared_context_ls=None, word_embedding_projected_dim_ls=None,
-                                                  char_level_embedding_projection_dim_ls=None, n_layers_sent_cell_ls=None, n_layers_word_encoder_ls=None,
+                                                  word_recurrent_cell_encoder_ls=None,dropout_word_encoder_cell_ls=None,
+                                                  stable_decoding_state_ls=None,
+                                                  word_decoding_ls=None,word_embed_ls=None, dir_sent_encoder_ls=None,
+                                                  dir_word_encoder_ls=None,
+                                                  word_embed_init_ls=None, attention_tagging_ls=None,
+                                                  char_src_attention_ls=None,
+                                                  teacher_force_ls=None,
+                                                  proportion_pred_train_ls=None, shared_context_ls=None,
+                                                  word_embedding_projected_dim_ls=None,
+                                                  char_level_embedding_projection_dim_ls=None, n_layers_sent_cell_ls=None,
+                                                  n_layers_word_encoder_ls=None,
                                                   unrolling_word_ls=None, scoring_func=None, mode_word_encoding_ls=None,
                                                   dropout_input_ls=None, multi_task_loss_ponderation_ls=None,
                                                   scale_ls=[1])

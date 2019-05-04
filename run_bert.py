@@ -1,6 +1,6 @@
 from env.models_dir import *
 from model.bert_normalize import get_bert_token_classification
-from training.DEP_fine_tune_bert import run
+from training.bert_normalize.fine_tune_bert import run
 from evaluate.interact import interact_bert_wrap
 from model.bert_tools_from_core_code.tokenization import BertTokenizer
 from predict.predict_string_bert import interact_bert
@@ -11,11 +11,11 @@ PAD_BERT = "[PAD]"
 
 train_path = [PERMUTATION_TRAIN_DIC[10000]]
 dev_path = [PERMUTATION_TEST]
-train_path = [LIU_DEV]
+train_path = [DEMO2]
 dev_path = [DEV]#[LIU_DEV]#[DEMO2]
 #dev_path = None
 test_paths_ls = [[DEV], [LIU_DEV], [TEST],[LIU_TRAIN]]#, [LIU_TRAIN], [LIU_DEV], [DEV], [LEX_TEST], [LEX_TRAIN], [LEX_LIU_TRAIN]]
-#test_paths_ls = [[DEMO2]]
+test_paths_ls = [[DEMO]]
 
 tasks = ["normalize"]
 
@@ -24,7 +24,8 @@ train = True
 playwith = False
 
 if train:
-    # TODO : WARNING : why the delis still loaded even in vocab size not consistent with what is suppose to be the vocabulary of the model loaded
+    # TODO : WARNING : why the delis still
+    #  loaded even in vocab size not consistent with what is suppose to be the vocabulary of the model loaded
 
     voc_tokenizer = BERT_MODEL_DIC["bert-cased"]["vocab"]
     model_dir = BERT_MODEL_DIC["bert-cased"]["model"]
@@ -52,12 +53,12 @@ if train:
                 voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
                 auxilliary_task_norm_not_norm=True,
                 saving_every_epoch=10, lr=lr,
-                batch_size=batch_size, n_iter_max_per_epoch=2000, n_epoch=20,
+                batch_size=batch_size, n_iter_max_per_epoch=5, n_epoch=1,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
-                model_suffix="{}".format(description), debug=False,
+                model_suffix="{}".format(description), debug=True,
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
-                initialize_bpe_layer=initialize_bpe_layer,
+                initialize_bpe_layer=initialize_bpe_layer, args=None,
                 report=True, verbose=1)
 
 

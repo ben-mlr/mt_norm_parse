@@ -73,7 +73,11 @@ DEMO_LABEL, DEMO = "lexnorm-Demo", os.path.join(PROJECT_PATH, "../parsing/normpa
 DEMO2_LABEL, DEMO2 = "lexnorm-demo2", os.path.join(PROJECT_PATH, "../parsing/normpar/data/lexnorm.integrated.demo2")
 
 LIU_LABEL, LIU = "liu_data", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li.conll")
+LIU_OWOPUTI_LABEL, LIU_OWOPUTI = "liu_all+owoputi", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-dev_500+owoputi_integrated_fixed.conll")
+
 LIU_DEV_LABEL, LIU_DEV = "liu_dev", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-dev_500.conll")
+LIU_DEV_OWOPUTI_LABEL, LIU_DEV_OWOPUTI = "liu_dev_owoputi", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-dev_500+owoputi_integrated_fixed.conll")
+
 LIU_TRAIN_LABEL, LIU_TRAIN = "liu_train", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-train_2009.conll")
 
 
@@ -159,6 +163,8 @@ EMNLP12_DIC_LABEL, EMNLP12_DIC = "emnlp-dic-wnut", os.path.join(PROJECT_PATH, "d
 
 REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO2: DEMO2_LABEL,
                 TEST: TEST_LABEL, LIU: LIU_LABEL,
+                LIU_DEV_OWOPUTI:LIU_DEV_OWOPUTI_LABEL, 
+                LIU_OWOPUTI:LIU_OWOPUTI_LABEL,
                 LEX_TRAIN: LEX_TRAIN_LABEL,
                 LEX_TEST: LEX_TEST_LABEL,
                 LEX_LIU_TRAIN: LEX_LIU_LABEL,

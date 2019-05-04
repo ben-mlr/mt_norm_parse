@@ -1,4 +1,4 @@
-
+from env.importing import pdb
 
 def word_level_scoring(metric, gold, topk_pred, topk):
     """
@@ -23,7 +23,7 @@ def word_level_scoring(metric, gold, topk_pred, topk):
         return 0
 
 
-def word_level_filter(gold, topk_pred, topk, src, sample="all"):
+def word_level_filter(gold, topk_pred, topk, src, sample="all", word_reference_dic_ls=None):
     """
     compare a gold string and a list of candidate
     return a score based on it
@@ -35,7 +35,7 @@ def word_level_filter(gold, topk_pred, topk, src, sample="all"):
     :param topk:
     :return:
     """
-    assert sample in ["all", "NORMED", "NEED_NORM"]
+    #assert sample in ["all", "NORMED", "NEED_NORM"]
     assert len(topk_pred) == topk, "ERROR : inconsinstent provided topk and what I got "
     if sample == "all":
         return 1
@@ -43,3 +43,11 @@ def word_level_filter(gold, topk_pred, topk, src, sample="all"):
         return src == gold
     elif sample == "NEED_NORM":
         return src != gold
+    elif sample == "InV":
+        assert word_reference_dic_ls is not None, "No word_reference_dic_ls provided"
+        assert word_reference_dic_ls.get("InV", None) is not None, "No word_reference_dic_ls['InV'] provided"
+        return src in word_reference_dic_ls["InV"]
+    elif sample == "OOV":
+        assert word_reference_dic_ls is not None, "No word_reference_dic_ls provided"
+        assert word_reference_dic_ls.get("InV", None) is not None, "No word_reference_dic_ls['InV'] provided"
+        return src not in word_reference_dic_ls["InV"]

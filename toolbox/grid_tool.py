@@ -213,9 +213,13 @@ def grid_param_label_generate(param,
       for lab in ["train", "dev", "test"]:
         if args.startswith(lab):
           args = lab
-          _args=lab+"_path"
-      if _args != "test_path":
+          _args = lab+"_path"
+      if _args != "test_path" and _args != "tasks":
         dic_grid[_args] = eval(args+"_ls")
+      elif _args == "tasks":
+        assert eval(_args+"_ls")[0][0]=="normalize" and len(eval(_args+"_ls")) == 1 and len(eval(_args+"_ls")[0]) == 1,\
+          "ERROR : only normalize supported so far {}".format(eval(_args+"_ls"))
+
     list_of_list_of_args = [lis_values for arg_dic, lis_values in dic_grid.items()]
 
   ind_model = 0
@@ -380,5 +384,4 @@ def grid_param_label_generate(param,
     print("GRID_INFO enrch vars=  ", to_enrich)
     print("GRID_INFO analy vars=  ", to_analysed)
     print("GRID_INFO fixed vals=   ", to_keep_only)
-  pdb.set_trace()
   return params, labels, info_default, studied_vars, fixed_vars

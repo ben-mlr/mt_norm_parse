@@ -9,6 +9,7 @@ def overall_word_level_metric_measure(gold_sent_ls,
                                       metric="exact_match",
                                       samples=None,
                                       src_detokenized=None,
+                                      reference_word_dic=None,
                                       agg_func_ls=None):
     """
     'metric' based on a word level comparison of (pred,gold) : e.g : exact_match , edit
@@ -53,7 +54,8 @@ def overall_word_level_metric_measure(gold_sent_ls,
             score_sent.append(word_level_scoring(metric=metric, gold=gold_token, topk_pred=topk_word_pred, topk=topk))
             for _sample in samples:
                 filter_sent[_sample].append(word_level_filter(sample=_sample, gold=gold_token, topk_pred=topk_word_pred,
-                                                              topk=topk, src=src_detokenized[gold_ind_sent][ind_word]))
+                                                              topk=topk, src=src_detokenized[gold_ind_sent][ind_word],
+                                                              word_reference_dic_ls=reference_word_dic))
         for _sample in samples:
             overall_filter_ls[_sample].append(filter_sent[_sample])
         overall_score_ls_sent.append(score_sent)

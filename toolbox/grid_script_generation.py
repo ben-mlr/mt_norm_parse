@@ -89,7 +89,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
     description = "{} - {} ({}) : Analysing : {} with regard to {} fixed".format(len(params) if not warmup else str(1)+"_WARMUP",
                                                                                  description_comment, mode_run, analysed, fixed)
     try:
-        row, col = append_reporting_sheet(git_id=get_commit_id(), tasks=get_experimented_tasks(params),
+        row, col = append_reporting_sheet(git_id=get_commit_id(), tasks=get_experimented_tasks(params)+"-{}.py".format(py_script),
                                           rioc_job=os.environ.get("OAR_JOB_ID", grid_label), description=description,
                                           log_dir=dir_log, target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR,
                                                                                                   "{}*".format(grid_label)),
