@@ -1,14 +1,17 @@
 from env.importing import *
-
+from env.models_dir import BERT_MODEL_DIC
 from env.project_variables import DEV, LIU_DEV
-from io_.dat.constants import PAD_ID_CHAR
+
+from io_.dat.constants import *
 from io_.batch_generator import MaskBatch
 from env.project_variables import EN_LINES_EWT_TRAIN, LIU_DEV, TRAINING, DEMO, TASKS_PARAMETER
 from io_.dat import conllu_data
 from io_.info_print import printing, print_char_seq, disable_tqdm_level
 from io_.printout_iterator_as_raw import outputing_raw_data_from_iterator
 from toolbox.sanity_check import get_timing
+from io_.bert_iterators_tools.alignement import aligned_output, realigne
 
+from io_.bert_iterators_tools.string_processing import preprocess_batch_string_for_bert, from_bpe_token_to_str, get_indexes
 NORM2NOISY = False
 
 
@@ -16,7 +19,8 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                     word_dictionary_norm,
                     batch_size,task_info="",
                     get_batch_mode=True,
-                    padding=PAD_ID_CHAR, print_raw=False, normalization=False, pos_dictionary=None,
+                    padding=PAD_ID_CHAR, print_raw=False, normalization=False,
+                    pos_dictionary=None,
                     extend_n_batch=1, dropout_input=0,
                     timing=False,
                     verbose=0):
@@ -312,19 +316,24 @@ if __name__=="__main__":
                                norm_not_norm=True, word_decoder=word_decoder,
                                add_start_char=1, add_end_char=1, symbolic_end=True, symbolic_root=True,
                                verbose=1)
-        iterator_multi = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers, batch_size=2,
+        iterator_multi = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers, batch_size=1,
                                                             word_dictionary=word_dictionary,
                                                             char_dictionary=char_dictionary,
                                                             pos_dictionary=pos_dictionary,
+                                                            word_dictionary_norm=word_dictionary_norm,
                                                             extend_n_batch=1, print_raw=True,
                                                             get_batch_mode=False,
                                                             verbose=1)
+
+
+
+
+
+        pdb.set_trace()
+
         while True:
             try:
-
                 batch = iterator_multi.__next__()
-                pdb.set_trace()
             except StopIteration as e:
                 print(Exception(e))
                 break
-

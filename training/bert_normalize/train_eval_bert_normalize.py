@@ -37,7 +37,7 @@ def train_eval_bert_normalize(args, verbose=1):
         voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=args.train_path, dev_path=args.dev_path,
         auxilliary_task_norm_not_norm=True,
         saving_every_epoch=10, lr=lr,
-        batch_size=batch_size, n_iter_max_per_epoch=2000, n_epoch=20,
+        batch_size=batch_size, n_iter_max_per_epoch=10000, n_epoch=args.epochs,
         test_path_ls=args.test_paths,
         description=description, null_token_index=null_token_index, null_str=NULL_STR,
         model_suffix="{}".format(args.model_id_pref), debug=False,

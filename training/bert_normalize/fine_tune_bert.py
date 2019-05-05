@@ -16,7 +16,7 @@ from toolbox.report_tools import write_args
 def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
         voc_tokenizer, auxilliary_task_norm_not_norm, bert_with_classifier,
         null_token_index, null_str, initialize_bpe_layer=None,
-        run_mode="train", test_path_ls = None, dict_path=None, end_predictions=None,
+        run_mode="train", test_path_ls=None, dict_path=None, end_predictions=None,
         report=True, model_suffix="", description="",
         saving_every_epoch=10, lr=0.0001, fine_tuning_strategy="standart", model_location=None, model_id=None,
         freeze_parameters=None, freeze_layer_prefix_ls=None,
@@ -29,6 +29,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
     """
     assert run_mode in ["train", "test"], "ERROR run mode {} corrupted ".format(run_mode)
     printing("MODEL : RUNNING IN {} mode", var=[run_mode], verbose=verbose, verbose_level=1)
+    print("EPOCH", n_epoch)
     if run_mode == "test":
         assert test_path_ls is not None and isinstance(test_path_ls, list)
     if test_path_ls is not None:
@@ -63,7 +64,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
         if report:
             if report_full_path_shared is not None:
                 tensorboard_log = os.path.join(report_full_path_shared, "tensorboard")
-                writer = SummaryWriter(log_dir=tensorboard_log)
+            writer = SummaryWriter(log_dir=tensorboard_log)
             if writer is not None:
                 writer.add_text("INFO-ARGUMENT-MODEL-{}".format(model_id), str(hyperparameters), 0)
         try:
@@ -135,7 +136,6 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
 
                 checkpointing_model_data = (epoch % saving_every_epoch == 0 or epoch == (n_epoch - 1))
                 # build iterator on the loaded data
-                print("DEBUG:iter_train", tasks, train_path)
                 batchIter_train = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_train, batch_size=batch_size,
                                                                      word_dictionary=word_dictionary,
                                                                      char_dictionary=char_dictionary,
@@ -145,7 +145,6 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                      extend_n_batch=1,
                                                                      dropout_input=0.0,
                                                                      verbose=verbose)
-                print("DEBUG:iter_dev", tasks, dev_path)
 
                 batchIter_dev = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_dev, batch_size=batch_size,
                                                                    word_dictionary=word_dictionary,
@@ -156,7 +155,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                    extend_n_batch=1,
                                                                    dropout_input=0.0,
                                                                    verbose=verbose) if dev_path is not None else None
-                # TODO add optimizer (if not : devv loss)
+                # TODO add optimizer (if not : dev loss)
                 optimizer = dptx.get_optimizer(bert_with_classifier.parameters(), lr=lr)
                 bert_with_classifier.train()
 
@@ -165,7 +164,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                       bert_with_classifier=bert_with_classifier, writer=writer,
                                                                       iter=iter_train, epoch=epoch,
                                                                       writing_pred=checkpointing_model_data, dir_end_pred=end_predictions,
-                                                                      optimizer=optimizer, use_gpu=use_gpu, predict_mode=True,
+                                                                      optimizer=optimizer, use_gpu=use_gpu,
+                                                                      predict_mode=True,
                                                                       model_id=model_id,
                                                                       reference_word_dic={"InV":inv_word_dic},
                                                                       null_token_index=null_token_index, null_str=null_str,
@@ -249,6 +249,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                predict_mode=True, data_label=label_data,
                                                                epoch="LAST", extra_label_for_prediction=label_data,
                                                                null_token_index=null_token_index, null_str=null_str,
+                                                               log_perf=False,
                                                                reference_word_dic={"InV":inv_word_dic},
                                                                n_iter_max=n_iter_max_per_epoch, verbose=verbose)
             print("PERFORMANCE TEST on data {} is {} ".format(label_data, perf_report_test))

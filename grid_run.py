@@ -383,16 +383,16 @@ if __name__ == "__main__":
 
           BERT_NORMALIZE = True
           if BERT_NORMALIZE:
-              epochs = 15
+              epochs = 21
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
-                                                  batch_size_ls=[5, 1],
-                                                  lr_ls=[0.0001, 0.00005], tasks_ls=[["normalize"]],
+                                                  batch_size_ls=[8, 5, 1],
+                                                  lr_ls=[0.00005, 0.00001, 0.000005], tasks_ls=[["normalize"]],
                                                   dropout_classifier_ls=[None, 0.5],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
-                                                  train_path=[[LEX_TRAIN]],  dev_path=[[LEX_TEST]],
-                                                  test_paths=[[[DEV], [LIU_DEV], [LEX_TEST], [TEST]]],
+                                                  train_path=[[LIU_OWOPUTI]],  dev_path=[[DEV]],
+                                                  test_paths=[[[DEV], [LIU_DEV], [LEX_TEST], [LIU_TRAIN], [TEST]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,

@@ -32,6 +32,7 @@ def epoch_run(batchIter, tokenizer,
               print_pred=False, args_dir=None,
               reference_word_dic=None,
               writing_pred=False, dir_end_pred=None, extra_label_for_prediction="",
+              log_perf=True,
               verbose=0):
     """
     About Evaluation :
@@ -112,8 +113,7 @@ def epoch_run(batchIter, tokenizer,
             batch.raw_input = preprocess_batch_string_for_bert(batch.raw_input)
             batch.raw_output = preprocess_batch_string_for_bert(batch.raw_output)
 
-            input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask \
-                = get_indexes(batch.raw_input, tokenizer, verbose, use_gpu)
+            input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = get_indexes(batch.raw_input, tokenizer, verbose, use_gpu)
             output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask =\
                 get_indexes(batch.raw_output, tokenizer, verbose, use_gpu)
 
@@ -330,7 +330,9 @@ def epoch_run(batchIter, tokenizer,
                                              report_path_val=None,
                                              data_val=data_label)
                     reports.append(report)
-                    if writer is not None:
+                    pdb.set_trace()
+
+                    if writer is not None and log_perf:
                         writer.add_scalars("perf-{}".format(mode),
                                            {"{}-{}-{}-bpe".format(metric_val, mode, model_id):
                                                 score if score is not None else 0
@@ -341,5 +343,4 @@ def epoch_run(batchIter, tokenizer,
     else:
         reports = None
     iter += batch_i
-    pdb.set_trace()
     return loss, iter, reports

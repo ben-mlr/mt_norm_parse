@@ -73,7 +73,7 @@ DEMO_LABEL, DEMO = "lexnorm-Demo", os.path.join(PROJECT_PATH, "../parsing/normpa
 DEMO2_LABEL, DEMO2 = "lexnorm-demo2", os.path.join(PROJECT_PATH, "../parsing/normpar/data/lexnorm.integrated.demo2")
 
 LIU_LABEL, LIU = "liu_data", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li.conll")
-LIU_OWOPUTI_LABEL, LIU_OWOPUTI = "liu_all+owoputi", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-dev_500+owoputi_integrated_fixed.conll")
+LIU_OWOPUTI_LABEL, LIU_OWOPUTI = "liu_all+owoputi", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-train+dev_500+owoputi_integrated_fixed.conll")
 
 LIU_DEV_LABEL, LIU_DEV = "liu_dev", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-dev_500.conll")
 LIU_DEV_OWOPUTI_LABEL, LIU_DEV_OWOPUTI = "liu_dev_owoputi", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-dev_500+owoputi_integrated_fixed.conll")
