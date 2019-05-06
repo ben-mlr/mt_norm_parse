@@ -19,7 +19,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
         run_mode="train", test_path_ls=None, dict_path=None, end_predictions=None,
         report=True, model_suffix="", description="",
         saving_every_epoch=10, lr=0.0001, fine_tuning_strategy="standart", model_location=None, model_id=None,
-        freeze_parameters=None, freeze_layer_prefix_ls=None,
+        freeze_parameters=None, freeze_layer_prefix_ls=None, # those two have been factorized out in fine_tuning_strategy
+        dropout_input_bpe=0,
         report_full_path_shared=None, shared_id=None, bert_model=None,skip_1_t_n=False,
         heuristic_ls=None, gold_error_detection=False,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
@@ -144,6 +145,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                      get_batch_mode=False,
                                                                      extend_n_batch=1,
                                                                      dropout_input=0.0,
+
                                                                      verbose=verbose)
 
                 batchIter_dev = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_dev, batch_size=batch_size,
@@ -172,6 +174,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                       model_id=model_id,
                                                                       heuristic_ls=heuristic_ls, gold_error_detection=gold_error_detection,
                                                                       reference_word_dic={"InV": inv_word_dic},
+                                                                      dropout_input_bpe=dropout_input_bpe,
                                                                       null_token_index=null_token_index, null_str=null_str,
                                                                       n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
@@ -189,6 +192,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                     null_token_index=null_token_index, null_str=null_str,
                                                                     model_id=model_id,
                                                                     skip_1_t_n=skip_1_t_n,
+                                                                    dropout_input_bpe=0,
                                                                     heuristic_ls=heuristic_ls, gold_error_detection=gold_error_detection,
                                                                     reference_word_dic={"InV": inv_word_dic},
                                                                     n_iter_max=n_iter_max_per_epoch, verbose=verbose)
@@ -264,6 +268,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                epoch="LAST", extra_label_for_prediction=label_data,
                                                                null_token_index=null_token_index, null_str=null_str,
                                                                log_perf=False,
+                                                               dropout_input_bpe=0,
                                                                heuristic_ls=heuristic_ls, gold_error_detection=gold_error_detection,
                                                                reference_word_dic={"InV":inv_word_dic},
                                                                n_iter_max=n_iter_max_per_epoch, verbose=verbose)

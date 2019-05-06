@@ -36,7 +36,7 @@ if train:
     freeze_layer_prefix_ls = ["bert"]
     #["bert"]
     model = get_bert_token_classification(pretrained_model_dir=model_dir,
-                                          vocab_size=vocab_size,
+                                          vocab_size=vocab_size,dropout_classifier=0.5,
                                           freeze_parameters=freeze_parameters,
                                           freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                                           initialize_bpe_layer=initialize_bpe_layer)
@@ -60,7 +60,7 @@ if train:
                 model_suffix="{}".format(description), debug=True,
                 fine_tuning_strategy="standart",
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
-                initialize_bpe_layer=initialize_bpe_layer, args=None, skip_1_t_n=False,
+                initialize_bpe_layer=initialize_bpe_layer, args=None, skip_1_t_n=False, dropout_input_bpe=0.8,
                 heuristic_ls=["#"], gold_error_detection=True,
                 report=True, verbose="alignement")
 

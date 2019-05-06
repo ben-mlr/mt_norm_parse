@@ -390,7 +390,7 @@ if __name__ == "__main__":
                                                   batch_size_ls=[5, 1],
                                                   lr_ls=[0.00005, 0.000025, 0.00001], tasks_ls=[["normalize"]],
                                                   fine_tuning_strategy_ls=["bert_out_first", "standart"],
-                                                  dropout_classifier_ls=[None],
+                                                  dropout_classifier_ls=[None], dropout_input_bpe_ls=[0.6],
                                                   gold_error_detection_ls=[1], heuristic_ls_ls=[["'#'"]],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   train_path=[[LIU_OWOPUTI]],  dev_path=[[LIU_DEV]],

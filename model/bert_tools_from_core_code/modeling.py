@@ -1100,7 +1100,10 @@ class BertForTokenClassification(BertPreTrainedModel):
         self.bert = BertModel(config)
         if dropout_classifier is None:
             dropout_classifier = config.hidden_dropout_prob
-        print("CUSTOM : DROPOUT CLASSIFIER set to {} ".format(dropout_classifier))
+            log = "DEFAULT"
+        else:
+            log = "CUSTOM"
+        print("{} : DROPOUT CLASSIFIER set to {} ".format(log, dropout_classifier))
         self.dropout = nn.Dropout(dropout_classifier)
         self.classifier = nn.Linear(config.hidden_size, num_labels)
         self.apply(self.init_bert_weights)

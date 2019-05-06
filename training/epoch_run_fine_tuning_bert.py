@@ -10,7 +10,7 @@ from evaluate.scoring.report import overall_word_level_metric_measure
 from evaluate.scoring.confusion_matrix_rates import get_perf_rate
 
 from toolbox.predictions.heuristics import predict_with_heuristic
-
+from toolbox.deep_learning_toolbox import dropout_input_tensor
 sys.path.insert(0, os.path.join(PROJECT_PATH, "..", "experimental_pipe"))
 from reporting.write_to_performance_repo import report_template, write_dic
 
@@ -33,7 +33,7 @@ def epoch_run(batchIter, tokenizer,
               predict_mode=False, topk=None, metric=None,
               print_pred=False, args_dir=None,
               heuristic_ls=None, gold_error_detection=False,
-              reference_word_dic=None,
+              reference_word_dic=None, dropout_input_bpe=0.,
               writing_pred=False, dir_end_pred=None, extra_label_for_prediction="",
               log_perf=True,
               verbose=0):
@@ -192,7 +192,8 @@ def epoch_run(batchIter, tokenizer,
                      verbose=verbose, verbose_level="cuda")
             # we have to recompute the mask based on aligned input
             input_mask = torch.Tensor([[1 if token_id != PAD_ID_BERT else 0 for token_id in sent_token] for sent_token in input_tokens_tensor]).long()
-
+            if dropout_input_bpe>0:
+                input_tokens_tensor = dropout_input_tensor(input_tokens_tensor,mask_token_index, dropout=dropout_input_bpe)
             _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
                                           labels=output_tokens_tensor_aligned)
 

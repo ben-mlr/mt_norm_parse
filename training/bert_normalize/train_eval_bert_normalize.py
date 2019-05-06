@@ -45,7 +45,7 @@ def train_eval_bert_normalize(args, verbose=1):
         initialize_bpe_layer=initialize_bpe_layer, report_full_path_shared=dir_grid, shared_id=args.overall_label,
         fine_tuning_strategy=args.fine_tuning_strategy,
         heuristic_ls=args.heuristic_ls, gold_error_detection=args.gold_error_detection,
-        args=args,
+        args=args,dropout_input_bpe=args.dropout_input_bpe,
         report=True, verbose=1)
 
     printing("MODEL {} trained and evaluated", var=[args.model_id_pref], verbose_level=1, verbose=verbose)

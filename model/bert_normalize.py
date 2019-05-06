@@ -20,20 +20,25 @@ def get_bert_token_classification(vocab_size,
     :param verbose:
     :return:
     """
+    print("GOD MODEL ONCE")
     assert checkpoint_dir is not None or pretrained_model_dir is not None, \
         "Neither checkpoint_dir or pretrained_model_dir was provided"
     assert pretrained_model_dir is None or checkpoint_dir is None, \
         "Only one of checkpoint_dir or pretrained_model_dir should be provided "
-
     config = BertConfig(vocab_size_or_config_json_file=vocab_size, hidden_size=768,
                         num_hidden_layers=12, num_attention_heads=12, intermediate_size=3072)
     # QUESTION : WHERE IS THE MODEL ACTUALLY BEING LOADED ???
     num_labels = vocab_size + 1
+
+    # this line is useless apparently as it does it load it again
     model = BertForTokenClassification(config, num_labels, dropout_classifier=dropout_classifier)
 
     if pretrained_model_dir is not None:
         assert initialize_bpe_layer is not None, "ERROR initialize_bpe_layer should not be None "
+
         model = model.from_pretrained(pretrained_model_dir, num_labels=num_labels)
+        print("SETTING DROPOUT CLASSIFIER TO {}".format(dropout_classifier))
+        model.dropout = nn.Dropout(dropout_classifier)
         printing("MODEL : loading pretrained BERT and adding extra module for token classification based on {}",
                  var=[pretrained_model_dir],
                  verbose=verbose,

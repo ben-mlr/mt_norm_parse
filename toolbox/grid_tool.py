@@ -73,7 +73,9 @@ def grid_param_label_generate(param,
                               grid_label="", gpu_mode="random", gpus_ls=None, printout_info_var=True,
                               initialize_bpe_layer_ls=None, freeze_parameters_ls=None, freeze_layer_prefix_ls_ls=None,
                               heuristic_ls_ls=None, gold_error_detection_ls=None,
-                              bert_model_ls=None,dropout_classifier_ls=None, fine_tuning_strategy_ls=None):
+                              bert_model_ls=None,dropout_classifier_ls=None, fine_tuning_strategy_ls=None,
+                              dropout_input_bpe_ls=None,
+                              ):
 
   assert gpu_mode in GPU_MODE_SUPPORTED, "ERROR gpu_mode not in {}".format(str(GPU_MODE_SUPPORTED))
   assert py_script in AVAILABLE_TRAINING_EVAL_SCRIPT
