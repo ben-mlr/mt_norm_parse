@@ -4,7 +4,7 @@ from env.project_variables import AVAILABLE_BERT_FINE_TUNING_STRATEGY
 
 
 def apply_fine_tuning_strategy(fine_tuning_strategy, model, epoch, lr_init, verbose):
-    assert fine_tuning_strategy in AVAILABLE_BERT_FINE_TUNING_STRATEGY
+    assert fine_tuning_strategy in AVAILABLE_BERT_FINE_TUNING_STRATEGY, "{} not in {}".format(fine_tuning_strategy, AVAILABLE_BERT_FINE_TUNING_STRATEGY)
 
     if fine_tuning_strategy in ["standart", "bert_out_first"]:
         optimizer = dptx.get_optimizer(model.parameters(), lr=lr_init)
@@ -17,6 +17,6 @@ def apply_fine_tuning_strategy(fine_tuning_strategy, model, epoch, lr_init, verb
             freeze_layer_prefix_ls = "bert"
             model = dptx.freeze_param(model, freeze_layer_prefix_ls, verbose=verbose)
         printing("TRAINING : fine tuning strategy {} : {} freezing bert for epoch {}" \
-                 .format(fine_tuning_strategy, info_add, epoch))
+                 .format(fine_tuning_strategy, info_add, epoch), verbose_level=1, verbose=verbose)
 
     return model, optimizer

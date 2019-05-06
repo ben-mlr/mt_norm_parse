@@ -58,8 +58,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
 
         hyperparameters = OrderedDict([("bert_model", bert_model), ("lr", lr),
                                        ("initialize_bpe_layer", initialize_bpe_layer),
-                                       ("freeze_parameters", freeze_parameters),
-                                       ("freeze_layer_prefix_ls", freeze_layer_prefix_ls),
+                                       ("fine_tuning_strategy", fine_tuning_strategy),
                                        ("dropout_classifier", args.dropout_classifier if args is not None else "UNK")])
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
         if report:

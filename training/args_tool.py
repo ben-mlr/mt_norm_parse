@@ -138,7 +138,7 @@ def args_train(mode="command_line", script="train_evaluate_run"):
         parser.add_argument("--freeze_parameters", required=True, type=int, help="display a square of a given number")
         parser.add_argument('--freeze_layer_prefix_ls', nargs='+', help='<Required> Set flag', default=None)
         parser.add_argument('--dropout_classifier', type=float, default=None)
-
+        parser.add_argument('--fine_tuning_strategy', type=str, default="standart")
         args = parser.parse_args()
 
     if args.test_paths is not None:
@@ -146,3 +146,4 @@ def args_train(mode="command_line", script="train_evaluate_run"):
 
 
     return args
+

@@ -71,8 +71,8 @@ def grid_param_label_generate(param,
                               dropout_input_ls=None,
                               proportion_pred_train_ls=None,  attention_tagging_ls=None, multi_task_loss_ponderation_ls=None,
                               grid_label="", gpu_mode="random", gpus_ls=None, printout_info_var=True,
-
-                              initialize_bpe_layer_ls=None, freeze_parameters_ls=None, freeze_layer_prefix_ls_ls=None, bert_model_ls=None,dropout_classifier_ls=None):
+                              initialize_bpe_layer_ls=None, freeze_parameters_ls=None, freeze_layer_prefix_ls_ls=None,
+                              bert_model_ls=None,dropout_classifier_ls=None, fine_tuning_strategy_ls=None):
 
   assert gpu_mode in GPU_MODE_SUPPORTED, "ERROR gpu_mode not in {}".format(str(GPU_MODE_SUPPORTED))
   assert py_script in AVAILABLE_TRAINING_EVAL_SCRIPT
@@ -82,12 +82,17 @@ def grid_param_label_generate(param,
   info_default = []
 
   if py_script == "train_evaluate_bert_normalizer":
+    # we preprocess arguments : fill them in a dictionary in order to handle default None --> set to [None] (will call default in argparse )
+    args_avail = OrderedDict()
     for arg in ARGS_AVAILABLE_PER_MODEL[py_script]:
       #TODO : all argument name should be normalize
       for lab in ["train", "dev", "test"]:
         if arg.startswith(lab):
           arg = lab
-      assert eval(arg+"_ls") is not None, "ERROR : missing {} for script {}".format(arg+"_ls", py_script)
+      args_avail[arg + "_ls"] = eval(arg + "_ls") if eval(arg + "_ls") is not None else [None]
+      printing("WARNING : missing {} for script {} so setting it to [None]".format(arg+"_ls", py_script),
+               verbose=1, verbose_level=1)
+        #assert eval(arg+"_ls") is not None, "ERROR : missing {} for script {}".format(arg+"_ls", py_script)
 
   assert len(train_ls) == len(dev_ls), "ERROR train_ls is {} dev_ls {} : they should be same length".format(train_ls, dev_ls)
   assert len(tasks_ls) == len(train_ls), "ERROR tasks_ls {} and train_ls {} should be same lenght ".format(tasks_ls, train_ls)
@@ -215,7 +220,7 @@ def grid_param_label_generate(param,
           args = lab
           _args = lab+"_path"
       if _args != "test_path" and _args != "tasks":
-        dic_grid[_args] = eval(args+"_ls")
+        dic_grid[_args] = args_avail[args+"_ls"]
       elif _args == "tasks":
         assert eval(_args+"_ls")[0][0]=="normalize" and len(eval(_args+"_ls")) == 1 and len(eval(_args+"_ls")[0]) == 1,\
           "ERROR : only normalize supported so far {}".format(eval(_args+"_ls"))

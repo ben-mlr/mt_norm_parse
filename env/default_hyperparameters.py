@@ -4,7 +4,8 @@
 AVAILABLE_TRAINING_EVAL_SCRIPT = ["train_evaluate_run", "train_evaluate_bert_normalizer"]
 # 1 means all accepted
 ARGUMENT_AVAILABLE_ALL = ["train_path", "dev_path", "test_path", "tasks"]
-ARGUMENT_AVAILABLE_BERT = ["batch_size", "lr", "initialize_bpe_layer", "freeze_parameters",  "freeze_layer_prefix_ls", "bert_model", "dropout_classifier"]
+ARGUMENT_AVAILABLE_BERT = ["batch_size", "lr", "initialize_bpe_layer", "freeze_parameters",  "freeze_layer_prefix_ls",
+                           "bert_model", "dropout_classifier", "fine_tuning_strategy"]
 ARGUMENT_AVAILABLE_BERT.extend(ARGUMENT_AVAILABLE_ALL)
 
 ARGUMENT_AVAIALBLE_SEQ2SEQ = [1]

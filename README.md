@@ -96,6 +96,21 @@ Some statistics on the impact of BPE tokenization on the word noisy-clean aligne
 FOR liu, lexnorm.integrated  and owoputi not have to handle 1 to n 
 For lexnorm_train, dev have to 
 
+#### Notes on adding a new argument 
+
+Process : (what has beenimplemented for bert and should be the norm)
+- code it in the core function (run for bert, train_eval for mt)
+- no clear convention on default for now at this level
+- for BERt (and should be applied to mt soon) add the parameter with in default_parameter list in ARGUMENT_AVAILABLE_XXX : NB it should be the same name as the core function call
+- add it to the command line argparse function with the same name 
+- Default Behavior : if not called in the the grid generation : 
+     - None will be assigned to the arg_ls 
+     - then in the argument preprocessing it will be replaced by [None]
+     - then in the script generation the None called will be ignored 
+     - and the default argument of argparse will be call  
+
+
+
 ### TODO 
 
 #### To document
