@@ -46,8 +46,8 @@ def word_level_filter(gold, topk_pred, topk, src, sample="all", word_reference_d
     elif sample == "InV":
         assert word_reference_dic_ls is not None, "No word_reference_dic_ls provided"
         assert word_reference_dic_ls.get("InV", None) is not None, "No word_reference_dic_ls['InV'] provided"
-        return src in word_reference_dic_ls["InV"]
+        return src in word_reference_dic_ls["InV"] or src.lower() in word_reference_dic_ls["InV"]
     elif sample == "OOV":
         assert word_reference_dic_ls is not None, "No word_reference_dic_ls provided"
         assert word_reference_dic_ls.get("InV", None) is not None, "No word_reference_dic_ls['InV'] provided"
-        return src not in word_reference_dic_ls["InV"]
+        return src not in word_reference_dic_ls["InV"] and src.lower() not in word_reference_dic_ls["InV"]

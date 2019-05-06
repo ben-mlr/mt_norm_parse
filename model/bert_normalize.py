@@ -1,6 +1,6 @@
 from env.models_dir import *
 from io_.info_print import printing
-
+from toolbox.deep_learning_toolbox import freeze_param
 from model.bert_tools_from_core_code.modeling import BertForTokenClassification, BertConfig
 
 
@@ -46,19 +46,14 @@ def get_bert_token_classification(vocab_size,
                      verbose=verbose,
                      verbose_level=1)
         if freeze_parameters:
-            assert freeze_layer_prefix_ls is not None, "ERROR freeze_layer_prefix should not be None "
-            for name, param in model.named_parameters():
-                for prefix in freeze_layer_prefix_ls:
-                    if name.startswith(prefix):
-                        param.requires_grad = False
-                        printing("TRAINING : freezing {} parameter ", var=[name], verbose=verbose, verbose_level=1)
+            model = freeze_param(model, freeze_layer_prefix_ls=freeze_layer_prefix_ls,verbose=verbose)
+
     elif checkpoint_dir is not None:
         assert initialize_bpe_layer is None, "ERROR initialize_bpe_layer should b None as loading from existing checkpoint"
         model.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
         printing("MODEL : loading model BERT+token classification pretrained from checkpoint {}",
                  var=[checkpoint_dir],
-                 verbose=verbose,
-                 verbose_level=1)
+                 verbose=verbose, verbose_level=1)
 
     return model
 

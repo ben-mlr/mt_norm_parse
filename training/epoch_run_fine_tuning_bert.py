@@ -242,18 +242,17 @@ def epoch_run(batchIter, tokenizer,
                                                                                       ],
                              verbose=verbose, verbose_level=1)
                     printing("TRAINING : eval gold {}-{} {}", var=[iter, batch_i, gold_detokenized], verbose=verbose,
-                             verbose_level=1)
+                             verbose_level=2)
                     printing("TRAINING : eval pred {}-{} {}", var=[iter, batch_i, pred_detokenized_topk], verbose=verbose,
-                             verbose_level=1)
+                             verbose_level=2)
                     printing("TRAINING : eval src {}-{} {}", var=[iter, batch_i, src_detokenized],
-                             verbose=verbose, verbose_level=1)
+                             verbose=verbose, verbose_level=2)
                     # TODO : detokenize
                     #  write to conll
                     #  compute prediction score
 
             loss += _loss.detach()
             #if writer is not None:
-
 
             if optimizer is not None:
                 _loss.backward()
@@ -333,6 +332,7 @@ def epoch_run(batchIter, tokenizer,
                     pdb.set_trace()
 
                     if writer is not None and log_perf:
+                        print("-->", mode, iter+batch_i, iter, batch_i)
                         writer.add_scalars("perf-{}".format(mode),
                                            {"{}-{}-{}-bpe".format(metric_val, mode, model_id):
                                                 score if score is not None else 0

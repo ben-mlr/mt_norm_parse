@@ -11,8 +11,8 @@ PAD_BERT = "[PAD]"
 
 train_path = [PERMUTATION_TRAIN_DIC[10000]]
 dev_path = [PERMUTATION_TEST]
-train_path = [DEMO2]
-dev_path = [DEV]#[LIU_DEV]#[DEMO2]
+train_path = [LIU_TRAIN_OWOPUTI]
+dev_path = [DEMO]#[LIU_DEV]#[DEMO2]
 #dev_path = None
 test_paths_ls = [[DEV], [LIU_DEV], [TEST],[LIU_TRAIN]]#, [LIU_TRAIN], [LIU_DEV], [DEV], [LEX_TEST], [LEX_TRAIN], [LEX_LIU_TRAIN]]
 test_paths_ls = [[DEMO]]
@@ -32,12 +32,13 @@ if train:
     vocab_size = BERT_MODEL_DIC["bert-cased"]["vocab_size"]
 
     initialize_bpe_layer = True
-    freeze_parameters = False
-    freeze_layer_prefix_ls = None 
+    freeze_parameters = True
+    freeze_layer_prefix_ls = ["bert"]
     #["bert"]
     model = get_bert_token_classification(pretrained_model_dir=model_dir,
                                           vocab_size=vocab_size,
-                                          freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
+                                          freeze_parameters=freeze_parameters,
+                                          freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                                           initialize_bpe_layer=initialize_bpe_layer)
 
     lr = 0.0001
@@ -53,10 +54,11 @@ if train:
                 voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
                 auxilliary_task_norm_not_norm=True,
                 saving_every_epoch=10, lr=lr,
-                batch_size=batch_size, n_iter_max_per_epoch=5, n_epoch=1,
+                batch_size=batch_size, n_iter_max_per_epoch=5, n_epoch=5,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
-                model_suffix="{}".format(description), debug=True,
+                model_suffix="{}".format(description), debug=False,
+                fine_tuning_strategy="bert_first_out",
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                 initialize_bpe_layer=initialize_bpe_layer, args=None,
                 report=True, verbose=1)

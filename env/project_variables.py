@@ -41,7 +41,7 @@ SCORE_AUX = ["norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recal
 
 AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm", "pos", "edit_prediction"]
 AVAILABLE_AGGREGATION_FUNC_AUX_TASKS = ["norm_not_norm", "edit_prediction"]
-
+AVAILABLE_BERT_FINE_TUNING_STRATEGY = ["bert_out_first", "standart"]
 
 TASKS_2_METRICS_STR = {"all": ["accuracy-normalize","InV-accuracy-normalize","OOV-accuracy-normalize","npv-normalize","recall-normalize","precision-normalize","tnr-normalize","accuracy-pos"],
                        "normalize": ["accuracy-normalize", "npv-normalize", "recall-normalize", "precision-normalize", "tnr-normalize"],
@@ -74,6 +74,7 @@ DEMO2_LABEL, DEMO2 = "lexnorm-demo2", os.path.join(PROJECT_PATH, "../parsing/nor
 
 LIU_LABEL, LIU = "liu_data", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li.conll")
 LIU_OWOPUTI_LABEL, LIU_OWOPUTI = "liu_all+owoputi", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-train+dev_500+owoputi_integrated_fixed.conll")
+LIU_TRAIN_OWOPUTI_LABEL, LIU_TRAIN_OWOPUTI = "liu_train+owoputi", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-train_2009-fixed+owoputi_integrated_fixed.conll")
 
 LIU_DEV_LABEL, LIU_DEV = "liu_dev", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-dev_500.conll")
 LIU_DEV_OWOPUTI_LABEL, LIU_DEV_OWOPUTI = "liu_dev_owoputi", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-dev_500+owoputi_integrated_fixed.conll")
@@ -163,12 +164,12 @@ EMNLP12_DIC_LABEL, EMNLP12_DIC = "emnlp-dic-wnut", os.path.join(PROJECT_PATH, "d
 
 REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO2: DEMO2_LABEL,
                 TEST: TEST_LABEL, LIU: LIU_LABEL,
-                LIU_DEV_OWOPUTI:LIU_DEV_OWOPUTI_LABEL, 
-                LIU_OWOPUTI:LIU_OWOPUTI_LABEL,
+                LIU_DEV_OWOPUTI: LIU_DEV_OWOPUTI_LABEL,
+                LIU_OWOPUTI: LIU_OWOPUTI_LABEL,
                 LEX_TRAIN: LEX_TRAIN_LABEL,
                 LEX_TEST: LEX_TEST_LABEL,
                 LEX_LIU_TRAIN: LEX_LIU_LABEL,
-                LIU_DEV: LIU_DEV_LABEL, LIU_TRAIN: LIU_TRAIN_LABEL,
+                LIU_DEV: LIU_DEV_LABEL, LIU_TRAIN: LIU_TRAIN_LABEL, LIU_TRAIN_OWOPUTI: LIU_TRAIN_OWOPUTI_LABEL,
                 EWT_DEV: EWT_DEV_LABEL,
                 CP_PASTE_TRAIN: CP_PASTE_TRAIN_LABEL, CP_PASTE_DEV: CP_PASTE_DEV_LABEL,
                 CP_PASTE_TEST: CP_PASTE_TEST_LABEL,

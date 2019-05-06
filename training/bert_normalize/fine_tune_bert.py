@@ -5,11 +5,11 @@ from toolbox.gpu_related import use_gpu_
 from toolbox import git_related as gr
 import toolbox.deep_learning_toolbox as dptx
 from toolbox.directories_handling import setup_repoting_location
+from toolbox.optim.freezing_policy import apply_fine_tuning_strategy
 from tracking.reporting_google_sheet import append_reporting_sheet, update_status
 from io_.data_iterator import readers_load, conllu_data, data_gen_multi_task_sampling_batch
 from model.bert_tools_from_core_code.tokenization import BertTokenizer
 from training.epoch_run_fine_tuning_bert import epoch_run
-
 from toolbox.report_tools import write_args
 
 
@@ -33,7 +33,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
     if run_mode == "test":
         assert test_path_ls is not None and isinstance(test_path_ls, list)
     if test_path_ls is not None:
-        assert isinstance(test_path_ls, list) and isinstance(test_path_ls[0], list), "ERROR test_path_ls should be a list"
+        assert isinstance(test_path_ls, list) and isinstance(test_path_ls[0], list), \
+            "ERROR test_path_ls should be a list"
     if run_mode == "train":
         printing("CHECKPOINTING info : saving model every {}", var=saving_every_epoch, verbose=verbose, verbose_level=1)
     use_gpu = use_gpu_(use_gpu=None, verbose=verbose)
@@ -156,9 +157,11 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                    dropout_input=0.0,
                                                                    verbose=verbose) if dev_path is not None else None
                 # TODO add optimizer (if not : dev loss)
-                optimizer = dptx.get_optimizer(bert_with_classifier.parameters(), lr=lr)
                 bert_with_classifier.train()
-
+                bert_with_classifier, optimizer = apply_fine_tuning_strategy(model=bert_with_classifier,
+                                                                             fine_tuning_strategy=fine_tuning_strategy,
+                                                                             lr_init=lr,
+                                                                             epoch=epoch, verbose=verbose)
                 loss_train, iter_train, perf_report_train = epoch_run(batchIter_train, tokenizer,
                                                                       data_label=train_data_label,
                                                                       bert_with_classifier=bert_with_classifier, writer=writer,
@@ -167,12 +170,14 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                       optimizer=optimizer, use_gpu=use_gpu,
                                                                       predict_mode=True,
                                                                       model_id=model_id,
-                                                                      reference_word_dic={"InV":inv_word_dic},
+                                                                      reference_word_dic={"InV": inv_word_dic},
                                                                       null_token_index=null_token_index, null_str=null_str,
                                                                       n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
                 bert_with_classifier.eval()
-                loss_dev, iter_dev, perf_report_dev = epoch_run(batchIter_dev, tokenizer,
+
+                if dev_path is not None:
+                    loss_dev, iter_dev, perf_report_dev = epoch_run(batchIter_dev, tokenizer,
                                                                 iter=iter_dev, use_gpu=use_gpu,
                                                                 bert_with_classifier=bert_with_classifier, writer=writer,
                                                                 writing_pred=checkpointing_model_data, dir_end_pred=end_predictions,
@@ -180,7 +185,9 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                 null_token_index=null_token_index, null_str=null_str,
                                                                 model_id=model_id,
                                                                 reference_word_dic={"InV": inv_word_dic},
-                                                                n_iter_max=n_iter_max_per_epoch, verbose=verbose) if dev_path is not None else None, 0, None
+                                                                n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+                else:
+                    loss_dev, iter_dev, perf_report_dev = None, 0, None
 
                 printing("PERFORMANCE {} TRAIN", var=[epoch, perf_report_train],
                          verbose=verbose, verbose_level=1)

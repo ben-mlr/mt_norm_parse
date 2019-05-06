@@ -66,11 +66,12 @@ def from_bpe_token_to_str(bpe_tensor, topk, pred_mode,
     :return:
     """
     predictions_topk_ls = [[[bpe_tensor[sent, word, top].item() if pred_mode else bpe_tensor[sent, word].item()
-                             for word in range(bpe_tensor.size(1))] for sent in range(bpe_tensor.size(0))] for top in
-                           range(topk)]
+                             for word in range(bpe_tensor.size(1))] for sent in range(bpe_tensor.size(0))]
+                           for top in range(topk)]
     sent_ls_top = [[tokenizer.convert_ids_to_tokens(sent_bpe, special_extra_token=null_token_index,
                                                     special_token_string=null_str)
                     for sent_bpe in predictions_topk] for predictions_topk in predictions_topk_ls]
+
     if not pred_mode:
         sent_ls_top = sent_ls_top[0]
     return sent_ls_top

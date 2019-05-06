@@ -35,3 +35,19 @@ def get_cumulated_list(sent_len):
         cumu += int(len_sent)
         sent_len_cumulated.append(cumu)
     return sent_len_cumulated
+
+
+def freeze_param(model, freeze_layer_prefix_ls, verbose=1):
+    assert freeze_layer_prefix_ls is not None, "ERROR freeze_layer_prefix should not be None "
+    freezing_layer = 0
+    for name, param in model.named_parameters():
+        for prefix in freeze_layer_prefix_ls:
+            if name.startswith(prefix):
+                param.requires_grad = False
+                freezing_layer += 1
+                printing("TRAINING : freezing {} parameter ", var=[name], verbose=verbose, verbose_level=2)
+    printing("TRAINING : freezing {} layers", var=[freezing_layer], verbose=verbose, verbose_level=1)
+    assert freezing_layer > 0, "ERROR : did not fine any layers starting with {}".format(prefix)
+
+    return model
+
