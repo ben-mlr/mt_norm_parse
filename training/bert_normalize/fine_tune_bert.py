@@ -20,7 +20,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
         report=True, model_suffix="", description="",
         saving_every_epoch=10, lr=0.0001, fine_tuning_strategy="standart", model_location=None, model_id=None,
         freeze_parameters=None, freeze_layer_prefix_ls=None,
-        report_full_path_shared=None, shared_id=None, bert_model=None,
+        report_full_path_shared=None, shared_id=None, bert_model=None,skip_1_t_n=False,
+        heuristic_ls=None, gold_error_detection=False,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
@@ -107,11 +108,10 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                               tasks=tasks,
                               add_start_char=1 if run_mode == "train" else None,
                               verbose=1)
-    inv_word_dic = word_dictionary.instance2index
 
+    inv_word_dic = word_dictionary.instance2index
     # load , mask, bucket and index data
     tokenizer = BertTokenizer.from_pretrained(voc_tokenizer)
-
     readers_train = readers_load(datasets=train_path, tasks=tasks, word_dictionary=word_dictionary,
                                  word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
                                  pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
@@ -168,7 +168,9 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                       writing_pred=checkpointing_model_data, dir_end_pred=end_predictions,
                                                                       optimizer=optimizer, use_gpu=use_gpu,
                                                                       predict_mode=True,
+                                                                      skip_1_t_n=skip_1_t_n,
                                                                       model_id=model_id,
+                                                                      heuristic_ls=heuristic_ls, gold_error_detection=gold_error_detection,
                                                                       reference_word_dic={"InV": inv_word_dic},
                                                                       null_token_index=null_token_index, null_str=null_str,
                                                                       n_iter_max=n_iter_max_per_epoch, verbose=verbose)
@@ -177,14 +179,19 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
 
                 if dev_path is not None:
                     loss_dev, iter_dev, perf_report_dev = epoch_run(batchIter_dev, tokenizer,
-                                                                iter=iter_dev, use_gpu=use_gpu,
-                                                                bert_with_classifier=bert_with_classifier, writer=writer,
-                                                                writing_pred=checkpointing_model_data, dir_end_pred=end_predictions,
-                                                                predict_mode=True, data_label=dev_data_label, epoch=epoch,
-                                                                null_token_index=null_token_index, null_str=null_str,
-                                                                model_id=model_id,
-                                                                reference_word_dic={"InV": inv_word_dic},
-                                                                n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+                                                                    iter=iter_dev, use_gpu=use_gpu,
+                                                                    bert_with_classifier=bert_with_classifier,
+                                                                    writer=writer,
+                                                                    writing_pred=checkpointing_model_data,
+                                                                    dir_end_pred=end_predictions,
+                                                                    predict_mode=True, data_label=dev_data_label,
+                                                                    epoch=epoch,
+                                                                    null_token_index=null_token_index, null_str=null_str,
+                                                                    model_id=model_id,
+                                                                    skip_1_t_n=skip_1_t_n,
+                                                                    heuristic_ls=heuristic_ls, gold_error_detection=gold_error_detection,
+                                                                    reference_word_dic={"InV": inv_word_dic},
+                                                                    n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                 else:
                     loss_dev, iter_dev, perf_report_dev = None, 0, None
 
@@ -197,7 +204,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
 
                 if checkpointing_model_data :
                     last_model = ""
-                    if epoch == (n_epoch -1):
+                    if epoch == (n_epoch - 1):
                         last_model = "last"
                     printing("CHECKPOINT : saving {} model {} ", var=[last_model, checkpoint_dir], verbose=verbose,
                              verbose_level=1)
@@ -252,10 +259,12 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                optimizer=None,
                                                                args_dir=args_dir, model_id=model_id,
                                                                dir_end_pred=end_predictions,
+                                                               skip_1_t_n=skip_1_t_n,
                                                                predict_mode=True, data_label=label_data,
                                                                epoch="LAST", extra_label_for_prediction=label_data,
                                                                null_token_index=null_token_index, null_str=null_str,
                                                                log_perf=False,
+                                                               heuristic_ls=heuristic_ls, gold_error_detection=gold_error_detection,
                                                                reference_word_dic={"InV":inv_word_dic},
                                                                n_iter_max=n_iter_max_per_epoch, verbose=verbose)
             print("PERFORMANCE TEST on data {} is {} ".format(label_data, perf_report_test))

@@ -139,6 +139,9 @@ def args_train(mode="command_line", script="train_evaluate_run"):
         parser.add_argument('--freeze_layer_prefix_ls', nargs='+', help='<Required> Set flag', default=None)
         parser.add_argument('--dropout_classifier', type=float, default=None)
         parser.add_argument('--fine_tuning_strategy', type=str, default="standart")
+
+        parser.add_argument('--heuristic_ls', nargs='+', help='<Required> Set flag', default=None)
+        parser.add_argument('--gold_error_detection', type=int, default=0)
         args = parser.parse_args()
 
     if args.test_paths is not None:

@@ -19,7 +19,7 @@ assert os.path.isdir(CHECKPOINT_BERT_DIR ), "ERROR : {} CHECKPOINT_BERT_DIR  doe
 CLIENT_GOOGLE_CLOUD = os.path.join(PROJECT_PATH, "tracking/google_api")
 SHEET_NAME_DEFAULT, TAB_NAME_DEFAULT = "model_evaluation", "experiments_tracking"
 
-LIST_ARGS = ["tasks", "train_path", "dev_path", "test_path"]
+LIST_ARGS = ["tasks", "train_path", "dev_path", "test_path", "heuristic_ls"]
 NONE_ARGS = ["gpu"]
 BOOL_ARGS = ["word_embed", "teacher_force", "char_decoding", "unrolling_word", "init_context_decoder",
              "word_decoding", "stable_decoding_state", "char_src_attention"]
@@ -119,13 +119,18 @@ MTNT_EN_FR_TEST_DEMO_LABEL, MTNT_EN_FR_TEST_DEMO = "mtnt_test.demo", os.path.joi
 
 ## MTNT CONLL tokenized
 
-MTNT_EN_TOK_TRAIN_CONLL_LABEL, MTNT_EN_TOK_TRAIN_CONLL = "mtnt_tok_train_conll", os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/train.tok.en.conll")
-MTNT_EN_TOK_DEV_CONLL_LABEL, MTNT_EN_TOK_DEV_CONLL = "mtnt_tok_dev_conll", os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/dev.tok.en.conll")
-MTNT_EN_TOK_DEV_DEMO_CONLL_LABEL, MTNT_EN_TOK_DEV_DEMO_CONLL = "mtnt_tok_dev_demo_conll", os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/dev.tok.en.demo.conll")
+MTNT_EN_TOK_TRAIN_CONLL_LABEL, MTNT_EN_TOK_TRAIN_CONLL = "mtnt_tok_train_conll", \
+                                                         os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/train.tok.en.conll")
+MTNT_EN_TOK_DEV_CONLL_LABEL, MTNT_EN_TOK_DEV_CONLL = "mtnt_tok_dev_conll", \
+                                                     os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/dev.tok.en.conll")
+MTNT_EN_TOK_DEV_DEMO_CONLL_LABEL, MTNT_EN_TOK_DEV_DEMO_CONLL = "mtnt_tok_dev_demo_conll", \
+                                                               os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/dev.tok.en.demo.conll")
 
 #PERMUTATION
-PERMUTATION_TRAIN_LABEL, PERMUTATION_TRAIN = "permutation-train", os.path.join(PROJECT_PATH, "./data/permutation-train.conll")
-PERMUTATION_TEST_LABEL, PERMUTATION_TEST= "permutation-test", os.path.join(PROJECT_PATH, "./data/permutation-test.conll")
+PERMUTATION_TRAIN_LABEL, PERMUTATION_TRAIN = "permutation-train", \
+                                             os.path.join(PROJECT_PATH, "./data/permutation-train.conll")
+PERMUTATION_TEST_LABEL, PERMUTATION_TEST= "permutation-test", \
+                                          os.path.join(PROJECT_PATH, "./data/permutation-test.conll")
 PERMUTATION_TRAIN_DIC = {}
 PERMUTATION_TRAIN_LABEL_DIC = {}
 for n_sent in [100, 1000, 10000, 50000, 100000, 200000]:

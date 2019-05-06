@@ -33,7 +33,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                       dropout_input_ls,
                       scale_ls, checkpointing_metric_ls=None, pos_specific_path=None, gpu_mode="random", description_comment="",
                       gpus_ls=None, write_to_dir=None,test_before_run=False, scoring_func=None,
-                      initialize_bpe_layer_ls=None,
+                      initialize_bpe_layer_ls=None, gold_error_detection_ls=None, heuristic_ls_ls=None,
                       freeze_layer_prefix_ls_ls=None,
                       freeze_parameters_ls=None,
                       bert_model_ls=None, dropout_classifier_ls=None, fine_tuning_strategy_ls=None,
@@ -78,7 +78,8 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                                                                             freeze_parameters_ls=freeze_parameters_ls,
                                                                             bert_model_ls=bert_model_ls,
                                                                             dropout_classifier_ls=dropout_classifier_ls,
-                                                                            fine_tuning_strategy_ls=fine_tuning_strategy_ls
+                                                                            fine_tuning_strategy_ls=fine_tuning_strategy_ls,
+                                                                            gold_error_detection_ls=gold_error_detection_ls, heuristic_ls_ls=heuristic_ls_ls,
                                                                             )
     if gpu_mode == "random":
         if gpus_ls is None:

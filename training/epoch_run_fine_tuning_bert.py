@@ -1,6 +1,6 @@
 from env.importing import *
 from env.project_variables import *
-
+from io_.dat.constants import PAD_ID_BERT, MASK_BERT
 from io_.info_print import printing
 from io_.dat.normalized_writer import write_conll
 from io_.bert_iterators_tools.string_processing import preprocess_batch_string_for_bert, from_bpe_token_to_str, get_indexes
@@ -8,6 +8,8 @@ from io_.bert_iterators_tools.alignement import aligned_output, realigne
 
 from evaluate.scoring.report import overall_word_level_metric_measure
 from evaluate.scoring.confusion_matrix_rates import get_perf_rate
+
+from toolbox.predictions.heuristics import predict_with_heuristic
 
 sys.path.insert(0, os.path.join(PROJECT_PATH, "..", "experimental_pipe"))
 from reporting.write_to_performance_repo import report_template, write_dic
@@ -30,6 +32,7 @@ def epoch_run(batchIter, tokenizer,
               writer=None, optimizer=None,
               predict_mode=False, topk=None, metric=None,
               print_pred=False, args_dir=None,
+              heuristic_ls=None, gold_error_detection=False,
               reference_word_dic=None,
               writing_pred=False, dir_end_pred=None, extra_label_for_prediction="",
               log_perf=True,
@@ -88,6 +91,10 @@ def epoch_run(batchIter, tokenizer,
         dir_gold_original_only = os.path.join(dir_end_pred, "{}_ep-gold_src{}.conll".format(epoch,
                                                                                             extra_label_for_prediction))
 
+    mask_token_index = tokenizer.convert_tokens_to_ids([MASK_BERT])[0]
+    printing("WARNING : [MASK] set to {}", var=[mask_token_index],
+             verbose=verbose, verbose_level=1)
+
     batch_i = 0
     noisy_over_splitted = 0
     noisy_under_splitted = 0
@@ -112,7 +119,6 @@ def epoch_run(batchIter, tokenizer,
             batch = batchIter.__next__()
             batch.raw_input = preprocess_batch_string_for_bert(batch.raw_input)
             batch.raw_output = preprocess_batch_string_for_bert(batch.raw_output)
-
             input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = get_indexes(batch.raw_input, tokenizer, verbose, use_gpu)
             output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask =\
                 get_indexes(batch.raw_output, tokenizer, verbose, use_gpu)
@@ -122,19 +128,18 @@ def epoch_run(batchIter, tokenizer,
 
             _verbose = verbose
             if input_tokens_tensor.size(1) != output_tokens_tensor.size(1):
-                printing("-------------- Alignement broken", verbose=verbose, verbose_level=2)
+                printing("-------------- Alignement broken --------------", verbose=verbose, verbose_level=2)
                 if input_tokens_tensor.size(1) > output_tokens_tensor.size(1):
-                    printing("N to 1 like : NOISY splitted MORE than standard", verbose=verbose, verbose_level=2)
+                    printing("N to 1 : NOISY splitted MORE than standard", verbose=verbose, verbose_level=2)
                     noisy_over_splitted += 1
                 elif input_tokens_tensor.size(1) < output_tokens_tensor.size(1):
                     printing("1 to N : NOISY splitted LESS than standard", verbose=verbose, verbose_level=2)
                     noisy_under_splitted += 1
                     if skip_1_t_n:
-                        printing("WE SKIP IT ", verbose=verbose, verbose_level=2)
+                        printing("WE SKIP IT ", verbose=verbose, verbose_level=1)
                         continue
                 if isinstance(verbose, int):
                     _verbose += 1
-
             else:
                 aligned += 1
 
@@ -157,21 +162,27 @@ def epoch_run(batchIter, tokenizer,
                      verbose=_verbose)
             # aligning output BPE with input (we are rejecting batch with at least one 1 to n case
             # (that we don't want to handle)
-            output_tokens_tensor_aligned, _1_to_n_token = aligned_output(input_tokens_tensor, output_tokens_tensor,
-                                                                         input_alignement_with_raw,
-                                                                         output_alignement_with_raw,
-                                                                         null_token_index=null_token_index, verbose=verbose)
+            output_tokens_tensor_aligned, input_tokens_tensor_aligned, input_alignement_with_raw, _1_to_n_token = \
+                aligned_output(input_tokens_tensor, output_tokens_tensor,
+                               input_alignement_with_raw,
+                               output_alignement_with_raw, mask_token_index=mask_token_index,
+                               null_token_index=null_token_index, verbose=verbose)
+
+            #segments_ids = [[0 for _ in range(len(tokenized))] for tokenized in tokenized_ls]
+            #mask = [[1 for _ in inp] + [0 for _ in range(max_sent_len - len(inp))] for inp in segments_ids]
 
             if batch_i == n_iter_max:
                 break
             if _1_to_n_token:
                 skipping_batch_n_to_1 += 1
-                continue
+                #continue
             # CHECKING ALIGNEMENT
+            input_tokens_tensor = input_tokens_tensor_aligned
             assert output_tokens_tensor_aligned.size(0) == input_tokens_tensor.size(0)
             assert output_tokens_tensor_aligned.size(1) == input_tokens_tensor.size(1)
+            #assert output_tokens_tensor_aligned.size(0) == input_tokens_tensor_aligned.size(0)
+            #assert output_tokens_tensor_aligned.size(1) == input_tokens_tensor_aligned.size(1)
             # we consider only 1 sentence case
-            output_tokens_tensor_aligned = output_tokens_tensor_aligned
             token_type_ids = torch.zeros_like(input_tokens_tensor)
             if input_tokens_tensor.is_cuda:
                 token_type_ids = token_type_ids.cuda()
@@ -179,10 +190,12 @@ def epoch_run(batchIter, tokenizer,
                      var=[input_tokens_tensor.is_cuda, token_type_ids.is_cuda, input_mask.is_cuda,
                           output_tokens_tensor_aligned.is_cuda],
                      verbose=verbose, verbose_level="cuda")
-            
+            # we have to recompute the mask based on aligned input
+            input_mask = torch.Tensor([[1 if token_id != PAD_ID_BERT else 0 for token_id in sent_token] for sent_token in input_tokens_tensor]).long()
+
             _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
-                                         labels=output_tokens_tensor_aligned)
-            
+                                          labels=output_tokens_tensor_aligned)
+
             if predict_mode:
                 # if predict more : will evaluate the model and write its predictions 
                 logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask)
@@ -197,12 +210,29 @@ def epoch_run(batchIter, tokenizer,
                                                             pred_mode=False, null_token_index=null_token_index,null_str=null_str)
 
                 # de-BPE-tokenize
-                src_detokenized = realigne(source_preprocessed, input_alignement_with_raw, null_str=null_str)
-                gold_detokenized = realigne(gold, input_alignement_with_raw, remove_null_str=True, null_str=null_str)
+                src_detokenized = realigne(source_preprocessed, input_alignement_with_raw, null_str=null_str,
+                                           mask_str=MASK_BERT, remove_mask_str=False)
+                gold_detokenized = realigne(gold, input_alignement_with_raw, remove_null_str=True, null_str=null_str,
+                                            mask_str=MASK_BERT)
                 pred_detokenized_topk = []
                 for sent_ls in sent_ls_top:
-                    pred_detokenized_topk.append(realigne(sent_ls, input_alignement_with_raw, remove_null_str=True,
-                                                          remove_extra_predicted_token=True,null_str=null_str))
+                    pred_detokenized_topk.append(realigne(sent_ls, input_alignement_with_raw,
+                                                          remove_null_str=True,
+                                                          remove_extra_predicted_token=True,
+                                                          null_str=null_str, mask_str=MASK_BERT))
+                    # NB : applying those successivly might overlay heuristic
+                    if heuristic_ls is not None:
+                        pred_detokenized_topk = predict_with_heuristic(src_detokenized=src_detokenized,
+                                                                   pred_detokenized_topk=pred_detokenized_topk,
+                                                                   heuristic_ls=heuristic_ls, verbose=verbose)
+                        print("PRED after @ and #",src_detokenized, pred_detokenized_topk)
+                    if gold_error_detection:
+                        pred_detokenized_topk = predict_with_heuristic(src_detokenized=src_detokenized,
+                                                                       gold_detokenized=gold_detokenized,
+                                                                       pred_detokenized_topk=pred_detokenized_topk,
+                                                                       heuristic_ls=["gold_detection"], verbose=verbose)
+                        print("PRED after gold",gold_detokenized, pred_detokenized_topk)
+
 
                 if writing_pred:
                     write_conll(format="conll", dir_normalized=dir_normalized,
@@ -235,18 +265,46 @@ def epoch_run(batchIter, tokenizer,
                 skipping_evaluated_batch += skipping
 
                 if print_pred:
+                    print("SKIP",_1_to_n_token,  input_tokens_tensor.size(1) < output_tokens_tensor.size(1))
                     printing("TRAINING : Score : {} / {} tokens / {} sentences", var=[
                                                                                       perf_prediction["sum"]["all"]["score"],
                                                                                       perf_prediction["sum"]["all"]["n_tokens"],
                                                                                       perf_prediction["sum"]["all"]["n_sents"]
                                                                                       ],
                              verbose=verbose, verbose_level=1)
-                    printing("TRAINING : eval gold {}-{} {}", var=[iter, batch_i, gold_detokenized], verbose=verbose,
-                             verbose_level=2)
-                    printing("TRAINING : eval pred {}-{} {}", var=[iter, batch_i, pred_detokenized_topk], verbose=verbose,
-                             verbose_level=2)
+                    printing("TRAINING : eval gold {}-{} {}", var=[iter, batch_i, gold_detokenized],
+                             verbose=1,
+                             verbose_level=1)
+                    printing("TRAINING : eval pred {}-{} {}", var=[iter, batch_i, pred_detokenized_topk],
+                             verbose=verbose,
+                             verbose_level=1)
                     printing("TRAINING : eval src {}-{} {}", var=[iter, batch_i, src_detokenized],
-                             verbose=verbose, verbose_level=2)
+                             verbose=1, verbose_level=1)
+                    printing("TRAINING : BPE eval gold {}-{} {}", var=[iter, batch_i, gold],
+                             verbose=1,
+                             verbose_level=1)
+                    printing("TRAINING : BPE eval pred {}-{} {}", var=[iter, batch_i, sent_ls_top],
+                             verbose=verbose,
+                             verbose_level=1)
+                    printing("TRAINING : BPE eval src {}-{} {}", var=[iter, batch_i, source_preprocessed],
+                             verbose=1, verbose_level=1)
+                    printing("TRAINING : BPE eval src {}-{} {}", var=[iter, batch_i, input_alignement_with_raw],
+                             verbose=verbose, verbose_level=1)
+
+                    def print_align_bpe(source_preprocessed, gold, input_alignement_with_raw, verbose):
+                        assert len(source_preprocessed)==len(gold), ""
+                        assert len(input_alignement_with_raw) == len(gold), ""
+                        for sent_src, sent_gold, index_match_with_src in zip(source_preprocessed, gold, input_alignement_with_raw):
+                            assert len(sent_src) == len(sent_gold)
+                            assert len(sent_src) == len(sent_gold)
+                            for src, gold_tok, index in zip(sent_src,sent_gold, index_match_with_src):
+                                printing("{}:{} --> {} ", var=[index, src, gold_tok],
+                                         verbose=verbose, verbose_level="alignement")
+
+                    print_align_bpe(source_preprocessed, gold, input_alignement_with_raw, verbose)
+
+
+
                     # TODO : detokenize
                     #  write to conll
                     #  compute prediction score
