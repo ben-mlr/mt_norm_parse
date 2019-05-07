@@ -39,6 +39,7 @@ if train:
                                           vocab_size=vocab_size,dropout_classifier=0.5,
                                           freeze_parameters=freeze_parameters,
                                           freeze_layer_prefix_ls=freeze_layer_prefix_ls,
+                                          dropout_bert=0.2,
                                           initialize_bpe_layer=initialize_bpe_layer)
 
     lr = 0.0001
@@ -53,16 +54,16 @@ if train:
     model = run(bert_with_classifier=model,
                 voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
                 auxilliary_task_norm_not_norm=True,
-                saving_every_epoch=10, lr=lr,
+                saving_every_epoch=10, lr=OrderedDict([("bert", lr), ("classifier", lr)]),
                 batch_size=batch_size, n_iter_max_per_epoch=2500, n_epoch=1,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
                 model_suffix="{}".format(description), debug=True,
-                fine_tuning_strategy="standart",
+                fine_tuning_strategy="flexible_lr",
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                 initialize_bpe_layer=initialize_bpe_layer, args=None, skip_1_t_n=False, dropout_input_bpe=0.8,
                 heuristic_ls=["#"], gold_error_detection=True,
-                report=True, verbose="alignement")
+                report=True, verbose=1)
 
 
 null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary

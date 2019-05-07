@@ -41,7 +41,7 @@ SCORE_AUX = ["norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recal
 
 AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm", "pos", "edit_prediction"]
 AVAILABLE_AGGREGATION_FUNC_AUX_TASKS = ["norm_not_norm", "edit_prediction"]
-AVAILABLE_BERT_FINE_TUNING_STRATEGY = ["bert_out_first", "standart"]
+AVAILABLE_BERT_FINE_TUNING_STRATEGY = ["bert_out_first", "standart","flexible_lr"]
 
 TASKS_2_METRICS_STR = {"all": ["accuracy-normalize","InV-accuracy-normalize","OOV-accuracy-normalize","npv-normalize","recall-normalize","precision-normalize","tnr-normalize","accuracy-pos"],
                        "normalize": ["accuracy-normalize", "npv-normalize", "recall-normalize", "precision-normalize", "tnr-normalize"],

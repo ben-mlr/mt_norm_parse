@@ -61,7 +61,12 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
         hyperparameters = OrderedDict([("bert_model", bert_model), ("lr", lr),
                                        ("initialize_bpe_layer", initialize_bpe_layer),
                                        ("fine_tuning_strategy", fine_tuning_strategy),
-                                       ("dropout_classifier", args.dropout_classifier if args is not None else "UNK")])
+                                       ("dropout_input_bpe", dropout_input_bpe),
+                                       ("heuristic_ls", heuristic_ls),
+                                       ("gold_error_detection", gold_error_detection),
+                                       ("dropout_classifier", args.dropout_classifier if args is not None else "UNK"),
+                                       ("dropout_bert", args.dropout_bert if args is not None else "UNK")
+                                       ])
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
         if report:
             if report_full_path_shared is not None:
@@ -159,10 +164,12 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                    verbose=verbose) if dev_path is not None else None
                 # TODO add optimizer (if not : dev loss)
                 bert_with_classifier.train()
+
                 bert_with_classifier, optimizer = apply_fine_tuning_strategy(model=bert_with_classifier,
                                                                              fine_tuning_strategy=fine_tuning_strategy,
-                                                                             lr_init=lr,
+                                                                             lr_init=lr, betas=(0.9, 0.99),
                                                                              epoch=epoch, verbose=verbose)
+
                 loss_train, iter_train, perf_report_train = epoch_run(batchIter_train, tokenizer,
                                                                       data_label=train_data_label,
                                                                       bert_with_classifier=bert_with_classifier, writer=writer,

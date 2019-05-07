@@ -515,6 +515,7 @@ class BertPreTrainedModel(nn.Module):
 
     @classmethod
     def from_pretrained(cls, pretrained_model_name_or_path, state_dict=None, cache_dir=None,
+                        dropout_custom=0.,
                         from_tf=False, *inputs, **kwargs):
         """
         Instantiate a BertPreTrainedModel from a pre-trained model file or a pytorch state dict.
@@ -576,8 +577,13 @@ class BertPreTrainedModel(nn.Module):
             serialization_dir = tempdir
         # Load config
         config_file = os.path.join(serialization_dir, CONFIG_NAME)
+
         config = BertConfig.from_json_file(config_file)
         logger.info("Model config {}".format(config))
+        if dropout_custom > 0:
+            config.hidden_dropout_prob = dropout_custom
+            config.attention_probs_dropout_prob = dropout_custom
+        print("CONFIG updated", config, config_file)
         # Instantiate model.
         model = cls(config, *inputs, **kwargs)
         if state_dict is None and not from_tf:
@@ -616,8 +622,7 @@ class BertPreTrainedModel(nn.Module):
 
         def load(module, prefix=''):
             local_metadata = {} if metadata is None else metadata.get(prefix[:-1], {})
-            module._load_from_state_dict(
-                state_dict, prefix, local_metadata, True, missing_keys, unexpected_keys, error_msgs)
+            module._load_from_state_dict(state_dict, prefix, local_metadata, True, missing_keys, unexpected_keys, error_msgs)
             for name, child in module._modules.items():
                 if child is not None:
                     load(child, prefix + name + '.')
