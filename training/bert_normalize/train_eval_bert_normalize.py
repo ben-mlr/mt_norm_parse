@@ -26,6 +26,7 @@ def train_eval_bert_normalize(args, verbose=1):
                                           freeze_parameters=freeze_parameters,
                                           freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                                           dropout_classifier=args.dropout_classifier,
+                                          dropout_bert=args.dropout_bert,
                                           initialize_bpe_layer=initialize_bpe_layer)
 
     lr = args.lr

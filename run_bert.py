@@ -36,12 +36,12 @@ if train:
     freeze_layer_prefix_ls = ["bert"]
     #["bert"]
     model = get_bert_token_classification(pretrained_model_dir=model_dir,
-                                          vocab_size=vocab_size,dropout_classifier=0.5,
+                                          vocab_size=vocab_size, dropout_classifier=0.5,
                                           freeze_parameters=freeze_parameters,
                                           freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                                           dropout_bert=0.2,
                                           initialize_bpe_layer=initialize_bpe_layer)
-
+    pdb.set_trace()
     lr = 0.0001
     batch_size = 1
     null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary

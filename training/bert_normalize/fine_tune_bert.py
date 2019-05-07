@@ -67,6 +67,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                        ("dropout_classifier", args.dropout_classifier if args is not None else "UNK"),
                                        ("dropout_bert", args.dropout_bert if args is not None else "UNK")
                                        ])
+        printing("HYPERPARAMETERS {} ",var=[hyperparameters], verbose=verbose, verbose_level=1)
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
         if report:
             if report_full_path_shared is not None:
