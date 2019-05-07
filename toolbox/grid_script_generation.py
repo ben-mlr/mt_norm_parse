@@ -116,7 +116,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                 continue
             if arg in BOOL_ARGS:
                 val = int(val)
-            if arg in DIC_ARGS and not isinstance(val,str): # in the case of mulitask there is this case also
+            if arg in DIC_ARGS and not isinstance(val, str) and not isinstance(val, float):
                 to_write = ""
                 for key, value_arg in val.items():
                     to_write+="{}={},".format(key, value_arg)

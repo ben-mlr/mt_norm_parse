@@ -5,21 +5,33 @@ from env.project_variables import MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE, D
 
 
 def parse_argument_dictionary(argument_as_string, hyperparameter="multi_task_loss_ponderation", verbose=1):
-    assert hyperparameter in DIC_ARGS , "ERROR only supported"
+    assert hyperparameter in DIC_ARGS, "ERROR only supported"
     if argument_as_string in MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE:
         return argument_as_string
     else:
-        dic = {}
-        for task in AVAILABLE_TASKS:
-            if task != "all":
-                pattern = "{}=([^=]*),".format(task)
-                match = re.search(pattern, argument_as_string)
-                assert match is not None, "ERROR : pattern {} not found for task {} in argument_as_string {}  ".format(pattern, task, argument_as_string)
-                dic[task] = eval(match.group(1))
-        printing("SANITY CHECK : multi_task_loss_ponderation {} ", var=[argument_as_string],
-                 verbose_level=1, verbose=verbose)
-        return dic
+        dic = OrderedDict()
+        if hyperparameter=="multi_task_loss_ponderation":
+            for task in AVAILABLE_TASKS:
+                if task != "all":
+                    pattern = "{}=([^=]*),".format(task)
+                    match = re.search(pattern, argument_as_string)
+                    assert match is not None, "ERROR : pattern {} not found for task {} in argument_as_string {}  ".format(pattern, task, argument_as_string)
+                    dic[task] = eval(match.group(1))
+            printing("SANITY CHECK : multi_task_loss_ponderation {} ", var=[argument_as_string],
+                     verbose_level=1, verbose=verbose)
+        elif hyperparameter == "lr":
+            # to handle several optimizers
+            argument_as_string = argument_as_string.split(",")
+            pdb.set_trace()
+            for arg in argument_as_string[:-1]:
+                # DIFFERENCE WITH ABOVE IS THE COMMA
+                pattern = "([^=]*)=([^=]*)"
+                match = re.search(pattern, arg)
+                assert match is not None, "ERROR : pattern {} not found in argument_as_string {}  ".format(pattern,  arg)
+                print("--> ", match.group(1),match.group(2) )
+                dic[match.group(1)] = float(match.group(2))
 
+        return dic
 
 
 def args_train(mode="command_line", script="train_evaluate_run"):
@@ -33,7 +45,7 @@ def args_train(mode="command_line", script="train_evaluate_run"):
     # training opti
     parser.add_argument("--batch_size", default=2, type=int, help="display a square of a given number")
     parser.add_argument("--epochs", default=1, type=int, help="display a square of a given number")
-    parser.add_argument("--lr", default=DEFAULT_LR, type=float, help="display a square of a given number")
+    parser.add_argument("--lr", default=DEFAULT_LR, help="display a square of a given number")
     # id and reporting
     parser.add_argument("--model_id_pref", required=mode == "command_line", help="display a square of a given number")
     parser.add_argument("--overall_label", default="DEFAULT", help="display a square of a given number")
