@@ -8,6 +8,7 @@ def apply_fine_tuning_strategy(fine_tuning_strategy, model, epoch, lr_init, beta
     assert fine_tuning_strategy in AVAILABLE_BERT_FINE_TUNING_STRATEGY, "{} not in {}".format(fine_tuning_strategy, AVAILABLE_BERT_FINE_TUNING_STRATEGY)
 
     if fine_tuning_strategy in ["standart", "bert_out_first"]:
+        assert isinstance(lr_init, float), "{} lr : type {}".format(lr_init, type(lr))
         optimizer = [dptx.get_optimizer(model.parameters(), lr=lr_init, betas=betas)]
         printing("TRAINING : fine tuning strategy {} : learning rate constant {} betas {}", var=[fine_tuning_strategy, lr_init, betas],
                  verbose_level=1, verbose=verbose)

@@ -11,8 +11,6 @@ if __name__ == "__main__":
 
     args = args_train(script="train_evaluate_bert_normalizer")
     params = vars(args)
-    if not isinstance(params["lr"], float):
-       pdb.set_trace()
-       args.lr = parse_argument_dictionary(params["lr"], hyperparameter="lr")
-    pdb.set_trace()
+    args.lr = parse_argument_dictionary(params["lr"], hyperparameter="lr")
+
     train_eval_bert_normalize(args)

@@ -41,7 +41,6 @@ if train:
                                           freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                                           dropout_bert=0.2,
                                           initialize_bpe_layer=initialize_bpe_layer)
-    pdb.set_trace()
     lr = 0.0001
     batch_size = 1
     null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary
@@ -58,7 +57,7 @@ if train:
                 batch_size=batch_size, n_iter_max_per_epoch=2500, n_epoch=1,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
-                model_suffix="{}".format(description), debug=True,
+                model_suffix="{}".format(description), debug=False,
                 fine_tuning_strategy="flexible_lr",
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                 initialize_bpe_layer=initialize_bpe_layer, args=None, skip_1_t_n=False, dropout_input_bpe=0.8,

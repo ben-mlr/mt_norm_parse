@@ -21,15 +21,18 @@ def parse_argument_dictionary(argument_as_string, hyperparameter="multi_task_los
                      verbose_level=1, verbose=verbose)
         elif hyperparameter == "lr":
             # to handle several optimizers
-            argument_as_string = argument_as_string.split(",")
-            pdb.set_trace()
-            for arg in argument_as_string[:-1]:
-                # DIFFERENCE WITH ABOVE IS THE COMMA
-                pattern = "([^=]*)=([^=]*)"
-                match = re.search(pattern, arg)
-                assert match is not None, "ERROR : pattern {} not found in argument_as_string {}  ".format(pattern,  arg)
-                print("--> ", match.group(1),match.group(2) )
-                dic[match.group(1)] = float(match.group(2))
+            if not isinstance(eval(argument_as_string), float):
+                argument_as_string = argument_as_string.split(",")
+
+                for arg in argument_as_string[:-1]:
+                    # DIFFERENCE WITH ABOVE IS THE COMMA
+                    pattern = "([^=]*)=([^=]*)"
+                    match = re.search(pattern, arg)
+                    assert match is not None, "ERROR : pattern {} not found in argument_as_string {}  ".format(pattern,  arg)
+                    print("--> ", match.group(1),match.group(2) )
+                    dic[match.group(1)] = float(match.group(2))
+            else:
+                return eval(argument_as_string)
 
         return dic
 
