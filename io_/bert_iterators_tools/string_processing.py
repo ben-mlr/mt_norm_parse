@@ -4,6 +4,7 @@ from io_.info_print import printing
 
 from toolbox.sanity_check import sanity_check_data_len
 
+
 def preprocess_batch_string_for_bert(batch):
     """
     adding starting and ending token in raw sentences

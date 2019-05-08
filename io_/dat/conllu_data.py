@@ -211,7 +211,6 @@ def create_dict(dict_path, train_path, dev_path, test_path, tasks,
   vocab_list = _START_VOCAB + sorted(vocab, key=vocab.get, reverse=True)
   # filter strictly above min_occurence
   vocab_list = [word for word in vocab_list if word in _START_VOCAB or vocab[word] > min_occurence]
-
   max_vocabulary_size = MAX_VOCABULARY_SIZE_WORD_DIC
   if len(vocab_list) > max_vocabulary_size:
     printing("VOCABULARY : target vocabulary cut to {} tokens", var=[MAX_VOCABULARY_SIZE_WORD_DIC], verbose=verbose, verbose_level=1)

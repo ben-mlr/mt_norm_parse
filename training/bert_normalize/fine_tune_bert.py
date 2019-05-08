@@ -31,7 +31,6 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
     """
     assert run_mode in ["train", "test"], "ERROR run mode {} corrupted ".format(run_mode)
     printing("MODEL : RUNNING IN {} mode", var=[run_mode], verbose=verbose, verbose_level=1)
-    print("EPOCH", n_epoch)
     if run_mode == "test":
         assert test_path_ls is not None and isinstance(test_path_ls, list)
     if test_path_ls is not None:
@@ -175,7 +174,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                       data_label=train_data_label,
                                                                       bert_with_classifier=bert_with_classifier, writer=writer,
                                                                       iter=iter_train, epoch=epoch,
-                                                                      writing_pred=checkpointing_model_data, dir_end_pred=end_predictions,
+                                                                      writing_pred=epoch == (n_epoch - 1), dir_end_pred=end_predictions,
                                                                       optimizer=optimizer, use_gpu=use_gpu,
                                                                       predict_mode=True,
                                                                       skip_1_t_n=skip_1_t_n,
@@ -193,7 +192,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                     iter=iter_dev, use_gpu=use_gpu,
                                                                     bert_with_classifier=bert_with_classifier,
                                                                     writer=writer,
-                                                                    writing_pred=checkpointing_model_data,
+                                                                    writing_pred=epoch == (n_epoch - 1),
                                                                     dir_end_pred=end_predictions,
                                                                     predict_mode=True, data_label=dev_data_label,
                                                                     epoch=epoch,
@@ -253,42 +252,43 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                         symbolic_root=1, bucket=True, max_char_len=20,
                                         verbose=verbose)
 
-            batchIter_test = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_test, batch_size=batch_size,
-                                                                word_dictionary=word_dictionary,
-                                                                char_dictionary=char_dictionary,
-                                                                pos_dictionary=pos_dictionary,
-                                                                word_dictionary_norm=word_norm_dictionary,
-                                                                get_batch_mode=False,
-                                                                extend_n_batch=1,
-                                                                dropout_input=0.0,
-                                                                verbose=verbose)
+            for (heuristic, gold_error) in zip([None, ["@", "#"], ["@", "#"], None], [False, False, True, True]):
+                batchIter_test = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_test, batch_size=batch_size,
+                                                                    word_dictionary=word_dictionary,
+                                                                    char_dictionary=char_dictionary,
+                                                                    pos_dictionary=pos_dictionary,
+                                                                    word_dictionary_norm=word_norm_dictionary,
+                                                                    get_batch_mode=False,
+                                                                    extend_n_batch=1,
+                                                                    dropout_input=0.0,
+                                                                    verbose=verbose)
 
-            loss_test, iter_test, perf_report_test = epoch_run(batchIter_test, tokenizer,
-                                                               iter=iter_dev, use_gpu=use_gpu,
-                                                               bert_with_classifier=bert_with_classifier,
-                                                               writer=None,
-                                                               writing_pred=True,
-                                                               optimizer=None,
-                                                               args_dir=args_dir, model_id=model_id,
-                                                               dir_end_pred=end_predictions,
-                                                               skip_1_t_n=skip_1_t_n,
-                                                               predict_mode=True, data_label=label_data,
-                                                               epoch="LAST", extra_label_for_prediction=label_data,
-                                                               null_token_index=null_token_index, null_str=null_str,
-                                                               log_perf=False,
-                                                               dropout_input_bpe=0,
-                                                               heuristic_ls=heuristic_ls, gold_error_detection=gold_error_detection,
-                                                               reference_word_dic={"InV":inv_word_dic},
-                                                               n_iter_max=n_iter_max_per_epoch, verbose=verbose)
-            print("PERFORMANCE TEST on data {} is {} ".format(label_data, perf_report_test))
-            if writer is not None:
-                writer.add_text("Accuracy-{}-{}-{}".format(model_id, label_data, run_mode),
-                                "After {} epochs with {} : performance is \n {} ".format(n_epoch, description,
-                                                                                         str(perf_report_test)), 0)
-            else:
-                printing("WARNING : could not add accuracy to tensorboard cause writer was found None", verbose=verbose,
-                         verbose_level=1)
-            report_all.extend(perf_report_test)
+                loss_test, iter_test, perf_report_test = epoch_run(batchIter_test, tokenizer,
+                                                                   iter=iter_dev, use_gpu=use_gpu,
+                                                                   bert_with_classifier=bert_with_classifier,
+                                                                   writer=None,
+                                                                   writing_pred=True,
+                                                                   optimizer=None,
+                                                                   args_dir=args_dir, model_id=model_id,
+                                                                   dir_end_pred=end_predictions,
+                                                                   skip_1_t_n=skip_1_t_n,
+                                                                   predict_mode=True, data_label=label_data,
+                                                                   epoch="LAST", extra_label_for_prediction=label_data,
+                                                                   null_token_index=null_token_index, null_str=null_str,
+                                                                   log_perf=False,
+                                                                   dropout_input_bpe=0,
+                                                                   heuristic_ls=heuristic, gold_error_detection=gold_error,
+                                                                   reference_word_dic={"InV": inv_word_dic},
+                                                                   n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+                print("PERFORMANCE TEST on data {} is {} ".format(label_data, perf_report_test))
+                if writer is not None:
+                    writer.add_text("Accuracy-{}-{}-{}".format(model_id, label_data, run_mode),
+                                    "After {} epochs with {} : performance is \n {} ".format(n_epoch, description,
+                                                                                             str(perf_report_test)), 0)
+                else:
+                    printing("WARNING : could not add accuracy to tensorboard cause writer was found None", verbose=verbose,
+                             verbose_level=1)
+                report_all.extend(perf_report_test)
         else:
             printing("EVALUATION none cause {} empty", var=[test_path_ls], verbose_level=1, verbose=verbose)
 

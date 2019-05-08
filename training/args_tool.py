@@ -21,9 +21,11 @@ def parse_argument_dictionary(argument_as_string, hyperparameter="multi_task_los
                      verbose_level=1, verbose=verbose)
         elif hyperparameter == "lr":
             # to handle several optimizers
-            if not isinstance(eval(argument_as_string), float):
+            try :
+                assert isinstance(eval(argument_as_string), float)
+                return eval(argument_as_string)
+            except:
                 argument_as_string = argument_as_string.split(",")
-
                 for arg in argument_as_string[:-1]:
                     # DIFFERENCE WITH ABOVE IS THE COMMA
                     pattern = "([^=]*)=([^=]*)"
@@ -31,8 +33,6 @@ def parse_argument_dictionary(argument_as_string, hyperparameter="multi_task_los
                     assert match is not None, "ERROR : pattern {} not found in argument_as_string {}  ".format(pattern,  arg)
                     print("--> ", match.group(1),match.group(2) )
                     dic[match.group(1)] = float(match.group(2))
-            else:
-                return eval(argument_as_string)
 
         return dic
 

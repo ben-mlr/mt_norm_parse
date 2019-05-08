@@ -117,7 +117,7 @@ class MaskBatch(object):
                 inverse_perm_idx = torch.from_numpy(np.argsort(perm_idx.cpu().numpy()))
                 self.output_seq_y = self.output_seq_y[perm_idx, :]
                 reorder_output, start = get_timing(start)
-                print(Exception("self.output_seq_len.size(0) <=1 not suppoerted {}".format(self.output_seq_len.size(0))))
+                #print(Exception("self.output_seq_len.size(0) <=1 not suppoerted {}".format(self.output_seq_len.size(0))))
             printing("BATCH : TARGET before packed true size {} ", var=(self.output_seq_y.size()),verbose=verbose,
                      verbose_level=4)
             printing("BATCH : TARGET before packed true {} ", var=(self.output_seq_y),verbose=verbose, verbose_level=5)

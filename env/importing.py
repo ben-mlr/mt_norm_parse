@@ -36,11 +36,17 @@ from nltk import edit_distance
 # statistics
 from scipy.stats import hmean
 
+# vis
+import glob
+import codecs
+import pickle
 
-
-
+from sklearn.manifold import TSNE
 
 import matplotlib.pyplot as plt
+from matplotlib.pyplot import cm
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+from matplotlib.ticker import NullFormatter
 
 # torch related
 import torch

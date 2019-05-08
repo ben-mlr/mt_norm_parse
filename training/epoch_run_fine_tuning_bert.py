@@ -346,6 +346,13 @@ def epoch_run(batchIter, tokenizer,
                   skipping_batch_n_to_1],
              verbose=verbose, verbose_level=0)
     printing("WARNING on {} ON THE EVALUATION SIDE we skipped extra {} batch ", var=[data_label, skipping_evaluated_batch], verbose_level=1, verbose=1)
+
+    label_heuristic = ""
+    if gold_error_detection:
+        label_heuristic += "-gold"
+    if heuristic_ls is not None:
+        label_heuristic += "-#-@"
+
     if predict_mode:
         reports = []
         for agg_func in agg_func_ls:
@@ -364,8 +371,9 @@ def epoch_run(batchIter, tokenizer,
                 score = score_dic[agg_func][sample]
                 n_tokens = n_tokens_dic[agg_func][sample]
                 n_sents = n_sents_dic[agg_func][sample]
-                report = report_template(metric_val="accuracy-exact", subsample=sample, info_score_val=None,
-                                         score_val=score/n_tokens if n_tokens>0 else None, n_sents=n_sents, avg_per_sent=0,
+                report = report_template(metric_val="accuracy-exact", subsample=sample+label_heuristic, info_score_val=None,
+                                         score_val=score/n_tokens if n_tokens > 0 else None, n_sents=n_sents,
+                                         avg_per_sent=0,
                                          n_tokens_score=n_tokens,
                                          model_full_name_val=model_id, task=["normalize"],
                                          evaluation_script_val="exact_match",
@@ -383,7 +391,9 @@ def epoch_run(batchIter, tokenizer,
                 for metric_val in ["recall-normalize", "precision-normalize", "f1-normalize", "tnr-normalize", "npv-normalize", "accuracy-normalize"]:
                     score, n_rate_universe = get_perf_rate(metric=metric_val, n_tokens_dic=n_tokens_dic,
                                                            score_dic=score_dic, agg_func=agg_func)
-                    report = report_template(metric_val=metric_val, subsample="rates", info_score_val=None,
+
+                    report = report_template(metric_val=metric_val, subsample="rates"+label_heuristic,
+                                             info_score_val=None,
                                              score_val=score, n_sents=n_sents_dic[agg_func]["all"],
                                              avg_per_sent=0,
                                              n_tokens_score=n_rate_universe,
