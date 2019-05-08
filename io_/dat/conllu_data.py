@@ -13,9 +13,9 @@ from io_.signal_aggregation import get_transform_normalized_standart
 
 def load_dict(dict_path, train_path=None, dev_path=None, test_path=None,
               word_normalization=False, pos_specific_data_set=None,
-              word_embed_dict=None,tasks=None,
+              word_embed_dict=None, tasks=None,
               dry_run=0, expand_vocab=False, add_start_char=None,
-              force_new_dic=False,verbose=1):
+              force_new_dic=False, verbose=1):
 
   # TODO : CLEAN THIS to_create
   to_create = False
@@ -405,7 +405,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
                                                   xpos_dictionary, type_dictionary, bucket=bucket, word_norm_dictionary=word_norm_dictionary,
                                                   verbose=verbose, max_size=max_size, normalization=normalization,
                                                   normalize_digits=normalize_digits, symbolic_root=symbolic_root,
-                                                  word_decoder=word_decoder,tasks=tasks,max_char_len=max_char_len,
+                                                  word_decoder=word_decoder, tasks=tasks,max_char_len=max_char_len,
                                                   symbolic_end=symbolic_end, dry_run=dry_run)
 
   max_char_length = max_char_length_dic["max_char_length"]

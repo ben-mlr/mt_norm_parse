@@ -27,7 +27,7 @@ def accumulate_scores_across_sents(agg_func_ls, sample_ls, dic_prediction_score,
 def epoch_run(batchIter, tokenizer,
               iter, n_iter_max, bert_with_classifier, epoch,
               use_gpu, data_label, null_token_index, null_str,
-              model_id,
+              model_id, tasks,
               skip_1_t_n=True,
               writer=None, optimizer=None,
               predict_mode=False, topk=None, metric=None,
@@ -69,6 +69,8 @@ def epoch_run(batchIter, tokenizer,
     :param verbose:
     :return:
     """
+    assert len(tasks)==1, "only one task supported so far"
+
     if predict_mode:
         if topk is None:
             topk = 1
@@ -118,30 +120,39 @@ def epoch_run(batchIter, tokenizer,
 
             batch = batchIter.__next__()
             batch.raw_input = preprocess_batch_string_for_bert(batch.raw_input)
-            batch.raw_output = preprocess_batch_string_for_bert(batch.raw_output)
-            input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = get_indexes(batch.raw_input, tokenizer, verbose, use_gpu)
-            output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask =\
-                get_indexes(batch.raw_output, tokenizer, verbose, use_gpu)
 
-            printing("DATA dim : {} input {} output ", var=[input_tokens_tensor.size(), output_tokens_tensor.size()],
-                     verbose_level=2, verbose=verbose)
+            input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = \
+                get_indexes(batch.raw_input, tokenizer, verbose, use_gpu)
 
+            # TODO : for multitask setting : should condition this
+            if "normalize" in tasks:
+                batch.raw_output = preprocess_batch_string_for_bert(batch.raw_output)
+                output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask =\
+                    get_indexes(batch.raw_output, tokenizer, verbose, use_gpu)
+
+                printing("DATA dim : {} input {} output ", var=[input_tokens_tensor.size(), output_tokens_tensor.size()],
+                         verbose_level=2, verbose=verbose)
+            elif "pos" in tasks:
+                output_tokens_tensor = batch.pos
+                out_bpe_tokenized = None
+                #inde, _ = torch.min((torch.Tensor(input_alignement_with_raw) == 2).nonzero()[:, 1], dim=0)
+                # should be done in pytorch + reducancies with get_index + factorize is osomethwere
+                input_tokens_tensor = np.array(input_tokens_tensor)
+                new_input = [[input_tokens_tensor[ind_sent, ind] for ind in range(len(sent))
+                              if sent[ind] != sent[ind - 1]] for ind_sent, sent in enumerate(input_alignement_with_raw)]
+
+                len_max = max([len(sent) for sent in new_input])
+                new_input = [[inp for inp in sent]+[PAD_ID_BERT for _ in range(len_max-len(sent))] for sent in new_input]
+                _input_mask = [[1 if input != PAD_ID_BERT else 0 for input in inp ] for inp in new_input]
+
+                input_mask = torch.Tensor(_input_mask).long()
+                input_tokens_tensor = torch.Tensor(new_input).long()
+
+                if input_mask.is_cuda:
+                    input_mask = input_mask.cuda()
+                    input_tokens_tensor = input_tokens_tensor.cuda()
             _verbose = verbose
-            if input_tokens_tensor.size(1) != output_tokens_tensor.size(1):
-                printing("-------------- Alignement broken --------------", verbose=verbose, verbose_level=2)
-                if input_tokens_tensor.size(1) > output_tokens_tensor.size(1):
-                    printing("N to 1 : NOISY splitted MORE than standard", verbose=verbose, verbose_level=2)
-                    noisy_over_splitted += 1
-                elif input_tokens_tensor.size(1) < output_tokens_tensor.size(1):
-                    printing("1 to N : NOISY splitted LESS than standard", verbose=verbose, verbose_level=2)
-                    noisy_under_splitted += 1
-                    if skip_1_t_n:
-                        printing("WE SKIP IT ", verbose=verbose, verbose_level=1)
-                        continue
-                if isinstance(verbose, int):
-                    _verbose += 1
-            else:
-                aligned += 1
+     
 
             # logging
             printing("DATA : pre-tokenized input {} ", var=[batch.raw_input], verbose_level="raw_data",
@@ -160,14 +171,19 @@ def epoch_run(batchIter, tokenizer,
                      verbose=_verbose)
             printing("DATA : BPE tokenized output  {}", var=[out_bpe_tokenized], verbose_level=4,
                      verbose=_verbose)
-            # aligning output BPE with input (we are rejecting batch with at least one 1 to n case
-            # (that we don't want to handle)
-            output_tokens_tensor_aligned, input_tokens_tensor_aligned, input_alignement_with_raw, _1_to_n_token = \
-                aligned_output(input_tokens_tensor, output_tokens_tensor,
-                               input_alignement_with_raw,
-                               output_alignement_with_raw, mask_token_index=mask_token_index,
-                               null_token_index=null_token_index, verbose=verbose)
-
+            _1_to_n_token = 0
+            if "normalize" in tasks:
+                # aligning output BPE with input (we are rejecting batch with at least one 1 to n case
+                # (that we don't want to handle)
+                output_tokens_tensor_aligned, input_tokens_tensor_aligned, input_alignement_with_raw, _1_to_n_token = \
+                    aligned_output(input_tokens_tensor, output_tokens_tensor,
+                                   input_alignement_with_raw,
+                                   output_alignement_with_raw, mask_token_index=mask_token_index,
+                                   null_token_index=null_token_index, verbose=verbose)
+                input_tokens_tensor = input_tokens_tensor_aligned
+            elif "pos" in tasks:
+                # NB : we use the aligned input with the
+                output_tokens_tensor_aligned = output_tokens_tensor[:, : input_tokens_tensor.size(1)]
             #segments_ids = [[0 for _ in range(len(tokenized))] for tokenized in tokenized_ls]
             #mask = [[1 for _ in inp] + [0 for _ in range(max_sent_len - len(inp))] for inp in segments_ids]
 
@@ -177,11 +193,13 @@ def epoch_run(batchIter, tokenizer,
                 skipping_batch_n_to_1 += 1
                 #continue
             # CHECKING ALIGNEMENT
-            input_tokens_tensor = input_tokens_tensor_aligned
-            assert output_tokens_tensor_aligned.size(0) == input_tokens_tensor.size(0)
-            assert output_tokens_tensor_aligned.size(1) == input_tokens_tensor.size(1)
-            #assert output_tokens_tensor_aligned.size(0) == input_tokens_tensor_aligned.size(0)
-            #assert output_tokens_tensor_aligned.size(1) == input_tokens_tensor_aligned.size(1)
+            pdb.set_trace()
+            # PADDING TO HANDLE !!
+            assert output_tokens_tensor_aligned.size(0) == input_tokens_tensor.size(0),\
+                "output_tokens_tensor_aligned.size(0) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(),input_tokens_tensor.size())
+            assert output_tokens_tensor_aligned.size(1) == input_tokens_tensor.size(1), \
+                "output_tokens_tensor_aligned.size(1) {} input_tokens_tensor.size() {}".format(
+                    output_tokens_tensor_aligned.size(1), input_tokens_tensor.size(1))
             # we consider only 1 sentence case
             token_type_ids = torch.zeros_like(input_tokens_tensor)
             if input_tokens_tensor.is_cuda:
@@ -194,7 +212,7 @@ def epoch_run(batchIter, tokenizer,
             input_mask = torch.Tensor([[1 if token_id != PAD_ID_BERT else 0 for token_id in sent_token] for sent_token in input_tokens_tensor]).long()
             if input_tokens_tensor.is_cuda:
                 input_mask = input_mask.cuda()
-            if dropout_input_bpe>0:
+            if dropout_input_bpe > 0:
                 input_tokens_tensor = dropout_input_tensor(input_tokens_tensor,mask_token_index, dropout=dropout_input_bpe)
             _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
                                           labels=output_tokens_tensor_aligned)
@@ -308,8 +326,6 @@ def epoch_run(batchIter, tokenizer,
                                                  verbose=verbose, verbose_level=verbose_level)
 
                     print_align_bpe(source_preprocessed, gold, input_alignement_with_raw, verbose=verbose, verbose_level=4)
-
-
 
                     # TODO : detokenize
                     #  write to conll

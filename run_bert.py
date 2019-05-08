@@ -33,6 +33,7 @@ if train:
     initialize_bpe_layer = True
     freeze_parameters = True
     freeze_layer_prefix_ls = ["bert"]
+    tasks = ["pos"]
     #["bert"]
     model = get_bert_token_classification(pretrained_model_dir=model_dir,
                                           vocab_size=vocab_size, dropout_classifier=0.5,
@@ -41,7 +42,7 @@ if train:
                                           dropout_bert=0.0,
                                           initialize_bpe_layer=initialize_bpe_layer)
     lr = 0.0001
-    batch_size = 1
+    batch_size = 2
     null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary
     description = "DEBUGGING_LEAK-AS_BEFORE"
     print("{} lr batch_size initialize_bpe_layer training_data".format(REPORT_FLAG_VARIABLES_ENRICH_STR))
@@ -56,7 +57,7 @@ if train:
                 batch_size=batch_size, n_iter_max_per_epoch=2, n_epoch=1,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
-                model_suffix="{}".format(description), debug=False,
+                model_suffix="{}".format(description), debug=True,
                 fine_tuning_strategy="flexible_lr",
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                 initialize_bpe_layer=initialize_bpe_layer, args=None, skip_1_t_n=False, dropout_input_bpe=0.8,
@@ -83,7 +84,7 @@ if playwith:
     pref_suffix = ""
     batch_size = 1
     lr = ""
-    evalu=False
+    evalu = False
     if evalu:
         model = run(bert_with_classifier=model,
                     voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
