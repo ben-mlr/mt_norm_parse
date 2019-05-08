@@ -10,7 +10,7 @@ from toolbox.bert_tools.get_bert_info import get_bert_name
 
 def train_eval_bert_normalize(args, verbose=1):
 
-    tasks = ["normalize"]
+    #tasks = ["normalize"]
 
     args.bert_model = get_bert_name(args.bert_model)
     voc_tokenizer = BERT_MODEL_DIC[args.bert_model]["vocab"]
@@ -27,6 +27,7 @@ def train_eval_bert_normalize(args, verbose=1):
                                           freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                                           dropout_classifier=args.dropout_classifier,
                                           dropout_bert=args.dropout_bert,
+                                          tasks=args.tasks,voc_pos_size=16,
                                           initialize_bpe_layer=initialize_bpe_layer)
 
     lr = args.lr
@@ -35,7 +36,7 @@ def train_eval_bert_normalize(args, verbose=1):
     description = "grid"
     dir_grid = args.overall_report_dir
     run(bert_with_classifier=model,
-        voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=args.train_path, dev_path=args.dev_path,
+        voc_tokenizer=voc_tokenizer, tasks=args.tasks, train_path=args.train_path, dev_path=args.dev_path,
         auxilliary_task_norm_not_norm=True,
         saving_every_epoch=10, lr=lr,
         batch_size=batch_size, n_iter_max_per_epoch=10000, n_epoch=args.epochs,

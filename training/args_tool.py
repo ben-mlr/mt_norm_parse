@@ -65,8 +65,9 @@ def args_train(mode="command_line", script="train_evaluate_run"):
     parser.add_argument("--dev_path", required=mode == "command_line", nargs='+', help='<Required> Set flag')
     parser.add_argument('--test_paths', nargs='+', help='<Required> Set flag', default=None,
                         required=(script == "train_evaluate_bert_normalizer"))
+    parser.add_argument('--tasks', nargs='+', help='<Required> Set flag', default=DEFAULT_TASKS)
 
-    if script=="train_evaluate_run":
+    if script == "train_evaluate_run":
         parser.add_argument("--hidden_size_encoder", type=int, required=True, help="display a square of a given number")
         parser.add_argument("--hidden_size_sent_encoder", required=True, type=int, help="display a square of a given number")
         parser.add_argument("--hidden_size_decoder", required=True, type=int, help="display a square of a given number")
@@ -130,7 +131,6 @@ def args_train(mode="command_line", script="train_evaluate_run"):
         parser.add_argument("--dense_dim_auxilliary_pos_2",type=int, default=None, help="display a square of a given number")
         parser.add_argument("--activation_char_decoder", default=None, help="display a square of a given number")
         parser.add_argument("--activation_word_decoder", default=None, help="display a square of a given number")
-        parser.add_argument('--tasks', nargs='+', help='<Required> Set flag', default=DEFAULT_TASKS)
 
         parser.add_argument("--checkpointing_metric", required=mode == "command_line", nargs='+', help='<Required> Set flag')
 
@@ -148,6 +148,7 @@ def args_train(mode="command_line", script="train_evaluate_run"):
             args.word_embedding_dim = 0
 
     elif script == "train_evaluate_bert_normalizer":
+
         parser.add_argument("--initialize_bpe_layer", required=True, type=int, help="display a square of a given number")
         parser.add_argument("--bert_model", required=True, type=str, help="display a square of a given number")
         parser.add_argument("--freeze_parameters", required=True, type=int, help="display a square of a given number")

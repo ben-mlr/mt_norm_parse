@@ -225,8 +225,9 @@ def grid_param_label_generate(param,
       if _args != "test_path" and _args != "tasks":
         dic_grid[_args] = args_avail[args+"_ls"]
       elif _args == "tasks":
-        assert eval(_args+"_ls")[0][0]=="normalize" and len(eval(_args+"_ls")) == 1 and len(eval(_args+"_ls")[0]) == 1,\
+        assert eval(_args+"_ls")[0][0] in ["normalize", "pos"] and len(eval(_args+"_ls")) == 1 and len(eval(_args+"_ls")[0]) == 1,\
           "ERROR : only normalize supported so far {}".format(eval(_args+"_ls"))
+        dic_grid[_args] = args_avail[_args + "_ls"]
 
     list_of_list_of_args = [lis_values for arg_dic, lis_values in dic_grid.items()]
 
@@ -258,7 +259,7 @@ def grid_param_label_generate(param,
               scaled_output_dim = 1
             else:
               scale_sent_context, scale_word= scale, scale
-              scaled_output_dim =  max(int(scale/2), 1) if max(int(scale/2), 1) < 10 else 10
+              scaled_output_dim = max(int(scale/2), 1) if max(int(scale/2), 1) < 10 else 10
               scale = 1
             #for dir_word_encoder in dir_word_encoder_ls:
 

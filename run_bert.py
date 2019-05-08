@@ -11,8 +11,8 @@ PAD_BERT = "[PAD]"
 
 train_path = [PERMUTATION_TRAIN_DIC[10000]]
 dev_path = [PERMUTATION_TEST]
-train_path = [DEMO]
-dev_path = [DEMO]#[LIU_DEV]#[DEMO2]
+train_path = [EN_LINES_EWT_TRAIN]
+dev_path = [DEMO2]#[LIU_DEV]#[DEMO2]
 #dev_path = None
 test_paths_ls = [[DEV], [LIU_DEV], [TEST], [LIU_TRAIN]]#, [LIU_TRAIN], [LIU_DEV], [DEV], [LEX_TEST], [LEX_TRAIN], [LEX_LIU_TRAIN]]
 test_paths_ls = [[DEMO2]]
@@ -33,7 +33,7 @@ if train:
     initialize_bpe_layer = True
     freeze_parameters = True
     freeze_layer_prefix_ls = ["bert"]
-    tasks = ["normalize"]
+    tasks = ["pos"]
     voc_pos_size = 16
     #["bert"]
     model = get_bert_token_classification(pretrained_model_dir=model_dir,
@@ -55,10 +55,10 @@ if train:
                 voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
                 auxilliary_task_norm_not_norm=True,
                 saving_every_epoch=10, lr=OrderedDict([("bert", lr), ("classifier", lr)]),
-                batch_size=batch_size, n_iter_max_per_epoch=2, n_epoch=1,
+                batch_size=batch_size, n_iter_max_per_epoch=10, n_epoch=1,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
-                model_suffix="{}".format(description), debug=True,
+                model_suffix="{}".format(description), debug=False,
                 fine_tuning_strategy="flexible_lr",
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                 initialize_bpe_layer=initialize_bpe_layer, args=None, skip_1_t_n=False, dropout_input_bpe=0.0,
