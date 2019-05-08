@@ -1,4 +1,5 @@
 from env.importing import pdb
+from io_.dat.constants import SPECIAL_TOKEN_LS
 
 def word_level_scoring(metric, gold, topk_pred, topk):
     """
@@ -37,6 +38,10 @@ def word_level_filter(gold, topk_pred, topk, src, sample="all", word_reference_d
     """
     #assert sample in ["all", "NORMED", "NEED_NORM"]
     assert len(topk_pred) == topk, "ERROR : inconsinstent provided topk and what I got "
+
+    if gold in SPECIAL_TOKEN_LS:
+        print("IGNORING SPECIAL TOKEN")
+        return 0
     if sample == "all":
         return 1
     elif sample == "NORMED":

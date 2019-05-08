@@ -171,6 +171,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                              epoch=epoch, verbose=verbose)
 
                 loss_train, iter_train, perf_report_train = epoch_run(batchIter_train, tokenizer,
+                                                                      pos_dictionary=pos_dictionary,
                                                                       data_label=train_data_label,
                                                                       bert_with_classifier=bert_with_classifier, writer=writer,
                                                                       iter=iter_train, epoch=epoch,
@@ -190,6 +191,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
 
                 if dev_path is not None:
                     loss_dev, iter_dev, perf_report_dev = epoch_run(batchIter_dev, tokenizer,
+                                                                    pos_dictionary=pos_dictionary,
                                                                     iter=iter_dev, use_gpu=use_gpu,
                                                                     bert_with_classifier=bert_with_classifier,
                                                                     writer=writer,
@@ -265,6 +267,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                     verbose=verbose)
 
                 loss_test, iter_test, perf_report_test = epoch_run(batchIter_test, tokenizer,
+                                                                   pos_dictionary=pos_dictionary,
                                                                    iter=iter_dev, use_gpu=use_gpu,
                                                                    bert_with_classifier=bert_with_classifier,
                                                                    writer=None,

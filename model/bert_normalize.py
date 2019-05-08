@@ -4,10 +4,10 @@ from toolbox.deep_learning_toolbox import freeze_param
 from model.bert_tools_from_core_code.modeling import BertForTokenClassification, BertConfig
 
 
-def get_bert_token_classification(vocab_size,
+def get_bert_token_classification(vocab_size,voc_pos_size=None,
                                   pretrained_model_dir=None, checkpoint_dir=None,
                                   freeze_parameters=False, freeze_layer_prefix_ls=None,
-                                  dropout_classifier=None,dropout_bert=0.,
+                                  dropout_classifier=None,dropout_bert=0.,tasks=None,
                                   initialize_bpe_layer=None, verbose=1):
     """
     two use case :
@@ -20,6 +20,9 @@ def get_bert_token_classification(vocab_size,
     :param verbose:
     :return:
     """
+    if tasks is None:
+        tasks = ["normalize"]
+    assert len(tasks)==1, "only one task at at time for now"
     assert checkpoint_dir is not None or pretrained_model_dir is not None, \
         "Neither checkpoint_dir or pretrained_model_dir was provided"
     assert pretrained_model_dir is None or checkpoint_dir is None, \
@@ -28,12 +31,20 @@ def get_bert_token_classification(vocab_size,
                         num_hidden_layers=12, num_attention_heads=12, intermediate_size=3072)
     #config.hidden_dropout_prob = 0.2
     # QUESTION : WHERE IS THE MODEL ACTUALLY BEING LOADED ???
-    num_labels = vocab_size + 1
+
 
     # this line is useless apparently as it does it load it again
+    if "normalize" in tasks:
+        num_labels = vocab_size + 1
+    elif "pos" in tasks:
+        assert voc_pos_size is not None
+        initialize_bpe_layer = False
+        num_labels = voc_pos_size
+
     model = BertForTokenClassification(config, num_labels, dropout_classifier=dropout_classifier)
 
     if pretrained_model_dir is not None:
+
         assert initialize_bpe_layer is not None, "ERROR initialize_bpe_layer should not be None "
 
         model = model.from_pretrained(pretrained_model_dir, num_labels=num_labels, dropout_custom=dropout_bert)

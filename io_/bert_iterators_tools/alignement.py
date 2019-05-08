@@ -1,7 +1,6 @@
 from env.importing import *
 from io_.info_print import printing
-from io_.dat.constants import NULL_STR_TO_SHOW, TOKEN_BPE_BERT_START, TOKEN_BPE_BERT_SEP
-
+from io_.dat.constants import NULL_STR_TO_SHOW, TOKEN_BPE_BERT_START, TOKEN_BPE_BERT_SEP, PAD_POS
 
 def aligned_output(input_tokens_tensor, output_tokens_tensor,
                    input_alignement_with_raw, output_alignement_with_raw,
@@ -116,7 +115,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
     return output_tokens_tensor_aligned, input_tokens_tensor_aligned, new_alignement_with_input_ls,  _1_to_n_token
 
 
-def realigne(ls_sent_str, input_alignement_with_raw, null_str, mask_str,
+def realigne(ls_sent_str, input_alignement_with_raw, null_str, mask_str,tasks,
              remove_null_str=True, remove_mask_str=False, remove_extra_predicted_token=False):
     """
     ** remove_extra_predicted_token used iif pred mode **
@@ -143,11 +142,16 @@ def realigne(ls_sent_str, input_alignement_with_raw, null_str, mask_str,
                 token = NULL_STR_TO_SHOW if not remove_null_str else ""
             if token == mask_str:
                 token = "X" if not remove_mask_str else ""
-            if index == former_index:
-                if token.startswith("##"):
-                    former_token += token[2:]
-                else:
-                    former_token += token
+            if "normalize" in tasks:
+                if index == former_index:
+                    if token.startswith("##"):
+                        former_token += token[2:]
+                    else:
+                        former_token += token
+            elif "pos" in tasks:
+                # we just if ignore token
+                if index == former_index:
+                    pass
             if index != former_index or _i + 1 == len(index_ls):
                 new_sent.append(former_token)
                 former_token = token
@@ -159,5 +163,15 @@ def realigne(ls_sent_str, input_alignement_with_raw, null_str, mask_str,
                 new_sent.append(token)
                 break
             former_index = index
+            if "pos" == tasks[0] and False:
+                if token == PAD_POS:
+                    pass
+                if index != former_index or _i + 1 == len(index_ls):
+                    new_sent.append(former_token)
+                    former_token = token
+                    if trigger_end_sent:
+                        break
+                else:
+                    new_sent.append(token)
         new_sent_ls.append(new_sent[1:])
     return new_sent_ls

@@ -28,6 +28,7 @@ def epoch_run(batchIter, tokenizer,
               iter, n_iter_max, bert_with_classifier, epoch,
               use_gpu, data_label, null_token_index, null_str,
               model_id, tasks,
+              pos_dictionary=None,
               skip_1_t_n=True,
               writer=None, optimizer=None,
               predict_mode=False, topk=None, metric=None,
@@ -133,18 +134,36 @@ def epoch_run(batchIter, tokenizer,
                 printing("DATA dim : {} input {} output ", var=[input_tokens_tensor.size(), output_tokens_tensor.size()],
                          verbose_level=2, verbose=verbose)
             elif "pos" in tasks:
-                output_tokens_tensor = batch.pos
+                output_tokens_tensor = np.array(batch.pos)
                 out_bpe_tokenized = None
                 #inde, _ = torch.min((torch.Tensor(input_alignement_with_raw) == 2).nonzero()[:, 1], dim=0)
                 # should be done in pytorch + reducancies with get_index + factorize is osomethwere
-                input_tokens_tensor = np.array(input_tokens_tensor)
-                new_input = [[input_tokens_tensor[ind_sent, ind] for ind in range(len(sent))
-                              if sent[ind] != sent[ind - 1]] for ind_sent, sent in enumerate(input_alignement_with_raw)]
+                new_input = np.array(input_tokens_tensor)
+                #new_input = [[input_tokens_tensor[ind_sent, ind] for ind in range(len(sent)) if sent[ind] != sent[ind - 1]] for ind_sent, sent in enumerate(input_alignement_with_raw)]
 
                 len_max = max([len(sent) for sent in new_input])
                 new_input = [[inp for inp in sent]+[PAD_ID_BERT for _ in range(len_max-len(sent))] for sent in new_input]
-                _input_mask = [[1 if input != PAD_ID_BERT else 0 for input in inp ] for inp in new_input]
-
+                #_input_mask = [[1 if input != PAD_ID_BERT else 0 for input in inp] for inp in zip(new_input)]
+                # we mask bpe token that have been split (we don't mask the first bpe token of each word)
+                _input_mask = [[0 if new_input[ind_sent][ind_tok] == PAD_ID_BERT
+                                     or input_alignement_with_raw[ind_sent][ind_tok-1] == input_alignement_with_raw[ind_sent][ind_tok]
+                                else 1 for ind_tok in range(len(new_input[ind_sent]))]
+                               for ind_sent in range(len(new_input))]
+                output_tokens_tensor_new = []
+                for ind_sent in range(len(_input_mask)):
+                    output_tokens_tensor_new_ls = []
+                    shift = 0
+                    for ind_tok in range(len(_input_mask[ind_sent])):
+                        mask = _input_mask[ind_sent][ind_tok]
+                        label = output_tokens_tensor[ind_sent, ind_tok-shift]
+                        if mask != 0:
+                            output_tokens_tensor_new_ls.append(label)
+                        else:
+                            # 1 for _PAD_POS
+                            output_tokens_tensor_new_ls.append(1)
+                            shift += 1
+                    output_tokens_tensor_new.append(output_tokens_tensor_new_ls)
+                output_tokens_tensor = torch.Tensor(output_tokens_tensor_new).long()
                 input_mask = torch.Tensor(_input_mask).long()
                 input_tokens_tensor = torch.Tensor(new_input).long()
 
@@ -152,7 +171,7 @@ def epoch_run(batchIter, tokenizer,
                     input_mask = input_mask.cuda()
                     input_tokens_tensor = input_tokens_tensor.cuda()
             _verbose = verbose
-     
+
 
             # logging
             printing("DATA : pre-tokenized input {} ", var=[batch.raw_input], verbose_level="raw_data",
@@ -184,6 +203,8 @@ def epoch_run(batchIter, tokenizer,
             elif "pos" in tasks:
                 # NB : we use the aligned input with the
                 output_tokens_tensor_aligned = output_tokens_tensor[:, : input_tokens_tensor.size(1)]
+                output_tokens_tensor_aligned = output_tokens_tensor_aligned.contiguous()
+
             #segments_ids = [[0 for _ in range(len(tokenized))] for tokenized in tokenized_ls]
             #mask = [[1 for _ in inp] + [0 for _ in range(max_sent_len - len(inp))] for inp in segments_ids]
 
@@ -193,7 +214,6 @@ def epoch_run(batchIter, tokenizer,
                 skipping_batch_n_to_1 += 1
                 #continue
             # CHECKING ALIGNEMENT
-            pdb.set_trace()
             # PADDING TO HANDLE !!
             assert output_tokens_tensor_aligned.size(0) == input_tokens_tensor.size(0),\
                 "output_tokens_tensor_aligned.size(0) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(),input_tokens_tensor.size())
@@ -213,9 +233,10 @@ def epoch_run(batchIter, tokenizer,
             if input_tokens_tensor.is_cuda:
                 input_mask = input_mask.cuda()
             if dropout_input_bpe > 0:
-                input_tokens_tensor = dropout_input_tensor(input_tokens_tensor,mask_token_index, dropout=dropout_input_bpe)
+                input_tokens_tensor = dropout_input_tensor(input_tokens_tensor, mask_token_index, dropout=dropout_input_bpe)
+
             _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
-                                          labels=output_tokens_tensor_aligned)
+                                         labels=output_tokens_tensor_aligned)
 
             if predict_mode:
                 # if predict more : will evaluate the model and write its predictions 
@@ -224,50 +245,59 @@ def epoch_run(batchIter, tokenizer,
                 # from bpe index to string
 
                 sent_ls_top = from_bpe_token_to_str(predictions_topk, topk, tokenizer=tokenizer, pred_mode=True,
+                                                    pos_dictionary=pos_dictionary, task=tasks[0],
                                                     null_token_index=null_token_index, null_str=null_str)
                 gold = from_bpe_token_to_str(output_tokens_tensor_aligned, topk, tokenizer=tokenizer,
-                                             pred_mode=False, null_token_index=null_token_index,null_str=null_str)
+                                             pos_dictionary=pos_dictionary, task=tasks[0],
+                                             pred_mode=False, null_token_index=null_token_index, null_str=null_str)
+
                 source_preprocessed = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer,
-                                                            pred_mode=False, null_token_index=null_token_index,null_str=null_str)
+                                                            pos_dictionary=pos_dictionary,
+                                                            pred_mode=False, null_token_index=null_token_index,
+                                                            null_str=null_str)
 
                 # de-BPE-tokenize
                 src_detokenized = realigne(source_preprocessed, input_alignement_with_raw, null_str=null_str,
+                                           tasks=["normalize"],# normalize means we deal wiht bpe input not pos
                                            mask_str=MASK_BERT, remove_mask_str=False)
                 gold_detokenized = realigne(gold, input_alignement_with_raw, remove_null_str=True, null_str=null_str,
+                                            tasks=["pos"],
                                             mask_str=MASK_BERT)
+
                 pred_detokenized_topk = []
                 for sent_ls in sent_ls_top:
                     pred_detokenized_topk.append(realigne(sent_ls, input_alignement_with_raw,
-                                                          remove_null_str=True,
+                                                          remove_null_str=True, tasks=tasks,
                                                           remove_extra_predicted_token=True,
                                                           null_str=null_str, mask_str=MASK_BERT))
-                    # NB : applying those successivly might overlay heuristic
-                    if heuristic_ls is not None:
-                        pred_detokenized_topk = predict_with_heuristic(src_detokenized=src_detokenized,
-                                                                   pred_detokenized_topk=pred_detokenized_topk,
-                                                                   heuristic_ls=heuristic_ls, verbose=verbose)
-                        #print("PRED after @ and #",src_detokenized, pred_detokenized_topk)
-                    if gold_error_detection:
-                        pred_detokenized_topk = predict_with_heuristic(src_detokenized=src_detokenized,
-                                                                       gold_detokenized=gold_detokenized,
-                                                                       pred_detokenized_topk=pred_detokenized_topk,
-                                                                       heuristic_ls=["gold_detection"], verbose=verbose)
-                        #print("PRED after gold",gold_detokenized, pred_detokenized_topk)
-
-
+                    # NB : applying those successively might overlay heuristic
+                    if "normalize" in tasks:
+                        if heuristic_ls is not None:
+                            pred_detokenized_topk = predict_with_heuristic(src_detokenized=src_detokenized,
+                                                                           pred_detokenized_topk=pred_detokenized_topk,
+                                                                           heuristic_ls=heuristic_ls, verbose=verbose)
+                            #print("PRED after @ and #",src_detokenized, pred_detokenized_topk)
+                        if gold_error_detection:
+                            pred_detokenized_topk = predict_with_heuristic(src_detokenized=src_detokenized,
+                                                                           gold_detokenized=gold_detokenized,
+                                                                           pred_detokenized_topk=pred_detokenized_topk,
+                                                                           heuristic_ls=["gold_detection"], verbose=verbose)
+                            #print("PRED after gold",gold_detokenized, pred_detokenized_topk)
                 if writing_pred:
+                    # TODO : if you do multitask leaning you'll have to adapt here (you're passing twice the same parameters)
                     write_conll(format="conll", dir_normalized=dir_normalized,
                                 dir_original=dir_normalized_original_only,
                                 src_text_ls=src_detokenized,
-                                text_decoded_ls=pred_detokenized_topk[0], pred_pos_ls=None, src_text_pos=None,
-                                tasks=["normalize"], ind_batch=iter+batch_i, new_file=new_file,
+                                text_decoded_ls=pred_detokenized_topk[0], #pred_pos_ls=None, src_text_pos=None,
+                                tasks=tasks, ind_batch=iter+batch_i, new_file=new_file,
+                                src_text_pos=src_detokenized, pred_pos_ls=gold_detokenized,
                                 verbose=verbose)
                     write_conll(format="conll", dir_normalized=dir_gold, dir_original=dir_gold_original_only,
-                                src_text_ls=src_detokenized,
-                                text_decoded_ls=gold_detokenized, pred_pos_ls=None, src_text_pos=None,
-                                tasks=["normalize"], ind_batch=iter + batch_i, new_file=new_file, verbose=verbose)
+                                src_text_ls=src_detokenized, src_text_pos=src_detokenized,pred_pos_ls=gold_detokenized,
+                                text_decoded_ls=gold_detokenized, #pred_pos_ls=None, src_text_pos=None,
+                                tasks=tasks, ind_batch=iter + batch_i, new_file=new_file, verbose=verbose)
                     new_file = False
-
+                pdb.set_trace()
                 perf_prediction, skipping = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk,
                                                                               topk,
                                                                               metric=metric,
@@ -370,6 +400,7 @@ def epoch_run(batchIter, tokenizer,
         label_heuristic += "-#-@"
 
     if predict_mode:
+        assert len(tasks) == 1
         reports = []
         for agg_func in agg_func_ls:
             for sample in samples:
@@ -387,11 +418,11 @@ def epoch_run(batchIter, tokenizer,
                 score = score_dic[agg_func][sample]
                 n_tokens = n_tokens_dic[agg_func][sample]
                 n_sents = n_sents_dic[agg_func][sample]
-                report = report_template(metric_val="accuracy-exact", subsample=sample+label_heuristic, info_score_val=None,
+                report = report_template(metric_val="accuracy-exact-{}".format(tasks[0]), subsample=sample+label_heuristic, info_score_val=None,
                                          score_val=score/n_tokens if n_tokens > 0 else None, n_sents=n_sents,
                                          avg_per_sent=0,
                                          n_tokens_score=n_tokens,
-                                         model_full_name_val=model_id, task=["normalize"],
+                                         model_full_name_val=model_id, task=tasks,
                                          evaluation_script_val="exact_match",
                                          model_args_dir=args_dir,
                                          token_type="word",
@@ -400,35 +431,38 @@ def epoch_run(batchIter, tokenizer,
                 reports.append(report)
             # class negative 0 , class positive 1
             # TODO : make that more consistent with user needs !
-            if "all" in samples and TASKS_PARAMETER["normalize"]["predicted_classes"][0] in samples and TASKS_PARAMETER["normalize"]["predicted_classes"][1] in samples:
+            if "normalize" in tasks:
+                if "all" in samples and TASKS_PARAMETER["normalize"]["predicted_classes"][0] in samples and TASKS_PARAMETER["normalize"]["predicted_classes"][1] in samples:
 
-                # then we can compute all the confusion matrix rate
-                # TODO : factore with TASKS_2_METRICS_STR
-                for metric_val in ["recall-normalize", "precision-normalize", "f1-normalize", "tnr-normalize", "npv-normalize", "accuracy-normalize"]:
-                    score, n_rate_universe = get_perf_rate(metric=metric_val, n_tokens_dic=n_tokens_dic,
-                                                           score_dic=score_dic, agg_func=agg_func)
+                    # then we can compute all the confusion matrix rate
+                    # TODO : factore with TASKS_2_METRICS_STR
 
-                    report = report_template(metric_val=metric_val, subsample="rates"+label_heuristic,
-                                             info_score_val=None,
-                                             score_val=score, n_sents=n_sents_dic[agg_func]["all"],
-                                             avg_per_sent=0,
-                                             n_tokens_score=n_rate_universe,
-                                             model_full_name_val=model_id, task=["normalize"],
-                                             evaluation_script_val="exact_match",
-                                             model_args_dir=args_dir,
-                                             token_type="word",
-                                             report_path_val=None,
-                                             data_val=data_label)
-                    reports.append(report)
-                    pdb.set_trace()
+                    for metric_val in ["recall", "precision", "f1", "tnr", "npv", "accuracy"]:
+                        metric_val += "-"+tasks[0]
+                        score, n_rate_universe = get_perf_rate(metric=metric_val, n_tokens_dic=n_tokens_dic,
+                                                               score_dic=score_dic, agg_func=agg_func)
 
-                    if writer is not None and log_perf:
-                        print("-->", mode, iter+batch_i, iter, batch_i)
-                        writer.add_scalars("perf-{}".format(mode),
-                                           {"{}-{}-{}-bpe".format(metric_val, mode, model_id):
-                                                score if score is not None else 0
-                                            },
-                                       iter + batch_i)
+                        report = report_template(metric_val=metric_val, subsample="rates"+label_heuristic,
+                                                 info_score_val=None,
+                                                 score_val=score, n_sents=n_sents_dic[agg_func]["all"],
+                                                 avg_per_sent=0,
+                                                 n_tokens_score=n_rate_universe,
+                                                 model_full_name_val=model_id, task=tasks,
+                                                 evaluation_script_val="exact_match",
+                                                 model_args_dir=args_dir,
+                                                 token_type="word",
+                                                 report_path_val=None,
+                                                 data_val=data_label)
+                        reports.append(report)
+                        pdb.set_trace()
+
+                        if writer is not None and log_perf:
+                            print("-->", mode, iter+batch_i, iter, batch_i)
+                            writer.add_scalars("perf-{}".format(mode),
+                                               {"{}-{}-{}-bpe".format(metric_val, mode, model_id):
+                                                    score if score is not None else 0
+                                                },
+                                           iter + batch_i)
 
 
     else:

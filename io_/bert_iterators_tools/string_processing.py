@@ -58,9 +58,14 @@ def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu):
     return tokens_tensor, segments_tensors, tokenized_ls, aligned_index_padded, mask
 
 
-def from_bpe_token_to_str(bpe_tensor, topk, pred_mode,
-                          tokenizer, null_token_index, null_str):
+def from_bpe_token_to_str(
+                          bpe_tensor, topk, pred_mode,
+                          null_token_index, null_str,
+                          tokenizer=None, pos_dictionary=None,
+                          task="normalize"
+                          ):
     """
+    it actually supports not only bpe token but also pos-token
     pred_mode allow to handle gold data also (which only have 2 dim and not three)
     :param bpe_tensor:
     :param topk: int : number of top prediction : will arrange them with all the top1 all the 2nd all the third...
@@ -70,10 +75,17 @@ def from_bpe_token_to_str(bpe_tensor, topk, pred_mode,
     predictions_topk_ls = [[[bpe_tensor[sent, word, top].item() if pred_mode else bpe_tensor[sent, word].item()
                              for word in range(bpe_tensor.size(1))] for sent in range(bpe_tensor.size(0))]
                            for top in range(topk)]
-    sent_ls_top = [[tokenizer.convert_ids_to_tokens(sent_bpe, special_extra_token=null_token_index,
-                                                    special_token_string=null_str)
-                    for sent_bpe in predictions_topk] for predictions_topk in predictions_topk_ls]
-
+    if task == "normalize":
+        assert tokenizer is not None
+        sent_ls_top = [[tokenizer.convert_ids_to_tokens(sent_bpe, special_extra_token=null_token_index,
+                                                        special_token_string=null_str) for sent_bpe in predictions_topk]
+                       for predictions_topk in predictions_topk_ls]
+    elif task == "pos":
+        # NB +1 because index 0 is related to UNK
+        print("DEBUG", predictions_topk_ls, len(pos_dictionary.instances))
+        sent_ls_top = [[[pos_dictionary.instances[token_ind-1] if token_ind > 0 else "UNK"
+                         for token_ind in sent_bpe] for sent_bpe in predictions_topk]
+                       for predictions_topk in predictions_topk_ls]
     if not pred_mode:
         sent_ls_top = sent_ls_top[0]
     return sent_ls_top
