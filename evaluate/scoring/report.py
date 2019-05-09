@@ -75,4 +75,5 @@ def overall_word_level_metric_measure(gold_sent_ls,
                                         "n_sents": agg_func_batch_score(overall_ls_sent_score=overall_score_ls_sent,
                                                                         overall_filter=overall_filter_ls[sample],
                                                                         agg_func="n_sents")}
+            print("SAMPLE", result[agg_func][sample] )
     return result, skipping_sent

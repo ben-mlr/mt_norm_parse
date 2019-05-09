@@ -218,6 +218,7 @@ def epoch_run(batchIter, tokenizer,
             if "normalize" in tasks:
                 # aligning output BPE with input (we are rejecting batch with at least one 1 to n case
                 # (that we don't want to handle)
+                pdb.set_trace()
                 output_tokens_tensor_aligned, input_tokens_tensor_aligned, input_alignement_with_raw, input_mask, _1_to_n_token = \
                     aligned_output(input_tokens_tensor, output_tokens_tensor,
                                    input_alignement_with_raw,
@@ -238,7 +239,7 @@ def epoch_run(batchIter, tokenizer,
             if batch_i == n_iter_max:
                 break
             if _1_to_n_token:
-                skipping_batch_n_to_1 += 1
+                skipping_batch_n_to_1 += _1_to_n_token
                 #continue
             # CHECKING ALIGNEMENT
             # PADDING TO HANDLE !!
@@ -266,6 +267,7 @@ def epoch_run(batchIter, tokenizer,
                 input_tokens_tensor = dropout_input_tensor(input_tokens_tensor, mask_token_index,
                                                            dropout=dropout_input_bpe)
             try:
+                print(input_mask, input_tokens_tensor)
                 _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
                                              labels=output_tokens_tensor_aligned)
             except Exception as e:
@@ -293,13 +295,14 @@ def epoch_run(batchIter, tokenizer,
                                                             null_str=null_str)
 
                 # de-BPE-tokenize
+                pdb.set_trace()
                 src_detokenized = realigne(source_preprocessed, input_alignement_with_raw, null_str=null_str,
                                            tasks=["normalize"],# normalize means we deal wiht bpe input not pos
                                            mask_str=MASK_BERT, remove_mask_str=False)
                 gold_detokenized = realigne(gold, input_alignement_with_raw, remove_null_str=True, null_str=null_str,
-                                            tasks=["pos"],
+                                            tasks=tasks,
                                             mask_str=MASK_BERT)
-
+                pdb.set_trace()
                 pred_detokenized_topk = []
                 for sent_ls in sent_ls_top:
                     pred_detokenized_topk.append(realigne(sent_ls, input_alignement_with_raw, remove_null_str=True,
@@ -379,7 +382,7 @@ def epoch_run(batchIter, tokenizer,
                     def print_align_bpe(source_preprocessed, gold, input_alignement_with_raw, verbose,verbose_level):
                         if isinstance(verbose, int) or verbose == "alignement":
                             if verbose == "alignement" or verbose >= verbose_level:
-                                assert len(source_preprocessed)==len(gold), ""
+                                assert len(source_preprocessed) == len(gold), ""
                                 assert len(input_alignement_with_raw) == len(gold), ""
                                 for sent_src, sent_gold, index_match_with_src in zip(source_preprocessed, gold, input_alignement_with_raw):
                                     assert len(sent_src) == len(sent_gold)
@@ -420,7 +423,7 @@ def epoch_run(batchIter, tokenizer,
     printing("WARNING on {} : Out of {} batch of {} sentences each {} skipped ({} batch aligned ; "
              "{} with at least 1 sentence "
              "noisy MORE SPLITTED "
-             "; {} with  LESS SPLITTED {} + BATCH with skipped_1_to_n : {}) ",
+             "; {} with  LESS SPLITTED {} + SENT with skipped_1_to_n : {}) ",
              var=[data_label, batch_i, batch.input_seq.size(0), noisy_under_splitted+skipping_batch_n_to_1, aligned,
                   noisy_over_splitted, noisy_under_splitted,
                   "SKIPPED" if skip_1_t_n else "",

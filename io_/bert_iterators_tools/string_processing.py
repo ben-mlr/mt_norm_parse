@@ -22,6 +22,7 @@ def preprocess_batch_string_for_bert(batch,
         batch[i][-1] = TOKEN_BPE_BERT_SEP
         if rp_space:
             batch[i] = rp_space_func(batch[i])
+        pdb.set_trace()
         batch[i] = " ".join(batch[i])
 
     return batch

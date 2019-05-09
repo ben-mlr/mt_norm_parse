@@ -31,6 +31,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
                                                                                              output_alignement_with_raw)):
         _i_input = 0
         _i_output = 0
+        _1_to_n_token_counter = 0
         _1_to_n_token = False
         not_the_end_of_input = True
         output_tokens_tensor_aligned_sent = []
@@ -60,6 +61,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
             if _1_to_n_token:
                 printing("WARNING : _1_to_n_token --> next batch ",
                          verbose=verbose, verbose_level=1)
+                _1_to_n_token_counter+=1
                 #break
             if padded_reach and not n_to_1_token:
                 # we assert we also reached padding in the output
@@ -89,7 +91,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
                 appending = output_tokens_tensor[ind_sent, _i_output]
                 output_tokens_tensor_aligned_sent.append(appending)
                 input_tokens_tensor_aligned_sent.append(input_tokens_tensor[ind_sent, _i_input])
-                new_input_mask.append(input_mask[ind_sent, _i_input])
+                new_input_mask_ls.append(input_mask[ind_sent, _i_input])
                 new_alignement_with_input.append(_input_alignement_with_raw[_i_input])
             else:
                 output_tokens_tensor_aligned_sent.append(0)
@@ -110,7 +112,8 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
         #input_tokens_tensor_aligned[ind_sent] = torch.Tensor(input_tokens_tensor_aligned_sent)
         output_tokens_tensor_aligned_sent_ls.append(torch.Tensor(output_tokens_tensor_aligned_sent))
         input_tokens_tensor_aligned_sent_ls.append(torch.Tensor(input_tokens_tensor_aligned_sent))
-        new_alignement_with_input_ls.append(torch.Tensor(new_input_mask))
+        new_input_mask_ls.append(torch.Tensor(new_input_mask))
+        new_alignement_with_input_ls.append(torch.Tensor(new_alignement_with_input))
 
     assert len(output_tokens_tensor_aligned_sent_ls) == len(input_tokens_tensor_aligned_sent_ls)
 
@@ -119,7 +122,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
     output_tokens_tensor_aligned = torch.empty((len(output_tokens_tensor_aligned_sent_ls), max_token)).long()
     input_tokens_tensor_aligned = torch.empty((len(output_tokens_tensor_aligned_sent_ls), max_token)).long()
     input_mask_aligned = torch.empty((len(output_tokens_tensor_aligned_sent_ls), max_token)).long()
-    for ind_sent, (out, inp, mask) in enumerate(zip(output_tokens_tensor_aligned_sent_ls, input_tokens_tensor_aligned_sent_ls, new_alignement_with_input_ls)):
+    for ind_sent, (out, inp, mask) in enumerate(zip(output_tokens_tensor_aligned_sent_ls, input_tokens_tensor_aligned_sent_ls, new_input_mask_ls)):
         output_tokens_tensor_aligned[ind_sent] = out
         input_tokens_tensor_aligned[ind_sent] = inp
         input_mask_aligned[ind_sent] = mask
@@ -130,7 +133,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
         input_mask_aligned = input_mask_aligned.cuda()
     if add_mask:
         pdb.set_trace()
-    return output_tokens_tensor_aligned, input_tokens_tensor_aligned, new_alignement_with_input_ls, input_mask_aligned, _1_to_n_token
+    return output_tokens_tensor_aligned, input_tokens_tensor_aligned, new_alignement_with_input_ls, input_mask_aligned, _1_to_n_token_counter
 
 
 def realigne(ls_sent_str, input_alignement_with_raw, null_str, mask_str, tasks,
