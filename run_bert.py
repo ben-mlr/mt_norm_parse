@@ -11,7 +11,7 @@ PAD_BERT = "[PAD]"
 
 train_path = [PERMUTATION_TRAIN_DIC[10000]]
 dev_path = [PERMUTATION_TEST]
-train_path = [DEMO]
+train_path = [LEX_TRAIN_SPACE_DEMO]
 dev_path = [DEMO2]#[LIU_DEV]#[DEMO2]
 #dev_path = None
 test_paths_ls = [[DEV], [LIU_DEV], [TEST], [LIU_TRAIN]]#, [LIU_TRAIN], [LIU_DEV], [DEV], [LEX_TEST], [LEX_TRAIN], [LEX_LIU_TRAIN]]

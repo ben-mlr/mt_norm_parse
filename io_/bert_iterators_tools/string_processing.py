@@ -5,7 +5,13 @@ from io_.info_print import printing
 from toolbox.sanity_check import sanity_check_data_len
 
 
-def preprocess_batch_string_for_bert(batch):
+def rp_space_func(sent, replace_space_with=""):
+    sent = [word if " " not in word else word.replace(" ", replace_space_with) for word in sent]
+    return sent
+
+
+def preprocess_batch_string_for_bert(batch,
+                                     rp_space=False):
     """
     adding starting and ending token in raw sentences
     :param batch:
@@ -14,7 +20,10 @@ def preprocess_batch_string_for_bert(batch):
     for i in range(len(batch)):
         batch[i][0] = TOKEN_BPE_BERT_START
         batch[i][-1] = TOKEN_BPE_BERT_SEP
+        if rp_space:
+            batch[i] = rp_space_func(batch[i])
         batch[i] = " ".join(batch[i])
+
     return batch
 
 
@@ -31,6 +40,7 @@ def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu,
     """
     all_tokenized_ls = [tokenizer.tokenize(inp) for inp in list_pretokenized_str]
     tokenized_ls = [tup[0] for tup in all_tokenized_ls]
+    pdb.set_trace()
     aligned_index = [tup[1] for tup in all_tokenized_ls]
     segments_ids = [[0 for _ in range(len(tokenized))] for tokenized in tokenized_ls]
 
@@ -55,7 +65,9 @@ def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu,
                 norm_not = norm_not_norm[i_sent, original_index]
                 mask_sent.append(1 - norm_not if norm_not != PAD_ID_NORM_NOT_NORM
                                  else PAD_ID_NORM_NOT_NORM)
-
+            if len(mask_sent) == sum([1 for mask in mask_sent if mask == 0]):
+                mask_sent[1] = 1
+                print("FORCING UNMASKING FOR SENT")
             mask_batch.append(mask_sent)
         return mask_batch
 

@@ -24,7 +24,7 @@ NONE_ARGS = ["gpu"]
 BOOL_ARGS = ["word_embed", "teacher_force", "char_decoding", "unrolling_word", "init_context_decoder",
              "word_decoding", "stable_decoding_state", "char_src_attention"]
 DIC_ARGS = ["multi_task_loss_ponderation", "lr"]
-GPU_AVAILABLE_DEFAULT_LS = ["0", "1", "2","3"]
+GPU_AVAILABLE_DEFAULT_LS = ["0", "1", "2", "3"]
 
 # architecture/model/training supported
 SUPPORED_WORD_ENCODER = ["LSTM", "GRU", "WeightDropLSTM"]
@@ -84,6 +84,7 @@ LIU_DEV_OWOPUTI_LABEL, LIU_DEV_OWOPUTI = "liu_dev_owoputi", os.path.join(PROJECT
 LIU_TRAIN_LABEL, LIU_TRAIN = "liu_train", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-train_2009.conll")
 
 
+LEX_TRAIN_SPACE_DEMO_LABEL, LEX_TRAIN_SPACE_DEMO = "lex_norm2015_train-space_demo", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/train_data-space_demo.conll")
 LEX_TRAIN_LABEL, LEX_TRAIN = "lex_norm2015_train", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/train_data.conll")
 LEX_TEST_LABEL, LEX_TEST = "lex_norm2015_test", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/test_truth.conll")
 
@@ -171,6 +172,7 @@ EMNLP12_DIC_LABEL, EMNLP12_DIC = "emnlp-dic-wnut", os.path.join(PROJECT_PATH, "d
 
 REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO2: DEMO2_LABEL,
                 TEST: TEST_LABEL, LIU: LIU_LABEL,
+                LEX_TRAIN_SPACE_DEMO: LEX_TRAIN_SPACE_DEMO_LABEL,
                 LIU_DEV_OWOPUTI: LIU_DEV_OWOPUTI_LABEL,
                 LIU_OWOPUTI: LIU_OWOPUTI_LABEL,
                 LEX_TRAIN: LEX_TRAIN_LABEL,

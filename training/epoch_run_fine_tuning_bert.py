@@ -74,10 +74,13 @@ def epoch_run(batchIter, tokenizer,
     if masking_strategy is not None:
         assert "normalize" in tasks, "SO FAR : inconsistency between task {} and masking strategy {}".format(tasks,
                                                                                                     masking_strategy)
-        if isinstance(masking_strategy, list):
-            assert len(masking_strategy) == 2, "first element should be strategy, second should be portion "
-            portion_mask = eval(masking_strategy[1])
-            masking_strategy = masking_strategy[0]
+        if isinstance(masking_strategy, list) :
+            assert len(masking_strategy) <= 2, "first element should be strategy, second should be portion or first element only ".format(masking_strategy)
+            if len(masking_strategy) == 2:
+                portion_mask = eval(masking_strategy[1])
+                masking_strategy = masking_strategy[0]
+            else:
+                masking_strategy = masking_strategy[0]
         assert masking_strategy in AVAILABLE_BERT_MASKING_STRATEGY , "masking_strategy {} should be in {}".format(AVAILABLE_BERT_MASKING_STRATEGY)
         if masking_strategy == "normed":
             printing("INFO : Portion mask was found to {}", var=[portion_mask], verbose=verbose, verbose_level=1)
@@ -147,7 +150,7 @@ def epoch_run(batchIter, tokenizer,
                 get_indexes(batch.raw_input, tokenizer, verbose, use_gpu,
                             word_norm_not_norm=group_to_mask)
             if "normalize" in tasks:
-                batch.raw_output = preprocess_batch_string_for_bert(batch.raw_output)
+                batch.raw_output = preprocess_batch_string_for_bert(batch.raw_output, rp_space=True)
                 output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask =\
                     get_indexes(batch.raw_output, tokenizer, verbose, use_gpu)
                 printing("DATA dim : {} input {} output ", var=[input_tokens_tensor.size(), output_tokens_tensor.size()],
