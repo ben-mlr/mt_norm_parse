@@ -3,7 +3,7 @@ from env.importing import *
 VERBOSE_1_LOG_EVERY_x_BATCH = 25
 DEBUG = False
 
-LOGGING_SPECIFIC_INFO_AVAILABLE = ["cuda", "raw_data", "alignement"]
+LOGGING_SPECIFIC_INFO_AVAILABLE = ["cuda", "raw_data", "alignement", "mask"]
 
 
 def printing(message, verbose, verbose_level, var=None):

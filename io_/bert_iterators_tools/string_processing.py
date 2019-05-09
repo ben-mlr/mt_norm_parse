@@ -22,7 +22,6 @@ def preprocess_batch_string_for_bert(batch,
         batch[i][-1] = TOKEN_BPE_BERT_SEP
         if rp_space:
             batch[i] = rp_space_func(batch[i])
-        pdb.set_trace()
         batch[i] = " ".join(batch[i])
 
     return batch
@@ -41,7 +40,6 @@ def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu,
     """
     all_tokenized_ls = [tokenizer.tokenize(inp) for inp in list_pretokenized_str]
     tokenized_ls = [tup[0] for tup in all_tokenized_ls]
-    pdb.set_trace()
     aligned_index = [tup[1] for tup in all_tokenized_ls]
     segments_ids = [[0 for _ in range(len(tokenized))] for tokenized in tokenized_ls]
 
@@ -63,7 +61,8 @@ def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu,
             mask_sent = []
             for i in range(len(sent)):
                 original_index = sent[i]
-                norm_not = norm_not_norm[i_sent, original_index]
+                # if original_index 1000 --> means we reached padding : mask should be 0
+                norm_not = norm_not_norm[i_sent, original_index] if original_index != 1000 else 1
                 mask_sent.append(1 - norm_not if norm_not != PAD_ID_NORM_NOT_NORM
                                  else PAD_ID_NORM_NOT_NORM)
             if len(mask_sent) == sum([1 for mask in mask_sent if mask == 0]):

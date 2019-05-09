@@ -40,7 +40,6 @@ def word_level_filter(gold, topk_pred, topk, src, sample="all", word_reference_d
     assert len(topk_pred) == topk, "ERROR : inconsinstent provided topk and what I got "
 
     if gold in SPECIAL_TOKEN_LS:
-        print("gold filter ",gold,0)
         return 0
 
     if sample == "all":

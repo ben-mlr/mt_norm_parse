@@ -1,6 +1,6 @@
 from env.importing import *
 from io_.info_print import printing
-from io_.dat.constants import NULL_STR_TO_SHOW, TOKEN_BPE_BERT_START, TOKEN_BPE_BERT_SEP, PAD_POS
+from io_.dat.constants import NULL_STR_TO_SHOW, TOKEN_BPE_BERT_START, TOKEN_BPE_BERT_SEP, PAD_POS, PAD_ID_BERT
 
 
 def aligned_output(input_tokens_tensor, output_tokens_tensor,
@@ -74,7 +74,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
                 appending = null_token_index
                 output_tokens_tensor_aligned_sent.append(appending)
                 input_tokens_tensor_aligned_sent.append(input_tokens_tensor[ind_sent, _i_input])
-                new_input_mask.append(input_mask[ind_sent, _i_input])
+                new_input_mask.append(input_mask[ind_sent, _i_input].item())
                 # index alignement
                 new_alignement_with_input.append(_input_alignement_with_raw[_i_input])
             # --
@@ -91,7 +91,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
                 appending = output_tokens_tensor[ind_sent, _i_output]
                 output_tokens_tensor_aligned_sent.append(appending)
                 input_tokens_tensor_aligned_sent.append(input_tokens_tensor[ind_sent, _i_input])
-                new_input_mask_ls.append(input_mask[ind_sent, _i_input])
+                new_input_mask.append(input_mask[ind_sent, _i_input].item())
                 new_alignement_with_input.append(_input_alignement_with_raw[_i_input])
             else:
                 output_tokens_tensor_aligned_sent.append(0)
@@ -101,7 +101,6 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
 
             if _i_input == len(_input_alignement_with_raw):
                 not_the_end_of_input = False
-
         if _1_to_n_token:
             #break
             pass
@@ -110,10 +109,14 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
 
         #output_tokens_tensor_aligned[ind_sent] = torch.Tensor(output_tokens_tensor_aligned_sent)
         #input_tokens_tensor_aligned[ind_sent] = torch.Tensor(input_tokens_tensor_aligned_sent)
-        output_tokens_tensor_aligned_sent_ls.append(torch.Tensor(output_tokens_tensor_aligned_sent))
-        input_tokens_tensor_aligned_sent_ls.append(torch.Tensor(input_tokens_tensor_aligned_sent))
-        new_input_mask_ls.append(torch.Tensor(new_input_mask))
-        new_alignement_with_input_ls.append(torch.Tensor(new_alignement_with_input))
+        #output_tokens_tensor_aligned_sent_ls.append(torch.Tensor(output_tokens_tensor_aligned_sent))
+        output_tokens_tensor_aligned_sent_ls.append(output_tokens_tensor_aligned_sent)
+        #input_tokens_tensor_aligned_sent_ls.append(torch.Tensor(input_tokens_tensor_aligned_sent))
+        #new_input_mask_ls.append(torch.Tensor(new_input_mask))
+        new_input_mask_ls.append(new_input_mask)
+        #new_alignement_with_input_ls.append(torch.Tensor(new_alignement_with_input))
+        new_alignement_with_input_ls.append(new_alignement_with_input)
+        input_tokens_tensor_aligned_sent_ls.append(input_tokens_tensor_aligned_sent)
 
     assert len(output_tokens_tensor_aligned_sent_ls) == len(input_tokens_tensor_aligned_sent_ls)
 
@@ -121,19 +124,29 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
                     max([len(inp) for inp in input_tokens_tensor_aligned_sent_ls]))
     output_tokens_tensor_aligned = torch.empty((len(output_tokens_tensor_aligned_sent_ls), max_token)).long()
     input_tokens_tensor_aligned = torch.empty((len(output_tokens_tensor_aligned_sent_ls), max_token)).long()
+    input_tokens_tensor_aligned_sent_ls_tensor = torch.empty((len(output_tokens_tensor_aligned_sent_ls), max_token)).long()
     input_mask_aligned = torch.empty((len(output_tokens_tensor_aligned_sent_ls), max_token)).long()
-    for ind_sent, (out, inp, mask) in enumerate(zip(output_tokens_tensor_aligned_sent_ls, input_tokens_tensor_aligned_sent_ls, new_input_mask_ls)):
-        output_tokens_tensor_aligned[ind_sent] = out
-        input_tokens_tensor_aligned[ind_sent] = inp
-        input_mask_aligned[ind_sent] = mask
+    for ind_sent, (out, inp, mask, index_aligned) in enumerate(zip(output_tokens_tensor_aligned_sent_ls,
+                                                                   input_tokens_tensor_aligned_sent_ls,
+                                                                   new_input_mask_ls,
+                                                                   new_alignement_with_input_ls)):
 
+        output_tokens_tensor_aligned[ind_sent] = torch.Tensor(out+[PAD_ID_BERT for _ in range(max_token-len(out))])
+        input_tokens_tensor_aligned[ind_sent] = torch.Tensor(inp + [PAD_ID_BERT for _ in range(max_token-len(inp))])
+
+        input_mask_aligned[ind_sent] = torch.Tensor(mask+[0 for _ in range(max_token-len(inp))])
+        input_tokens_tensor_aligned_sent_ls_tensor[ind_sent] = torch.Tensor(index_aligned+[1000 for _ in range(max_token-len(inp))])
+    # we take care of padding here
+    input_mask_aligned[input_tokens_tensor_aligned == PAD_ID_BERT] = 0
     if input_tokens_tensor.is_cuda:
-        input_tokens_tensor_aligned = input_tokens_tensor_aligned.cuda()
+        input_tokens_tensor_aligned_sent_ls_tensor = input_tokens_tensor_aligned_sent_ls_tensor.cuda()
+        # input_tokens_tensor_aligned = input_tokens_tensor_aligned.cuda() # !! WE REPLACED input_tokens_tensor_aligned with tokens_tensor_aligned_sent_ls_tensor
         output_tokens_tensor_aligned = output_tokens_tensor_aligned.cuda()
         input_mask_aligned = input_mask_aligned.cuda()
     if add_mask:
         pdb.set_trace()
-    return output_tokens_tensor_aligned, input_tokens_tensor_aligned, new_alignement_with_input_ls, input_mask_aligned, _1_to_n_token_counter
+    pdb.set_trace()
+    return output_tokens_tensor_aligned, input_tokens_tensor_aligned, input_tokens_tensor_aligned_sent_ls_tensor, input_mask_aligned, _1_to_n_token_counter
 
 
 def realigne(ls_sent_str, input_alignement_with_raw, null_str, mask_str, tasks,
@@ -148,7 +161,10 @@ def realigne(ls_sent_str, input_alignement_with_raw, null_str, mask_str, tasks,
         "ls_sent_str {} input_alignement_with_raw {} ".format(len(ls_sent_str), len(input_alignement_with_raw))
     new_sent_ls = []
     for sent, index_ls in zip(ls_sent_str, input_alignement_with_raw):
-        assert len(sent) == len(index_ls)
+        try:
+            assert len(sent) == len(index_ls)
+        except:
+            pdb.set_trace()
         former_index = -1
         new_sent = []
         former_token = ""
