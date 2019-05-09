@@ -23,6 +23,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
         dropout_input_bpe=0,
         report_full_path_shared=None, shared_id=None, bert_model=None,skip_1_t_n=False,
         heuristic_ls=None, gold_error_detection=False,
+        portion_mask=None, masking_strategy=None,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
@@ -65,7 +66,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                        ("gold_error_detection", gold_error_detection),
                                        ("dropout_classifier", args.dropout_classifier if args is not None else "UNK"),
                                        ("dropout_bert", args.dropout_bert if args is not None else "UNK"),
-                                       ("tasks", tasks)
+                                       ("tasks", tasks),
+                                       ("masking_strategy",masking_strategy),("portion_mask",portion_mask),
                                        ])
         printing("HYPERPARAMETERS {} ",var=[hyperparameters], verbose=verbose, verbose_level=1)
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
@@ -186,6 +188,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                       reference_word_dic={"InV": inv_word_dic},
                                                                       dropout_input_bpe=dropout_input_bpe,
                                                                       null_token_index=null_token_index, null_str=null_str,
+                                                                      masking_strategy=masking_strategy, portion_mask=portion_mask,
                                                                       n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
                 bert_with_classifier.eval()
@@ -204,6 +207,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                     model_id=model_id,
                                                                     skip_1_t_n=skip_1_t_n,
                                                                     dropout_input_bpe=0,
+                                                                    masking_strategy=None, portion_mask=None,
                                                                     heuristic_ls=heuristic_ls, gold_error_detection=gold_error_detection,
                                                                     reference_word_dic={"InV": inv_word_dic},
                                                                     n_iter_max=n_iter_max_per_epoch, verbose=verbose)
@@ -282,6 +286,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                    null_token_index=null_token_index, null_str=null_str,
                                                                    log_perf=False,
                                                                    dropout_input_bpe=0,
+                                                                   masking_strategy=None, portion_mask=None,
                                                                    heuristic_ls=heuristic, gold_error_detection=gold_error,
                                                                    reference_word_dic={"InV": inv_word_dic},
                                                                    n_iter_max=n_iter_max_per_epoch, verbose=verbose)

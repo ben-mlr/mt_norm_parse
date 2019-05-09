@@ -37,6 +37,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                       freeze_layer_prefix_ls_ls=None,
                       freeze_parameters_ls=None,
                       bert_model_ls=None, dropout_classifier_ls=None, fine_tuning_strategy_ls=None, dropout_input_bpe_ls=None, dropout_bert_ls=None,
+                      masking_strategy_ls=None,
                       py_script="train_evaluate_run"):
 
     test_paths = [[",".join(path) for path in test_path_grid] for test_path_grid in test_paths]
@@ -81,6 +82,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                                                                             fine_tuning_strategy_ls=fine_tuning_strategy_ls,
                                                                             gold_error_detection_ls=gold_error_detection_ls, heuristic_ls_ls=heuristic_ls_ls,
                                                                             dropout_input_bpe_ls=dropout_input_bpe_ls, dropout_bert_ls=dropout_bert_ls,
+                                                                            masking_strategy_ls=masking_strategy_ls,
                                                                             )
     if gpu_mode == "random":
         if gpus_ls is None:

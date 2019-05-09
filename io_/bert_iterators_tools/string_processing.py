@@ -1,5 +1,5 @@
 from env.importing import *
-from io_.dat.constants import TOKEN_BPE_BERT_SEP, TOKEN_BPE_BERT_START, PAD_ID_BERT, PAD_BERT
+from io_.dat.constants import TOKEN_BPE_BERT_SEP, TOKEN_BPE_BERT_START, PAD_ID_BERT, PAD_BERT, PAD_ID_NORM_NOT_NORM
 from io_.info_print import printing
 
 from toolbox.sanity_check import sanity_check_data_len
@@ -18,7 +18,8 @@ def preprocess_batch_string_for_bert(batch):
     return batch
 
 
-def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu):
+def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu,
+                word_norm_not_norm=None):
     """
     from pretokenized string : it will bpe-tokenize it using BERT 'tokenizer'
     and then convert it to tokens ids
@@ -41,8 +42,27 @@ def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu):
     aligned_index_padded = [[e for e in inp] + [1000 for _ in range(max_sent_len - len(inp))] for inp in aligned_index]
     segments_padded = [inp + [PAD_ID_BERT for _ in range(max_sent_len - len(inp))] for inp in segments_ids]
 
-    mask = [[1 for _ in inp]+[0 for _ in range(max_sent_len - len(inp))] for inp in segments_ids]
+    def mask_group(norm_not_norm, bpe_aligned_index):
+        """
+        norm_not_norm : 1 if group to mask (need_norm) 0 if normed
+        can be use with any group of token to mask
+        """
+        mask_batch = []
+        for i_sent, sent in enumerate(bpe_aligned_index):
+            mask_sent = []
+            for i in range(len(sent)):
+                original_index = sent[i]
+                norm_not = norm_not_norm[i_sent, original_index]
+                mask_sent.append(1 - norm_not if norm_not != PAD_ID_NORM_NOT_NORM
+                                 else PAD_ID_NORM_NOT_NORM)
 
+            mask_batch.append(mask_sent)
+        return mask_batch
+
+    if word_norm_not_norm is not None:
+        mask = mask_group(word_norm_not_norm, bpe_aligned_index=aligned_index_padded)
+    else:
+        mask = [[1 for _ in inp]+[0 for _ in range(max_sent_len - len(inp))] for inp in segments_ids]
     mask = torch.LongTensor(mask)
     tokens_tensor = torch.LongTensor(ids_padded)
     segments_tensors = torch.LongTensor(segments_padded)
@@ -82,7 +102,7 @@ def from_bpe_token_to_str(
                        for predictions_topk in predictions_topk_ls]
     elif task == "pos":
         # NB +1 because index 0 is related to UNK
-        print("DEBUG", predictions_topk_ls, len(pos_dictionary.instances))
+        #print("DEBUG", predictions_topk_ls, len(pos_dictionary.instances))
         sent_ls_top = [[[pos_dictionary.instances[token_ind-1] if token_ind > 0 else "UNK"
                          for token_ind in sent_bpe] for sent_bpe in predictions_topk]
                        for predictions_topk in predictions_topk_ls]

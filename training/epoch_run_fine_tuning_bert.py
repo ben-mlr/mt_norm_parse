@@ -36,7 +36,7 @@ def epoch_run(batchIter, tokenizer,
               heuristic_ls=None, gold_error_detection=False,
               reference_word_dic=None, dropout_input_bpe=0.,
               writing_pred=False, dir_end_pred=None, extra_label_for_prediction="",
-              log_perf=True,
+              log_perf=True, masking_strategy=None, portion_mask=None,
               verbose=0):
     """
     About Evaluation :
@@ -70,8 +70,17 @@ def epoch_run(batchIter, tokenizer,
     :param verbose:
     :return:
     """
-    assert len(tasks)==1, "only one task supported so far"
-
+    assert len(tasks) == 1, "only one task supported so far"
+    if masking_strategy is not None:
+        assert "normalize" in tasks, "SO FAR : inconsistency between task {} and masking strategy {}".format(tasks,
+                                                                                                    masking_strategy)
+        if isinstance(masking_strategy, list):
+            assert len(masking_strategy) == 2, "first element should be strategy, second should be portion "
+            portion_mask = eval(masking_strategy[1])
+            masking_strategy = masking_strategy[0]
+        assert masking_strategy in AVAILABLE_BERT_MASKING_STRATEGY , "masking_strategy {} should be in {}".format(AVAILABLE_BERT_MASKING_STRATEGY)
+        if masking_strategy == "normed":
+            printing("INFO : Portion mask was found to {}", var=[portion_mask], verbose=verbose, verbose_level=1)
     if predict_mode:
         if topk is None:
             topk = 1
@@ -122,23 +131,34 @@ def epoch_run(batchIter, tokenizer,
             batch = batchIter.__next__()
             batch.raw_input = preprocess_batch_string_for_bert(batch.raw_input)
 
-            input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = \
-                get_indexes(batch.raw_input, tokenizer, verbose, use_gpu)
+            if masking_strategy is None:
+                group_to_mask = None
+            elif masking_strategy == "cls":
+                # we trick batch.output_norm_not_norm : set all 1 to 0 (not to touch padding)
+                # we set first element to 1
+                batch.output_norm_not_norm[batch.output_norm_not_norm == 1] = 0
+                batch.output_norm_not_norm[:, 0] = 1
+                group_to_mask = batch.output_norm_not_norm
+            elif masking_strategy == "normed":
+                rand = np.random.uniform(low=0, high=1, size=1)[0]
+                group_to_mask = np.array(batch.output_norm_not_norm.cpu()) if portion_mask >= rand else None
 
-            # TODO : for multitask setting : should condition this
+            input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = \
+                get_indexes(batch.raw_input, tokenizer, verbose, use_gpu,
+                            word_norm_not_norm=group_to_mask)
             if "normalize" in tasks:
                 batch.raw_output = preprocess_batch_string_for_bert(batch.raw_output)
                 output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask =\
                     get_indexes(batch.raw_output, tokenizer, verbose, use_gpu)
-
                 printing("DATA dim : {} input {} output ", var=[input_tokens_tensor.size(), output_tokens_tensor.size()],
                          verbose_level=2, verbose=verbose)
             elif "pos" in tasks:
-                output_tokens_tensor = np.array(batch.pos)
+                # TODO : factorize all this
+                #  should be done in pytorch + reducancies with get_index + factorize is somewhwere
+                output_tokens_tensor = np.array(batch.pos.cpu())
                 out_bpe_tokenized = None
                 #inde, _ = torch.min((torch.Tensor(input_alignement_with_raw) == 2).nonzero()[:, 1], dim=0)
-                # should be done in pytorch + reducancies with get_index + factorize is osomethwere
-                new_input = np.array(input_tokens_tensor)
+                new_input = np.array(input_tokens_tensor.cpu())
                 #new_input = [[input_tokens_tensor[ind_sent, ind] for ind in range(len(sent)) if sent[ind] != sent[ind - 1]] for ind_sent, sent in enumerate(input_alignement_with_raw)]
 
                 len_max = max([len(sent) for sent in new_input])
@@ -163,15 +183,16 @@ def epoch_run(batchIter, tokenizer,
                             output_tokens_tensor_new_ls.append(1)
                             shift += 1
                     output_tokens_tensor_new.append(output_tokens_tensor_new_ls)
+
                 output_tokens_tensor = torch.Tensor(output_tokens_tensor_new).long()
                 input_mask = torch.Tensor(_input_mask).long()
                 input_tokens_tensor = torch.Tensor(new_input).long()
 
-                if input_mask.is_cuda:
+                if use_gpu:
                     input_mask = input_mask.cuda()
+                    output_tokens_tensor = output_tokens_tensor.cuda()
                     input_tokens_tensor = input_tokens_tensor.cuda()
             _verbose = verbose
-
 
             # logging
             printing("DATA : pre-tokenized input {} ", var=[batch.raw_input], verbose_level="raw_data",
@@ -194,18 +215,21 @@ def epoch_run(batchIter, tokenizer,
             if "normalize" in tasks:
                 # aligning output BPE with input (we are rejecting batch with at least one 1 to n case
                 # (that we don't want to handle)
-                output_tokens_tensor_aligned, input_tokens_tensor_aligned, input_alignement_with_raw, _1_to_n_token = \
+                output_tokens_tensor_aligned, input_tokens_tensor_aligned, input_alignement_with_raw, input_mask, _1_to_n_token = \
                     aligned_output(input_tokens_tensor, output_tokens_tensor,
                                    input_alignement_with_raw,
                                    output_alignement_with_raw, mask_token_index=mask_token_index,
+                                   input_mask=input_mask,
                                    null_token_index=null_token_index, verbose=verbose)
                 input_tokens_tensor = input_tokens_tensor_aligned
             elif "pos" in tasks:
                 # NB : we use the aligned input with the
                 output_tokens_tensor_aligned = output_tokens_tensor[:, : input_tokens_tensor.size(1)]
                 output_tokens_tensor_aligned = output_tokens_tensor_aligned.contiguous()
+                if input_tokens_tensor.is_cuda:
+                    output_tokens_tensor_aligned = output_tokens_tensor_aligned.cuda()
 
-            #segments_ids = [[0 for _ in range(len(tokenized))] for tokenized in tokenized_ls]
+                    #segments_ids = [[0 for _ in range(len(tokenized))] for tokenized in tokenized_ls]
             #mask = [[1 for _ in inp] + [0 for _ in range(max_sent_len - len(inp))] for inp in segments_ids]
 
             if batch_i == n_iter_max:
@@ -218,25 +242,34 @@ def epoch_run(batchIter, tokenizer,
             assert output_tokens_tensor_aligned.size(0) == input_tokens_tensor.size(0),\
                 "output_tokens_tensor_aligned.size(0) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(),input_tokens_tensor.size())
             assert output_tokens_tensor_aligned.size(1) == input_tokens_tensor.size(1), \
-                "output_tokens_tensor_aligned.size(1) {} input_tokens_tensor.size() {}".format(
-                    output_tokens_tensor_aligned.size(1), input_tokens_tensor.size(1))
+                "output_tokens_tensor_aligned.size(1) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(1), input_tokens_tensor.size(1))
             # we consider only 1 sentence case
             token_type_ids = torch.zeros_like(input_tokens_tensor)
-            if input_tokens_tensor.is_cuda:
+            if input_tokens_tensor.is_cuda :
                 token_type_ids = token_type_ids.cuda()
             printing("CUDA SANITY CHECK input_tokens:{}  type:{} input_mask:{}  label:{}",
                      var=[input_tokens_tensor.is_cuda, token_type_ids.is_cuda, input_mask.is_cuda,
                           output_tokens_tensor_aligned.is_cuda],
                      verbose=verbose, verbose_level="cuda")
             # we have to recompute the mask based on aligned input
-            input_mask = torch.Tensor([[1 if token_id != PAD_ID_BERT else 0 for token_id in sent_token] for sent_token in input_tokens_tensor]).long()
-            if input_tokens_tensor.is_cuda:
-                input_mask = input_mask.cuda()
+            if "normalize" in tasks:
+                #pdb.set_trace()
+                pass
+                #input_mask = torch.Tensor([[1 if token_id != PAD_ID_BERT else 0 for token_id in sent_token]
+                #                           for sent_token in input_tokens_tensor]).long()
+                #if input_tokens_tensor.is_cuda:
+                #    input_mask = input_mask.cuda()
             if dropout_input_bpe > 0:
-                input_tokens_tensor = dropout_input_tensor(input_tokens_tensor, mask_token_index, dropout=dropout_input_bpe)
-
-            _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
-                                         labels=output_tokens_tensor_aligned)
+                input_tokens_tensor = dropout_input_tensor(input_tokens_tensor, mask_token_index,
+                                                           dropout=dropout_input_bpe)
+            try:
+                _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
+                                             labels=output_tokens_tensor_aligned)
+            except Exception as e:
+                print(e)
+                print(output_tokens_tensor_aligned, input_tokens_tensor, input_mask)
+                _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
+                                             labels=output_tokens_tensor_aligned)
 
             if predict_mode:
                 # if predict more : will evaluate the model and write its predictions 
@@ -266,9 +299,8 @@ def epoch_run(batchIter, tokenizer,
 
                 pred_detokenized_topk = []
                 for sent_ls in sent_ls_top:
-                    pred_detokenized_topk.append(realigne(sent_ls, input_alignement_with_raw,
-                                                          remove_null_str=True, tasks=tasks,
-                                                          remove_extra_predicted_token=True,
+                    pred_detokenized_topk.append(realigne(sent_ls, input_alignement_with_raw, remove_null_str=True,
+                                                          tasks=tasks, remove_extra_predicted_token=True,
                                                           null_str=null_str, mask_str=MASK_BERT))
                     # NB : applying those successively might overlay heuristic
                     if "normalize" in tasks:
@@ -284,7 +316,8 @@ def epoch_run(batchIter, tokenizer,
                                                                            heuristic_ls=["gold_detection"], verbose=verbose)
                             #print("PRED after gold",gold_detokenized, pred_detokenized_topk)
                 if writing_pred:
-                    # TODO : if you do multitask leaning you'll have to adapt here (you're passing twice the same parameters)
+                    # TODO : if you do multitask leaning
+                    #  you'll have to adapt here (you're passing twice the same parameters)
                     write_conll(format="conll", dir_normalized=dir_normalized,
                                 dir_original=dir_normalized_original_only,
                                 src_text_ls=src_detokenized,
@@ -293,11 +326,10 @@ def epoch_run(batchIter, tokenizer,
                                 src_text_pos=src_detokenized, pred_pos_ls=gold_detokenized,
                                 verbose=verbose)
                     write_conll(format="conll", dir_normalized=dir_gold, dir_original=dir_gold_original_only,
-                                src_text_ls=src_detokenized, src_text_pos=src_detokenized,pred_pos_ls=gold_detokenized,
+                                src_text_ls=src_detokenized, src_text_pos=src_detokenized, pred_pos_ls=gold_detokenized,
                                 text_decoded_ls=gold_detokenized, #pred_pos_ls=None, src_text_pos=None,
                                 tasks=tasks, ind_batch=iter + batch_i, new_file=new_file, verbose=verbose)
                     new_file = False
-                pdb.set_trace()
                 perf_prediction, skipping = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk,
                                                                               topk,
                                                                               metric=metric,

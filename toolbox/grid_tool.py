@@ -75,6 +75,7 @@ def grid_param_label_generate(param,
                               heuristic_ls_ls=None, gold_error_detection_ls=None,
                               bert_model_ls=None,dropout_classifier_ls=None, fine_tuning_strategy_ls=None,
                               dropout_input_bpe_ls=None, dropout_bert_ls=None,
+                              masking_strategy_ls=None,
                               ):
 
   assert gpu_mode in GPU_MODE_SUPPORTED, "ERROR gpu_mode not in {}".format(str(GPU_MODE_SUPPORTED))
@@ -197,20 +198,23 @@ def grid_param_label_generate(param,
     printing("GRID : {} argument defaulted to {} ", var=[str(def_)[:-6], def_], verbose=0, verbose_level=0)
   # dic_grid will be used for logging (used for reports)
   if py_script == "train_evaluate_run":
-
     dic_grid = {"batch_size": batch_size_ls,# "auxilliary_task_norm_not_norm": auxilliary_task_norm_not_norm_ls,
                 "shared_context": shared_context_ls,
                 "lr": lr_ls, "word_embed_init": word_embed_init_ls, "dir_word_encoder": dir_word_encoder_ls,
                 "char_src_attention": char_src_attention_ls,
-                "dir_sent_encoder": dir_sent_encoder_ls, "gradient_clipping":clipping_ls, "unrolling_word": unrolling_word_ls,
+                "dir_sent_encoder": dir_sent_encoder_ls, "gradient_clipping": clipping_ls,
+                "unrolling_word": unrolling_word_ls,
                 "word_decoding": word_decoding_ls, #"auxilliary_task_pos": auxilliary_task_pos_ls,
                 "stable_decoding_state": stable_decoding_state_ls,
                 "word_embedding_projected_dim": word_embedding_projected_dim_ls,
-                "n_layers_sent_cell": n_layers_sent_cell_ls, "word_recurrent_cell_encoder": word_recurrent_cell_encoder_ls,
+                "n_layers_sent_cell": n_layers_sent_cell_ls,
+                "word_recurrent_cell_encoder": word_recurrent_cell_encoder_ls,
                 "teacher_force": teacher_force_ls, "proportion_pred_train": proportion_pred_train_ls,
                 "dropout_word_encoder_cell": dropout_word_encoder_cell_ls,
-                "attention_tagging": attention_tagging_ls, "mode_word_encoding": mode_word_encoding_ls, "char_level_embedding_projection_dim":char_level_embedding_projection_dim_ls,
-                "n_layers_word_encoder": n_layers_word_encoder_ls, "multi_task_loss_ponderation": multi_task_loss_ponderation_ls,
+                "attention_tagging": attention_tagging_ls, "mode_word_encoding": mode_word_encoding_ls,
+                "char_level_embedding_projection_dim": char_level_embedding_projection_dim_ls,
+                "n_layers_word_encoder": n_layers_word_encoder_ls,
+                "multi_task_loss_ponderation": multi_task_loss_ponderation_ls,
                 "tasks": tasks_ls, "dropout_input": dropout_input_ls, "checkpointing_metric": checkpointing_metric_ls,
                 "word_embed": word_embed_ls}
 

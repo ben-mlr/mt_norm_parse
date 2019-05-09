@@ -2,10 +2,11 @@ from env.importing import *
 from io_.info_print import printing
 from io_.dat.constants import NULL_STR_TO_SHOW, TOKEN_BPE_BERT_START, TOKEN_BPE_BERT_SEP, PAD_POS
 
+
 def aligned_output(input_tokens_tensor, output_tokens_tensor,
                    input_alignement_with_raw, output_alignement_with_raw,
                    null_token_index, mask_token_index,
-                   verbose=1):
+                   input_mask, verbose=1):
     """
     realigning and de-tokenizng tokens (e.g : words) that have been splitted based on indexes
     :param input_tokens_tensor:
@@ -20,6 +21,12 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
     output_tokens_tensor_aligned_sent_ls = []
     input_tokens_tensor_aligned_sent_ls = []
     new_alignement_with_input_ls = []
+    new_input_mask_ls = []
+
+    assert input_mask.size(0) == input_tokens_tensor.size(0) and input_mask.size(1) and input_tokens_tensor.size(1)
+
+    # TODO : realign MASK also here
+    add_mask = False
     for ind_sent, (_input_alignement_with_raw, _output_alignement_with_raw) in enumerate(zip(input_alignement_with_raw,
                                                                                              output_alignement_with_raw)):
         _i_input = 0
@@ -28,26 +35,31 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
         not_the_end_of_input = True
         output_tokens_tensor_aligned_sent = []
         input_tokens_tensor_aligned_sent = []
+        new_input_mask = []
         new_alignement_with_input = []
         padded_reached_ind = 0
+
         while not_the_end_of_input:
             # did we reach padding on the src side ?
             padded_reach = _input_alignement_with_raw[_i_input] == 1000
+
             if not (padded_reach and len(_output_alignement_with_raw) ==_i_output):
                 # usual case
-                # n to 1 : the index of the output is faster than on the input side : one (at least) extra btoken on the src side
+                # n to 1 : the index of the output is faster than on the input side :
+                #  one (at least) extra btoken on the src side
                 n_to_1_token = _input_alignement_with_raw[_i_input] < _output_alignement_with_raw[_i_output]
-                # n to 1 : the index of the output is slower than on the input side : one (at least) extra btoken on the src side
+                # n to 1 : the index of the output is slower than on the input side :
+                #  one (at least) extra btoken on the src side
                 _1_to_n_token = _input_alignement_with_raw[_i_input] > _output_alignement_with_raw[_i_output]
                 end_output_with_padded_reach = 0
             else:
                 # we reach padding on input and the end on the output
                 end_output_with_padded_reach = 1
                 n_to_1_token, _1_to_n_token = 0, 0
-            # if the otuput token don't change we have to shift the input of one
+            # if the output token don't change we have to shift the input of one
             if _1_to_n_token:
                 printing("WARNING : _1_to_n_token --> next batch ",
-                         verbose=verbose, verbose_level=1)#"raw_data")
+                         verbose=verbose, verbose_level=1)
                 #break
             if padded_reach and not n_to_1_token:
                 # we assert we also reached padding in the output
@@ -60,20 +72,24 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
                 appending = null_token_index
                 output_tokens_tensor_aligned_sent.append(appending)
                 input_tokens_tensor_aligned_sent.append(input_tokens_tensor[ind_sent, _i_input])
+                new_input_mask.append(input_mask[ind_sent, _i_input])
                 # index alignement
                 new_alignement_with_input.append(_input_alignement_with_raw[_i_input])
             # --
             elif _1_to_n_token:
                 output_tokens_tensor_aligned_sent.append(output_tokens_tensor[ind_sent, _i_output])
+                print("ADDING MASK")
+                add_mask=True
                 input_tokens_tensor_aligned_sent.append(mask_token_index)
-
+                # mask update
+                new_input_mask.append(1)
                 new_alignement_with_input.append(_input_alignement_with_raw[_i_input-_1_to_n_token])
             # --
             elif not end_output_with_padded_reach:
                 appending = output_tokens_tensor[ind_sent, _i_output]
                 output_tokens_tensor_aligned_sent.append(appending)
                 input_tokens_tensor_aligned_sent.append(input_tokens_tensor[ind_sent, _i_input])
-
+                new_input_mask.append(input_mask[ind_sent, _i_input])
                 new_alignement_with_input.append(_input_alignement_with_raw[_i_input])
             else:
                 output_tokens_tensor_aligned_sent.append(0)
@@ -89,14 +105,12 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
             pass
         printing("TO FILL output {} index {}", var=[output_tokens_tensor_aligned_sent, ind_sent], verbose=verbose,
                  verbose_level=3)
-        try:
-            #output_tokens_tensor_aligned[ind_sent] = torch.Tensor(output_tokens_tensor_aligned_sent)
-            #input_tokens_tensor_aligned[ind_sent] = torch.Tensor(input_tokens_tensor_aligned_sent)
-            new_alignement_with_input_ls.append(new_alignement_with_input)
-            output_tokens_tensor_aligned_sent_ls.append(torch.Tensor(output_tokens_tensor_aligned_sent))
-            input_tokens_tensor_aligned_sent_ls.append(torch.Tensor(input_tokens_tensor_aligned_sent))
-        except:
-            pdb.set_trace()
+
+        #output_tokens_tensor_aligned[ind_sent] = torch.Tensor(output_tokens_tensor_aligned_sent)
+        #input_tokens_tensor_aligned[ind_sent] = torch.Tensor(input_tokens_tensor_aligned_sent)
+        output_tokens_tensor_aligned_sent_ls.append(torch.Tensor(output_tokens_tensor_aligned_sent))
+        input_tokens_tensor_aligned_sent_ls.append(torch.Tensor(input_tokens_tensor_aligned_sent))
+        new_alignement_with_input_ls.append(torch.Tensor(new_input_mask))
 
     assert len(output_tokens_tensor_aligned_sent_ls) == len(input_tokens_tensor_aligned_sent_ls)
 
@@ -104,18 +118,22 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
                     max([len(inp) for inp in input_tokens_tensor_aligned_sent_ls]))
     output_tokens_tensor_aligned = torch.empty((len(output_tokens_tensor_aligned_sent_ls), max_token)).long()
     input_tokens_tensor_aligned = torch.empty((len(output_tokens_tensor_aligned_sent_ls), max_token)).long()
-
-    for ind_sent, (out, inp) in enumerate(zip(output_tokens_tensor_aligned_sent_ls, input_tokens_tensor_aligned_sent_ls)):
+    input_mask_aligned = torch.empty((len(output_tokens_tensor_aligned_sent_ls), max_token)).long()
+    for ind_sent, (out, inp, mask) in enumerate(zip(output_tokens_tensor_aligned_sent_ls, input_tokens_tensor_aligned_sent_ls, new_alignement_with_input_ls)):
         output_tokens_tensor_aligned[ind_sent] = out
         input_tokens_tensor_aligned[ind_sent] = inp
+        input_mask_aligned[ind_sent] = mask
 
     if input_tokens_tensor.is_cuda:
         input_tokens_tensor_aligned = input_tokens_tensor_aligned.cuda()
         output_tokens_tensor_aligned = output_tokens_tensor_aligned.cuda()
-    return output_tokens_tensor_aligned, input_tokens_tensor_aligned, new_alignement_with_input_ls,  _1_to_n_token
+        input_mask_aligned = input_mask_aligned.cuda()
+    if add_mask:
+        pdb.set_trace()
+    return output_tokens_tensor_aligned, input_tokens_tensor_aligned, new_alignement_with_input_ls, input_mask_aligned, _1_to_n_token
 
 
-def realigne(ls_sent_str, input_alignement_with_raw, null_str, mask_str,tasks,
+def realigne(ls_sent_str, input_alignement_with_raw, null_str, mask_str, tasks,
              remove_null_str=True, remove_mask_str=False, remove_extra_predicted_token=False):
     """
     ** remove_extra_predicted_token used iif pred mode **

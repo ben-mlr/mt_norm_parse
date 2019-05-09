@@ -21,13 +21,16 @@ def train_eval_bert_normalize(args, verbose=1):
     freeze_parameters = args.freeze_parameters
     freeze_layer_prefix_ls = args.freeze_layer_prefix_ls
     # ["bert"]
+    voc_pos_size = 21
+    printing("MODEL : voc_pos_size hardcoded to {}", var=voc_pos_size, verbose_level=1, verbose=verbose)
     model = get_bert_token_classification(pretrained_model_dir=model_dir,
                                           vocab_size=vocab_size,
                                           freeze_parameters=freeze_parameters,
                                           freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                                           dropout_classifier=args.dropout_classifier,
                                           dropout_bert=args.dropout_bert,
-                                          tasks=args.tasks,voc_pos_size=16,
+                                          tasks=args.tasks,
+                                          voc_pos_size=voc_pos_size,
                                           initialize_bpe_layer=initialize_bpe_layer)
 
     lr = args.lr
@@ -47,7 +50,8 @@ def train_eval_bert_normalize(args, verbose=1):
         initialize_bpe_layer=initialize_bpe_layer, report_full_path_shared=dir_grid, shared_id=args.overall_label,
         fine_tuning_strategy=args.fine_tuning_strategy,
         heuristic_ls=args.heuristic_ls, gold_error_detection=args.gold_error_detection,
-        args=args,dropout_input_bpe=args.dropout_input_bpe,
+        args=args, dropout_input_bpe=args.dropout_input_bpe,
+        portion_mask=args.portion_mask, masking_strategy=args.masking_strategy,
         report=True, verbose=1)
 
     printing("MODEL {} trained and evaluated", var=[args.model_id_pref], verbose_level=1, verbose=verbose)

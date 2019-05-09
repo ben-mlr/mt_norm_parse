@@ -19,7 +19,7 @@ assert os.path.isdir(CHECKPOINT_BERT_DIR ), "ERROR : {} CHECKPOINT_BERT_DIR  doe
 CLIENT_GOOGLE_CLOUD = os.path.join(PROJECT_PATH, "tracking/google_api")
 SHEET_NAME_DEFAULT, TAB_NAME_DEFAULT = "model_evaluation", "experiments_tracking"
 
-LIST_ARGS = ["tasks", "train_path", "dev_path", "test_path", "heuristic_ls"]
+LIST_ARGS = ["tasks", "train_path", "dev_path", "test_path", "heuristic_ls", "masking_strategy"]
 NONE_ARGS = ["gpu"]
 BOOL_ARGS = ["word_embed", "teacher_force", "char_decoding", "unrolling_word", "init_context_decoder",
              "word_decoding", "stable_decoding_state", "char_src_attention"]
@@ -42,6 +42,8 @@ SCORE_AUX = ["norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recal
 AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm", "pos", "edit_prediction"]
 AVAILABLE_AGGREGATION_FUNC_AUX_TASKS = ["norm_not_norm", "edit_prediction"]
 AVAILABLE_BERT_FINE_TUNING_STRATEGY = ["bert_out_first", "standart","flexible_lr"]
+AVAILABLE_BERT_MASKING_STRATEGY = ["normed", "cls"]
+
 
 TASKS_2_METRICS_STR = {"all": ["accuracy-normalize","InV-accuracy-normalize","OOV-accuracy-normalize","npv-normalize","recall-normalize","precision-normalize","tnr-normalize","accuracy-pos"],
                        "normalize": ["accuracy-normalize", "npv-normalize", "recall-normalize", "precision-normalize", "tnr-normalize"],
@@ -183,6 +185,7 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 DEMO_SENT: DEMO_SENT_LABEL,
                 TEST_SENT: TEST_SENT_LABEL, DEV_SENT: DEV_SENT_LABEL, LIU_TRAIN_SENT: LIU_TRAIN_SENT_LABEL,
                 LIU_DEV_SENT: LIU_DEV_SENT_LABEL,
+                EWT_TEST:EWT_TEST_LABEL,
                 EN_LINES_TRAIN: EN_LINES_TRAIN_LABEL, EN_LINES_DEV: EN_LINES_DEV_LABEL,
                 EN_LINES_EWT_TRAIN: EN_LINES_EWT_TRAIN_LABEL,
                 MTNT_TOK_TRAIN: MTNT_TOK_TRAIN_LABEL, MTNT_TOK_DEV: MTNT_TOK_DEV_LABEL,

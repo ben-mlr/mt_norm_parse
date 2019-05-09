@@ -16,7 +16,7 @@ def subsequent_mask(size):
 class MaskBatch(object):
     def __init__(self, input_seq, output_seq,
                  raw_input=None, raw_output=None,
-                 output_word=None, pos=None, input_word=None,edit=None,
+                 output_word=None, pos=None, input_word=None, edit=None,
                  output_norm_not_norm=None, pad=PAD_ID_CHAR, verbose=0, timing=False, dropout_input=0.):
 
         self.raw_input = raw_input

@@ -17,7 +17,7 @@ NORM2NOISY = False
 
 def data_gen_conllu(data, word_dictionary, char_dictionary,
                     word_dictionary_norm,
-                    batch_size,task_info="",
+                    batch_size, task_info="",
                     get_batch_mode=True,
                     padding=PAD_ID_CHAR, print_raw=False, normalization=False,
                     pos_dictionary=None,
@@ -73,7 +73,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                 yield MaskBatch(chars_norm, chars,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
                                 output_word=word_norm, pos=pos, input_word=words, dropout_input=dropout_input,
                                 edit=edit,
-                                raw_input=raw_word_inputs, raw_output=normalized_str,
+                                raw_input=normalized_str, raw_output=raw_word_inputs,
                                 verbose=verbose), order_ids
 
     # get_batch randomly (for training purpose)
@@ -184,6 +184,10 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
         raise(Exception("Not supported yet --> should handle the loop "))
 
     for task, data in zip(tasks, datasets):
+        if task == "normalize":
+            tasks = ["normalize", "norm_not_norm"]
+        else:
+            tasks = [task]
         readers[task] = conllu_data.read_data_to_variable(data, word_dictionary, char_dictionary,
                                                           pos_dictionary,
                                                           xpos_dictionary, type_dictionary,
@@ -194,7 +198,7 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
                                                           normalization=TASKS_PARAMETER[task]["normalization"],
                                                           bucket=bucket,
                                                           add_start_char=add_start_char,
-                                                          add_end_char=add_end_char, tasks=[task],
+                                                          add_end_char=add_end_char, tasks=tasks,
                                                           max_char_len=max_char_len,
                                                           word_norm_dictionary=word_dictionary_norm, verbose=verbose)
 
@@ -329,7 +333,6 @@ if __name__=="__main__":
 
 
 
-        pdb.set_trace()
 
         while True:
             try:
