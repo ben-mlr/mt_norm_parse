@@ -2,7 +2,7 @@ import itertools
 
 from env.importing import *
 from io_.info_print import printing
-from env.project_variables import TASKS_2_METRICS_STR, GPU_AVAILABLE_DEFAULT_LS, REPO_W2V, AVAILABLE_BERT_FINE_TUNING_STRATEGY
+from env.project_variables import TASKS_2_METRICS_STR, GPU_AVAILABLE_DEFAULT_LS, REPO_W2V, AVAILABLE_BERT_FINE_TUNING_STRATEGY, REPO_DATASET
 from env.default_hyperparameters import *
 
 
@@ -75,7 +75,7 @@ def grid_param_label_generate(param,
                               heuristic_ls_ls=None, gold_error_detection_ls=None,
                               bert_model_ls=None,dropout_classifier_ls=None, fine_tuning_strategy_ls=None,
                               dropout_input_bpe_ls=None, dropout_bert_ls=None,
-                              masking_strategy_ls=None, checkpoint_dir_ls=None,
+                              masking_strategy_ls=None, checkpoint_dir_ls=None,norm_2_noise_training_ls=None,
                               ):
 
   assert gpu_mode in GPU_MODE_SUPPORTED, "ERROR gpu_mode not in {}".format(str(GPU_MODE_SUPPORTED))
@@ -194,8 +194,10 @@ def grid_param_label_generate(param,
     "ERROR checkpointing_metric {} and test_ls {} should be same len".format(checkpointing_metric_ls, test_ls)
 
   for def_ in default:
+
     info_default.append((def_[0], def_[1])) #" "+str(def_[0])+","+str(def_[0])
-    printing("GRID : {} argument defaulted to {} ", var=[str(def_)[:-6], def_], verbose=0, verbose_level=0)
+    if py_script=="train_evaluate_run":
+      printing("GRID : {} argument defaulted to {} ", var=[str(def_)[:-6], def_], verbose=0, verbose_level=0)
   # dic_grid will be used for logging (used for reports)
   if py_script == "train_evaluate_run":
     dic_grid = {"batch_size": batch_size_ls,# "auxilliary_task_norm_not_norm": auxilliary_task_norm_not_norm_ls,
@@ -393,11 +395,20 @@ def grid_param_label_generate(param,
       if var in KEEP_ONLY_REMOVE:
         continue
       fixed_vars.append((var, vals[0] if var != "word_embed_init" else REPO_W2V[vals[0]]["label"]))
-  print("GRID HYPERPARAMETERS : scale", scale_ls)
   # grid information
   to_enrich = " ".join([a for a, _ in fixed_vars]) + " " + " ".join(studied_vars)
   to_analysed = " ".join(studied_vars)
-  to_keep_only = " ".join([a + "," + str(b) for a, b in fixed_vars])
+  to_keep_only = " ".join([a + "," + str(b) for a, b in fixed_vars if a not in ["train_path","dev_path"]])
+
+  try:
+    # TODO : this should be factorized with what is in args.json
+    train_data_label = "|".join([REPO_DATASET[train_paths] for _train_path in dic_grid["train_path"] for train_paths in _train_path])
+    dev_data_label = "|".join([REPO_DATASET[dev_path] for _dev_path in dic_grid["dev_path"] for dev_path in _dev_path])
+    to_keep_only+=" "+train_data_label+" "+dev_data_label
+  except Exception as e:
+    print(e)
+    print("ERROR", dic_grid["train_path"])
+    printing("WARNING : train and dev_path fail to be label to be added to keep_only ", verbose_level=1, verbose=1)
 
   if printout_info_var:
     metric_add_ls = []

@@ -22,8 +22,8 @@ def get_bert_token_classification(vocab_size,voc_pos_size=None,
     """
     if tasks is None:
         tasks = ["normalize"]
-    assert len(tasks)==1, "only one task at at time for now"
-    assert checkpoint_dir is not None or pretrained_model_dir is not None, \
+    assert len(tasks) == 1, "only one task at at time for now"
+    assert checkpoint_dir is not None or True, \
         "Neither checkpoint_dir or pretrained_model_dir was provided"
     assert pretrained_model_dir is None or checkpoint_dir is None, \
         "Only one of checkpoint_dir or pretrained_model_dir should be provided "
@@ -31,8 +31,6 @@ def get_bert_token_classification(vocab_size,voc_pos_size=None,
                         num_hidden_layers=12, num_attention_heads=12, intermediate_size=3072)
     #config.hidden_dropout_prob = 0.2
     # QUESTION : WHERE IS THE MODEL ACTUALLY BEING LOADED ???
-
-
     # this line is useless apparently as it does it load it again
     if "normalize" in tasks:
         num_labels = vocab_size + 1

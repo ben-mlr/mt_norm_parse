@@ -15,7 +15,8 @@ train_path = [DEMO]
 dev_path = [DEMO]#[LIU_DEV]#[DEMO2]
 #dev_path = None
 test_paths_ls = [[DEV], [LIU_DEV], [TEST], [LIU_TRAIN]]#, [LIU_TRAIN], [LIU_DEV], [DEV], [LEX_TEST], [LEX_TRAIN], [LEX_LIU_TRAIN]]
-test_paths_ls = [[TEST],[DEV],[EWT_DEV]]
+test_paths_ls = [[TEST], [DEV], [EWT_DEV]]
+test_paths_ls = [[DEMO]]
 
 
 train = True
@@ -64,7 +65,7 @@ if train:
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                 initialize_bpe_layer=initialize_bpe_layer, args=None, skip_1_t_n=False, dropout_input_bpe=0.0,
                 heuristic_ls=None, gold_error_detection=False,
-                norm_2_noise_eval=False, norm_2_noise_training=[True, 0.5],
+                norm_2_noise_eval=False, norm_2_noise_training=.5,
                 report=True, verbose=1)
 
 

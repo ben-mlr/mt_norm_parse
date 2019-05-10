@@ -70,7 +70,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                        ("dropout_bert", args.dropout_bert if args is not None else "UNK"),
                                        ("tasks", tasks),
                                        ("masking_strategy", masking_strategy), ("portion_mask", portion_mask),
-                                       ("checkpoint_dir", args.checkpoint_dir if args is not None else None)
+                                       ("checkpoint_dir", args.checkpoint_dir if args is not None else None),
+                                       ("norm_2_noise_training",norm_2_noise_training),
                                        ])
         printing("HYPERPARAMETERS {} ",var=[hyperparameters], verbose=verbose, verbose_level=1)
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
@@ -265,9 +266,11 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                         add_start_char=1, add_end_char=1, symbolic_end=1,
                                         symbolic_root=1, bucket=True, max_char_len=20,
                                         verbose=verbose)
-            zip_1 = [None] if tasks[0] == "normalize" else [None, ["@", "#"], ["@", "#"], None]
-            zip_2 = [False] if tasks[0] == "pos" else [False, False, True, True]
-            for (heuristic, gold_error) in zip(zip_1, zip_2):
+            zip_1 = [None] if tasks[0] == "pos" else [None, ["@", "#"], ["@", "#"], None, None]
+            zip_2 = [False] if tasks[0] == "pos" else [False, False, True, True, False]
+            zip_3 = [False] if tasks[0] == "pos" else [False, False, False, False, True]
+            assert len(zip_2) == len(zip_1) and len(zip_1) == len(zip_3)
+            for (heuristic, gold_error, norm_2_noise_eval) in zip(zip_1, zip_2, zip_3):
                 batchIter_test = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_test, batch_size=batch_size,
                                                                     word_dictionary=word_dictionary,
                                                                     char_dictionary=char_dictionary,

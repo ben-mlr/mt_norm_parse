@@ -13,9 +13,11 @@ def train_eval_bert_normalize(args, verbose=1):
     #tasks = ["normalize"]
 
     args.bert_model = get_bert_name(args.bert_model)
+
     voc_tokenizer = BERT_MODEL_DIC[args.bert_model]["vocab"]
     model_dir = BERT_MODEL_DIC[args.bert_model]["model"]
     vocab_size = BERT_MODEL_DIC[args.bert_model]["vocab_size"]
+
 
     initialize_bpe_layer = args.initialize_bpe_layer
     freeze_parameters = args.freeze_parameters
@@ -71,6 +73,7 @@ def train_eval_bert_normalize(args, verbose=1):
         heuristic_ls=args.heuristic_ls, gold_error_detection=args.gold_error_detection,
         args=args, dropout_input_bpe=args.dropout_input_bpe,
         portion_mask=args.portion_mask, masking_strategy=args.masking_strategy,
+        norm_2_noise_training=args.norm_2_noise_training,
         report=True, verbose=1)
 
     printing("MODEL {} trained and evaluated", var=[args.model_id_pref], verbose_level=1, verbose=verbose)

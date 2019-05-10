@@ -141,17 +141,18 @@ def epoch_run(batchIter, tokenizer,
             norm2noise_bool = False
 
             if norm_2_noise_training is not None or norm_2_noise_eval:
-                portion_norm2noise = eval(str(norm_2_noise_training[1]))
-                norm_2_noise_training = norm_2_noise_training[0]
+                portion_norm2noise = norm_2_noise_training
+                norm_2_noise_training = portion_norm2noise is not None
                 rand = np.random.uniform(low=0, high=1, size=1)[0]
                 norm2noise_bool = portion_norm2noise >= rand
                 if norm2noise_bool or norm_2_noise_eval:
-                    batch.raw_input = preprocess_batch_string_for_bert(batch.raw_output)
+                    batch_raw_input = preprocess_batch_string_for_bert(batch.raw_output)
                     print("WARNING : input is gold norm")
                 else:
-                    batch.raw_input = preprocess_batch_string_for_bert(batch.raw_input)
+                    print("WARNING : input is input")
+                    batch_raw_input = preprocess_batch_string_for_bert(batch.raw_input)
             else:
-                batch.raw_input = preprocess_batch_string_for_bert(batch.raw_input)
+                batch_raw_input = preprocess_batch_string_for_bert(batch.raw_input)
 
             if masking_strategy is None:
                 group_to_mask = None
@@ -166,18 +167,19 @@ def epoch_run(batchIter, tokenizer,
                 group_to_mask = np.array(batch.output_norm_not_norm.cpu()) if portion_mask >= rand else None
 
             input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = \
-                get_indexes(batch.raw_input, tokenizer, verbose, use_gpu,
+                get_indexes(batch_raw_input, tokenizer, verbose, use_gpu,
                             word_norm_not_norm=group_to_mask)
             pdb.set_trace()
             if "normalize" in tasks:
                 if norm2noise_bool or norm_2_noise_eval:
                     print("WARNING : output is gold norm")
                     pdb.set_trace()
-                    batch.raw_output = preprocess_batch_string_for_bert(batch.raw_input)
+                    batch_raw_output = preprocess_batch_string_for_bert(batch.raw_input)
                 else:
-                    batch.raw_output = preprocess_batch_string_for_bert(batch.raw_output, rp_space=True)
+                    print("WARNING : output is output")
+                    batch_raw_output = preprocess_batch_string_for_bert(batch.raw_output, rp_space=True)
                 output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask =\
-                    get_indexes(batch.raw_output, tokenizer, verbose, use_gpu)
+                    get_indexes(batch_raw_output, tokenizer, verbose, use_gpu)
                 printing("DATA dim : {} input {} output ", var=[input_tokens_tensor.size(), output_tokens_tensor.size()],
                          verbose_level=2, verbose=verbose)
             elif "pos" in tasks:
@@ -223,12 +225,12 @@ def epoch_run(batchIter, tokenizer,
             _verbose = verbose
 
             # logging
-            printing("DATA : pre-tokenized input {} ", var=[batch.raw_input], verbose_level="raw_data",
+            printing("DATA : pre-tokenized input {} ", var=[batch_raw_input], verbose_level="raw_data",
                      verbose=_verbose)
             printing("DATA : BPEtokenized input ids {}", var=[input_tokens_tensor], verbose_level=3,
                      verbose=verbose)
 
-            printing("DATA : pre-tokenized output {} ", var=[batch.raw_output],
+            printing("DATA : pre-tokenized output {} ", var=[batch_raw_output],
                      verbose_level="raw_data",
                      verbose=_verbose)
             printing("DATA : BPE tokenized output ids  {}", var=[output_tokens_tensor],
@@ -243,14 +245,13 @@ def epoch_run(batchIter, tokenizer,
             if "normalize" in tasks:
                 # aligning output BPE with input (we are rejecting batch with at least one 1 to n case
                 # (that we don't want to handle
-                pdb.set_trace()
+
                 output_tokens_tensor_aligned, input_tokens_tensor_aligned, input_alignement_with_raw, input_mask, _1_to_n_token = \
                     aligned_output(input_tokens_tensor, output_tokens_tensor,
                                    input_alignement_with_raw,
                                    output_alignement_with_raw, mask_token_index=mask_token_index,
                                    input_mask=input_mask,use_gpu=use_gpu,
                                    null_token_index=null_token_index, verbose=verbose)
-                pdb.set_trace()
                 input_tokens_tensor = input_tokens_tensor_aligned
             elif "pos" in tasks:
                 # NB : we use the aligned input with the
@@ -465,6 +466,8 @@ def epoch_run(batchIter, tokenizer,
         label_heuristic += "-gold"
     if heuristic_ls is not None:
         label_heuristic += "-#-@"
+    if norm_2_noise_eval:
+        label_heuristic += "-noise_generation"
 
     if predict_mode:
         assert len(tasks) == 1
@@ -523,7 +526,6 @@ def epoch_run(batchIter, tokenizer,
                         reports.append(report)
 
                         if writer is not None and log_perf:
-                            print("-->", mode, iter+batch_i, iter, batch_i)
                             writer.add_scalars("perf-{}".format(mode),
                                                {"{}-{}-{}-bpe".format(metric_val, mode, model_id):
                                                     score if score is not None else 0

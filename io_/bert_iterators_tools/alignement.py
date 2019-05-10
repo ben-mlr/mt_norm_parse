@@ -60,7 +60,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
             # if the output token don't change we have to shift the input of one
             if _1_to_n_token:
                 printing("WARNING : _1_to_n_token --> next batch ",
-                         verbose=verbose, verbose_level=1)
+                         verbose=verbose, verbose_level=2)
                 _1_to_n_token_counter+=1
                 #break
             if padded_reach and not n_to_1_token:
@@ -80,8 +80,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
             # --
             elif _1_to_n_token:
                 output_tokens_tensor_aligned_sent.append(output_tokens_tensor[ind_sent, _i_output])
-                print("ADDING MASK")
-                add_mask=True
+                add_mask = True
                 input_tokens_tensor_aligned_sent.append(mask_token_index)
                 # mask update
                 new_input_mask.append(1)
