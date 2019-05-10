@@ -60,6 +60,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                     verbose=verbose)
 
         hyperparameters = OrderedDict([("bert_model", bert_model), ("lr", lr),
+                                       ("n_epochs", n_epoch),
                                        ("initialize_bpe_layer", initialize_bpe_layer),
                                        ("fine_tuning_strategy", fine_tuning_strategy),
                                        ("dropout_input_bpe", dropout_input_bpe),

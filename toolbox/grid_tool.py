@@ -2,7 +2,7 @@ import itertools
 
 from env.importing import *
 from io_.info_print import printing
-from env.project_variables import TASKS_2_METRICS_STR, GPU_AVAILABLE_DEFAULT_LS, REPO_W2V
+from env.project_variables import TASKS_2_METRICS_STR, GPU_AVAILABLE_DEFAULT_LS, REPO_W2V, AVAILABLE_BERT_FINE_TUNING_STRATEGY
 from env.default_hyperparameters import *
 
 
@@ -231,7 +231,19 @@ def grid_param_label_generate(param,
       elif _args == "tasks":
         assert eval(_args+"_ls")[0][0] in ["normalize", "pos"] and len(eval(_args+"_ls")) == 1 and len(eval(_args+"_ls")[0]) == 1,\
           "ERROR : only normalize supported so far {}".format(eval(_args+"_ls"))
+
         dic_grid[_args] = args_avail[_args + "_ls"]
+
+    def sanity_check_args(py_script, dic_grid):
+      if py_script=="train_evaluate_bert_normalizer":
+        for strat in dic_grid["fine_tuning_strategy"]:
+          assert strat in AVAILABLE_BERT_FINE_TUNING_STRATEGY, \
+            "ERROR strat {} not supported {}".format(strat, AVAILABLE_BERT_FINE_TUNING_STRATEGY)
+        if isinstance(dic_grid["lr"][0], dict):
+          assert dic_grid["fine_tuning_strategy"][0] == "flexible_lr" and len(dic_grid["fine_tuning_strategy"]) == 1, \
+            "ERROR {} should be = flexible_lr".format(dic_grid["fine_tuning_strategy"])
+
+    sanity_check_args(py_script, dic_grid)
 
     list_of_list_of_args = [lis_values for arg_dic, lis_values in dic_grid.items()]
 
