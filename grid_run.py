@@ -381,14 +381,14 @@ if __name__ == "__main__":
 
           BERT_NORMALIZE = True
           if BERT_NORMALIZE:
-              epochs = 20
+              epochs = 10
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
                                                   batch_size_ls=[1, 8],
                                                   checkpoint_dir_ls=["'"+os.path.join(PROJECT_PATH,
-                                                                      "checkpoints", "bert", "b5338-LOOK_THE_PREDICTIONS-2batch-0.0001lr",
-                                                                      "b5338-LOOK_THE_PREDICTIONS-2batch-0.0001lr-ep24-checkpoint.pt")+"'"],
+                                                                      "checkpoints", "bert", 
+                                                                      "9318015-B-133b1-9318015-B-model_6/9318015-B-133b1-9318015-B-model_6-ep20-checkpoint.pt")+"'"],
                                                   gpu_mode="random",
                                                   lr_ls=[0.00001],
                                                   #masking_strategy_ls=[["cls"], None],# ["normed",0.25],["normed",0.5],["normed",0.75],["normed",1.]],#[None,,

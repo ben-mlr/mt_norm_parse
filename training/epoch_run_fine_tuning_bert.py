@@ -37,6 +37,7 @@ def epoch_run(batchIter, tokenizer,
               reference_word_dic=None, dropout_input_bpe=0.,
               writing_pred=False, dir_end_pred=None, extra_label_for_prediction="",
               log_perf=True, masking_strategy=None, portion_mask=None,
+              norm_2_noise_eval=False,  norm_2_noise_training=None,
               verbose=0):
     """
     About Evaluation :
@@ -71,6 +72,10 @@ def epoch_run(batchIter, tokenizer,
     :return:
     """
     assert len(tasks) == 1, "only one task supported so far"
+    assert norm_2_noise_training is None or not norm_2_noise_eval, "only one of the two should be triggered but we" \
+                                                                   " have norm_2_noise_training : {} norm_2_noise_" \
+                                                                   "eval:{}".format(norm_2_noise_training,
+                                                                                    norm_2_noise_eval)
     if masking_strategy is not None:
         assert "normalize" in tasks, "SO FAR : inconsistency between task {} and masking strategy {}".format(tasks,
                                                                                                     masking_strategy)
@@ -133,8 +138,20 @@ def epoch_run(batchIter, tokenizer,
             batch_i += 1
 
             batch = batchIter.__next__()
-            batch.raw_input = preprocess_batch_string_for_bert(batch.raw_input)
-            #batch.raw_input = preprocess_batch_string_for_bert(batch.raw_output)
+            norm2noise_bool = False
+
+            if norm_2_noise_training is not None or norm_2_noise_eval:
+                portion_norm2noise = eval(str(norm_2_noise_training[1]))
+                norm_2_noise_training = norm_2_noise_training[0]
+                rand = np.random.uniform(low=0, high=1, size=1)[0]
+                norm2noise_bool = portion_norm2noise >= rand
+                if norm2noise_bool or norm_2_noise_eval:
+                    batch.raw_input = preprocess_batch_string_for_bert(batch.raw_output)
+                    print("WARNING : input is gold norm")
+                else:
+                    batch.raw_input = preprocess_batch_string_for_bert(batch.raw_input)
+            else:
+                batch.raw_input = preprocess_batch_string_for_bert(batch.raw_input)
 
             if masking_strategy is None:
                 group_to_mask = None
@@ -153,7 +170,12 @@ def epoch_run(batchIter, tokenizer,
                             word_norm_not_norm=group_to_mask)
             pdb.set_trace()
             if "normalize" in tasks:
-                batch.raw_output = preprocess_batch_string_for_bert(batch.raw_output, rp_space=True)
+                if norm2noise_bool or norm_2_noise_eval:
+                    print("WARNING : output is gold norm")
+                    pdb.set_trace()
+                    batch.raw_output = preprocess_batch_string_for_bert(batch.raw_input)
+                else:
+                    batch.raw_output = preprocess_batch_string_for_bert(batch.raw_output, rp_space=True)
                 output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask =\
                     get_indexes(batch.raw_output, tokenizer, verbose, use_gpu)
                 printing("DATA dim : {} input {} output ", var=[input_tokens_tensor.size(), output_tokens_tensor.size()],

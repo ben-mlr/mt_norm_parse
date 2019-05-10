@@ -24,6 +24,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
         report_full_path_shared=None, shared_id=None, bert_model=None,skip_1_t_n=False,
         heuristic_ls=None, gold_error_detection=False,
         portion_mask=None, masking_strategy=None,
+        norm_2_noise_eval=False, norm_2_noise_training=None,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
@@ -68,7 +69,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                        ("dropout_bert", args.dropout_bert if args is not None else "UNK"),
                                        ("tasks", tasks),
                                        ("masking_strategy", masking_strategy), ("portion_mask", portion_mask),
-                                       ("checkpoint_dir", args.checkpoint_dir)
+                                       ("checkpoint_dir", args.checkpoint_dir if args is not None else None)
                                        ])
         printing("HYPERPARAMETERS {} ",var=[hyperparameters], verbose=verbose, verbose_level=1)
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
@@ -190,6 +191,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                       dropout_input_bpe=dropout_input_bpe,
                                                                       null_token_index=null_token_index, null_str=null_str,
                                                                       masking_strategy=masking_strategy, portion_mask=portion_mask,
+                                                                      norm_2_noise_training=norm_2_noise_training,norm_2_noise_eval=False,
                                                                       n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
                 bert_with_classifier.eval()
@@ -211,6 +213,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                     masking_strategy=masking_strategy, portion_mask=portion_mask,
                                                                     heuristic_ls=heuristic_ls, gold_error_detection=gold_error_detection,
                                                                     reference_word_dic={"InV": inv_word_dic},
+                                                                    norm_2_noise_training=norm_2_noise_training,# as training otherwise loss dev not more meaning
+                                                                    norm_2_noise_eval=False,
                                                                     n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                 else:
                     loss_dev, iter_dev, perf_report_dev = None, 0, None
@@ -291,6 +295,9 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                    masking_strategy=masking_strategy,
                                                                    portion_mask=portion_mask,
                                                                    heuristic_ls=heuristic, gold_error_detection=gold_error,
+                                                                   norm_2_noise_training=None,
+                                                                   # we decide wether we eval everything in mode norm2noise or not --> we could also add a loop and tag in report
+                                                                   norm_2_noise_eval=norm_2_noise_eval,
                                                                    reference_word_dic={"InV": inv_word_dic},
                                                                    n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                 print("PERFORMANCE TEST on data {} is {} ".format(label_data, perf_report_test))

@@ -18,8 +18,8 @@ test_paths_ls = [[DEV], [LIU_DEV], [TEST], [LIU_TRAIN]]#, [LIU_TRAIN], [LIU_DEV]
 test_paths_ls = [[TEST],[DEV],[EWT_DEV]]
 
 
-train = False
-playwith = True
+train = True
+playwith = False
 
 if train:
     # TODO : WARNING : why the delis still
@@ -32,7 +32,7 @@ if train:
     initialize_bpe_layer = True
     freeze_parameters = True
     freeze_layer_prefix_ls = ["bert"]
-    tasks = ["pos"]
+    tasks = ["normalize"]
     voc_pos_size = 16
     #["bert"]
     model = get_bert_token_classification(pretrained_model_dir=model_dir,
@@ -64,6 +64,7 @@ if train:
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                 initialize_bpe_layer=initialize_bpe_layer, args=None, skip_1_t_n=False, dropout_input_bpe=0.0,
                 heuristic_ls=None, gold_error_detection=False,
+                norm_2_noise_eval=False, norm_2_noise_training=[True, 0.5],
                 report=True, verbose=1)
 
 
