@@ -71,23 +71,30 @@ null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert c
 
 
 if playwith:
-    tasks = ["pos"]
+    train_path = [EN_LINES_EWT_TRAIN]
+    dev_path = [DEMO]  # [LIU_DEV]#[DEMO2]
 
     vocab_size = BERT_MODEL_DIC["bert-cased"]["vocab_size"]
     voc_tokenizer = BERT_MODEL_DIC["bert-cased"]["vocab"]
     tokenizer = BertTokenizer.from_pretrained(voc_tokenizer)
     model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/./checkpoints/bert/b5338-LOOK_THE_PREDICTIONS-2batch-0.0001lr"
-    model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/./checkpoints/bert/9319649-B-14cf0-9319649-B-model_0"
-    #/home/bemuller/projects/mt_norm_parse/env/../checkpoints/bert/9319649-B-14cf0-9319649-B-model_0/9319649-B-14cf0-9319649-B-model_0-ep4-checkpoint.pt
-    checkpoint_dir = os.path.join(model_location, "9319649-B-14cf0-9319649-B-model_0-ep4-checkpoint.pt")
-    test_paths_ls = [[TEST]]
+    model_name = "b5338-LOOK_THE_PREDICTIONS-2batch-0.0001lr-ep24-checkpoint.pt"
+    #model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/./checkpoints/bert/9319649-B-14cf0-9319649-B-model_0"
+    #model_name = "9319649-B-14cf0-9319649-B-model_0-ep4-checkpoint.pt"
+    checkpoint_dir = os.path.join(model_location, model_name)
+    test_paths_ls = [[EN_LINES_EWT_TRAIN]]
     voc_pos_size = 21
 
-    model = get_bert_token_classification(vocab_size=vocab_size,voc_pos_size=voc_pos_size,
-                                          tasks=tasks,
+    tasks = ["pos"]
+
+    model = get_bert_token_classification(vocab_size=vocab_size, voc_pos_size=voc_pos_size,
+                                          tasks=["normalize"],
                                           initialize_bpe_layer=None,
                                           checkpoint_dir=checkpoint_dir)
-
+    add_task_2 = True
+    if add_task_2:
+        model.classifier_task_2 = nn.Linear(model.bert.config.hidden_size, voc_pos_size)
+        model.num_labels_2 =voc_pos_size
     #model.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
     # NB : AT TEST TIME :  null_token_index should be loaded not passed as argument
     pref_suffix = ""
@@ -101,12 +108,13 @@ if playwith:
                     saving_every_epoch=10, lr=lr,
                     dict_path=os.path.join(model_location, "dictionaries"),
                     end_predictions=os.path.join(model_location, "predictions"),
-                    batch_size=batch_size, n_iter_max_per_epoch=400, n_epoch=1,
+                    batch_size=batch_size, n_iter_max_per_epoch=10, n_epoch=1,
                     test_path_ls=test_paths_ls, run_mode="test",
                     args=None,
                     description="", null_token_index=null_token_index, null_str=NULL_STR, model_location=model_location,
-                    model_id="9319649-B-14cf0-9319649-B-model_0",
-                    model_suffix="{}-{}batch-{}lr".format(pref_suffix, batch_size, lr), debug=False, report=True,
+                    model_id="b5338-LOOK_THE_PREDICTIONS-2batch-0.0001lr",
+                    model_suffix="{}-{}batch-{}lr".format(pref_suffix, batch_size, lr),
+                    debug=True, report=True,
                     verbose="raw_data")
 
     # TO SEE TOKENIZATION IMPACT : verbose='raw_data'

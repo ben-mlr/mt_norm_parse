@@ -163,6 +163,7 @@ def args_train(mode="command_line", script="train_evaluate_run"):
 
         parser.add_argument('--masking_strategy', nargs='+', help='<Required> Set flag', default=None)
         parser.add_argument('--portion_mask', type=float, default=None)
+        parser.add_argument('--checkpoint_dir', type=str, default=None)
 
         args = parser.parse_args()
 

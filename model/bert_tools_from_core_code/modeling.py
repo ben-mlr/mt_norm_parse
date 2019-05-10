@@ -22,11 +22,13 @@ import json
 import logging
 import math
 import os
+from collections import OrderedDict
 import shutil
 import tarfile
 import tempfile
 import sys
 from io import open
+import pdb
 
 import torch
 from torch import nn
@@ -1099,7 +1101,7 @@ class BertForTokenClassification(BertPreTrainedModel):
     logits = model(input_ids, token_type_ids, input_mask)
     ```
     """
-    def __init__(self, config, num_labels, dropout_classifier=None):
+    def __init__(self, config, num_labels, dropout_classifier=None, num_labels_2=None):
         super(BertForTokenClassification, self).__init__(config)
         self.num_labels = num_labels
         self.bert = BertModel(config)
@@ -1111,12 +1113,42 @@ class BertForTokenClassification(BertPreTrainedModel):
         print("{} : DROPOUT CLASSIFIER set to {} ".format(log, dropout_classifier))
         self.dropout = nn.Dropout(dropout_classifier)
         self.classifier = nn.Linear(config.hidden_size, num_labels)
+        self.classifier_task_2 = None #nn.Linear(config.hidden_size, num_labels_2) if num_labels_2 is not None else None
+        self.num_labels_2 = num_labels_2
+        self.loss_weights_default = OrderedDict([("loss_task_1", 1), ("loss_task_2", 1)])
         self.apply(self.init_bert_weights)
 
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None):
+    def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None, labels_task_2=None, loss_weights=None):
+
+        if loss_weights is None:
+            loss_weights = self.loss_weights_default
+        else:
+            assert isinstance(loss_weights, dict) and loss_weights.get("loss_task_1") is not None \
+                   and loss_weights.get("loss_task_2") is not None
+
         sequence_output, _ = self.bert(input_ids, token_type_ids, attention_mask, output_all_encoded_layers=False)
         sequence_output = self.dropout(sequence_output)
         logits = self.classifier(sequence_output)
+
+        loss_dict = OrderedDict([("loss", None), ("loss_task_1", 0), ("loss_task_2", 0)])
+        pred_dict = OrderedDict([("logits_task_1", None), ("logits_task_2", None)])
+
+        if self.classifier_task_2 is not None:
+            assert self.num_labels_2 is not None, "num_labels_2 required"
+            logits_task_2 = self.classifier_task_2(sequence_output)
+            pred_dict["logits_task_2"] = logits_task_2
+        if labels_task_2 is not None:
+            loss_fct_task_2 = CrossEntropyLoss()
+            assert self.classifier_task_2 is not None, "labels_task_2 was provided but self.classifier_task_2 has not been defined"
+            if attention_mask is not None:
+                active_loss = attention_mask.view(-1) == 1
+                active_logits = logits_task_2.view(-1, self.num_labels_2)[active_loss]
+
+                active_labels = labels_task_2.view(-1)[active_loss]
+                loss_task_2 = loss_fct_task_2(active_logits, active_labels)
+            else:
+                loss_task_2 = loss_fct_task_2(logits_task_2.view(-1, self.num_labels_2), labels_task_2.view(-1))
+            loss_dict["loss_task_2"] = loss_task_2
 
         if labels is not None:
             loss_fct = CrossEntropyLoss()
@@ -1128,9 +1160,17 @@ class BertForTokenClassification(BertPreTrainedModel):
                 loss = loss_fct(active_logits, active_labels)
             else:
                 loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
-            return loss
+            loss_dict["loss_task_1"] = loss
+            #return loss
         else:
-            return logits
+            pred_dict["logits_task_1"] = logits
+            #return logits
+        if labels is not None or labels_task_2 is not None:
+            loss_dict["loss"] = loss_weights["loss_task_1"]*loss_dict["loss_task_1"] + \
+                                loss_weights["loss_task_2"]*loss_dict["loss_task_2"]
+            return loss_dict
+        else:
+            return pred_dict
 
 
 class BertForQuestionAnswering(BertPreTrainedModel):

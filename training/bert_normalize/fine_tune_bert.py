@@ -67,7 +67,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                        ("dropout_classifier", args.dropout_classifier if args is not None else "UNK"),
                                        ("dropout_bert", args.dropout_bert if args is not None else "UNK"),
                                        ("tasks", tasks),
-                                       ("masking_strategy",masking_strategy),("portion_mask",portion_mask),
+                                       ("masking_strategy", masking_strategy), ("portion_mask", portion_mask),
+                                       ("checkpoint_dir", args.checkpoint_dir)
                                        ])
         printing("HYPERPARAMETERS {} ",var=[hyperparameters], verbose=verbose, verbose_level=1)
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
@@ -106,16 +107,16 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
     word_dictionary, word_norm_dictionary, char_dictionary, pos_dictionary, \
     xpos_dictionary, type_dictionary = \
         conllu_data.load_dict(dict_path=dict_path,
-                              train_path=train_path if run_mode == "train" else None,
-                              dev_path=_dev_path if run_mode == "train" else None,
+                              train_path=train_path, #if run_mode == "train" else None,
+                              dev_path=_dev_path, #if run_mode == "train" else None,
                               test_path=None,
                               word_embed_dict={},
                               dry_run=False,
                               expand_vocab=False,
                               word_normalization=True,
-                              force_new_dic=True if run_mode == "train" else False,
+                              force_new_dic=True, # if run_mode == "train" else False,
                               tasks=tasks,
-                              add_start_char=1 if run_mode == "train" else None,
+                              add_start_char=1 , #if run_mode == "train" else None,
                               verbose=1)
 
     inv_word_dic = word_dictionary.instance2index
@@ -251,7 +252,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
         assert len(test_path_ls[0]) == 1, "ERROR 1 task supported so far for bert"
         for test_path in test_path_ls:
             label_data = "|".join([REPO_DATASET[_test_path] for _test_path in test_path])
-            readers_test = readers_load(datasets=test_path, tasks=["normalize"], word_dictionary=word_dictionary,
+            readers_test = readers_load(datasets=test_path, tasks=tasks, word_dictionary=word_dictionary,
                                         word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
                                         pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
                                         type_dictionary=type_dictionary, use_gpu=use_gpu,
@@ -259,10 +260,10 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                         add_start_char=1, add_end_char=1, symbolic_end=1,
                                         symbolic_root=1, bucket=True, max_char_len=20,
                                         verbose=verbose)
-            zip_1 = [None] if tasks[0] == "pos" else [None, ["@", "#"], ["@", "#"], None]
+            zip_1 = [None] if tasks[0] == "normalize" else [None, ["@", "#"], ["@", "#"], None]
             zip_2 = [False] if tasks[0] == "pos" else [False, False, True, True]
             for (heuristic, gold_error) in zip(zip_1, zip_2):
-                batchIter_test = data_gen_multi_task_sampling_batch(tasks=["normalize"], readers=readers_test, batch_size=batch_size,
+                batchIter_test = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_test, batch_size=batch_size,
                                                                     word_dictionary=word_dictionary,
                                                                     char_dictionary=char_dictionary,
                                                                     pos_dictionary=pos_dictionary,

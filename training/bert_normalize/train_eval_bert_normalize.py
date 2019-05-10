@@ -1,4 +1,4 @@
-from env.importing import os
+from env.importing import os, nn
 from training.bert_normalize.fine_tune_bert import run
 from model.bert_normalize import get_bert_token_classification
 from io_.dat.constants import TOKEN_BPE_BERT_START, TOKEN_BPE_BERT_SEP, NULL_STR, PAD_BERT, PAD_ID_BERT
@@ -23,15 +23,34 @@ def train_eval_bert_normalize(args, verbose=1):
     # ["bert"]
     voc_pos_size = 21
     printing("MODEL : voc_pos_size hardcoded to {}", var=voc_pos_size, verbose_level=1, verbose=verbose)
-    model = get_bert_token_classification(pretrained_model_dir=model_dir,
-                                          vocab_size=vocab_size,
-                                          freeze_parameters=freeze_parameters,
-                                          freeze_layer_prefix_ls=freeze_layer_prefix_ls,
-                                          dropout_classifier=args.dropout_classifier,
-                                          dropout_bert=args.dropout_bert,
-                                          tasks=args.tasks,
-                                          voc_pos_size=voc_pos_size,
-                                          initialize_bpe_layer=initialize_bpe_layer)
+
+    if args.checkpoint_dir is None:
+        # TODO vocab_size should be loaded from args.json
+        model = get_bert_token_classification(pretrained_model_dir=model_dir,
+                                              vocab_size=vocab_size,
+                                              freeze_parameters=freeze_parameters,
+                                              freeze_layer_prefix_ls=freeze_layer_prefix_ls,
+                                              dropout_classifier=args.dropout_classifier,
+                                              dropout_bert=args.dropout_bert,
+                                              tasks=args.tasks,
+                                              voc_pos_size=voc_pos_size,
+                                              initialize_bpe_layer=initialize_bpe_layer)
+    else:
+        printing("MODEL : reloading from checkpoint {}", var=[args.checkpoint_dir], verbose_level=1, verbose=verbose)
+        # TODO args.original_task  , vocab_size is it necessary
+        #assert args.original_task is not None
+        original_task = ["normalize"]
+        model = get_bert_token_classification(vocab_size=vocab_size, voc_pos_size=voc_pos_size,
+                                              tasks=original_task,
+                                              initialize_bpe_layer=None,
+                                              checkpoint_dir=args.checkpoint_dir)
+
+        add_task_2 = True
+        if add_task_2:
+            printing("MODEL : adding extra classifer for task_2  with {} label", var=[voc_pos_size],
+                     verbose=verbose, verbose_level=1)
+            model.classifier_task_2 = nn.Linear(model.bert.config.hidden_size, voc_pos_size)
+            model.num_labels_2 = voc_pos_size
 
     lr = args.lr
     batch_size = args.batch_size

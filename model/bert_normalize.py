@@ -39,9 +39,8 @@ def get_bert_token_classification(vocab_size,voc_pos_size=None,
     elif "pos" in tasks:
         assert voc_pos_size is not None
         initialize_bpe_layer = None
-        num_labels = voc_pos_size
 
-    model = BertForTokenClassification(config, num_labels, dropout_classifier=dropout_classifier)
+    model = BertForTokenClassification(config, num_labels, dropout_classifier=dropout_classifier, num_labels_2=voc_pos_size)
 
     if pretrained_model_dir is not None:
 
@@ -66,11 +65,15 @@ def get_bert_token_classification(vocab_size,voc_pos_size=None,
             model = freeze_param(model, freeze_layer_prefix_ls=freeze_layer_prefix_ls,verbose=verbose)
 
     elif checkpoint_dir is not None:
-        assert initialize_bpe_layer is None, "ERROR initialize_bpe_layer should b None as loading from existing checkpoint"
+        assert initialize_bpe_layer is None, \
+            "ERROR initialize_bpe_layer should b None as loading from existing checkpoint"
+        #model.load_state_dict(mode)
+
         model.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
         printing("MODEL : loading model BERT+token classification pretrained from checkpoint {}",
                  var=[checkpoint_dir],
                  verbose=verbose, verbose_level=1)
 
     return model
+
 

@@ -6,6 +6,7 @@ AVAILABLE_TRAINING_EVAL_SCRIPT = ["train_evaluate_run", "train_evaluate_bert_nor
 ARGUMENT_AVAILABLE_ALL = ["train_path", "dev_path", "test_path", "tasks"]
 ARGUMENT_AVAILABLE_BERT = ["batch_size", "lr", "initialize_bpe_layer", "freeze_parameters",  "freeze_layer_prefix_ls",
                            "bert_model", "dropout_classifier", "fine_tuning_strategy", "dropout_input_bpe",
+                           "checkpoint_dir",
                            "tasks", "masking_strategy",# "portion_mask",
                            "heuristic_ls", "gold_error_detection", "dropout_bert"]
 ARGUMENT_AVAILABLE_BERT.extend(ARGUMENT_AVAILABLE_ALL)

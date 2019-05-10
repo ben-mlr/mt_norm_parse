@@ -234,7 +234,7 @@ def epoch_run(batchIter, tokenizer,
                 # NB : we use the aligned input with the
                 output_tokens_tensor_aligned = output_tokens_tensor[:, : input_tokens_tensor.size(1)]
                 output_tokens_tensor_aligned = output_tokens_tensor_aligned.contiguous()
-                if input_tokens_tensor.is_cuda:
+                if use_gpu:
                     output_tokens_tensor_aligned = output_tokens_tensor_aligned.cuda()
 
                     #segments_ids = [[0 for _ in range(len(tokenized))] for tokenized in tokenized_ls]
@@ -272,19 +272,22 @@ def epoch_run(batchIter, tokenizer,
                 input_tokens_tensor = dropout_input_tensor(input_tokens_tensor, mask_token_index,
                                                            dropout=dropout_input_bpe)
             try:
-                pdb.set_trace()
                 printing("MASK mask:{} input:{} ", var=[input_mask, input_tokens_tensor], verbose_level="mask", verbose=verbose)
                 _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
-                                             labels=output_tokens_tensor_aligned)
+                                             labels=output_tokens_tensor_aligned if tasks[0] == "normalize" else None,
+                                             labels_task_2=output_tokens_tensor_aligned if tasks[0] == "pos" else None)
             except Exception as e:
                 print(e)
                 print(output_tokens_tensor_aligned, input_tokens_tensor, input_mask)
                 _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
-                                             labels=output_tokens_tensor_aligned)
+                                             labels=output_tokens_tensor_aligned if tasks[0] == "normalize" else None,
+                                             labels_task_2=output_tokens_tensor_aligned if tasks[0] == "pos" else None)
+            _loss = _loss["loss"]
 
             if predict_mode:
-                # if predict more : will evaluate the model and write its predictions 
-                logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask)
+                # if predict more : will evaluate the model and write its predictions
+                # TODO : add mapping_info between task_id to model and task name necessary to iterator
+                logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask)["logits_task_2" if tasks[0] == "pos" else "logits_task_1"]
                 predictions_topk = torch.argsort(logits, dim=-1, descending=True)[:, :, :topk]
                 # from bpe index to string
 
