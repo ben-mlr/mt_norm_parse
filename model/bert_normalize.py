@@ -38,7 +38,7 @@ def get_bert_token_classification(vocab_size,voc_pos_size=None,
         num_labels = vocab_size + 1
     elif "pos" in tasks:
         assert voc_pos_size is not None
-        initialize_bpe_layer = False
+        initialize_bpe_layer = None
         num_labels = voc_pos_size
 
     model = BertForTokenClassification(config, num_labels, dropout_classifier=dropout_classifier)

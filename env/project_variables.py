@@ -45,9 +45,12 @@ AVAILABLE_BERT_FINE_TUNING_STRATEGY = ["bert_out_first", "standart","flexible_lr
 AVAILABLE_BERT_MASKING_STRATEGY = ["normed", "cls"]
 
 
-TASKS_2_METRICS_STR = {"all": ["accuracy-normalize","InV-accuracy-normalize","OOV-accuracy-normalize","npv-normalize","recall-normalize","precision-normalize","tnr-normalize","accuracy-pos"],
-                       "normalize": ["accuracy-normalize", "npv-normalize", "recall-normalize", "precision-normalize", "tnr-normalize"],
-                       "pos": ["accuracy-pos"],
+TASKS_2_METRICS_STR = {"all": ["accuracy-exact-normalize",
+                               "accuracy-normalize","InV-accuracy-normalize","OOV-accuracy-normalize","npv-normalize",
+                               "recall-normalize","precision-normalize","tnr-normalize", "accuracy-exact-pos", "f1-normalize"],
+                       "normalize": ["accuracy-exact-normalize", "accuracy-normalize", "npv-normalize", "recall-normalize",
+                                     "precision-normalize", "tnr-normalize", "f1-normalize"],
+                       "pos": ["accuracy-exact-pos"],
                        "edit_prediction": [""],
                        "norm_not_norm": ["IoU-pred-normed","recall-norm_not_norm","accuracy-norm_not_norm","IoU-pred-need_norm","precision-norm_not_norm"]}
 # "InV-accuracy-normalize", "OOV-accuracy-normalize"

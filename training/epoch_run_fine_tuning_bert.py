@@ -134,6 +134,7 @@ def epoch_run(batchIter, tokenizer,
 
             batch = batchIter.__next__()
             batch.raw_input = preprocess_batch_string_for_bert(batch.raw_input)
+            #batch.raw_input = preprocess_batch_string_for_bert(batch.raw_output)
 
             if masking_strategy is None:
                 group_to_mask = None
@@ -225,7 +226,7 @@ def epoch_run(batchIter, tokenizer,
                     aligned_output(input_tokens_tensor, output_tokens_tensor,
                                    input_alignement_with_raw,
                                    output_alignement_with_raw, mask_token_index=mask_token_index,
-                                   input_mask=input_mask,
+                                   input_mask=input_mask,use_gpu=use_gpu,
                                    null_token_index=null_token_index, verbose=verbose)
                 pdb.set_trace()
                 input_tokens_tensor = input_tokens_tensor_aligned
@@ -254,7 +255,7 @@ def epoch_run(batchIter, tokenizer,
                                                                                                input_tokens_tensor.size(1))
             # we consider only 1 sentence case
             token_type_ids = torch.zeros_like(input_tokens_tensor)
-            if input_tokens_tensor.is_cuda :
+            if use_gpu:
                 token_type_ids = token_type_ids.cuda()
             printing("CUDA SANITY CHECK input_tokens:{}  type:{} input_mask:{}  label:{}",
                      var=[input_tokens_tensor.is_cuda, token_type_ids.is_cuda, input_mask.is_cuda,

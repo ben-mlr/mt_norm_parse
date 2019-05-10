@@ -6,7 +6,7 @@ from io_.dat.constants import NULL_STR_TO_SHOW, TOKEN_BPE_BERT_START, TOKEN_BPE_
 def aligned_output(input_tokens_tensor, output_tokens_tensor,
                    input_alignement_with_raw, output_alignement_with_raw,
                    null_token_index, mask_token_index,
-                   input_mask, verbose=1):
+                   input_mask, use_gpu, verbose=1):
     """
     realigning and de-tokenizng tokens (e.g : words) that have been splitted based on indexes
     :param input_tokens_tensor:
@@ -138,11 +138,12 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
         input_tokens_tensor_aligned_sent_ls_tensor[ind_sent] = torch.Tensor(index_aligned+[1000 for _ in range(max_token-len(inp))])
     # we take care of padding here
     input_mask_aligned[input_tokens_tensor_aligned == PAD_ID_BERT] = 0
-    if input_tokens_tensor.is_cuda:
+    if use_gpu:
         input_tokens_tensor_aligned_sent_ls_tensor = input_tokens_tensor_aligned_sent_ls_tensor.cuda()
         # input_tokens_tensor_aligned = input_tokens_tensor_aligned.cuda() # !! WE REPLACED input_tokens_tensor_aligned with tokens_tensor_aligned_sent_ls_tensor
         output_tokens_tensor_aligned = output_tokens_tensor_aligned.cuda()
         input_mask_aligned = input_mask_aligned.cuda()
+        input_tokens_tensor_aligned = input_tokens_tensor_aligned.cuda()
     if add_mask:
         pdb.set_trace()
     pdb.set_trace()

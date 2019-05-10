@@ -129,7 +129,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                 script += " --{} {}".format(arg, val)
             elif arg in LIST_ARGS:
                 print(arg, val)
-                script += " --{} {}".format(arg, " ".join(val))
+                script += " --{} {}".format(arg, " ".join(str(val)))
 
             #script += " --{} {}".format("train_path", " ".join())
             #script += " --{} {}".format("dev_path", " ".join(dev_path))

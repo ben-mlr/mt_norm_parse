@@ -251,7 +251,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
         assert len(test_path_ls[0]) == 1, "ERROR 1 task supported so far for bert"
         for test_path in test_path_ls:
             label_data = "|".join([REPO_DATASET[_test_path] for _test_path in test_path])
-            readers_test = readers_load(datasets=test_path, tasks=tasks, word_dictionary=word_dictionary,
+            readers_test = readers_load(datasets=test_path, tasks=["normalize"], word_dictionary=word_dictionary,
                                         word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
                                         pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
                                         type_dictionary=type_dictionary, use_gpu=use_gpu,
@@ -259,9 +259,10 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                         add_start_char=1, add_end_char=1, symbolic_end=1,
                                         symbolic_root=1, bucket=True, max_char_len=20,
                                         verbose=verbose)
-
-            for (heuristic, gold_error) in zip([None, ["@", "#"], ["@", "#"], None], [False, False, True, True]):
-                batchIter_test = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_test, batch_size=batch_size,
+            zip_1 = [None] if tasks[0] == "pos" else [None, ["@", "#"], ["@", "#"], None]
+            zip_2 = [False] if tasks[0] == "pos" else [False, False, True, True]
+            for (heuristic, gold_error) in zip(zip_1, zip_2):
+                batchIter_test = data_gen_multi_task_sampling_batch(tasks=["normalize"], readers=readers_test, batch_size=batch_size,
                                                                     word_dictionary=word_dictionary,
                                                                     char_dictionary=char_dictionary,
                                                                     pos_dictionary=pos_dictionary,
