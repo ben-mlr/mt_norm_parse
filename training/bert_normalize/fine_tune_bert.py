@@ -25,6 +25,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
         heuristic_ls=None, gold_error_detection=False,
         portion_mask=None, masking_strategy=None,
         norm_2_noise_eval=False, norm_2_noise_training=None,
+        random_iterator_train=True,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
@@ -72,6 +73,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                        ("masking_strategy", masking_strategy), ("portion_mask", portion_mask),
                                        ("checkpoint_dir", args.checkpoint_dir if args is not None else None),
                                        ("norm_2_noise_training",norm_2_noise_training),
+                                       ("random_iterator_train",random_iterator_train),
                                        ])
         printing("HYPERPARAMETERS {} ",var=[hyperparameters], verbose=verbose, verbose_level=1)
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
@@ -154,12 +156,11 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                      char_dictionary=char_dictionary,
                                                                      pos_dictionary=pos_dictionary,
                                                                      word_dictionary_norm=word_norm_dictionary,
-                                                                     get_batch_mode=False,
+                                                                     get_batch_mode=random_iterator_train,
                                                                      extend_n_batch=1,
                                                                      dropout_input=0.0,
-
                                                                      verbose=verbose)
-
+                # -|-|-
                 batchIter_dev = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_dev, batch_size=batch_size,
                                                                    word_dictionary=word_dictionary,
                                                                    char_dictionary=char_dictionary,
@@ -176,7 +177,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                              fine_tuning_strategy=fine_tuning_strategy,
                                                                              lr_init=lr, betas=(0.9, 0.99),
                                                                              epoch=epoch, verbose=verbose)
-
+                print("RUNNING TRAIN on GET_BATCH_MODE ")
                 loss_train, iter_train, perf_report_train = epoch_run(batchIter_train, tokenizer,
                                                                       pos_dictionary=pos_dictionary,
                                                                       data_label=train_data_label,
@@ -199,6 +200,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                 bert_with_classifier.eval()
 
                 if dev_path is not None:
+                    print("RUNNING DEV on ITERATION MODE")
                     loss_dev, iter_dev, perf_report_dev = epoch_run(batchIter_dev, tokenizer,
                                                                     pos_dictionary=pos_dictionary,
                                                                     iter=iter_dev, use_gpu=use_gpu,

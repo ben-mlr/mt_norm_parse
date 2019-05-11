@@ -43,7 +43,7 @@ if train:
                                           freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                                           dropout_bert=0.0, initialize_bpe_layer=initialize_bpe_layer)
     lr = 0.0001
-    batch_size = 5
+    batch_size = 1
     null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary
     description = "DEBUGGING_LEAK-AS_BEFORE"
     print("{} lr batch_size initialize_bpe_layer training_data".format(REPORT_FLAG_VARIABLES_ENRICH_STR))
@@ -56,7 +56,7 @@ if train:
                 auxilliary_task_norm_not_norm=True,
                 saving_every_epoch=10,
                 lr=0.001,#OrderedDict([("bert", lr), ("classifier", lr)]),
-                batch_size=batch_size, n_iter_max_per_epoch=10,
+                batch_size=batch_size, n_iter_max_per_epoch=5,
                 n_epoch=10,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
@@ -66,7 +66,7 @@ if train:
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                 initialize_bpe_layer=initialize_bpe_layer, args=None, skip_1_t_n=False, dropout_input_bpe=0.0,
                 heuristic_ls=None, gold_error_detection=False,
-                norm_2_noise_eval=False, norm_2_noise_training=.5,
+                norm_2_noise_eval=False, norm_2_noise_training=0.,
                 report=True, verbose=1)
 
 

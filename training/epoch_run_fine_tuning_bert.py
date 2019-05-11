@@ -140,6 +140,8 @@ def epoch_run(batchIter, tokenizer,
             batch = batchIter.__next__()
             norm2noise_bool = False
 
+            pdb.set_trace()
+            print("-----", optimizer is not None, batch.raw_input, batch.raw_output)
             if norm_2_noise_training is not None or norm_2_noise_eval:
                 portion_norm2noise = norm_2_noise_training if norm_2_noise_training is not None else 1.
                 norm_2_noise_training = portion_norm2noise is not None
@@ -303,7 +305,6 @@ def epoch_run(batchIter, tokenizer,
                 _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
                                              labels=output_tokens_tensor_aligned if tasks[0] == "normalize" else None,
                                              labels_task_2=output_tokens_tensor_aligned if tasks[0] == "pos" else None)
-            pdb.set_trace()
             _loss = _loss["loss"]
 
             if predict_mode:
@@ -431,7 +432,6 @@ def epoch_run(batchIter, tokenizer,
             #if writer is not None:
 
             if optimizer is not None:
-                pdb.set_trace()
                 _loss.backward()
                 for opti in optimizer:
                     opti.step()

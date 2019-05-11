@@ -18,7 +18,10 @@ def preprocess_batch_string_for_bert(batch,
     :return:
     """
     for i in range(len(batch)):
-        batch[i][0] = TOKEN_BPE_BERT_START
+        try:
+            batch[i][0] = TOKEN_BPE_BERT_START
+        except:
+            pdb.set_trace()
         batch[i][-1] = TOKEN_BPE_BERT_SEP
         if rp_space:
             batch[i] = rp_space_func(batch[i])

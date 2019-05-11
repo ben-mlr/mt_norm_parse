@@ -62,7 +62,6 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                                              word_norm_dictionary=word_dictionary_norm,
                                              char_dictionary=char_dictionary,
                                              verbose=verbose, print_raw=print_raw, normalization=normalization)
-
             if not NORM2NOISY:
                 yield MaskBatch(chars, chars_norm,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
                                 edit=edit,
@@ -83,8 +82,10 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             printing("Data : getting {} out of {} batches", var=(ibatch, nbatch+1), verbose= verbose, verbose_level=2)
 
             word, word_norm, char, chars_norm, word_norm_not_norm, edit, pos, _, _, _, \
-            _, lenght, order_ids, raw_word_inputs, normalized_str, _ = conllu_data.get_batch_variable(data,batch_size=batch_size,
-                                               normalization=normalization, unk_replace=0)
+            _, lenght, order_ids, raw_word_inputs, normalized_str, _ = conllu_data.get_batch_variable(data,
+                                                                                                      batch_size=batch_size,
+                                                                                                      normalization=normalization,
+                                                                                                      unk_replace=0)
             if char.size(0) <= 1:
                 print("WARNING : NOT Skip character ")
                 #continue
@@ -121,7 +122,8 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             else:
                 yield MaskBatch(char, chars_norm, output_word=word_norm, edit=edit,
                                 output_norm_not_norm=word_norm_not_norm, dropout_input=dropout_input,
-                                pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose), order_ids
+                                pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose,
+                                raw_input=raw_word_inputs, raw_output=normalized_str), order_ids
 
 
 def data_gen_dummy(V, batch, nbatches, sent_len=9, word_len=5, verbose=0, seed=None):
