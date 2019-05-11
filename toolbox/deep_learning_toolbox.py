@@ -37,16 +37,30 @@ def get_cumulated_list(sent_len):
     return sent_len_cumulated
 
 
-def freeze_param(model, freeze_layer_prefix_ls, verbose=1):
-    assert freeze_layer_prefix_ls is not None, "ERROR freeze_layer_prefix should not be None "
+def freeze_param(model, freeze_layer_prefix_ls=None, not_freeze_layer_prefix_ls=None,verbose=1):
     freezing_layer = 0
+    if not_freeze_layer_prefix_ls is None:
+        not_freeze_layer_prefix_ls = []
+    if freeze_layer_prefix_ls is None:
+        freeze_layer_prefix_ls = []
     for name, param in model.named_parameters():
         for prefix in freeze_layer_prefix_ls:
             if name.startswith(prefix):
                 param.requires_grad = False
                 freezing_layer += 1
                 printing("TRAINING : freezing {} parameter ", var=[name], verbose=verbose, verbose_level=2)
-    printing("TRAINING : freezing {} layers : {} prefix", var=[freezing_layer, freeze_layer_prefix_ls], verbose=verbose, verbose_level=1)
+        to_freeze = 0
+        for prefix in not_freeze_layer_prefix_ls:
+            if not name.startswith(prefix):
+                to_freeze += 1
+            if not to_freeze == len(not_freeze_layer_prefix_ls):
+                param.requires_grad = False
+                freezing_layer += 1
+                printing("TRAINING :- freezing {} parameter ", var=[name], verbose=verbose, verbose_level=1)
+    printing("TRAINING : freezing {} layers : {} prefix , not freezing {} ",
+             var=[freezing_layer, freeze_layer_prefix_ls, not_freeze_layer_prefix_ls],
+             verbose=verbose,
+             verbose_level=1)
     assert freezing_layer > 0, "ERROR : did not fine any layers starting with {}".format(prefix)
 
     return model

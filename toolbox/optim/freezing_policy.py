@@ -1,4 +1,4 @@
-from env.importing import pdb
+from env.importing import pdb, torch
 import toolbox.deep_learning_toolbox as dptx
 from io_.info_print import printing
 from env.project_variables import AVAILABLE_BERT_FINE_TUNING_STRATEGY
@@ -12,12 +12,12 @@ def apply_fine_tuning_strategy(fine_tuning_strategy, model, epoch, lr_init, beta
         optimizer = [dptx.get_optimizer(model.parameters(), lr=lr_init, betas=betas)]
         printing("TRAINING : fine tuning strategy {} : learning rate constant {} betas {}", var=[fine_tuning_strategy, lr_init, betas],
                  verbose_level=1, verbose=verbose)
-    elif fine_tuning_strategy == "flexible_lr":
 
+    elif fine_tuning_strategy == "flexible_lr":
         assert isinstance(lr_init, dict), "lr_init should be dict in {}".format(fine_tuning_strategy)
         # sanity check
         optimizer = []
-        n_all_layers = len([a for a,_ in model.named_parameters()])
+        n_all_layers = len([a for a, _ in model.named_parameters()])
         n_optim_layer = 0
         for pref, lr in lr_init.items():
             #param_group = filter(lambda p: p[0].startswith(pref), model.named_parameters())
@@ -28,18 +28,22 @@ def apply_fine_tuning_strategy(fine_tuning_strategy, model, epoch, lr_init, beta
             "ERROR : You are missing some layers in the optimization n_all {} n_optim {} ".format(n_all_layers,
                                                                                                   n_optim_layer)
 
-        printing("TRAINING : fine tuning strategy {} : learning rate constant : {} betas {}", var=[fine_tuning_strategy, lr_init, betas],
+        printing("TRAINING : fine tuning strategy {} : learning rate constant : {} betas {}", var=[fine_tuning_strategy,
+                                                                                                   lr_init, betas],
                  verbose_level=1, verbose=verbose)
 
     if fine_tuning_strategy == "bert_out_first":
         info_add = ""
-        if epoch == 0:
+        if epoch == 0 or True:
             info_add = "not"
             freeze_layer_prefix_ls = "bert"
             model = dptx.freeze_param(model, freeze_layer_prefix_ls, verbose=verbose)
-        printing("TRAINING : fine tuning strategy {} : {} freezing bert for epoch {}" \
+        printing("TRAINING : fine tuning strategy {} : {} freezing bert for epoch {}"\
                  .format(fine_tuning_strategy, info_add, epoch), verbose_level=1, verbose=verbose)
     elif fine_tuning_strategy == "only_first_and_last":
-        model = dptx.freeze_param(model, ["embeddings", "classifier"], verbose=verbose)
+        #optimizer = [torch.optim.Adam(model.parameters(), lr=lr_init, betas=betas, eps=1e-9)]
+        model = dptx.freeze_param(model, freeze_layer_prefix_ls=None,
+                                  not_freeze_layer_prefix_ls=["embeddings", "classifier"],
+                                  verbose=verbose)
 
     return model, optimizer

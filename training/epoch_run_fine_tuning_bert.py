@@ -141,11 +141,11 @@ def epoch_run(batchIter, tokenizer,
             norm2noise_bool = False
 
             if norm_2_noise_training is not None or norm_2_noise_eval:
-                portion_norm2noise = norm_2_noise_training
+                portion_norm2noise = norm_2_noise_training if norm_2_noise_training is not None else 1.
                 norm_2_noise_training = portion_norm2noise is not None
                 rand = np.random.uniform(low=0, high=1, size=1)[0]
                 norm2noise_bool = portion_norm2noise >= rand
-                if norm2noise_bool or norm_2_noise_eval:
+                if norm2noise_bool:
                     batch_raw_input = preprocess_batch_string_for_bert(batch.raw_output)
                     print("WARNING : input is gold norm")
                 else:
@@ -169,11 +169,9 @@ def epoch_run(batchIter, tokenizer,
             input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = \
                 get_indexes(batch_raw_input, tokenizer, verbose, use_gpu,
                             word_norm_not_norm=group_to_mask)
-            pdb.set_trace()
             if "normalize" in tasks:
                 if norm2noise_bool or norm_2_noise_eval:
                     print("WARNING : output is gold norm")
-                    pdb.set_trace()
                     batch_raw_output = preprocess_batch_string_for_bert(batch.raw_input)
                 else:
                     print("WARNING : output is output")
@@ -305,6 +303,7 @@ def epoch_run(batchIter, tokenizer,
                 _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
                                              labels=output_tokens_tensor_aligned if tasks[0] == "normalize" else None,
                                              labels_task_2=output_tokens_tensor_aligned if tasks[0] == "pos" else None)
+            pdb.set_trace()
             _loss = _loss["loss"]
 
             if predict_mode:
@@ -428,11 +427,11 @@ def epoch_run(batchIter, tokenizer,
                     # TODO : detokenize
                     #  write to conll
                     #  compute prediction score
-
             loss += _loss.detach()
             #if writer is not None:
 
             if optimizer is not None:
+                pdb.set_trace()
                 _loss.backward()
                 for opti in optimizer:
                     opti.step()

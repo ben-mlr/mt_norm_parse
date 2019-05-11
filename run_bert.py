@@ -18,9 +18,9 @@ test_paths_ls = [[DEV], [LIU_DEV], [TEST], [LIU_TRAIN]]#, [LIU_TRAIN], [LIU_DEV]
 test_paths_ls = [[TEST], [DEV], [EWT_DEV]]
 test_paths_ls = [[DEMO]]
 
-
 train = True
 playwith = False
+
 
 if train:
     # TODO : WARNING : why the delis still
@@ -60,8 +60,8 @@ if train:
                 n_epoch=10,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
-                model_suffix="{}".format(description), debug=True,
-                fine_tuning_strategy="only_first_and_last",
+                model_suffix="{}".format(description), debug=False,
+                fine_tuning_strategy="standart",
                 #masking_strategy=["normed", 1.],
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                 initialize_bpe_layer=initialize_bpe_layer, args=None, skip_1_t_n=False, dropout_input_bpe=0.0,

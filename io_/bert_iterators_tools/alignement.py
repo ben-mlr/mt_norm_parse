@@ -143,9 +143,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
         output_tokens_tensor_aligned = output_tokens_tensor_aligned.cuda()
         input_mask_aligned = input_mask_aligned.cuda()
         input_tokens_tensor_aligned = input_tokens_tensor_aligned.cuda()
-    if add_mask:
-        pdb.set_trace()
-    pdb.set_trace()
+
     return output_tokens_tensor_aligned, input_tokens_tensor_aligned, input_tokens_tensor_aligned_sent_ls_tensor, input_mask_aligned, _1_to_n_token_counter
 
 
@@ -161,10 +159,9 @@ def realigne(ls_sent_str, input_alignement_with_raw, null_str, mask_str, tasks,
         "ls_sent_str {} input_alignement_with_raw {} ".format(len(ls_sent_str), len(input_alignement_with_raw))
     new_sent_ls = []
     for sent, index_ls in zip(ls_sent_str, input_alignement_with_raw):
-        try:
-            assert len(sent) == len(index_ls)
-        except:
-            pdb.set_trace()
+
+        assert len(sent) == len(index_ls)
+
         former_index = -1
         new_sent = []
         former_token = ""
