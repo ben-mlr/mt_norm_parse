@@ -567,15 +567,16 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       word_norm = word_norm.cuda() if normalization and word_decoder else None
       chars = chars.cuda()
       pos = pos.cuda()
-      #xpos = xpos.cuda()
-      #heads = heads.cuda()
-      #types = types.cuda()
+      xpos = xpos.cuda()
+      heads = heads.cuda()
+      types = types.cuda()
       masks = masks.cuda()
       #single = single.cuda()
       lengths = lengths.cuda()
 
     data_variable.append((words, word_norm, chars, chars_norm, word_norm_not_norm, edit, pos, xpos, heads, types,
                           masks, single, lengths, order_inputs, raw_word_inputs, words_normalized_str, raw_lines))
+
   return data_variable, bucket_sizes, _buckets, max_char_length_dic["n_sent"]
 
 
@@ -617,12 +618,11 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
       word_norm_not_norm = word_norm_not_norm[index]
     if edit is not None:
       edit = edit[index]
-  raw = [raw[i.item()] for i in index]
-  normalized_str = [normalized_str[i.item()] for i in index]
+  raw = [raw[i.cpu().item()] for i in index]
+  normalized_str = [normalized_str[i.cpu().item()] for i in index]
 
   return words, word_norm, chars[index], chars_norm, word_norm_not_norm, edit, pos[index], xpos[index], heads[index], types[index],\
-         masks[index], lengths[index], order_inputs[index], raw, normalized_str, raw_lines
-
+         masks[index], lengths[index], order_inputs[index.cpu()], raw, normalized_str, raw_lines
 
 
 def iterate_batch_variable(data, batch_size, unk_replace=0.,

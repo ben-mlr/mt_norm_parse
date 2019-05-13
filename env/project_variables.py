@@ -61,7 +61,7 @@ AVAILABLE_WORD_LEVEL_LABELLING_MODE = ["word", "pos", "norm_not_norm"]
 
 
 
-# DATASETSproportion_pred_train_ls
+# DATASETS proportion_pred_train_ls
 TRAINING_LABEL, TRAINING = "en-ud-train", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-train.conllu")
 TRAINING_DEMO_LABEL, TRAINING_DEMO = "en-ud-train_demo", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-train_demo.conllu")
 
@@ -103,6 +103,7 @@ CP_PASTE_WR_TEST_LABEL, CP_WR_PASTE_TEST = "copy_paste_real_word-test", os.path.
 
 CP_PASTE_WR_TEST_269_LABEL, CP_WR_PASTE_TEST_269 = "copy_paste_real_word_test-first269", os.path.join(PROJECT_PATH, "./data/copy_paste_real_word_test-first269.conll")
 
+# AUGME
 
 DIR_TWEET_W2V = os.path.join(PROJECT_PATH, "w2v", "tweets.en.w2v.txt")
 DIR_FASTEXT_WIKI_NEWS_W2V = os.path.join(PROJECT_PATH, "w2v", "wiki-news-300d-1M.vec")
@@ -143,6 +144,25 @@ for n_sent in [100, 1000, 10000, 50000, 100000, 200000]:
     dir_train = "{}-{}{}".format(PERMUTATION_TRAIN[:-6], n_sent, PERMUTATION_TRAIN[-6:])
     PERMUTATION_TRAIN_DIC[n_sent] = dir_train
     PERMUTATION_TRAIN_LABEL_DIC[n_sent] = "permutation-{}-train".format(n_sent)
+
+# augmented data
+    "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/data"
+AUGMENTATION_DIC = {}
+AUGMENTATION_DIC_LABEL = {}
+
+GENERATED_DIC = {}
+GENERATED_DIC_LABEL = {}
+
+dic_dir_ls = [GENERATED_DIC, AUGMENTATION_DIC]
+dic_label_ls = [GENERATED_DIC_LABEL, AUGMENTATION_DIC_LABEL]
+
+for n_sent in [100, 500, 1000]:
+    for dic_dir, dic_label, augmented in zip(dic_dir_ls, dic_label_ls, ["", "liu_owoputi_"]):
+        dir_train = os.path.join(PROJECT_PATH, "data", "back_normalized",
+                                 augmented+"9326829-B-fbbe9-en_lines_ewt_train-noisy_generated_{}.conll").format(n_sent,".conll")
+        dic_dir[n_sent] = dir_train
+        dic_label[n_sent] = augmented+"9326829_B_fbbe9_en_lines_ewt_train_noisy_generated_{}".format(n_sent)
+
 
 # EMOJIs
 EMOJI_LS_LABEL, EMOJIS_LS = "emojis", os.path.join(PROJECT_PATH, "data/emojis_ls.txt")
@@ -212,6 +232,10 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
 
 for n_sent in [100, 1000, 10000, 50000, 100000, 200000]:
     REPO_DATASET[PERMUTATION_TRAIN_DIC[n_sent]] = PERMUTATION_TRAIN_LABEL_DIC[n_sent]
+for n_sent in [100, 500, 1000]:
+    REPO_DATASET[AUGMENTATION_DIC[n_sent]] = AUGMENTATION_DIC_LABEL[n_sent]
+    REPO_DATASET[GENERATED_DIC[n_sent]] = GENERATED_DIC_LABEL[n_sent]
+
 
 REPO_LABEL2SET = {v:k for k,v in REPO_DATASET.items()}
 

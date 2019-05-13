@@ -2,9 +2,6 @@ from io_.info_print import printing
 
 
 
-
-
-
 def outputing_raw_data_from_iterator(words, word_norm, chars, chars_norm, word_norm_not_norm, pos,
                                      verbose, print_raw, normalization, char_dictionary, word_dictionary,
                                      word_norm_dictionary,

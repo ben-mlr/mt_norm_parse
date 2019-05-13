@@ -7,7 +7,7 @@ from io_.bert_iterators_tools.alignement import realigne
 
 
 def prediction_topk_to_string(predictions_topk, input_alignement_with_raw, topk, tokenizer,
-                              null_token_index, null_str,
+                              null_token_index, null_str,tasks,
                               verbose=1):
 
     sentence_pred = from_bpe_token_to_str(predictions_topk, topk, null_str=null_str, null_token_index=null_token_index,
@@ -15,7 +15,7 @@ def prediction_topk_to_string(predictions_topk, input_alignement_with_raw, topk,
     sentence_pred_aligned = []
 
     for top in range(topk):
-        realign_sent = realigne(sentence_pred[top], input_alignement_with_raw, null_str=null_str, remove_null_str=True,
+        realign_sent = realigne(sentence_pred[top], input_alignement_with_raw, tasks=tasks, null_str=null_str, remove_null_str=True,
                                 mask_str="X")
         assert len(realign_sent) == 1, "ERROR : only batch len 1 accepted here (we are doing interaction)"
         printing("{} top-pred : bpe {}", var=[top, realign_sent],
@@ -26,7 +26,7 @@ def prediction_topk_to_string(predictions_topk, input_alignement_with_raw, topk,
 
 
 def bert_predict(input_string, bert_token_classification, tokenizer, verbose, null_str, null_token_index,
-                 topk,  use_gpu):
+                 topk,  use_gpu, tasks):
 
     input_string = ["[CLS] " + input_string + " [SEP]"]
 
@@ -38,6 +38,7 @@ def bert_predict(input_string, bert_token_classification, tokenizer, verbose, nu
     logits = bert_token_classification(input_tokens_tensor, token_type_ids, input_mask)
     predictions_topk = torch.argsort(logits, dim=-1, descending=True)[:, :, :topk]
     sentence_pred_aligned, sentence_pred = prediction_topk_to_string(predictions_topk, input_alignement_with_raw, topk, tokenizer,
+                                                                     tasks=tasks,
                                                                      null_token_index=null_token_index, null_str=null_str)
     #get embedding
 
@@ -48,7 +49,8 @@ def bert_predict(input_string, bert_token_classification, tokenizer, verbose, nu
             "embedding": embedding.detach()}
 
 
-def interact_bert(bert_token_classification,  tokenizer, null_token_index, null_str, topk=1, verbose=1, use_gpu=False):
+def interact_bert(bert_token_classification,  tokenizer, null_token_index, null_str, tasks, topk=1, verbose=1,
+                  print_input=True, use_gpu=False):
 
     printing("INFO : input_string should be white space tokenized", verbose=verbose, verbose_level=1)
 
@@ -62,12 +64,15 @@ def interact_bert(bert_token_classification,  tokenizer, null_token_index, null_
     input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, \
     input_alignement_with_raw, input_mask = get_indexes(input_string, tokenizer, verbose, use_gpu)
     token_type_ids = torch.zeros_like(input_tokens_tensor)
-
-    logits = bert_token_classification(input_tokens_tensor, token_type_ids, input_mask)
+    if print_input:
+        print("SRC : BPE ", inp_bpe_tokenized)
+    logits = bert_token_classification(input_tokens_tensor, token_type_ids, input_mask)["logits_task_1"] \
+        if tasks[0] == "normalize" else None
 
     predictions_topk = torch.argsort(logits, dim=-1, descending=True)[:, :, :topk]
 
-    sentence_pred_aligned, sentence_pred = prediction_topk_to_string(predictions_topk, input_alignement_with_raw, topk, tokenizer,
+    sentence_pred_aligned, sentence_pred = prediction_topk_to_string(predictions_topk, input_alignement_with_raw,
+                                                                     topk, tokenizer, tasks=tasks,
                                                                      null_token_index=null_token_index, null_str=null_str)
 
     return input_string, sentence_pred_aligned, sentence_pred

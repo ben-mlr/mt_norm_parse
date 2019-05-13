@@ -56,17 +56,20 @@ def interact(dic_path, model_full_name,
     #1eeb9-WARMUP-unrolling-False0-model_1-model_1_fd8c-folder-50-False_get_batchNEW-repo-folder
 
 
-def interact_bert_wrap(tokenizer, model, null_str, null_token_index, topk=1, verbose=1):
+def interact_bert_wrap(tokenizer, model, null_str, null_token_index,tasks, topk=1, verbose=1):
 
     while True:
-        source, answer = interact_bert(tokenizer=tokenizer,
+        source, answer, answer_aligned = interact_bert(tokenizer=tokenizer,
                                        null_str=null_str, null_token_index=null_token_index,
-                                       bert_token_classification=model, topk=topk, verbose=verbose)
+                                       tasks=tasks,
+                                       bert_token_classification=model, topk=topk,
+                                       verbose=verbose)
         if answer == 0:
             break
         print("SRC: {}".format(source))
         for top in range(topk):
             print("NORMALIZED: top-pred {} : {}".format(top, answer[top]))
+            print("NORMALIZED: top-pred {} : {}".format(top, answer_aligned[top]))
 
 
 def show_plot_visdom():

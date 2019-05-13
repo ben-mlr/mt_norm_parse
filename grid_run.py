@@ -381,18 +381,18 @@ if __name__ == "__main__":
 
           BERT_NORMALIZE = True
           if BERT_NORMALIZE:
-              epochs = 20
+              epochs = 1
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
-                                                  batch_size_ls=[1, 4],
+                                                  batch_size_ls=[1],
                                                   #checkpoint_dir_ls=["'"+os.path.join(PROJECT_PATH,
                                                   #                    "checkpoints", "bert", 
                                                   #                    "9318015-B-133b1-9318015-B-model_6/9318015-B-133b1-9318015-B-model_6-ep20-checkpoint.pt")+"'"],
                                                   gpu_mode="random",
                                                   #norm_2_noise_training_ls=[0., 1.],
                                                   lr_ls=[0.00001],
-                                                  masking_strategy_ls=[None, ["normed", "0.05"],["normed", "0.1"],["normed", "0.2"]],
+                                                  masking_strategy_ls=[None ],# ["normed", "0.05"],["normed", "0.1"],["normed", "0.2"]],
                                                   #                     ["normed", "0.75"],["normed", "1."]],#[None,,
                                                   #lr_ls=[OrderedDict([("bert", "0.00001"), ("classifier", "0.0001")]),
                                                   #       OrderedDict([("bert", "0.00001"), ("classifier", "0.00001")])],
@@ -402,10 +402,10 @@ if __name__ == "__main__":
                                                   #dropout_input_bpe_ls=[0., 0.25, 0.5],
                                                   dropout_bert_ls=[0.1],
                                                   #gold_error_detection_ls=[0], heuristic_ls_ls=[["'#'","'@'"]],
-                                                  overall_report_dir=dir_grid, overall_label=LABEL_GRID,
-                                                  train_path=[[LIU_TRAIN_OWOPUTI]],  dev_path=[[LIU_DEV]],
+                                                  overall_report_dir=dir_grid, overall_label=LABEL_GRID,  
+                                                  train_path=[[GENERATED_DIC[1000]]],  dev_path=[[LIU_DEV]],
                                                   #test_paths=[[[DEV], [LIU_DEV], [LEX_TEST],[LEX_TRAIN],[LEX_TEST], [LIU_TRAIN], [TEST]]],
-                                                  test_paths=[[[DEV], [LIU_DEV], [LIU_TRAIN], [TEST]]],
+                                                  test_paths=[[[DEV], [LIU_DEV], [LIU_TRAIN], [TEST], [LEX_TEST]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,

@@ -112,7 +112,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                                              word_dictionary=word_dictionary, pos_dictionary=pos_dictionary,
                                              char_dictionary=char_dictionary,
                                              word_norm_dictionary=word_dictionary_norm,
-                                             verbose=verbose, print_raw=True, normalization=normalization)
+                                             verbose=verbose, print_raw=print_raw, normalization=normalization)
 
             if NORM2NOISY:
                 print("WARNING !! NORM2NOISY ON ")
@@ -244,7 +244,6 @@ def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary, char_dic
             if sampling_proportion(n_sent_start, n_sents_per_task_dataset_cumul["all"]) < random_sample_id < sampling_proportion(n_sents_per_task_dataset_cumul[task], n_sents_per_task_dataset_cumul["all"]) and not end_task_flag[task]:
                 try:
                     batch, order = iterator[task].__next__()
-                    pdb.set_trace()
                     sanity_check_batch_label(task, batch, verbose=verbose)
                     batch_iter += 1
                     yield batch

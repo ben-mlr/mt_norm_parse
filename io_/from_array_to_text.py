@@ -3,7 +3,6 @@ from env.importing import *
 from io_.dat.constants import END_CHAR, PAD_CHAR, CHAR_START, PAD_ID_WORD, PRINTINT_OUT_TOKEN_UNK
 
 
-
 def output_text(one_code_prediction, char_dic, start_symbol=CHAR_START ,
                 stop_symbol=END_CHAR, single_sequence=True):
     decoding = []
@@ -15,7 +14,6 @@ def output_text(one_code_prediction, char_dic, start_symbol=CHAR_START ,
             char_decoded = char_dic.get_instance(one_code_prediction[batch, char])
             word.append(char_decoded)
             #if not char_decoded == stop_symbol and not char_decoded == start_symbol:
-
             if char_decoded == stop_symbol:
                 break
             if not char_decoded == start_symbol:

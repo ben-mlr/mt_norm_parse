@@ -48,7 +48,14 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
                 # usual case
                 # n to 1 : the index of the output is faster than on the input side :
                 #  one (at least) extra btoken on the src side
-                n_to_1_token = _input_alignement_with_raw[_i_input] < _output_alignement_with_raw[_i_output]
+                try:
+                    n_to_1_token = _input_alignement_with_raw[_i_input] < _output_alignement_with_raw[_i_output]
+                except Exception as e:
+                    print(e)
+                    print("ERROR {} index , len(input) {} , index {} len(output) {} "
+                          .format(_i_input, len(_input_alignement_with_raw),
+                                  _i_output, len(_output_alignement_with_raw)))
+                    n_to_1_token = _input_alignement_with_raw[_i_input] < _output_alignement_with_raw[_i_output]
                 # n to 1 : the index of the output is slower than on the input side :
                 #  one (at least) extra btoken on the src side
                 _1_to_n_token = _input_alignement_with_raw[_i_input] > _output_alignement_with_raw[_i_output]

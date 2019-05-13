@@ -18,8 +18,13 @@ test_paths_ls = [[DEV], [LIU_DEV], [TEST], [LIU_TRAIN]]#, [LIU_TRAIN], [LIU_DEV]
 test_paths_ls = [[TEST], [DEV], [EWT_DEV]]
 test_paths_ls = [[DEMO]]
 
-train = False
-playwith = True
+
+train_path = [GENERATED_DIC[100]]
+dev_path = [GENERATED_DIC[100]]
+
+
+train = True
+playwith = False
 
 
 if train:
@@ -56,8 +61,8 @@ if train:
                 auxilliary_task_norm_not_norm=True,
                 saving_every_epoch=10,
                 lr=0.001,#OrderedDict([("bert", lr), ("classifier", lr)]),
-                batch_size=batch_size, n_iter_max_per_epoch=5,
-                n_epoch=10,
+                batch_size=batch_size, n_iter_max_per_epoch=1000,
+                n_epoch=1,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
                 model_suffix="{}".format(description), debug=False,
@@ -84,8 +89,8 @@ if playwith:
     model_name = "b5338-LOOK_THE_PREDICTIONS-2batch-0.0001lr-ep24-checkpoint.pt"
     #model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/./checkpoints/bert/9319649-B-14cf0-9319649-B-model_0"
     #model_name = "9319649-B-14cf0-9319649-B-model_0-ep4-checkpoint.pt"
-    model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/checkpoints/bert/9326829-B-fbbe9-9326829-B-model_1"
-    model_name = "9326829-B-fbbe9-9326829-B-model_1-ep19-checkpoint.pt"
+    model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/checkpoints/bert/"
+    model_name = "9320927-B-ed1e8-9320927-B-model_0/9320927-B-ed1e8-9320927-B-model_0-ep19-checkpoint.pt"
     checkpoint_dir = os.path.join(model_location, model_name)
     test_paths_ls = [[EN_LINES_EWT_TRAIN]]
     # TODO : predict with a norm2noise model
@@ -105,7 +110,7 @@ if playwith:
     pref_suffix = ""
     batch_size = 1
     lr = ""
-    evalu = True
+    evalu = False
     if evalu:
         for n_sent in [100, 500, 1000]:
             model = run(bert_with_classifier=model,
@@ -128,9 +133,10 @@ if playwith:
             print("DONE ", n_sent)
 
     # TO SEE TOKENIZATION IMPACT : verbose='raw_data'
-    #interact_bert_wrap(tokenizer, model,
-    #                   null_str=NULL_STR, null_token_index=null_token_index,
-    #                   topk=5, verbose=3)
+    interact_bert_wrap(tokenizer, model,
+                       tasks=tasks,
+                       null_str=NULL_STR, null_token_index=null_token_index,
+                       topk=5, verbose=3)
 
 
 

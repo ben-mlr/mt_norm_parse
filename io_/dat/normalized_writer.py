@@ -19,7 +19,6 @@ def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_
         mode_write = "w" if new_file else "a"
         with open(dir_normalized, mode_write) as norm_file:
             with open(dir_original, mode_write) as original:
-                print("write_output tasks", tasks, src_ls, pred_ls)
                 for ind_sent, (original_sent, normalized_sent) in enumerate(zip(src_ls, pred_ls)):
                     try:
                         assert len(original_sent) == len(normalized_sent), "ERROR : original_sent len {} {} \n  " \

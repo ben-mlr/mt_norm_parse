@@ -161,7 +161,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                      pos_dictionary=pos_dictionary,
                                                                      word_dictionary_norm=word_norm_dictionary,
                                                                      get_batch_mode=random_iterator_train,
-                                                                     extend_n_batch=1,
+                                                                     extend_n_batch=1,print_raw=False,
                                                                      dropout_input=0.0,
                                                                      verbose=verbose)
                 # -|-|-
@@ -171,7 +171,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                    pos_dictionary=pos_dictionary,
                                                                    word_dictionary_norm=word_norm_dictionary,
                                                                    get_batch_mode=False,
-                                                                   extend_n_batch=1,
+                                                                   extend_n_batch=1,print_raw=False,
                                                                    dropout_input=0.0,
                                                                    verbose=verbose) if dev_path is not None else None
                 # TODO add optimizer (if not : dev loss)
@@ -296,30 +296,38 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                     extend_n_batch=1,
                                                                     dropout_input=0.0,
                                                                     verbose=verbose)
-                loss_test, iter_test, perf_report_test = epoch_run(batchIter_test, tokenizer,
-                                                                   pos_dictionary=pos_dictionary,
-                                                                   iter=iter_dev, use_gpu=use_gpu,
-                                                                   bert_with_classifier=bert_with_classifier,
-                                                                   writer=None,
-                                                                   writing_pred=True,
-                                                                   optimizer=None, tasks=tasks,
-                                                                   args_dir=args_dir, model_id=model_id,
-                                                                   dir_end_pred=end_predictions,
-                                                                   skip_1_t_n=skip_1_t_n,
-                                                                   predict_mode=True, data_label=label_data,
-                                                                   epoch="LAST", extra_label_for_prediction=label_data,
-                                                                   null_token_index=null_token_index, null_str=null_str,
-                                                                   log_perf=False,
-                                                                   dropout_input_bpe=0,
-                                                                   masking_strategy=masking_strategy,
-                                                                   portion_mask=portion_mask,
-                                                                   heuristic_ls=heuristic, gold_error_detection=gold_error,
-                                                                   norm_2_noise_training=None,
-                                                                   # we decide wether we eval everything in mode norm2noise or not --> we could also add a loop and tag in report
-                                                                   norm_2_noise_eval=norm_2_noise_eval,
-                                                                   remove_mask_str_prediction=remove_mask_str_prediction, inverse_writing=inverse_writing,
-                                                                   reference_word_dic={"InV": inv_word_dic},
-                                                                   n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+                try:
+                    loss_test, iter_test, perf_report_test = epoch_run(batchIter_test, tokenizer,
+                                                                       pos_dictionary=pos_dictionary,
+                                                                       iter=iter_dev, use_gpu=use_gpu,
+                                                                       bert_with_classifier=bert_with_classifier,
+                                                                       writer=None,
+                                                                       writing_pred=True,
+                                                                       optimizer=None, tasks=tasks,
+                                                                       args_dir=args_dir, model_id=model_id,
+                                                                       dir_end_pred=end_predictions,
+                                                                       skip_1_t_n=skip_1_t_n,
+                                                                       predict_mode=True, data_label=label_data,
+                                                                       epoch="LAST", extra_label_for_prediction=label_data,
+                                                                       null_token_index=null_token_index, null_str=null_str,
+                                                                       log_perf=False,
+                                                                       dropout_input_bpe=0,
+                                                                       masking_strategy=masking_strategy,
+                                                                       portion_mask=portion_mask,
+                                                                       heuristic_ls=heuristic, gold_error_detection=gold_error,
+                                                                       norm_2_noise_training=None,
+                                                                       # we decide wether we eval everything in mode
+                                                                       # norm2noise or not
+                                                                       # --> we could also add a loop and tag in report
+                                                                       norm_2_noise_eval=norm_2_noise_eval,
+                                                                       remove_mask_str_prediction=remove_mask_str_prediction, inverse_writing=inverse_writing,
+                                                                       reference_word_dic={"InV": inv_word_dic},
+                                                                       n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+                except Exception as e:
+                    print("ERROR test_path {} , heuristic {} , gold error {} , norm2noise {} ".format(test_path,heuristic, gold_error, norm_2_noise_eval))
+                    print(e)
+
+                    perf_report_test = []
                 print("PERFORMANCE TEST on data {} is {} ".format(label_data, perf_report_test))
                 print("DATA WRITTEN {}".format(end_predictions))
                 if writer is not None:
