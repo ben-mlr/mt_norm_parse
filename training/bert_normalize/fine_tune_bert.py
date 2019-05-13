@@ -37,11 +37,16 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
     """
     assert run_mode in ["train", "test"], "ERROR run mode {} corrupted ".format(run_mode)
     printing("MODEL : RUNNING IN {} mode", var=[run_mode], verbose=verbose, verbose_level=1)
+
+    assert len(tasks) == len(train_path), "ERROR tasks is {} bu train path are {}".format(tasks, train_path)
+    assert len(dev_path) == len(train_path)
+    assert len(test_path_ls) == len(tasks)
     if run_mode == "test":
         assert test_path_ls is not None and isinstance(test_path_ls, list)
     if test_path_ls is not None:
         assert isinstance(test_path_ls, list) and isinstance(test_path_ls[0], list), \
             "ERROR test_path_ls should be a list"
+
     if run_mode == "train":
         printing("CHECKPOINTING info : saving model every {}", var=saving_every_epoch, verbose=verbose, verbose_level=1)
     use_gpu = use_gpu_(use_gpu=None, verbose=verbose)
@@ -123,6 +128,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                               word_normalization=True,
                               force_new_dic=True if run_mode == "train" else False,
                               tasks=tasks,
+                              pos_specific_data_set=train_path[1] if len(tasks)>1 and "pos" in tasks else None,
                               add_start_char=1 if run_mode == "train" else None,
                               verbose=1)
 
@@ -161,7 +167,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                      pos_dictionary=pos_dictionary,
                                                                      word_dictionary_norm=word_norm_dictionary,
                                                                      get_batch_mode=random_iterator_train,
-                                                                     extend_n_batch=1,print_raw=False,
+                                                                     extend_n_batch=1,
+                                                                     print_raw=False,
                                                                      dropout_input=0.0,
                                                                      verbose=verbose)
                 # -|-|-
@@ -262,82 +269,95 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
     if run_mode in ["train", "test"] and test_path_ls is not None:
         report_all = []
         bert_with_classifier.eval()
-        assert len(test_path_ls[0]) == 1, "ERROR 1 task supported so far for bert"
-        for test_path in test_path_ls:
-            label_data = "|".join([REPO_DATASET[_test_path] for _test_path in test_path])
-            if len(extra_label_for_prediction) > 0:
-                label_data += "-"+extra_label_for_prediction
-            readers_test = readers_load(datasets=test_path, tasks=tasks, word_dictionary=word_dictionary,
-                                        word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
-                                        pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
-                                        type_dictionary=type_dictionary, use_gpu=use_gpu,
-                                        norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=True,
-                                        add_start_char=1, add_end_char=1, symbolic_end=1,
-                                        symbolic_root=1, bucket=bucket_test, max_char_len=20,
-                                        must_get_norm=must_get_norm_test,
-                                        verbose=verbose)
-            zip_1 = [None] if tasks[0] == "pos" else [None, ["@", "#"], ["@", "#"], None, None]
-            zip_2 = [False] if tasks[0] == "pos" else [False, False, True, True, False]
-            zip_3 = [False] if tasks[0] == "pos" else [False, False, False, False, True]
-            assert len(zip_2) == len(zip_1) and len(zip_1) == len(zip_3)
-            if inverse_writing:
-                print("WARNING : prediction : only straight pred ")
-                zip_1 = [None]
-                zip_2 = [False]
-                zip_3 = [False]
+        #assert len(test_path_ls[0]) == 1, "ERROR 1 task supported so far for bert"
+        #pdb.set_trace()
+        for task_to_eval, test_path in zip(tasks, test_path_ls):
+            for test in test_path:
+                #label_data = "|".join([REPO_DATASET[_test_path] for _test_path in test_path])
+                label_data = REPO_DATASET[test]+"-"+task_to_eval
+                if len(extra_label_for_prediction) > 0:
+                    label_data += "-"+extra_label_for_prediction
+                readers_test = readers_load(datasets=[test],
+                                            tasks=[task_to_eval],
+                                            word_dictionary=word_dictionary,
+                                            word_dictionary_norm=word_norm_dictionary,
+                                            char_dictionary=char_dictionary,
+                                            pos_dictionary=pos_dictionary,
+                                            xpos_dictionary=xpos_dictionary,
+                                            type_dictionary=type_dictionary,
+                                            use_gpu=use_gpu,
+                                            norm_not_norm=auxilliary_task_norm_not_norm,
+                                            word_decoder=True,
+                                            add_start_char=1, add_end_char=1, symbolic_end=1,
+                                            symbolic_root=1, bucket=bucket_test,
+                                            max_char_len=20,
+                                            must_get_norm=must_get_norm_test,
+                                            verbose=verbose)
+                zip_1 = [None] if task_to_eval == "pos" else [None, ["@", "#"], ["@", "#"], None, None]
+                zip_2 = [False] if task_to_eval == "pos" else [False, False, True, True, False]
+                zip_3 = [False] if task_to_eval == "pos" else [False, False, False, False, True]
+                assert len(zip_2) == len(zip_1) and len(zip_1) == len(zip_3)
+                if inverse_writing:
+                    print("WARNING : prediction : only straight pred ")
+                    zip_1 = [None]
+                    zip_2 = [False]
+                    zip_3 = [False]
 
-            for (heuristic, gold_error, norm_2_noise_eval) in zip(zip_1, zip_2, zip_3):
-                batchIter_test = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_test, batch_size=batch_size,
-                                                                    word_dictionary=word_dictionary,
-                                                                    char_dictionary=char_dictionary,
-                                                                    pos_dictionary=pos_dictionary,
-                                                                    word_dictionary_norm=word_norm_dictionary,
-                                                                    get_batch_mode=False,
-                                                                    extend_n_batch=1,
-                                                                    dropout_input=0.0,
-                                                                    verbose=verbose)
-                try:
-                    loss_test, iter_test, perf_report_test = epoch_run(batchIter_test, tokenizer,
-                                                                       pos_dictionary=pos_dictionary,
-                                                                       iter=iter_dev, use_gpu=use_gpu,
-                                                                       bert_with_classifier=bert_with_classifier,
-                                                                       writer=None,
-                                                                       writing_pred=True,
-                                                                       optimizer=None, tasks=tasks,
-                                                                       args_dir=args_dir, model_id=model_id,
-                                                                       dir_end_pred=end_predictions,
-                                                                       skip_1_t_n=skip_1_t_n,
-                                                                       predict_mode=True, data_label=label_data,
-                                                                       epoch="LAST", extra_label_for_prediction=label_data,
-                                                                       null_token_index=null_token_index, null_str=null_str,
-                                                                       log_perf=False,
-                                                                       dropout_input_bpe=0,
-                                                                       masking_strategy=masking_strategy,
-                                                                       portion_mask=portion_mask,
-                                                                       heuristic_ls=heuristic, gold_error_detection=gold_error,
-                                                                       norm_2_noise_training=None,
-                                                                       # we decide wether we eval everything in mode
-                                                                       # norm2noise or not
-                                                                       # --> we could also add a loop and tag in report
-                                                                       norm_2_noise_eval=norm_2_noise_eval,
-                                                                       remove_mask_str_prediction=remove_mask_str_prediction, inverse_writing=inverse_writing,
-                                                                       reference_word_dic={"InV": inv_word_dic},
-                                                                       n_iter_max=n_iter_max_per_epoch, verbose=verbose)
-                except Exception as e:
-                    print("ERROR test_path {} , heuristic {} , gold error {} , norm2noise {} ".format(test_path,heuristic, gold_error, norm_2_noise_eval))
-                    print(e)
+                for (heuristic, gold_error, norm_2_noise_eval) in zip(zip_1, zip_2, zip_3):
+                    batchIter_test = data_gen_multi_task_sampling_batch(tasks=[task_to_eval], readers=readers_test, batch_size=batch_size,
+                                                                        word_dictionary=word_dictionary,
+                                                                        char_dictionary=char_dictionary,
+                                                                        pos_dictionary=pos_dictionary,
+                                                                        word_dictionary_norm=word_norm_dictionary,
+                                                                        get_batch_mode=False,
+                                                                        extend_n_batch=1,
+                                                                        dropout_input=0.0,
+                                                                        verbose=verbose)
+                    try:
+                        loss_test, iter_test, perf_report_test = epoch_run(batchIter_test, tokenizer,
+                                                                           pos_dictionary=pos_dictionary,
+                                                                           iter=iter_dev, use_gpu=use_gpu,
+                                                                           bert_with_classifier=bert_with_classifier,
+                                                                           writer=None,
+                                                                           writing_pred=True,
+                                                                           optimizer=None, tasks=[task_to_eval],
+                                                                           args_dir=args_dir, model_id=model_id,
+                                                                           dir_end_pred=end_predictions,
+                                                                           skip_1_t_n=skip_1_t_n,
+                                                                           predict_mode=True, data_label=label_data,
+                                                                           epoch="LAST", extra_label_for_prediction=label_data,
+                                                                           null_token_index=null_token_index, null_str=null_str,
+                                                                           log_perf=False,
+                                                                           dropout_input_bpe=0,
+                                                                           masking_strategy=masking_strategy,
+                                                                           portion_mask=portion_mask,
+                                                                           heuristic_ls=heuristic, gold_error_detection=gold_error,
+                                                                           norm_2_noise_training=None,
+                                                                           # we decide wether we eval everything in mode
+                                                                           # norm2noise or not
+                                                                           # --> we could also add a loop and tag in report
+                                                                           norm_2_noise_eval=norm_2_noise_eval,
+                                                                           remove_mask_str_prediction=remove_mask_str_prediction, inverse_writing=inverse_writing,
+                                                                           reference_word_dic={"InV": inv_word_dic},
+                                                                           n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+                    except Exception as e:
+                        print("ERROR test_path {} , heuristic {} , gold error {} , norm2noise {} ".format(test,
+                                                                                                          heuristic,
+                                                                                                          gold_error,
+                                                                                                          norm_2_noise_eval))
+                        print(e)
 
-                    perf_report_test = []
-                print("PERFORMANCE TEST on data {} is {} ".format(label_data, perf_report_test))
-                print("DATA WRITTEN {}".format(end_predictions))
-                if writer is not None:
-                    writer.add_text("Accuracy-{}-{}-{}".format(model_id, label_data, run_mode),
-                                    "After {} epochs with {} : performance is \n {} ".format(n_epoch, description,
-                                                                                             str(perf_report_test)), 0)
-                else:
-                    printing("WARNING : could not add accuracy to tensorboard cause writer was found None", verbose=verbose,
-                             verbose_level=1)
-                report_all.extend(perf_report_test)
+                        perf_report_test = []
+                    print("PERFORMANCE TEST on data {} is {} ".format(label_data, perf_report_test))
+                    print("DATA WRITTEN {}".format(end_predictions))
+                    if writer is not None:
+                        writer.add_text("Accuracy-{}-{}-{}".format(model_id, label_data, run_mode),
+                                        "After {} epochs with {} : performance is \n {} ".format(n_epoch, description,
+                                                                                                 str(perf_report_test)), 0)
+                    else:
+                        printing("WARNING : could not add accuracy to tensorboard cause writer was found None", verbose=verbose,
+                                 verbose_level=1)
+                    report_all.extend(perf_report_test)
         else:
             printing("EVALUATION none cause {} empty", var=[test_path_ls], verbose_level=1, verbose=verbose)
 

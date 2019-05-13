@@ -71,12 +71,11 @@ def epoch_run(batchIter, tokenizer,
     :param verbose:
     :return:
     """
-    assert len(tasks) == 1, "only one task supported so far"
     assert norm_2_noise_training is None or not norm_2_noise_eval, "only one of the two should be triggered but we" \
                                                                    " have norm_2_noise_training : {} norm_2_noise_" \
                                                                    "eval:{}".format(norm_2_noise_training,
                                                                                     norm_2_noise_eval)
-
+    assert len(tasks) <= 2
     label_heuristic = ""
     if gold_error_detection:
         label_heuristic += "-gold"
@@ -148,10 +147,14 @@ def epoch_run(batchIter, tokenizer,
             batch_i += 1
 
             batch = batchIter.__next__()
+            # if no normalization found : should have pos
+            task_pos_is = len(batch.raw_output[0]) == 0
+            task_normalize_is = not task_pos_is
+            print("TRAINING on {} task".format("pos" if task_pos_is else "normalize"))
             norm2noise_bool = False
             batch_raw_output = None
-            pdb.set_trace()
-            if norm_2_noise_training is not None or norm_2_noise_eval:
+            # Handling input
+            if (norm_2_noise_training is not None or norm_2_noise_eval) and task_normalize_is:
                 portion_norm2noise = norm_2_noise_training if norm_2_noise_training is not None else 1.
                 norm_2_noise_training = portion_norm2noise is not None
                 rand = np.random.uniform(low=0, high=1, size=1)[0]
@@ -181,7 +184,8 @@ def epoch_run(batchIter, tokenizer,
             input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = \
                 get_indexes(batch_raw_input, tokenizer, verbose, use_gpu,
                             word_norm_not_norm=group_to_mask)
-            if "normalize" in tasks:
+            #if "normalize" in tasks:
+            if task_normalize_is:
                 if norm2noise_bool or norm_2_noise_eval:
                     print("WARNING : output is noisy innput")
                     batch_raw_output = preprocess_batch_string_for_bert(batch.raw_input)
@@ -192,7 +196,8 @@ def epoch_run(batchIter, tokenizer,
                     get_indexes(batch_raw_output, tokenizer, verbose, use_gpu)
                 printing("DATA dim : {} input {} output ", var=[input_tokens_tensor.size(), output_tokens_tensor.size()],
                          verbose_level=2, verbose=verbose)
-            elif "pos" in tasks:
+            #elif "pos" in tasks:
+            if task_pos_is:
                 # TODO : factorize all this
                 #  should be done in pytorch + reducancies with get_index + factorize is somewhwere
                 output_tokens_tensor = np.array(batch.pos.cpu())
@@ -252,7 +257,8 @@ def epoch_run(batchIter, tokenizer,
             printing("DATA : BPE tokenized output  {}", var=[out_bpe_tokenized], verbose_level=4,
                      verbose=_verbose)
             _1_to_n_token = 0
-            if "normalize" in tasks:
+            #if "normalize" in tasks:
+            if task_normalize_is:
                 # aligning output BPE with input (we are rejecting batch with at least one 1 to n case
                 # (that we don't want to handle
 
@@ -263,13 +269,13 @@ def epoch_run(batchIter, tokenizer,
                                    input_mask=input_mask, use_gpu=use_gpu,
                                    null_token_index=null_token_index, verbose=verbose)
                 input_tokens_tensor = input_tokens_tensor_aligned
-            elif "pos" in tasks:
+            #elif "pos" in tasks:
+            elif task_pos_is:
                 # NB : we use the aligned input with the
                 output_tokens_tensor_aligned = output_tokens_tensor[:, : input_tokens_tensor.size(1)]
                 output_tokens_tensor_aligned = output_tokens_tensor_aligned.contiguous()
                 if use_gpu:
                     output_tokens_tensor_aligned = output_tokens_tensor_aligned.cuda()
-
                     #segments_ids = [[0 for _ in range(len(tokenized))] for tokenized in tokenized_ls]
             #mask = [[1 for _ in inp] + [0 for _ in range(max_sent_len - len(inp))] for inp in segments_ids]
 
@@ -295,35 +301,29 @@ def epoch_run(batchIter, tokenizer,
                           output_tokens_tensor_aligned.is_cuda],
                      verbose=verbose, verbose_level="cuda")
             # we have to recompute the mask based on aligned input
-            if "normalize" in tasks:
-                pass
-                #input_mask = torch.Tensor([[1 if token_id != PAD_ID_BERT else 0 for token_id in sent_token]
-                #                           for sent_token in input_tokens_tensor]).long()
-                #if input_tokens_tensor.is_cuda:
-                #    input_mask = input_mask.cuda()
             if dropout_input_bpe > 0:
                 input_tokens_tensor = dropout_input_tensor(input_tokens_tensor, mask_token_index,
                                                            dropout=dropout_input_bpe)
             try:
                 printing("MASK mask:{} input:{} ", var=[input_mask, input_tokens_tensor], verbose_level="mask", verbose=verbose)
                 _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
-                                             labels=output_tokens_tensor_aligned if tasks[0] == "normalize" else None,
-                                             labels_task_2=output_tokens_tensor_aligned if tasks[0] == "pos" else None)
+                                             labels=output_tokens_tensor_aligned if task_normalize_is else None, #tasks[0] == "normalize" else None,
+                                             labels_task_2=output_tokens_tensor_aligned if task_pos_is else None, #tasks[0] == "pos" else None
+                                             )
             except Exception as e:
                 print(e)
                 print(output_tokens_tensor_aligned, input_tokens_tensor, input_mask)
                 _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
-                                             labels=output_tokens_tensor_aligned if tasks[0] == "normalize" else None,
-                                             labels_task_2=output_tokens_tensor_aligned if tasks[0] == "pos" else None)
+                                             labels=output_tokens_tensor_aligned if task_normalize_is else None,#if tasks[0] == "normalize" else None,
+                                             labels_task_2=output_tokens_tensor_aligned if task_pos_is else None)#if tasks[0] == "pos" else None)
             _loss = _loss["loss"]
 
             if predict_mode:
                 # if predict more : will evaluate the model and write its predictions
                 # TODO : add mapping_info between task_id to model and task name necessary to iterator
-                logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask)["logits_task_2" if tasks[0] == "pos" else "logits_task_1"]
+                logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask)["logits_task_2" if task_pos_is else "logits_task_1"]
                 predictions_topk = torch.argsort(logits, dim=-1, descending=True)[:, :, :topk]
                 # from bpe index to string
-
                 sent_ls_top = from_bpe_token_to_str(predictions_topk, topk, tokenizer=tokenizer, pred_mode=True,
                                                     pos_dictionary=pos_dictionary, task=tasks[0],
                                                     null_token_index=null_token_index, null_str=null_str)
@@ -349,7 +349,7 @@ def epoch_run(batchIter, tokenizer,
                                                           tasks=tasks, remove_extra_predicted_token=True,
                                                           null_str=null_str, mask_str=MASK_BERT))
                     # NB : applying those successively might overlay heuristic
-                    if "normalize" in tasks:
+                    if task_normalize_is:
                         if heuristic_ls is not None:
                             pred_detokenized_topk = predict_with_heuristic(src_detokenized=src_detokenized,
                                                                            pred_detokenized_topk=pred_detokenized_topk,
@@ -364,18 +364,19 @@ def epoch_run(batchIter, tokenizer,
                 if writing_pred:
                     # TODO : if you do multitask leaning
                     #  you'll have to adapt here (you're passing twice the same parameters)
-                    pdb.set_trace()
                     write_conll(format="conll", dir_normalized=dir_normalized,
                                 dir_original=dir_normalized_original_only,
                                 src_text_ls=src_detokenized, inverse=inverse_writing,
                                 text_decoded_ls=pred_detokenized_topk[0], #pred_pos_ls=None, src_text_pos=None,
-                                tasks=tasks, ind_batch=iter+batch_i, new_file=new_file,
+                                tasks=["pos" if task_pos_is else "normalize"], ind_batch=iter+batch_i, new_file=new_file,
                                 src_text_pos=src_detokenized, pred_pos_ls=gold_detokenized,
                                 verbose=verbose)
                     write_conll(format="conll", dir_normalized=dir_gold, dir_original=dir_gold_original_only,
-                                src_text_ls=src_detokenized, src_text_pos=src_detokenized, pred_pos_ls=gold_detokenized,
+                                src_text_ls=src_detokenized,
+                                src_text_pos=src_detokenized, pred_pos_ls=gold_detokenized,
                                 text_decoded_ls=gold_detokenized, #pred_pos_ls=None, src_text_pos=None,
-                                tasks=tasks, ind_batch=iter + batch_i, new_file=new_file, verbose=verbose)
+                                tasks=["pos" if task_pos_is else "normalize"],
+                                ind_batch=iter + batch_i, new_file=new_file, verbose=verbose)
                     new_file = False
                 perf_prediction, skipping = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk,
                                                                               topk,
@@ -436,11 +437,7 @@ def epoch_run(batchIter, tokenizer,
 
                     print_align_bpe(source_preprocessed, gold, input_alignement_with_raw, verbose=verbose, verbose_level=4)
 
-                    # TODO : detokenize
-                    #  write to conll
-                    #  compute prediction score
             loss += _loss.detach()
-            #if writer is not None:
 
             if optimizer is not None:
                 _loss.backward()
@@ -471,10 +468,7 @@ def epoch_run(batchIter, tokenizer,
              verbose=verbose, verbose_level=0)
     printing("WARNING on {} ON THE EVALUATION SIDE we skipped extra {} batch ", var=[data_label, skipping_evaluated_batch], verbose_level=1, verbose=1)
 
-
     if predict_mode:
-
-        assert len(tasks) == 1
         reports = []
         for agg_func in agg_func_ls:
             for sample in samples:
@@ -506,7 +500,8 @@ def epoch_run(batchIter, tokenizer,
             # class negative 0 , class positive 1
             # TODO : make that more consistent with user needs !
             if "normalize" in tasks:
-                if "all" in samples and TASKS_PARAMETER["normalize"]["predicted_classes"][0] in samples and TASKS_PARAMETER["normalize"]["predicted_classes"][1] in samples:
+                if "all" in samples and TASKS_PARAMETER["normalize"]["predicted_classes"][0] in samples \
+                        and TASKS_PARAMETER["normalize"]["predicted_classes"][1] in samples:
 
                     # then we can compute all the confusion matrix rate
                     # TODO : factore with TASKS_2_METRICS_STR

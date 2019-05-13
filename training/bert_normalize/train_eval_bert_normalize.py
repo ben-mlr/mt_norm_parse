@@ -74,7 +74,7 @@ def train_eval_bert_normalize(args, verbose=1):
         args=args, dropout_input_bpe=args.dropout_input_bpe,
         portion_mask=args.portion_mask, masking_strategy=args.masking_strategy,
         norm_2_noise_training=args.norm_2_noise_training,
-        random_iterator_train=True, 
+        random_iterator_train=True,  bucket_test=False,
         report=True, verbose=1)
 
     printing("MODEL {} trained and evaluated", var=[args.model_id_pref], verbose_level=1, verbose=verbose)

@@ -381,7 +381,7 @@ if __name__ == "__main__":
 
           BERT_NORMALIZE = True
           if BERT_NORMALIZE:
-              epochs = 20
+              epochs = 1
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
@@ -403,9 +403,10 @@ if __name__ == "__main__":
                                                   dropout_bert_ls=[0.1],
                                                   #gold_error_detection_ls=[0], heuristic_ls_ls=[["'#'","'@'"]],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,  
-                                                  train_path=[[GENERATED_DIC[1000]]],  dev_path=[[LIU_DEV]],
+                                                  train_path=[[GENERATED_DIC[100], EWT_DEV]],  dev_path=[[LIU_DEV, DEMO]],
                                                   #test_paths=[[[DEV], [LIU_DEV], [LEX_TEST],[LEX_TRAIN],[LEX_TEST], [LIU_TRAIN], [TEST]]],
-                                                  test_paths=[[[DEV], [LIU_DEV], [LIU_TRAIN], [TEST], [LEX_TEST]]],
+                                                  #test_paths=[[[DEV], [LIU_DEV], [LIU_TRAIN], [TEST], [LEX_TEST]]],
+                                                  test_paths=[[[DEMO, LIU_DEV], [DEMO, EWT_TEST]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,

@@ -92,7 +92,8 @@ class CoNLLReader(object):
     if symbolic_root:
       words.append(ROOT)
       word_ids.append(self.__word_dictionary.get_index(ROOT))
-      norm_words.append(ROOT)
+      if normalization:
+        norm_words.append(ROOT)
       if self.__word_norm_dictionary is not None:
         norm_word_ids.append(self.__word_norm_dictionary.get_index(ROOT))
       char_seqs.append([ROOT_CHAR, ])
@@ -189,8 +190,8 @@ class CoNLLReader(object):
     if symbolic_end:
       words.append(END)
       word_ids.append(self.__word_dictionary.get_index(END))
-
-      norm_words.append(END)
+      if normalization:
+        norm_words.append(END)
       if self.__word_norm_dictionary is not None:
         norm_word_ids.append(self.__word_norm_dictionary.get_index(END))
 

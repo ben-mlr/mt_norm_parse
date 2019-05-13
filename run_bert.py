@@ -15,9 +15,10 @@ train_path = [DEMO]
 dev_path = [DEMO]#[LIU_DEV]#[DEMO2]
 #dev_path = None
 test_paths_ls = [[DEV], [LIU_DEV], [TEST], [LIU_TRAIN]]#, [LIU_TRAIN], [LIU_DEV], [DEV], [LEX_TEST], [LEX_TRAIN], [LEX_LIU_TRAIN]]
-test_paths_ls = [[TEST], [DEV], [EWT_DEV]]
+test_paths_ls = [[TEST],
+                 [DEV],
+                 [EWT_DEV]]
 test_paths_ls = [[DEMO]]
-
 
 train_path = [GENERATED_DIC[100]]
 dev_path = [GENERATED_DIC[100]]
@@ -38,7 +39,11 @@ if train:
     initialize_bpe_layer = True
     freeze_parameters = True
     freeze_layer_prefix_ls = ["bert"]
-    tasks = ["normalize"]
+    tasks = ["normalize", "pos"]
+    train_path = [DEMO, DEMO]
+    dev_path = [DEMO, DEMO]
+    test_paths_ls = [[DEMO, LIU_DEV], [DEMO, EWT_TEST]]
+
     voc_pos_size = 16
     #["bert"]
     model = get_bert_token_classification(pretrained_model_dir=model_dir,
@@ -61,7 +66,7 @@ if train:
                 auxilliary_task_norm_not_norm=True,
                 saving_every_epoch=10,
                 lr=0.001,#OrderedDict([("bert", lr), ("classifier", lr)]),
-                batch_size=batch_size, n_iter_max_per_epoch=1000,
+                batch_size=batch_size, n_iter_max_per_epoch=10,
                 n_epoch=1,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
@@ -71,7 +76,7 @@ if train:
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                 initialize_bpe_layer=initialize_bpe_layer, args=None, skip_1_t_n=False, dropout_input_bpe=0.0,
                 heuristic_ls=None, gold_error_detection=False,
-                bucket_test=True, must_get_norm_test=True,
+                bucket_test=True, must_get_norm_test=False,
                 norm_2_noise_eval=False, norm_2_noise_training=0.,
                 report=True, verbose=1)
 

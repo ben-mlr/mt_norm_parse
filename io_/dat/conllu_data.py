@@ -509,9 +509,11 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
           #we want room to padd it
           cids_norm[i, word_index, len(cids)+shift+shift_end:] = PAD_ID_CHAR
           if "norm_not_norm" in tasks:
-            word_norm_not_norm[i, word_index] = get_transform_normalized_standart(cids_norm, cid_inputs, sent_index=i, word_index=word_index, task="norm_not_norm")
+            word_norm_not_norm[i, word_index] = get_transform_normalized_standart(cids_norm, cid_inputs, sent_index=i,
+                                                                                  word_index=word_index, task="norm_not_norm")
           if "edit_prediction" in tasks:
-            edit[i, word_index] = get_transform_normalized_standart(cids_norm, cid_inputs, sent_index=i, word_index=word_index, task="edit_prediction")
+            edit[i, word_index] = get_transform_normalized_standart(cids_norm, cid_inputs, sent_index=i,
+                                                                    word_index=word_index, task="edit_prediction")
 
         cids_norm[i, inst_size:, :] = PAD_ID_CHAR
         if "norm_not_norm" in tasks:

@@ -7,7 +7,7 @@ def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_
                 src_text_pos, pred_pos_ls, tasks, inverse=False,
                 ind_batch=0, new_file=False, verbose=0):
     assert format in ["conll"]
-    assert len(tasks) == 1, "ERROR : only supported so far 1 task at a time"
+    #assert len(tasks) == 1, "ERROR : only supported so far 1 task at a time"
 
     if tasks[0] == "normalize":
         src_ls = src_text_ls

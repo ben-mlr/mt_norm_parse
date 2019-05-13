@@ -4,7 +4,7 @@ from toolbox.deep_learning_toolbox import freeze_param
 from model.bert_tools_from_core_code.modeling import BertForTokenClassification, BertConfig
 
 
-def get_bert_token_classification(vocab_size,voc_pos_size=None,
+def get_bert_token_classification(vocab_size, voc_pos_size=None,
                                   pretrained_model_dir=None, checkpoint_dir=None,
                                   freeze_parameters=False, freeze_layer_prefix_ls=None,
                                   dropout_classifier=None,dropout_bert=0.,tasks=None,
@@ -22,7 +22,7 @@ def get_bert_token_classification(vocab_size,voc_pos_size=None,
     """
     if tasks is None:
         tasks = ["normalize"]
-    assert len(tasks) == 1, "only one task at at time for now"
+
     assert checkpoint_dir is not None or True, \
         "Neither checkpoint_dir or pretrained_model_dir was provided"
     assert pretrained_model_dir is None or checkpoint_dir is None, \
@@ -34,9 +34,8 @@ def get_bert_token_classification(vocab_size,voc_pos_size=None,
     # this line is useless apparently as it does it load it again
     if "normalize" in tasks:
         num_labels = vocab_size + 1
-    elif "pos" in tasks:
+    if "pos" in tasks:
         assert voc_pos_size is not None
-        initialize_bpe_layer = None
 
     model = BertForTokenClassification(config, num_labels, dropout_classifier=dropout_classifier, num_labels_2=voc_pos_size)
 
@@ -45,18 +44,27 @@ def get_bert_token_classification(vocab_size,voc_pos_size=None,
         assert initialize_bpe_layer is not None, "ERROR initialize_bpe_layer should not be None "
 
         model = model.from_pretrained(pretrained_model_dir, num_labels=num_labels, dropout_custom=dropout_bert)
-        if dropout_classifier is not None:
-            model.dropout = nn.Dropout(dropout_classifier)
-            printing("MODEL : SETTING DROPOUT CLASSIFIER TO {}".format(dropout_classifier), verbose=verbose, verbose_level=1)
         printing("MODEL : loading pretrained BERT and adding extra module for token classification based on {}",
                  var=[pretrained_model_dir],
                  verbose=verbose,
                  verbose_level=1)
-        if initialize_bpe_layer:
+        if dropout_classifier is not None:
+            model.dropout = nn.Dropout(dropout_classifier)
+            printing("MODEL : SETTING DROPOUT CLASSIFIER TO {}".format(dropout_classifier), verbose=verbose, verbose_level=1)
+
+        if len(tasks) > 1 and "normalize" in tasks:
+            assert tasks[1] == "pos", "ONLY  POS and normalize supported so far"
+            model.classifier_task_2 = nn.Linear(model.bert.config.hidden_size, voc_pos_size)
+            model.num_labels_2 = voc_pos_size
+            printing("MODEL : adding classifier_task_2 for POS with voc_pos_size {}",
+                     var=[voc_pos_size], verbose=verbose, verbose_level=1)
+
+        if initialize_bpe_layer and tasks[0] == "normalize":
+            # it needs to be the first as we are setting classifier (1) to the normalizaiton classifier
             output_layer = torch.cat((model.bert.embeddings.word_embeddings.weight.data, torch.rand((1, 768))),
                                      dim=0)
             model.classifier.weight = nn.Parameter(output_layer)
-            printing("MODEL : initializing output layer with embedding layer + extra token ",
+            printing("MODEL : initializing output normalization layer with embedding layer + extra token ",
                      verbose=verbose,
                      verbose_level=1)
         if freeze_parameters:
@@ -66,7 +74,6 @@ def get_bert_token_classification(vocab_size,voc_pos_size=None,
         assert initialize_bpe_layer is None, \
             "ERROR initialize_bpe_layer should b None as loading from existing checkpoint"
         #model.load_state_dict(mode)
-
         model.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
         printing("MODEL : loading model BERT+token classification pretrained from checkpoint {}",
                  var=[checkpoint_dir],

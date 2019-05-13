@@ -7,7 +7,7 @@ def eval_norm(src_path, target_path):
     """
     evaluating normalization with exact_match only on aligned conll like files gold and prediction
     TODO : - add flexible scoring metric
-           - test
+           - generally : integrate with scoring/ module toolkipt
     :param src_path:
     :param target_path:
     :return:
