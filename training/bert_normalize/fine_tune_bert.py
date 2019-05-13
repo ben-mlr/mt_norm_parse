@@ -13,19 +13,22 @@ from training.epoch_run_fine_tuning_bert import epoch_run
 from toolbox.report_tools import write_args
 
 
-def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
+def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         voc_tokenizer, auxilliary_task_norm_not_norm, bert_with_classifier,
         null_token_index, null_str, initialize_bpe_layer=None,
         run_mode="train", test_path_ls=None, dict_path=None, end_predictions=None,
         report=True, model_suffix="", description="",
         saving_every_epoch=10, lr=0.0001, fine_tuning_strategy="standart", model_location=None, model_id=None,
-        freeze_parameters=None, freeze_layer_prefix_ls=None, # those two have been factorized out in fine_tuning_strategy
+        freeze_parameters=None, freeze_layer_prefix_ls=None,
+        # those two have been factorized out in fine_tuning_strategy
         dropout_input_bpe=0,
-        report_full_path_shared=None, shared_id=None, bert_model=None,skip_1_t_n=False,
+        report_full_path_shared=None, shared_id=None, bert_model=None, skip_1_t_n=False,
         heuristic_ls=None, gold_error_detection=False,
         portion_mask=None, masking_strategy=None,
         norm_2_noise_eval=False, norm_2_noise_training=None,
-        random_iterator_train=True,
+        remove_mask_str_prediction=False, inverse_writing=False,
+        extra_label_for_prediction="",
+        random_iterator_train=True, bucket_test=True, must_get_norm_test=True,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
@@ -106,46 +109,47 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                  var=[os.path.join(model_id, "tensorboard")], verbose_level=1,
                  verbose=verbose)
 
-
     # build or make dictionaries
     _dev_path = dev_path if dev_path is not None else train_path
     word_dictionary, word_norm_dictionary, char_dictionary, pos_dictionary, \
     xpos_dictionary, type_dictionary = \
         conllu_data.load_dict(dict_path=dict_path,
-                              train_path=train_path, #if run_mode == "train" else None,
-                              dev_path=_dev_path, #if run_mode == "train" else None,
+                              train_path=train_path if run_mode == "train" else None,
+                              dev_path=_dev_path if run_mode == "train" else None,
                               test_path=None,
                               word_embed_dict={},
                               dry_run=False,
                               expand_vocab=False,
                               word_normalization=True,
-                              force_new_dic=True, # if run_mode == "train" else False,
+                              force_new_dic=True if run_mode == "train" else False,
                               tasks=tasks,
-                              add_start_char=1 , #if run_mode == "train" else None,
+                              add_start_char=1 if run_mode == "train" else None,
                               verbose=1)
 
     inv_word_dic = word_dictionary.instance2index
     # load , mask, bucket and index data
     tokenizer = BertTokenizer.from_pretrained(voc_tokenizer)
-    readers_train = readers_load(datasets=train_path, tasks=tasks, word_dictionary=word_dictionary,
-                                 word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
-                                 pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
-                                 type_dictionary=type_dictionary, use_gpu=use_gpu,
-                                 norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=True,
-                                 add_start_char=1, add_end_char=1, symbolic_end=1,
-                                 symbolic_root=1, bucket=True, max_char_len=20,
-                                 verbose=verbose)
-
-    readers_dev = readers_load(datasets=dev_path, tasks=tasks, word_dictionary=word_dictionary,
-                               word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
-                               pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
-                               type_dictionary=type_dictionary, use_gpu=use_gpu,
-                               norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=True,
-                               add_start_char=1, add_end_char=1,
-                               symbolic_end=1, symbolic_root=1, bucket=True, max_char_len=20,
-                               verbose=verbose) if dev_path is not None else None
-    # Load tokenizer
     if run_mode == "train":
+        readers_train = readers_load(datasets=train_path, tasks=tasks, word_dictionary=word_dictionary,
+                                     word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
+                                     pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
+                                     type_dictionary=type_dictionary, use_gpu=use_gpu,
+                                     norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=True,
+                                     add_start_char=1, add_end_char=1, symbolic_end=1,
+                                     symbolic_root=1, bucket=True, max_char_len=20,
+                                     must_get_norm=True,
+                                     verbose=verbose)
+
+        readers_dev = readers_load(datasets=dev_path, tasks=tasks, word_dictionary=word_dictionary,
+                                   word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
+                                   pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
+                                   type_dictionary=type_dictionary, use_gpu=use_gpu,
+                                   norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=True,
+                                   add_start_char=1, add_end_char=1,
+                                   symbolic_end=1, symbolic_root=1, bucket=True, max_char_len=20,
+                                   must_get_norm=True,
+                                   verbose=verbose) if dev_path is not None else None
+        # Load tokenizer
         try:
             for epoch in range(n_epoch):
 
@@ -194,7 +198,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                       dropout_input_bpe=dropout_input_bpe,
                                                                       null_token_index=null_token_index, null_str=null_str,
                                                                       masking_strategy=masking_strategy, portion_mask=portion_mask,
-                                                                      norm_2_noise_training=norm_2_noise_training,norm_2_noise_eval=False,
+                                                                      norm_2_noise_training=norm_2_noise_training,
+                                                                      norm_2_noise_eval=False,
                                                                       n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
                 bert_with_classifier.eval()
@@ -260,18 +265,27 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
         assert len(test_path_ls[0]) == 1, "ERROR 1 task supported so far for bert"
         for test_path in test_path_ls:
             label_data = "|".join([REPO_DATASET[_test_path] for _test_path in test_path])
+            if len(extra_label_for_prediction) > 0:
+                label_data += "-"+extra_label_for_prediction
             readers_test = readers_load(datasets=test_path, tasks=tasks, word_dictionary=word_dictionary,
                                         word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
                                         pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
                                         type_dictionary=type_dictionary, use_gpu=use_gpu,
                                         norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=True,
                                         add_start_char=1, add_end_char=1, symbolic_end=1,
-                                        symbolic_root=1, bucket=True, max_char_len=20,
+                                        symbolic_root=1, bucket=bucket_test, max_char_len=20,
+                                        must_get_norm=must_get_norm_test,
                                         verbose=verbose)
             zip_1 = [None] if tasks[0] == "pos" else [None, ["@", "#"], ["@", "#"], None, None]
             zip_2 = [False] if tasks[0] == "pos" else [False, False, True, True, False]
             zip_3 = [False] if tasks[0] == "pos" else [False, False, False, False, True]
             assert len(zip_2) == len(zip_1) and len(zip_1) == len(zip_3)
+            if inverse_writing:
+                print("WARNING : prediction : only straight pred ")
+                zip_1 = [None]
+                zip_2 = [False]
+                zip_3 = [False]
+
             for (heuristic, gold_error, norm_2_noise_eval) in zip(zip_1, zip_2, zip_3):
                 batchIter_test = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_test, batch_size=batch_size,
                                                                     word_dictionary=word_dictionary,
@@ -282,7 +296,6 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                     extend_n_batch=1,
                                                                     dropout_input=0.0,
                                                                     verbose=verbose)
-
                 loss_test, iter_test, perf_report_test = epoch_run(batchIter_test, tokenizer,
                                                                    pos_dictionary=pos_dictionary,
                                                                    iter=iter_dev, use_gpu=use_gpu,
@@ -304,9 +317,11 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch,args,
                                                                    norm_2_noise_training=None,
                                                                    # we decide wether we eval everything in mode norm2noise or not --> we could also add a loop and tag in report
                                                                    norm_2_noise_eval=norm_2_noise_eval,
+                                                                   remove_mask_str_prediction=remove_mask_str_prediction, inverse_writing=inverse_writing,
                                                                    reference_word_dic={"InV": inv_word_dic},
                                                                    n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                 print("PERFORMANCE TEST on data {} is {} ".format(label_data, perf_report_test))
+                print("DATA WRITTEN {}".format(end_predictions))
                 if writer is not None:
                     writer.add_text("Accuracy-{}-{}-{}".format(model_id, label_data, run_mode),
                                     "After {} epochs with {} : performance is \n {} ".format(n_epoch, description,

@@ -36,7 +36,7 @@ def epoch_run(batchIter, tokenizer,
               heuristic_ls=None, gold_error_detection=False,
               reference_word_dic=None, dropout_input_bpe=0.,
               writing_pred=False, dir_end_pred=None, extra_label_for_prediction="",
-              log_perf=True, masking_strategy=None, portion_mask=None,
+              log_perf=True, masking_strategy=None, portion_mask=None, remove_mask_str_prediction=False, inverse_writing=False,
               norm_2_noise_eval=False,  norm_2_noise_training=None,
               verbose=0):
     """
@@ -76,6 +76,15 @@ def epoch_run(batchIter, tokenizer,
                                                                    " have norm_2_noise_training : {} norm_2_noise_" \
                                                                    "eval:{}".format(norm_2_noise_training,
                                                                                     norm_2_noise_eval)
+
+    label_heuristic = ""
+    if gold_error_detection:
+        label_heuristic += "-gold"
+    if heuristic_ls is not None:
+        label_heuristic += "-#-@"
+    if norm_2_noise_eval:
+        label_heuristic += "-noise_generation"
+
     if masking_strategy is not None:
         assert "normalize" in tasks, "SO FAR : inconsistency between task {} and masking strategy {}".format(tasks,
                                                                                                     masking_strategy)
@@ -103,6 +112,7 @@ def epoch_run(batchIter, tokenizer,
         assert dir_end_pred is not None
         if extra_label_for_prediction != "":
             extra_label_for_prediction = "-"+extra_label_for_prediction
+        extra_label_for_prediction+="-"+label_heuristic
         dir_normalized = os.path.join(dir_end_pred, "{}_ep-prediction{}.conll".format(epoch,
                                                                                       extra_label_for_prediction))
         dir_normalized_original_only = os.path.join(dir_end_pred, "{}_ep-prediction_src{}.conll".format(epoch,
@@ -139,9 +149,8 @@ def epoch_run(batchIter, tokenizer,
 
             batch = batchIter.__next__()
             norm2noise_bool = False
-
+            batch_raw_output = None
             pdb.set_trace()
-            print("-----", optimizer is not None, batch.raw_input, batch.raw_output)
             if norm_2_noise_training is not None or norm_2_noise_eval:
                 portion_norm2noise = norm_2_noise_training if norm_2_noise_training is not None else 1.
                 norm_2_noise_training = portion_norm2noise is not None
@@ -154,6 +163,7 @@ def epoch_run(batchIter, tokenizer,
                     print("WARNING : input is input")
                     batch_raw_input = preprocess_batch_string_for_bert(batch.raw_input)
             else:
+                print("WARNING : input is input ")
                 batch_raw_input = preprocess_batch_string_for_bert(batch.raw_input)
 
             if masking_strategy is None:
@@ -173,7 +183,7 @@ def epoch_run(batchIter, tokenizer,
                             word_norm_not_norm=group_to_mask)
             if "normalize" in tasks:
                 if norm2noise_bool or norm_2_noise_eval:
-                    print("WARNING : output is gold norm")
+                    print("WARNING : output is noisy innput")
                     batch_raw_output = preprocess_batch_string_for_bert(batch.raw_input)
                 else:
                     print("WARNING : output is output")
@@ -250,7 +260,7 @@ def epoch_run(batchIter, tokenizer,
                     aligned_output(input_tokens_tensor, output_tokens_tensor,
                                    input_alignement_with_raw,
                                    output_alignement_with_raw, mask_token_index=mask_token_index,
-                                   input_mask=input_mask,use_gpu=use_gpu,
+                                   input_mask=input_mask, use_gpu=use_gpu,
                                    null_token_index=null_token_index, verbose=verbose)
                 input_tokens_tensor = input_tokens_tensor_aligned
             elif "pos" in tasks:
@@ -329,7 +339,7 @@ def epoch_run(batchIter, tokenizer,
                 # de-BPE-tokenize
                 src_detokenized = realigne(source_preprocessed, input_alignement_with_raw, null_str=null_str,
                                            tasks=["normalize"],# normalize means we deal wiht bpe input not pos
-                                           mask_str=MASK_BERT, remove_mask_str=False)
+                                           mask_str=MASK_BERT, remove_mask_str=remove_mask_str_prediction)
                 gold_detokenized = realigne(gold, input_alignement_with_raw, remove_null_str=True, null_str=null_str,
                                             tasks=tasks,
                                             mask_str=MASK_BERT)
@@ -354,9 +364,10 @@ def epoch_run(batchIter, tokenizer,
                 if writing_pred:
                     # TODO : if you do multitask leaning
                     #  you'll have to adapt here (you're passing twice the same parameters)
+                    pdb.set_trace()
                     write_conll(format="conll", dir_normalized=dir_normalized,
                                 dir_original=dir_normalized_original_only,
-                                src_text_ls=src_detokenized,
+                                src_text_ls=src_detokenized, inverse=inverse_writing,
                                 text_decoded_ls=pred_detokenized_topk[0], #pred_pos_ls=None, src_text_pos=None,
                                 tasks=tasks, ind_batch=iter+batch_i, new_file=new_file,
                                 src_text_pos=src_detokenized, pred_pos_ls=gold_detokenized,
@@ -460,15 +471,9 @@ def epoch_run(batchIter, tokenizer,
              verbose=verbose, verbose_level=0)
     printing("WARNING on {} ON THE EVALUATION SIDE we skipped extra {} batch ", var=[data_label, skipping_evaluated_batch], verbose_level=1, verbose=1)
 
-    label_heuristic = ""
-    if gold_error_detection:
-        label_heuristic += "-gold"
-    if heuristic_ls is not None:
-        label_heuristic += "-#-@"
-    if norm_2_noise_eval:
-        label_heuristic += "-noise_generation"
 
     if predict_mode:
+
         assert len(tasks) == 1
         reports = []
         for agg_func in agg_func_ls:
@@ -535,4 +540,8 @@ def epoch_run(batchIter, tokenizer,
     else:
         reports = None
     iter += batch_i
+
+    if writing_pred:
+        printing("DATA WRITTEN TO {} ", var=[dir_end_pred], verbose=verbose, verbose_level=1)
+
     return loss, iter, reports

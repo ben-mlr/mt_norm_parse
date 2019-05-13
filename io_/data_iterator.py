@@ -166,8 +166,8 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
                  pos_dictionary, xpos_dictionary, type_dictionary,
                  use_gpu,
                  norm_not_norm=False,
-                 word_decoder=False,
-                 simultanuous_training=False,bucket=True,max_char_len=None,
+                 word_decoder=False, must_get_norm=True,
+                 simultanuous_training=False, bucket=True,max_char_len=None,
                  add_start_char=1, add_end_char=1, symbolic_end=True, symbolic_root=True,
                  verbose=1):
 
@@ -202,6 +202,7 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
                                                           add_start_char=add_start_char,
                                                           add_end_char=add_end_char, tasks=tasks,
                                                           max_char_len=max_char_len,
+                                                          must_get_norm=must_get_norm,
                                                           word_norm_dictionary=word_dictionary_norm, verbose=verbose)
 
     return readers
@@ -243,6 +244,7 @@ def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary, char_dic
             if sampling_proportion(n_sent_start, n_sents_per_task_dataset_cumul["all"]) < random_sample_id < sampling_proportion(n_sents_per_task_dataset_cumul[task], n_sents_per_task_dataset_cumul["all"]) and not end_task_flag[task]:
                 try:
                     batch, order = iterator[task].__next__()
+                    pdb.set_trace()
                     sanity_check_batch_label(task, batch, verbose=verbose)
                     batch_iter += 1
                     yield batch
@@ -296,12 +298,12 @@ if __name__=="__main__":
         dict_path = "../dictionaries/"
         test_path = "/Users/bemuller/Documents/Work/INRIA/dev/parsing/normpar/data/lexnorm.integrated.demo2"
         verbose = 2
-        batch_size = 200
+        batch_size = 1
         add_start_char = 1
         add_end_char = 1
         extend_n_batch = 1
         word_decoder = True
-        word_dictionary,word_dictionary_norm , char_dictionary, pos_dictionary,\
+        word_dictionary, word_dictionary_norm , char_dictionary, pos_dictionary,\
         xpos_dictionary, type_dictionary = conllu_data.create_dict(dict_path=dict_path,
                                                                    train_path=LIU_DEV,
                                                                    dev_path=LIU_DEV,
@@ -309,17 +311,18 @@ if __name__=="__main__":
                                                                    word_embed_dict={},
                                                                    word_normalization=word_decoder,
                                                                    tasks=["normalize"],
-                                                                   dry_run=False, pos_specific_data_set=EN_LINES_EWT_TRAIN,
+                                                                   dry_run=False,
+                                                                   pos_specific_data_set=EN_LINES_EWT_TRAIN,
                                                                    add_start_char=add_start_char)
 
-        data_set = [DEMO]
-        tasks = ["norm_not_norm"]
-
+        data_set = [EN_LINES_EWT_TRAIN]
+        tasks = ["normalize"]
+        print(data_set)
         readers = readers_load(datasets=data_set, tasks=tasks, word_dictionary= word_dictionary,
                                word_dictionary_norm=word_dictionary_norm, char_dictionary=char_dictionary,
                                pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
                                type_dictionary=type_dictionary, use_gpu=None,
-                               norm_not_norm=True, word_decoder=word_decoder,
+                               norm_not_norm=True, word_decoder=word_decoder, bucket=False,
                                add_start_char=1, add_end_char=1, symbolic_end=True, symbolic_root=True,
                                verbose=1)
         iterator_multi = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers, batch_size=1,
@@ -331,14 +334,10 @@ if __name__=="__main__":
                                                             get_batch_mode=False,
                                                             verbose=1)
 
-
-
-
-
-
         while True:
             try:
                 batch = iterator_multi.__next__()
+                pdb.set_trace()
             except StopIteration as e:
                 print(Exception(e))
                 break

@@ -18,8 +18,8 @@ test_paths_ls = [[DEV], [LIU_DEV], [TEST], [LIU_TRAIN]]#, [LIU_TRAIN], [LIU_DEV]
 test_paths_ls = [[TEST], [DEV], [EWT_DEV]]
 test_paths_ls = [[DEMO]]
 
-train = True
-playwith = False
+train = False
+playwith = True
 
 
 if train:
@@ -66,6 +66,7 @@ if train:
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                 initialize_bpe_layer=initialize_bpe_layer, args=None, skip_1_t_n=False, dropout_input_bpe=0.0,
                 heuristic_ls=None, gold_error_detection=False,
+                bucket_test=True, must_get_norm_test=True,
                 norm_2_noise_eval=False, norm_2_noise_training=0.,
                 report=True, verbose=1)
 
@@ -76,7 +77,6 @@ null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert c
 if playwith:
     train_path = [EN_LINES_EWT_TRAIN]
     dev_path = [DEMO]  # [LIU_DEV]#[DEMO2]
-
     vocab_size = BERT_MODEL_DIC["bert-cased"]["vocab_size"]
     voc_tokenizer = BERT_MODEL_DIC["bert-cased"]["vocab"]
     tokenizer = BertTokenizer.from_pretrained(voc_tokenizer)
@@ -84,20 +84,22 @@ if playwith:
     model_name = "b5338-LOOK_THE_PREDICTIONS-2batch-0.0001lr-ep24-checkpoint.pt"
     #model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/./checkpoints/bert/9319649-B-14cf0-9319649-B-model_0"
     #model_name = "9319649-B-14cf0-9319649-B-model_0-ep4-checkpoint.pt"
+    model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/checkpoints/bert/9326829-B-fbbe9-9326829-B-model_1"
+    model_name = "9326829-B-fbbe9-9326829-B-model_1-ep19-checkpoint.pt"
     checkpoint_dir = os.path.join(model_location, model_name)
     test_paths_ls = [[EN_LINES_EWT_TRAIN]]
+    # TODO : predict with a norm2noise model
+    #  can use tasks trick ..
     voc_pos_size = 21
-
-    tasks = ["pos"]
-
+    tasks = ["normalize"]
     model = get_bert_token_classification(vocab_size=vocab_size, voc_pos_size=voc_pos_size,
                                           tasks=["normalize"],
                                           initialize_bpe_layer=None,
                                           checkpoint_dir=checkpoint_dir)
-    add_task_2 = True
+    add_task_2 = False
     if add_task_2:
         model.classifier_task_2 = nn.Linear(model.bert.config.hidden_size, voc_pos_size)
-        model.num_labels_2 =voc_pos_size
+        model.num_labels_2 = voc_pos_size
     #model.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
     # NB : AT TEST TIME :  null_token_index should be loaded not passed as argument
     pref_suffix = ""
@@ -105,20 +107,25 @@ if playwith:
     lr = ""
     evalu = True
     if evalu:
-        model = run(bert_with_classifier=model,
-                    voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
-                    auxilliary_task_norm_not_norm=True,
-                    saving_every_epoch=10, lr=lr,
-                    dict_path=os.path.join(model_location, "dictionaries"),
-                    end_predictions=os.path.join(model_location, "predictions"),
-                    batch_size=batch_size, n_iter_max_per_epoch=10, n_epoch=1,
-                    test_path_ls=test_paths_ls, run_mode="test",
-                    args=None,
-                    description="", null_token_index=null_token_index, null_str=NULL_STR, model_location=model_location,
-                    model_id="b5338-LOOK_THE_PREDICTIONS-2batch-0.0001lr",
-                    model_suffix="{}-{}batch-{}lr".format(pref_suffix, batch_size, lr),
-                    debug=True, report=True,
-                    verbose="raw_data")
+        for n_sent in [100, 500, 1000]:
+            model = run(bert_with_classifier=model,
+                        voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
+                        auxilliary_task_norm_not_norm=True,
+                        saving_every_epoch=10, lr=lr,
+                        dict_path=os.path.join(model_location, "dictionaries"),
+                        end_predictions=os.path.join(model_location, "predictions"),
+                        batch_size=batch_size, n_iter_max_per_epoch=n_sent, n_epoch=1,
+                        test_path_ls=test_paths_ls, run_mode="test",
+                        args=None,
+                        description="", null_token_index=null_token_index, null_str=NULL_STR, model_location=model_location,
+                        model_id="9326829-B-fbbe9-9326829",
+                        model_suffix="{}-{}batch-{}lr".format(pref_suffix, batch_size, lr),
+                        debug=False, report=True,
+                        remove_mask_str_prediction=True, inverse_writing=True,
+                        extra_label_for_prediction="{}".format(n_sent),
+                        bucket_test=False, must_get_norm_test=False,
+                        verbose=1)
+            print("DONE ", n_sent)
 
     # TO SEE TOKENIZATION IMPACT : verbose='raw_data'
     #interact_bert_wrap(tokenizer, model,

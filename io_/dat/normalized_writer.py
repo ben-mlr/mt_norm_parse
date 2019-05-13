@@ -4,7 +4,7 @@ from env.importing import *
 
 
 def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_ls,
-                src_text_pos, pred_pos_ls, tasks,
+                src_text_pos, pred_pos_ls, tasks, inverse=False,
                 ind_batch=0, new_file=False, verbose=0):
     assert format in ["conll"]
     assert len(tasks) == 1, "ERROR : only supported so far 1 task at a time"
@@ -43,10 +43,17 @@ def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_
                         # TODO : when want simultanuous training : assert src_pos src_norm same
                         #   --> assert pred_pos and pred_norm are same lengh (number of words) ans write
                         if tasks[0] == "normalize":
+                            if inverse:
+                                _original_token = normalized_token
+                                _normalized_token = original_token
+                            else:
+                                _original_token = original_token
+                                _normalized_token = normalized_token
+
                             norm_file.write("{}\t{}\t_\t_\t_\t_\t{}\t_\t_\tNorm={}|\n".format(ind + 1 - ind_adjust,
-                                                                                              original_token,
+                                                                                              _original_token,
                                                                                               ind - ind_adjust if ind - ind_adjust > 0 else 0,
-                                                                                              normalized_token))
+                                                                                              _normalized_token))
                         if tasks[0] == "pos":
                             norm_file.write("{}\t{}\t_\t{}\t_\t_\t{}\t_\t_\tNorm=()|\n".format(ind + 1 - ind_adjust,
                                                                                                original_token,
@@ -58,4 +65,4 @@ def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_
                                                                                   ind - ind_adjust if ind - ind_adjust > 0 else 0))
                     norm_file.write("\n")
                     original.write("\n")
-            printing("WRITING predicted batch of {} original and {} normalized", var=[dir_original, dir_normalized], verbose=verbose, verbose_level=1)
+            printing("WRITING predicted batch of {} original and {} normalized", var=[dir_original, dir_normalized], verbose=verbose, verbose_level="raw_data")

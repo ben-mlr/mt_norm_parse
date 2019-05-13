@@ -32,7 +32,7 @@ class CoNLLReader(object):
 
   def getNext(self, tasks, normalize_digits=True,
               symbolic_root=False, symbolic_end=False,
-              word_decoder=False,
+              word_decoder=False, must_get_norm=True,
               verbose=0):
     line = self.__source_file.readline()
     if tasks is None:
@@ -124,6 +124,7 @@ class CoNLLReader(object):
       if normalization:
         # includes sequence level and word level
         normalized_token, n_exception = get_normalized_token(norm_field=tokens[9], n_exception=n_exception,
+                                                             predict_mode_only=not must_get_norm,
                                                              verbose=verbose)
         # extracting normalized words as sequence of characters as string and ids, string and ids
         if word_decoder:

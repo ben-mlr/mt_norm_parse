@@ -327,6 +327,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
               normalize_digits=True, word_decoder=False, 
               normalization=False, bucket=False, max_char_len=None,
               symbolic_root=False, symbolic_end=False, dry_run=False, tasks=None,
+              must_get_norm=True,
               verbose=0):
   """
   Given vocabularies , data_file :
@@ -352,6 +353,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
                        lemma_dictionary=None, word_norm_dictionary=word_norm_dictionary)
   printing("DATA iterator based on {} tasks", var=tasks, verbose_level=1, verbose=verbose)
   inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end,
+                        must_get_norm=must_get_norm,
                         word_decoder=word_decoder, tasks=tasks)
 
   while inst is not None and (not dry_run or counter < 100):
@@ -377,6 +379,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
           _buckets[last_bucket_id] = len(sent.word_ids)+2
         break
     inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end,
+                          must_get_norm=must_get_norm,
                           word_decoder=word_decoder, tasks=tasks)
     counter += 1
     if inst is None or not (not dry_run or counter < 100):
@@ -391,7 +394,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
                           type_dictionary, max_size=None, normalize_digits=True, symbolic_root=False,word_norm_dictionary=None,
                           symbolic_end=False, use_gpu=False, volatile=False, dry_run=False, lattice=None,
                           verbose=0, normalization=False, bucket=True, word_decoder=False,
-                          tasks=None, max_char_len=MAX_CHAR_LENGTH,
+                          tasks=None, max_char_len=MAX_CHAR_LENGTH, must_get_norm=True,
                           add_end_char=0, add_start_char=0):
   """
   Given data ovject form read_variable creates array-like  variables for character, word, pos, relation, heads ready to be fed to a network
@@ -406,13 +409,13 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
                                                   verbose=verbose, max_size=max_size, normalization=normalization,
                                                   normalize_digits=normalize_digits, symbolic_root=symbolic_root,
                                                   word_decoder=word_decoder, tasks=tasks,max_char_len=max_char_len,
+                                                  must_get_norm=must_get_norm,
                                                   symbolic_end=symbolic_end, dry_run=dry_run)
 
   max_char_length = max_char_length_dic["max_char_length"]
   max_char_norm_length = max_char_length_dic["max_char_norm_length"]
 
   printing("DATA MAX_CHAR_LENGTH set to {}".format(max_char_len), verbose=verbose, verbose_level=1)
-
 
   bucket_sizes = [len(data[b]) for b in range(len(_buckets))]
 
@@ -506,11 +509,9 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
           #we want room to padd it
           cids_norm[i, word_index, len(cids)+shift+shift_end:] = PAD_ID_CHAR
           if "norm_not_norm" in tasks:
-            word_norm_not_norm[i, word_index] = get_transform_normalized_standart(cids_norm, cid_inputs, sent_index=i,
-                                                                                  word_index=word_index, task="norm_not_norm")
+            word_norm_not_norm[i, word_index] = get_transform_normalized_standart(cids_norm, cid_inputs, sent_index=i, word_index=word_index, task="norm_not_norm")
           if "edit_prediction" in tasks:
-            edit[i, word_index] = get_transform_normalized_standart(cids_norm, cid_inputs, sent_index=i,
-                                                                    word_index=word_index, task="edit_prediction")
+            edit[i, word_index] = get_transform_normalized_standart(cids_norm, cid_inputs, sent_index=i, word_index=word_index, task="edit_prediction")
 
         cids_norm[i, inst_size:, :] = PAD_ID_CHAR
         if "norm_not_norm" in tasks:
@@ -572,6 +573,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       masks = masks.cuda()
       #single = single.cuda()
       lengths = lengths.cuda()
+
     data_variable.append((words, word_norm, chars, chars_norm, word_norm_not_norm, edit, pos, xpos, heads, types,
                           masks, single, lengths, order_inputs, raw_word_inputs, words_normalized_str, raw_lines))
   return data_variable, bucket_sizes, _buckets, max_char_length_dic["n_sent"]

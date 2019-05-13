@@ -404,7 +404,7 @@ def grid_param_label_generate(param,
     # TODO : this should be factorized with what is in args.json
     train_data_label = "|".join([REPO_DATASET[train_paths] for _train_path in dic_grid["train_path"] for train_paths in _train_path])
     dev_data_label = "|".join([REPO_DATASET[dev_path] for _dev_path in dic_grid["dev_path"] for dev_path in _dev_path])
-    to_keep_only+=" "+train_data_label+" "+dev_data_label
+    to_keep_only+=" train_path,"+train_data_label+" dev_path,"+dev_data_label
   except Exception as e:
     print(e)
     print("ERROR", dic_grid["train_path"])

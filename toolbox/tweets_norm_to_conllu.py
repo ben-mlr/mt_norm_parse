@@ -35,7 +35,7 @@ def process_lexnorm2015_data(dir_src, dir_target, log=False):
         clean_per_tweets = []
 
         for tweet in data:
-            if len(tweet["input"])!=len(tweet["output"]):
+            if len(tweet["input"]) != len(tweet["output"]):
                 print("TWEET id {} has n to 1 mapping {} ".format(tweet["id"],tweet))
                 continue
             f.write("\n#tweet id {} \n".format(tweet["tid"]))
@@ -47,9 +47,9 @@ def process_lexnorm2015_data(dir_src, dir_target, log=False):
             noisy_tok = 0
             for noisy, normed in zip(tweet["input"], tweet["output"]):
                 f.write("{count}\t{word}\t_\t_\t_\t_\t0\t_\t_\tNorm={norm}|\n".format(count=count, word=noisy,norm=normed))
-                count+=1
-                if noisy!=normed:              
-                    noisy_tok+=1
+                count += 1
+                if noisy != normed:
+                    noisy_tok += 1
                 else:
                     clean_tok+=1
             len_tweets.append(len(tweet["input"]))
