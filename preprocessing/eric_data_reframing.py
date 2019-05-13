@@ -4,7 +4,7 @@ from io_.info_print import printing
 
 
 def conll_eric_to_conll_lexnorm(src_dr, target, mode="conll",skipping_mwe_sent=False, verbose=1):
-    assert mode in ["conll","3cols"]
+    assert mode in ["conll", "3cols"]
     target_file = open(target, "w")
     line = "#"
     ind = 0

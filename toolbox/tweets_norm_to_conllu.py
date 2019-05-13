@@ -1,5 +1,6 @@
 from env.importing import *
 
+
 def process_liu_data(dir_src, dir_target):
     count_sent = 1
     count_word = 1
@@ -30,7 +31,7 @@ def process_lexnorm2015_data(dir_src, dir_target, log=False):
     data = json.load(open(dir_src,"r"))
     with open(dir_target,"w") as f:
         count_tweets = 0
-        len_tweets =  []
+        len_tweets = []
         noisy_per_tweets = []
         clean_per_tweets = []
 
@@ -51,7 +52,7 @@ def process_lexnorm2015_data(dir_src, dir_target, log=False):
                 if noisy != normed:
                     noisy_tok += 1
                 else:
-                    clean_tok+=1
+                    clean_tok +=1
             len_tweets.append(len(tweet["input"]))
             noisy_per_tweets.append(noisy_tok)
             clean_per_tweets.append(clean_tok)
@@ -81,8 +82,7 @@ def process_lexnorm2015_data(dir_src, dir_target, log=False):
         print("log writted to {} ".format(dir_target+".log"))
 
 
-
-if __name__== "__main__":
+if __name__ == "__main__":
     liu_process = False
     lexnorm_process = True
     args = argparse.ArgumentParser()
@@ -90,8 +90,8 @@ if __name__== "__main__":
     args.add_argument("--target", required=True)
     args.add_argument('--log', help='',action="store_true")
 
-
     args = args.parse_args()
+
     if liu_process:
         process_liu_data(args.src, args.target)
     elif lexnorm_process:

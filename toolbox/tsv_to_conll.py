@@ -49,7 +49,7 @@ def reframe_tsv_monolingual_to_sentConll(src_dir,src_dir_2, target_dir, verbose=
     printing("WRITTEN {} src and {} target directory".format(src_dir, target_dir), verbose=verbose, verbose_level=1)
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
 
     reframe_MT, reframe_tok = False, False
 
