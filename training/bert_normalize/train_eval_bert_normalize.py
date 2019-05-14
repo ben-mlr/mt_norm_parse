@@ -18,7 +18,6 @@ def train_eval_bert_normalize(args, verbose=1):
     model_dir = BERT_MODEL_DIC[args.bert_model]["model"]
     vocab_size = BERT_MODEL_DIC[args.bert_model]["vocab_size"]
 
-
     initialize_bpe_layer = args.initialize_bpe_layer
     freeze_parameters = args.freeze_parameters
     freeze_layer_prefix_ls = args.freeze_layer_prefix_ls

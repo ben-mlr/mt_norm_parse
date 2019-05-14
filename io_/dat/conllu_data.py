@@ -22,6 +22,7 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None,
   for dict_type in ["word", "character", "pos", "xpos", "type"]:
     if not os.path.isfile(os.path.join(dict_path, "{}.json".format(dict_type))):
       to_create = True
+      printing("WARNING : did not find dictionaries {} so creating it ", var=[dict_path], verbose=verbose, verbose_level=1)
 
   to_create = True if force_new_dic else to_create
 

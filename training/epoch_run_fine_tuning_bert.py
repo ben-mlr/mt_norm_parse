@@ -75,6 +75,12 @@ def epoch_run(batchIter, tokenizer,
                                                                    " have norm_2_noise_training : {} norm_2_noise_" \
                                                                    "eval:{}".format(norm_2_noise_training,
                                                                                     norm_2_noise_eval)
+    if norm_2_noise_training is not None:
+        printing("WARNING : {} norm_2_noise_training is on ", var=[norm_2_noise_training],
+                 verbose=verbose, verbose_level=1)
+    if norm_2_noise_eval:
+        printing("WARNING : {} norm_2_noise_eval is on ", var=[norm_2_noise_eval],
+                 verbose=verbose, verbose_level=1)
     assert len(tasks) <= 2
     label_heuristic = ""
     if gold_error_detection:
@@ -150,7 +156,7 @@ def epoch_run(batchIter, tokenizer,
             # if no normalization found : should have pos
             task_pos_is = len(batch.raw_output[0]) == 0
             task_normalize_is = not task_pos_is
-            print("TRAINING on {} task".format("pos" if task_pos_is else "normalize"))
+            print("ITERATING on {} task".format("pos" if task_pos_is else "normalize"))
             norm2noise_bool = False
             batch_raw_output = None
             # Handling input
@@ -161,12 +167,12 @@ def epoch_run(batchIter, tokenizer,
                 norm2noise_bool = portion_norm2noise >= rand
                 if norm2noise_bool:
                     batch_raw_input = preprocess_batch_string_for_bert(batch.raw_output)
-                    print("WARNING : input is gold norm")
+                    printing("WARNING : input is gold norm", verbose_level=2, verbose=1)
                 else:
-                    print("WARNING : input is input")
+                    printing("WARNING : input is input", verbose_level=2, verbose=1)
                     batch_raw_input = preprocess_batch_string_for_bert(batch.raw_input)
             else:
-                print("WARNING : input is input ")
+                printing("WARNING : input is input ", verbose_level=2, verbose=1)
                 batch_raw_input = preprocess_batch_string_for_bert(batch.raw_input)
 
             if masking_strategy is None:
@@ -187,10 +193,10 @@ def epoch_run(batchIter, tokenizer,
             #if "normalize" in tasks:
             if task_normalize_is:
                 if norm2noise_bool or norm_2_noise_eval:
-                    print("WARNING : output is noisy innput")
+                    printing("WARNING : output is noisy innput", verbose_level=2, verbose=1)
                     batch_raw_output = preprocess_batch_string_for_bert(batch.raw_input)
                 else:
-                    print("WARNING : output is output")
+                    printing("WARNING : output is output", verbose_level=2, verbose=1)
                     batch_raw_output = preprocess_batch_string_for_bert(batch.raw_output, rp_space=True)
                 output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask =\
                     get_indexes(batch_raw_output, tokenizer, verbose, use_gpu)
@@ -445,10 +451,10 @@ def epoch_run(batchIter, tokenizer,
                     opti.step()
                     opti.zero_grad()
                 mode = "train"
-                print("MODE data {} optimizing".format(data_label))
+                printing("MODE data {} optimizing".format(data_label), verbose=verbose, verbose_level=4)
             else:
                 mode = "dev"
-                print("MODE data {} not optimizing".format(data_label))
+                printing("MODE data {} not optimizing".format(data_label), verbose=verbose, verbose_level=4)
 
             if writer is not None:
                 writer.add_scalars("loss",
@@ -528,9 +534,7 @@ def epoch_run(batchIter, tokenizer,
                             writer.add_scalars("perf-{}".format(mode),
                                                {"{}-{}-{}-bpe".format(metric_val, mode, model_id):
                                                     score if score is not None else 0
-                                                },
-                                           iter + batch_i)
-
+                                                }, iter + batch_i)
 
     else:
         reports = None

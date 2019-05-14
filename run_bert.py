@@ -24,8 +24,8 @@ train_path = [GENERATED_DIC[100]]
 dev_path = [GENERATED_DIC[100]]
 
 
-train = True
-playwith = False
+train = False
+playwith = True
 
 
 if train:
@@ -94,8 +94,8 @@ if playwith:
     model_name = "b5338-LOOK_THE_PREDICTIONS-2batch-0.0001lr-ep24-checkpoint.pt"
     #model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/./checkpoints/bert/9319649-B-14cf0-9319649-B-model_0"
     #model_name = "9319649-B-14cf0-9319649-B-model_0-ep4-checkpoint.pt"
-    model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/checkpoints/bert/"
-    model_name = "9320927-B-ed1e8-9320927-B-model_0/9320927-B-ed1e8-9320927-B-model_0-ep19-checkpoint.pt"
+    model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/checkpoints/bert/9320927-B-ed1e8-9320927-B-model_0"
+    model_name = "9320927-B-ed1e8-9320927-B-model_0-ep19-checkpoint.pt"
     checkpoint_dir = os.path.join(model_location, model_name)
     test_paths_ls = [[EN_LINES_EWT_TRAIN]]
     # TODO : predict with a norm2noise model
@@ -115,9 +115,9 @@ if playwith:
     pref_suffix = ""
     batch_size = 1
     lr = ""
-    evalu = False
+    evalu = True
     if evalu:
-        for n_sent in [100, 500, 1000]:
+        for n_sent in [50, 80, 120, 150, 250, 350]:
             model = run(bert_with_classifier=model,
                         voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
                         auxilliary_task_norm_not_norm=True,

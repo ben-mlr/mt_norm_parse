@@ -39,7 +39,12 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                       bert_model_ls=None, dropout_classifier_ls=None, fine_tuning_strategy_ls=None, dropout_input_bpe_ls=None, dropout_bert_ls=None,
                       masking_strategy_ls=None,checkpoint_dir_ls=None, norm_2_noise_training_ls=None,
                       py_script="train_evaluate_run"):
+    """
 
+    NB train_ls, dev_ls, test_ls and tasks are handled differently than all the others
+    :return:
+    """
+    printing("GRID RUN : INFO : we are iterating on zip(train_ls, dev_ls, test_ls, tasks ) a grid of all other parameters ls ", verbose_level=1, verbose=1)
     test_paths = [[",".join(path) for path in test_path_grid] for test_path_grid in test_paths]
     if write_to_dir is not None:
         script_dir = os.path.join(write_to_dir, "{}-run.sh".format(overall_label))

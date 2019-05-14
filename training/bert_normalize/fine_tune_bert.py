@@ -40,7 +40,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
 
     assert len(tasks) == len(train_path), "ERROR tasks is {} bu train path are {}".format(tasks, train_path)
     assert len(dev_path) == len(train_path)
-    assert len(test_path_ls) == len(tasks)
+    #assert len(test_path_ls) == len(tasks), "{} tasks test_path_ls {}".format(test_path_ls, tasks)
     if run_mode == "test":
         assert test_path_ls is not None and isinstance(test_path_ls, list)
     if test_path_ls is not None:
@@ -83,7 +83,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                        ("norm_2_noise_training",norm_2_noise_training),
                                        ("random_iterator_train",random_iterator_train),
                                        ])
-        printing("HYPERPARAMETERS {} ",var=[hyperparameters], verbose=verbose, verbose_level=1)
+        printing("HYPERPARAMETERS {} ", var=[hyperparameters], verbose=verbose, verbose_level=1)
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
         if report:
             if report_full_path_shared is not None:

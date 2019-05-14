@@ -228,43 +228,54 @@ def grid_param_label_generate(param,
         if args.startswith(lab):
           args = lab
           _args = lab+"_path"
-      if _args != "test_path" and _args != "tasks":
+      if _args != "tasks" and _args not in ["train_path", "dev_path", "test_path"]:
         dic_grid[_args] = args_avail[args+"_ls"]
       elif _args == "tasks":
-        assert eval(_args+"_ls")[0][0] in ["normalize", "pos"] and len(eval(_args+"_ls")) == 1 and len(eval(_args+"_ls")[0]) == 1,\
-          "ERROR : only normalize supported so far {}".format(eval(_args+"_ls"))
+        assert len(list(set(eval(_args+"_ls")[0])&set(["normalize", "pos"]))) > 0 \
+               and len(eval(_args+"_ls")) <= 2, "ERROR : only normalize, pos supported so far {}".format(eval(_args+"_ls"))
+        #dic_grid[_args] = args_avail[_args + "_ls"]
 
-        dic_grid[_args] = args_avail[_args + "_ls"]
-
-    def sanity_check_args(py_script, dic_grid):
-      if py_script=="train_evaluate_bert_normalizer":
+    def sanity_check_args(py_script, dic_grid, train_ls, dev_ls, test_ls, tasks_ls):
+      if py_script == "train_evaluate_bert_normalizer":
         for strat in dic_grid["fine_tuning_strategy"]:
           assert strat in AVAILABLE_BERT_FINE_TUNING_STRATEGY, \
             "ERROR strat {} not supported {}".format(strat, AVAILABLE_BERT_FINE_TUNING_STRATEGY)
         if isinstance(dic_grid["lr"][0], dict):
           assert dic_grid["fine_tuning_strategy"][0] == "flexible_lr" and len(dic_grid["fine_tuning_strategy"]) == 1, \
             "ERROR {} should be = flexible_lr".format(dic_grid["fine_tuning_strategy"])
-
-    sanity_check_args(py_script, dic_grid)
+        assert len(tasks_ls) == len(train_ls), "ERROR : GRID search : should have as many task(s for multitask) than train_path ls"
+        assert len(tasks_ls) == len(dev_ls), "ERROR : GRID search : should have as many task(s for multitask) than dev_path ls"
+        assert len(tasks_ls) == len(test_ls), "ERROR : should have as many task(s for multitask) than test ls "
+        for train_sets, dev_sets, test_sets_ls, tasks in zip(train_ls, dev_ls, test_ls, tasks_ls):
+          assert len(train_sets) == len(tasks), "ERROR : we should have one training set per task (no simulatnuous " \
+                                                "training allowed for now but have tasks:{} and train_path:{}".format(tasks, train_sets)
+          assert len(dev_sets) == len(tasks), "ERROR : we should have one dev set per task (no simulatnuous " \
+                                              "training allowed for now but have tasks:{} and dev_path:{}".format(tasks,dev_sets)
+          assert len(test_sets_ls[0].split(",")) == len(tasks), "ERROR not at least one test set per tasks {}".format(tasks)
+    sanity_check_args(py_script, dic_grid, train_ls, dev_ls, test_ls, tasks_ls)
 
     list_of_list_of_args = [lis_values for arg_dic, lis_values in dic_grid.items()]
-
   ind_model = 0
   if py_script == "train_evaluate_bert_normalizer":
     arg_free_combination = list(itertools.product(*list_of_list_of_args))
     printing("GRID : running free combination of argument !! ", verbose_level=1, verbose=1)
-    #pdb.set_trace()
     param0 = OrderedDict()
     # TODO : do the same for train_evaluate_run
-    for combination in arg_free_combination:
-      assert len(combination) == len(list(dic_grid.keys()))
-      for argument, arg_value in zip(list(dic_grid.keys()), combination):
-        param0[argument] = arg_value
-      assert len(test_ls) == 1, "ONLY 1 task supported "
-      param0["test_path"] = test_ls[0]
-      params.append(param0.copy())
-      labels.append("{}-model_{}".format(grid_label, ind_model))
-      ind_model += 1
+    # for each set of training set, dev set, test and tasks : we run do a grid combination
+    for train_sets, dev_sets, test_sets_ls, tasks in zip(train_ls, dev_ls, test_ls, tasks_ls):
+      param0["train_path"] = train_sets
+      param0["dev_path"] = dev_sets
+      param0["test_path"] = test_sets_ls
+      param0["tasks"] = tasks
+      for combination in arg_free_combination:
+        assert len(combination) == (len(list(dic_grid.keys())))
+        for argument, arg_value in zip(list(dic_grid.keys()), combination):
+          param0[argument] = arg_value
+      #assert len(test_ls) == 1, "ONLY 1 task supported "
+      #param0["test_path"] = test_ls[0]
+        params.append(param0.copy())
+        labels.append("{}-model_{}".format(grid_label, ind_model))
+        ind_model += 1
   elif py_script == "train_evaluate_run":
     for batch in batch_size_ls:
       #for aux in auxilliary_task_norm_not_norm_ls:
@@ -378,6 +389,7 @@ def grid_param_label_generate(param,
                                             labels.append("{}-model_{}".format(grid_label, ind_model))
 
   KEEP_ONLY_REMOVE = ["multi_task_loss_ponderation"]
+
   studied_vars = []
   fixed_vars = []
   printing("GRID HYPARAMETERS INIT {}", var=param, verbose=1, verbose_level=1)
@@ -402,12 +414,12 @@ def grid_param_label_generate(param,
 
   try:
     # TODO : this should be factorized with what is in args.json
-    train_data_label = "|".join([REPO_DATASET[train_paths] for _train_path in dic_grid["train_path"] for train_paths in _train_path])
-    dev_data_label = "|".join([REPO_DATASET[dev_path] for _dev_path in dic_grid["dev_path"] for dev_path in _dev_path])
+    train_data_label = "|".join([REPO_DATASET[train_paths] for _train_path in train_ls for train_paths in _train_path])
+    dev_data_label = "|".join([REPO_DATASET[dev_path] for _dev_path in dev_ls for dev_path in _dev_path])
     to_keep_only+=" train_path,"+train_data_label+" dev_path,"+dev_data_label
   except Exception as e:
     print(e)
-    print("ERROR", dic_grid["train_path"])
+    print("ERROR", train_ls)
     printing("WARNING : train and dev_path fail to be label to be added to keep_only ", verbose_level=1, verbose=1)
 
   if printout_info_var:
