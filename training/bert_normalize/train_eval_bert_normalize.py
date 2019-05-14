@@ -59,7 +59,6 @@ def train_eval_bert_normalize(args, verbose=1):
     description = "grid"
     dir_grid = args.overall_report_dir
 
-
     run(bert_with_classifier=model,
         voc_tokenizer=voc_tokenizer, tasks=args.tasks, train_path=args.train_path, dev_path=args.dev_path,
         auxilliary_task_norm_not_norm=True,

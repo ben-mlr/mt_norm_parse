@@ -37,7 +37,7 @@ def epoch_run(batchIter, tokenizer,
               reference_word_dic=None, dropout_input_bpe=0.,
               writing_pred=False, dir_end_pred=None, extra_label_for_prediction="",
               log_perf=True, masking_strategy=None, portion_mask=None, remove_mask_str_prediction=False, inverse_writing=False,
-              norm_2_noise_eval=False,  norm_2_noise_training=None,
+              norm_2_noise_eval=False,  norm_2_noise_training=None, aggregating_bert_layer_mode="sum",
               verbose=0):
     """
     About Evaluation :
@@ -315,11 +315,12 @@ def epoch_run(batchIter, tokenizer,
                 _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
                                              labels=output_tokens_tensor_aligned if task_normalize_is else None, #tasks[0] == "normalize" else None,
                                              labels_task_2=output_tokens_tensor_aligned if task_pos_is else None, #tasks[0] == "pos" else None
+                                             aggregating_bert_layer_mode=aggregating_bert_layer_mode,
                                              )
             except Exception as e:
                 print(e)
                 print(output_tokens_tensor_aligned, input_tokens_tensor, input_mask)
-                _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
+                _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,aggregating_bert_layer_mode=aggregating_bert_layer_mode,
                                              labels=output_tokens_tensor_aligned if task_normalize_is else None,#if tasks[0] == "normalize" else None,
                                              labels_task_2=output_tokens_tensor_aligned if task_pos_is else None)#if tasks[0] == "pos" else None)
             _loss = _loss["loss"]
@@ -327,7 +328,8 @@ def epoch_run(batchIter, tokenizer,
             if predict_mode:
                 # if predict more : will evaluate the model and write its predictions
                 # TODO : add mapping_info between task_id to model and task name necessary to iterator
-                logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask)["logits_task_2" if task_pos_is else "logits_task_1"]
+                logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,aggregating_bert_layer_mode=aggregating_bert_layer_mode,
+                                              )["logits_task_2" if task_pos_is else "logits_task_1"]
                 predictions_topk = torch.argsort(logits, dim=-1, descending=True)[:, :, :topk]
                 # from bpe index to string
                 sent_ls_top = from_bpe_token_to_str(predictions_topk, topk, tokenizer=tokenizer, pred_mode=True,
@@ -476,7 +478,8 @@ def epoch_run(batchIter, tokenizer,
     printing("WARNING on {} ON THE EVALUATION SIDE we skipped extra {} batch ", var=[data_label, skipping_evaluated_batch], verbose_level=1, verbose=1)
 
     if predict_mode:
-        writer.add_scalars("loss-mean-{}-{}".format(tasks[0], mode),
+        if writer is not None:
+            writer.add_scalars("loss-mean-{}-{}".format(tasks[0], mode),
                            {"{}-{}-{}".format("loss", mode, model_id): loss/batch_i
                             }, iter + batch_i)
         reports = []

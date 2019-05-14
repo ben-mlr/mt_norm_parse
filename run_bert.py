@@ -78,6 +78,7 @@ if train:
                 heuristic_ls=None, gold_error_detection=False,
                 bucket_test=True, must_get_norm_test=False,
                 norm_2_noise_eval=False, norm_2_noise_training=0.,
+                aggregating_bert_layer_mode=5,
                 report=True, verbose=1)
 
 

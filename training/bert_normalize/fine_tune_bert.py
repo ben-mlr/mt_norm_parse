@@ -29,6 +29,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         remove_mask_str_prediction=False, inverse_writing=False,
         extra_label_for_prediction="",
         random_iterator_train=True, bucket_test=True, must_get_norm_test=True,
+        aggregating_bert_layer_mode=None,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
@@ -82,6 +83,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                        ("checkpoint_dir", args.checkpoint_dir if args is not None else None),
                                        ("norm_2_noise_training",norm_2_noise_training),
                                        ("random_iterator_train",random_iterator_train),
+                                       ("aggregating_bert_layer_mode",aggregating_bert_layer_mode)
                                        ])
         printing("HYPERPARAMETERS {} ", var=[hyperparameters], verbose=verbose, verbose_level=1)
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
@@ -207,6 +209,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                       masking_strategy=masking_strategy, portion_mask=portion_mask,
                                                                       norm_2_noise_training=norm_2_noise_training,
                                                                       norm_2_noise_eval=False,
+                                                                      aggregating_bert_layer_mode=aggregating_bert_layer_mode,
                                                                       n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
                 bert_with_classifier.eval()
@@ -233,6 +236,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                     reference_word_dic={"InV": inv_word_dic},
                                                                     norm_2_noise_training=norm_2_noise_training,# as training otherwise loss dev not more meaning
                                                                     norm_2_noise_eval=False,
+                                                                    aggregating_bert_layer_mode=aggregating_bert_layer_mode,
                                                                     n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                 else:
                     loss_dev, iter_dev, perf_report_dev = None, 0, None
@@ -342,6 +346,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                            # --> we could also add a loop and tag in report
                                                                            norm_2_noise_eval=norm_2_noise_eval,
                                                                            remove_mask_str_prediction=remove_mask_str_prediction, inverse_writing=inverse_writing,
+                                                                           aggregating_bert_layer_mode=aggregating_bert_layer_mode,
                                                                            reference_word_dic={"InV": inv_word_dic},
                                                                            n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                     except Exception as e:

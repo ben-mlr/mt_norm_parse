@@ -165,8 +165,16 @@ def args_train(mode="command_line", script="train_evaluate_run"):
         parser.add_argument('--portion_mask', type=float, default=None)
         parser.add_argument('--checkpoint_dir', type=str, default=None)
         parser.add_argument('--norm_2_noise_training', type=float, default=None)
-
+        parser.add_argument('--aggregating_bert_layer_mode',type=str, default=None)
         args = parser.parse_args()
+        if args.aggregating_bert_layer_mode is not None:
+            try:
+                assert isinstance(eval(args.aggregating_bert_layer_mode),int)
+                # it should be an int
+                args.aggregating_bert_layer_mode = eval(args.aggregating_bert_layer_mode)
+            except:
+                # it should be a string
+                pass
 
     if args.test_paths is not None:
         args.test_paths = [test_path_task.split(",") for test_path_task in args.test_paths]

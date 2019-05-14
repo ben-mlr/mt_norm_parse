@@ -1118,15 +1118,27 @@ class BertForTokenClassification(BertPreTrainedModel):
         self.loss_weights_default = OrderedDict([("loss_task_1", 1), ("loss_task_2", 1)])
         self.apply(self.init_bert_weights)
 
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None, labels_task_2=None, loss_weights=None):
-
+    def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None, labels_task_2=None, loss_weights=None,
+                aggregating_bert_layer_mode=None,
+                ):
+        if aggregating_bert_layer_mode is not None:
+            AVAILABLE_BERT_AGGREGATION_MODE = ["sum", "last"]
+            assert aggregating_bert_layer_mode in AVAILABLE_BERT_AGGREGATION_MODE or (isinstance(aggregating_bert_layer_mode, int) and aggregating_bert_layer_mode<=11), \
+                "ERROR aggregating_bert_layer_mode should be in {} or an int <=11 but is {} ".format(AVAILABLE_BERT_AGGREGATION_MODE, aggregating_bert_layer_mode)
         if loss_weights is None:
             loss_weights = self.loss_weights_default
         else:
             assert isinstance(loss_weights, dict) and loss_weights.get("loss_task_1") is not None \
                    and loss_weights.get("loss_task_2") is not None
 
-        sequence_output, _ = self.bert(input_ids, token_type_ids, attention_mask, output_all_encoded_layers=False)
+        output_all_encoded_layers = (aggregating_bert_layer_mode != "last") if aggregating_bert_layer_mode is not None else False
+        sequence_output, _ = self.bert(input_ids, token_type_ids, attention_mask, output_all_encoded_layers=output_all_encoded_layers)
+        if output_all_encoded_layers:
+            if isinstance(aggregating_bert_layer_mode, int):
+                sequence_output = sequence_output[aggregating_bert_layer_mode]
+            elif aggregating_bert_layer_mode == "sum":
+                sequence_output = torch.sum(torch.stack(sequence_output, dim=-1).squeeze(-1), dim=-1)
+
         sequence_output = self.dropout(sequence_output)
         logits = self.classifier(sequence_output)
 

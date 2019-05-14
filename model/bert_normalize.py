@@ -34,6 +34,9 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
     # this line is useless apparently as it does it load it again
     if "normalize" in tasks:
         num_labels = vocab_size + 1
+    else:
+        num_labels = 1
+        printing("WE ARE STILL DEFINING a CLASSIFIER_1 but it should be left untrained ", verbose=verbose,verbose_level=1)
     if "pos" in tasks:
         assert voc_pos_size is not None
 
@@ -52,8 +55,9 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
             model.dropout = nn.Dropout(dropout_classifier)
             printing("MODEL : SETTING DROPOUT CLASSIFIER TO {}".format(dropout_classifier), verbose=verbose, verbose_level=1)
 
-        if len(tasks) > 1 and "normalize" in tasks:
-            assert tasks[1] == "pos", "ONLY  POS and normalize supported so far"
+        #if (len(tasks) > 1 and "normalize" in tasks:
+        if "pos" in tasks:
+            #assert tasks[1] == "pos", "ONLY  POS and normalize supported so far"
             model.classifier_task_2 = nn.Linear(model.bert.config.hidden_size, voc_pos_size)
             model.num_labels_2 = voc_pos_size
             printing("MODEL : adding classifier_task_2 for POS with voc_pos_size {}",
