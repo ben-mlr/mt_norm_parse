@@ -458,7 +458,8 @@ def epoch_run(batchIter, tokenizer,
 
             if writer is not None:
                 writer.add_scalars("loss",
-                                   {"loss-{}-{}-bpe".format(mode, model_id): _loss.clone().cpu().data.numpy() if not isinstance(_loss,int) else 0},
+                                   {"loss-{}-{}-bpe".format(mode, model_id): _loss.clone().cpu().data.numpy()
+                                   if not isinstance(_loss, int) else 0},
                                    iter+batch_i)
         except StopIteration:
             break
@@ -475,6 +476,9 @@ def epoch_run(batchIter, tokenizer,
     printing("WARNING on {} ON THE EVALUATION SIDE we skipped extra {} batch ", var=[data_label, skipping_evaluated_batch], verbose_level=1, verbose=1)
 
     if predict_mode:
+        writer.add_scalars("loss-mean-{}-{}".format(tasks[0], mode),
+                           {"{}-{}-{}".format("loss", mode, model_id): loss/batch_i
+                            }, iter + batch_i)
         reports = []
         for agg_func in agg_func_ls:
             for sample in samples:
@@ -492,7 +496,8 @@ def epoch_run(batchIter, tokenizer,
                 score = score_dic[agg_func][sample]
                 n_tokens = n_tokens_dic[agg_func][sample]
                 n_sents = n_sents_dic[agg_func][sample]
-                report = report_template(metric_val="accuracy-exact-{}".format(tasks[0]), subsample=sample+label_heuristic, info_score_val=None,
+                metric_val = "accuracy-exact-{}".format(tasks[0])
+                report = report_template(metric_val=metric_val, subsample=sample+label_heuristic, info_score_val=None,
                                          score_val=score/n_tokens if n_tokens > 0 else None, n_sents=n_sents,
                                          avg_per_sent=0,
                                          n_tokens_score=n_tokens,
@@ -502,6 +507,11 @@ def epoch_run(batchIter, tokenizer,
                                          token_type="word",
                                          report_path_val=None,
                                          data_val=data_label)
+                if writer is not None and log_perf:
+                    writer.add_scalars("perf-{}-{}".format(tasks[0], mode),
+                                       {"{}-{}-{}-{}".format(metric_val, mode, model_id, sample):
+                                            score if score is not None else 0
+                                        }, iter + batch_i)
                 reports.append(report)
             # class negative 0 , class positive 1
             # TODO : make that more consistent with user needs !

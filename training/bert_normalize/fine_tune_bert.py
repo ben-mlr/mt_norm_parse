@@ -363,8 +363,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                  verbose_level=1)
                     report_all.extend(perf_report_test)
     else:
-        printing("ERROR : EVALUATION none cause {} empty or run_mode {} ", var=[test_path_ls, run_mode],
-                     verbose_level=1, verbose=verbose)
+        printing("ERROR : EVALUATION none cause {} empty or run_mode {} ",
+                 var=[test_path_ls, run_mode], verbose_level=1, verbose=verbose)
 
     if writer is not None:
         writer.close()
