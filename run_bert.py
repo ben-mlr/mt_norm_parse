@@ -24,8 +24,8 @@ train_path = [GENERATED_DIC[100]]
 dev_path = [GENERATED_DIC[100]]
 
 
-train = False
-playwith = True
+train = True
+playwith = False
 
 
 if train:
@@ -39,10 +39,10 @@ if train:
     initialize_bpe_layer = True
     freeze_parameters = True
     freeze_layer_prefix_ls = ["bert"]
-    tasks = ["normalize", "pos"]
-    train_path = [DEMO, DEMO]
-    dev_path = [DEMO, DEMO]
-    test_paths_ls = [[DEMO, LIU_DEV], [DEMO, EWT_TEST]]
+    tasks = ["normalize"]
+    train_path = [DEMO]#, DEMO]
+    dev_path = [DEMO]#, DEMO]
+    test_paths_ls = [[DEMO], [EWT_TEST]]
 
     voc_pos_size = 16
     #["bert"]
@@ -70,7 +70,7 @@ if train:
                 n_epoch=1,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
-                model_suffix="{}".format(description), debug=False,
+                model_suffix="{}".format(description), debug=True,
                 fine_tuning_strategy="standart",
                 #masking_strategy=["normed", 1.],
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
@@ -94,8 +94,10 @@ if playwith:
     model_name = "b5338-LOOK_THE_PREDICTIONS-2batch-0.0001lr-ep24-checkpoint.pt"
     #model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/./checkpoints/bert/9319649-B-14cf0-9319649-B-model_0"
     #model_name = "9319649-B-14cf0-9319649-B-model_0-ep4-checkpoint.pt"
-    model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/checkpoints/bert/9320927-B-ed1e8-9320927-B-model_0"
-    model_name = "9320927-B-ed1e8-9320927-B-model_0-ep19-checkpoint.pt"
+    #model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/checkpoints/bert/9320927-B-ed1e8-9320927-B-model_0"
+    #model_name = "9320927-B-ed1e8-9320927-B-model_0-ep19-checkpoint.pt"
+    model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/checkpoints/bert/9326829-B-fbbe9-9326829-B-model_1"
+    model_name = "9326829-B-fbbe9-9326829-B-model_1-ep19-checkpoint.pt"
     checkpoint_dir = os.path.join(model_location, model_name)
     test_paths_ls = [[EN_LINES_EWT_TRAIN]]
     # TODO : predict with a norm2noise model

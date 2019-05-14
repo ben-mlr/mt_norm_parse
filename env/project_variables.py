@@ -156,7 +156,7 @@ GENERATED_DIC_LABEL = {}
 dic_dir_ls = [GENERATED_DIC, AUGMENTATION_DIC, AUGMENTED_LEX_DIC]
 dic_label_ls = [GENERATED_DIC_LABEL, AUGMENTATION_DIC_LABEL, AUGMENTED_LEX_DIC_LABEL]
 
-for n_sent in [100, 500, 1000]:
+for n_sent in [50, 80, 100, 120,150, 250, 350, 500, 1000]:
     for dic_dir, dic_label, augmented in zip(dic_dir_ls, dic_label_ls, ["", "liu_owoputi_", "lexnorm15_train_data_"]):
         dir_train = os.path.join(PROJECT_PATH, "data", "back_normalized",
                                  augmented+"9326829-B-fbbe9-en_lines_ewt_train-noisy_generated_{}.conll").format(n_sent,".conll")
@@ -232,7 +232,7 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
 
 for n_sent in [100, 1000, 10000, 50000, 100000, 200000]:
     REPO_DATASET[PERMUTATION_TRAIN_DIC[n_sent]] = PERMUTATION_TRAIN_LABEL_DIC[n_sent]
-for n_sent in [100, 500, 1000]:
+for n_sent in [50, 80, 100, 120,150,250,350, 500, 1000]:
     REPO_DATASET[AUGMENTATION_DIC[n_sent]] = AUGMENTATION_DIC_LABEL[n_sent]
     REPO_DATASET[AUGMENTED_LEX_DIC[n_sent]] = AUGMENTED_LEX_DIC_LABEL[n_sent]
     REPO_DATASET[GENERATED_DIC[n_sent]] = GENERATED_DIC_LABEL[n_sent]

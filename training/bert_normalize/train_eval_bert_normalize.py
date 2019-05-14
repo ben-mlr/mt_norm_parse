@@ -58,6 +58,8 @@ def train_eval_bert_normalize(args, verbose=1):
     null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary
     description = "grid"
     dir_grid = args.overall_report_dir
+
+
     run(bert_with_classifier=model,
         voc_tokenizer=voc_tokenizer, tasks=args.tasks, train_path=args.train_path, dev_path=args.dev_path,
         auxilliary_task_norm_not_norm=True,

@@ -231,8 +231,7 @@ def grid_param_label_generate(param,
       if _args != "tasks" and _args not in ["train_path", "dev_path", "test_path"]:
         dic_grid[_args] = args_avail[args+"_ls"]
       elif _args == "tasks":
-        assert len(list(set(eval(_args+"_ls")[0])&set(["normalize", "pos"]))) > 0 \
-               and len(eval(_args+"_ls")) <= 2, "ERROR : only normalize, pos supported so far {}".format(eval(_args+"_ls"))
+        assert len(list(set(eval(_args+"_ls")[0])&set(["normalize", "pos"]))) > 0 , "ERROR : only normalize, pos supported so far {}".format(eval(_args+"_ls"))
         #dic_grid[_args] = args_avail[_args + "_ls"]
 
     def sanity_check_args(py_script, dic_grid, train_ls, dev_ls, test_ls, tasks_ls):
@@ -409,6 +408,8 @@ def grid_param_label_generate(param,
       fixed_vars.append((var, vals[0] if var != "word_embed_init" else REPO_W2V[vals[0]]["label"]))
   # grid information
   to_enrich = " ".join([a for a, _ in fixed_vars]) + " " + " ".join(studied_vars)
+  if len(train_ls) > 1:
+    studied_vars += ["train_path", "tasks"]
   to_analysed = " ".join(studied_vars)
   to_keep_only = " ".join([a + "," + str(b) for a, b in fixed_vars if a not in ["train_path","dev_path"]])
 
@@ -416,7 +417,7 @@ def grid_param_label_generate(param,
     # TODO : this should be factorized with what is in args.json
     train_data_label = "|".join([REPO_DATASET[train_paths] for _train_path in train_ls for train_paths in _train_path])
     dev_data_label = "|".join([REPO_DATASET[dev_path] for _dev_path in dev_ls for dev_path in _dev_path])
-    to_keep_only+=" train_path,"+train_data_label+" dev_path,"+dev_data_label
+    to_keep_only += " train_path,"+train_data_label+" dev_path,"+dev_data_label
   except Exception as e:
     print(e)
     print("ERROR", train_ls)

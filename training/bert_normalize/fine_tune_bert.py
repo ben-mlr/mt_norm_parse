@@ -226,8 +226,10 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                     model_id=model_id,
                                                                     skip_1_t_n=skip_1_t_n,
                                                                     dropout_input_bpe=0,
-                                                                    masking_strategy=masking_strategy, portion_mask=portion_mask,
-                                                                    heuristic_ls=heuristic_ls, gold_error_detection=gold_error_detection,
+                                                                    masking_strategy=masking_strategy,
+                                                                    portion_mask=portion_mask,
+                                                                    heuristic_ls=heuristic_ls,
+                                                                    gold_error_detection=gold_error_detection,
                                                                     reference_word_dic={"InV": inv_word_dic},
                                                                     norm_2_noise_training=norm_2_noise_training,# as training otherwise loss dev not more meaning
                                                                     norm_2_noise_eval=False,
@@ -271,12 +273,13 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         bert_with_classifier.eval()
         #assert len(test_path_ls[0]) == 1, "ERROR 1 task supported so far for bert"
         #pdb.set_trace()
-        for task_to_eval, test_path in zip(tasks, test_path_ls):
-            for test in test_path:
+        for test_path in test_path_ls:
+            assert len(test_path) == len(tasks)
+            for test, task_to_eval in zip(test_path, tasks):
                 #label_data = "|".join([REPO_DATASET[_test_path] for _test_path in test_path])
                 label_data = REPO_DATASET[test]+"-"+task_to_eval
                 if len(extra_label_for_prediction) > 0:
-                    label_data += "-"+extra_label_for_prediction
+                    label_data += "-" + extra_label_for_prediction
                 readers_test = readers_load(datasets=[test],
                                             tasks=[task_to_eval],
                                             word_dictionary=word_dictionary,
@@ -293,6 +296,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                             max_char_len=20,
                                             must_get_norm=must_get_norm_test,
                                             verbose=verbose)
+
                 zip_1 = [None] if task_to_eval == "pos" else [None, ["@", "#"], ["@", "#"], None, None]
                 zip_2 = [False] if task_to_eval == "pos" else [False, False, True, True, False]
                 zip_3 = [False] if task_to_eval == "pos" else [False, False, False, False, True]
@@ -348,7 +352,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                         print(e)
 
                         perf_report_test = []
-                    print("PERFORMANCE TEST on data {} is {} ".format(label_data, perf_report_test))
+                    print("PERFORMANCE TEST on data  {} is {} ".format(label_data, perf_report_test))
                     print("DATA WRITTEN {}".format(end_predictions))
                     if writer is not None:
                         writer.add_text("Accuracy-{}-{}-{}".format(model_id, label_data, run_mode),
@@ -358,8 +362,9 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                         printing("WARNING : could not add accuracy to tensorboard cause writer was found None", verbose=verbose,
                                  verbose_level=1)
                     report_all.extend(perf_report_test)
-        else:
-            printing("EVALUATION none cause {} empty", var=[test_path_ls], verbose_level=1, verbose=verbose)
+    else:
+        printing("ERROR : EVALUATION none cause {} empty or run_mode {} ", var=[test_path_ls, run_mode],
+                     verbose_level=1, verbose=verbose)
 
     if writer is not None:
         writer.close()
