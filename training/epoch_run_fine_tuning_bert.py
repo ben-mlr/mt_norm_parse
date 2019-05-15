@@ -27,7 +27,7 @@ def accumulate_scores_across_sents(agg_func_ls, sample_ls, dic_prediction_score,
 def epoch_run(batchIter, tokenizer,
               iter, n_iter_max, bert_with_classifier, epoch,
               use_gpu, data_label, null_token_index, null_str,
-              model_id, tasks,
+              model_id, tasks, early_stoppin_metric=None,
               pos_dictionary=None,
               skip_1_t_n=True,
               writer=None, optimizer=None,
@@ -36,8 +36,10 @@ def epoch_run(batchIter, tokenizer,
               heuristic_ls=None, gold_error_detection=False,
               reference_word_dic=None, dropout_input_bpe=0.,
               writing_pred=False, dir_end_pred=None, extra_label_for_prediction="",
-              log_perf=True, masking_strategy=None, portion_mask=None, remove_mask_str_prediction=False, inverse_writing=False,
-              norm_2_noise_eval=False,  norm_2_noise_training=None, aggregating_bert_layer_mode="sum",
+              log_perf=True, masking_strategy=None, portion_mask=None, remove_mask_str_prediction=False,
+              inverse_writing=False,
+              norm_2_noise_eval=False, norm_2_noise_training=None, aggregating_bert_layer_mode="sum",
+              subsample_early_stoping_metric_val="all",
               verbose=0):
     """
     About Evaluation :
@@ -146,6 +148,11 @@ def epoch_run(batchIter, tokenizer,
     skipping_evaluated_batch = 0
     mode = "?"
     new_file = True
+
+    loss_norm = 0
+    loss_pos = 0
+    n_batch_pos = 0
+    n_batch_norm = 0
 
     while True:
 
@@ -312,7 +319,7 @@ def epoch_run(batchIter, tokenizer,
                                                            dropout=dropout_input_bpe)
             try:
                 printing("MASK mask:{} input:{} ", var=[input_mask, input_tokens_tensor], verbose_level="mask", verbose=verbose)
-                _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
+                loss_dic = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
                                              labels=output_tokens_tensor_aligned if task_normalize_is else None, #tasks[0] == "normalize" else None,
                                              labels_task_2=output_tokens_tensor_aligned if task_pos_is else None, #tasks[0] == "pos" else None
                                              aggregating_bert_layer_mode=aggregating_bert_layer_mode,
@@ -320,11 +327,16 @@ def epoch_run(batchIter, tokenizer,
             except Exception as e:
                 print(e)
                 print(output_tokens_tensor_aligned, input_tokens_tensor, input_mask)
-                _loss = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,aggregating_bert_layer_mode=aggregating_bert_layer_mode,
+                loss_dic = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,aggregating_bert_layer_mode=aggregating_bert_layer_mode,
                                              labels=output_tokens_tensor_aligned if task_normalize_is else None,#if tasks[0] == "normalize" else None,
                                              labels_task_2=output_tokens_tensor_aligned if task_pos_is else None)#if tasks[0] == "pos" else None)
-            _loss = _loss["loss"]
-
+            _loss = loss_dic["loss"]
+            if task_normalize_is:
+                loss_norm += loss_dic["loss_task_1"].detach()
+                n_batch_norm += 1
+            if task_pos_is:
+                loss_pos += loss_dic["loss_task_2"].detach()
+                n_batch_pos += 1
             if predict_mode:
                 # if predict more : will evaluate the model and write its predictions
                 # TODO : add mapping_info between task_id to model and task name necessary to iterator
@@ -463,6 +475,15 @@ def epoch_run(batchIter, tokenizer,
                                    {"loss-{}-{}-bpe".format(mode, model_id): _loss.clone().cpu().data.numpy()
                                    if not isinstance(_loss, int) else 0},
                                    iter+batch_i)
+                if task_pos_is:
+                    writer.add_scalars("loss-pos",
+                                       {"loss-{}-{}-bpe".format(mode, model_id): loss_dic["loss_task_2"].detach().clone().cpu().data.numpy()
+                                    },
+                                       iter + batch_i)
+                if task_normalize_is:
+                    writer.add_scalars("loss-norm",
+                                       {"loss-{}-{}-bpe".format(mode, model_id): loss_dic["loss_task_1"].detach().clone().cpu().data.numpy()},
+                                       iter + batch_i)
         except StopIteration:
             break
 
@@ -476,12 +497,27 @@ def epoch_run(batchIter, tokenizer,
                   skipping_batch_n_to_1],
              verbose=verbose, verbose_level=0)
     printing("WARNING on {} ON THE EVALUATION SIDE we skipped extra {} batch ", var=[data_label, skipping_evaluated_batch], verbose_level=1, verbose=1)
-
+    early_stoppin_metric_val = 1000
     if predict_mode:
         if writer is not None:
             writer.add_scalars("loss-mean-{}-{}".format(tasks[0], mode),
                            {"{}-{}-{}".format("loss", mode, model_id): loss/batch_i
                             }, iter + batch_i)
+            if "normalize" in tasks:
+                try:
+                    writer.add_scalars("loss-norm",
+                               {"loss-{}-{}-bpe".format(mode, model_id): loss_norm.clone().cpu().data.numpy()/n_batch_norm},
+                               iter + batch_i)
+                except Exception as e:
+                    print("ERROR {} loss_pos is , n_batch_pos is {} coud not log ".format(e, loss_norm, n_batch_norm))
+            if "pos" in tasks:
+                try:
+                    writer.add_scalars("loss-pos",
+                               {"loss-{}-{}-bpe".format(mode, model_id): loss_pos.clone().cpu().data.numpy()/n_batch_pos},
+                               iter + batch_i)
+                except Exception as e:
+                    print("ERROR {} loss_pos is , n_batch_pos is {} coud not log ".format(e, loss_pos, n_batch_pos))
+
         reports = []
         for agg_func in agg_func_ls:
             for sample in samples:
@@ -501,7 +537,8 @@ def epoch_run(batchIter, tokenizer,
                 n_sents = n_sents_dic[agg_func][sample]
                 metric_val = "accuracy-exact-{}".format(tasks[0])
                 report = report_template(metric_val=metric_val, subsample=sample+label_heuristic, info_score_val=None,
-                                         score_val=score/n_tokens if n_tokens > 0 else None, n_sents=n_sents,
+                                         score_val=score/n_tokens if n_tokens > 0 else None,
+                                         n_sents=n_sents,
                                          avg_per_sent=0,
                                          n_tokens_score=n_tokens,
                                          model_full_name_val=model_id, task=tasks,
@@ -510,10 +547,13 @@ def epoch_run(batchIter, tokenizer,
                                          token_type="word",
                                          report_path_val=None,
                                          data_val=data_label)
+                if early_stoppin_metric is not None:
+                    if metric_val == early_stoppin_metric and subsample_early_stoping_metric_val == sample+label_heuristic:
+                        early_stoppin_metric_val = -score/n_tokens
                 if writer is not None and log_perf:
                     writer.add_scalars("perf-{}-{}".format(tasks[0], mode),
                                        {"{}-{}-{}-{}".format(metric_val, mode, model_id, sample):
-                                            score if score is not None else 0
+                                            score/n_tokens if n_tokens>0 and score is not None else 0
                                         }, iter + batch_i)
                 reports.append(report)
             # class negative 0 , class positive 1
@@ -541,6 +581,9 @@ def epoch_run(batchIter, tokenizer,
                                                  token_type="word",
                                                  report_path_val=None,
                                                  data_val=data_label)
+                        if early_stoppin_metric is not None:
+                            if metric_val == early_stoppin_metric and subsample_early_stoping_metric_val == "rates"+label_heuristic:
+                                early_stoppin_metric_val = -score
                         reports.append(report)
 
                         if writer is not None and log_perf:
@@ -556,4 +599,4 @@ def epoch_run(batchIter, tokenizer,
     if writing_pred:
         printing("DATA WRITTEN TO {} ", var=[dir_end_pred], verbose=verbose, verbose_level=1)
 
-    return loss, iter, reports
+    return loss, iter, reports, early_stoppin_metric_val

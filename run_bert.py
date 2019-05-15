@@ -39,10 +39,10 @@ if train:
     initialize_bpe_layer = True
     freeze_parameters = True
     freeze_layer_prefix_ls = ["bert"]
-    tasks = ["normalize"]
+    tasks = ["pos"]
     train_path = [DEMO]#, DEMO]
     dev_path = [DEMO]#, DEMO]
-    test_paths_ls = [[DEMO], [EWT_TEST]]
+    test_paths_ls = [[DEMO]]
 
     voc_pos_size = 16
     #["bert"]
@@ -67,10 +67,10 @@ if train:
                 saving_every_epoch=10,
                 lr=0.001,#OrderedDict([("bert", lr), ("classifier", lr)]),
                 batch_size=batch_size, n_iter_max_per_epoch=10,
-                n_epoch=5,
+                n_epoch=10,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
-                model_suffix="{}".format(description), debug=False,
+                model_suffix="{}".format(description), debug=True,
                 fine_tuning_strategy="standart",
                 #masking_strategy=["normed", 1.],
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,

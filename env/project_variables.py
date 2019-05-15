@@ -171,6 +171,9 @@ EMOJI_LS_LABEL, EMOJIS_LS = "emojis", os.path.join(PROJECT_PATH, "data/emojis_ls
 EN_LINES_TRAIN_LABEL, EN_LINES_TRAIN = "en_lines_train", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en_lines-ud-train.conllu")
 EN_LINES_EWT_TRAIN_LABEL, EN_LINES_EWT_TRAIN = "en_lines_ewt_train", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en_lines+ewt-ud-train.conllu")
 
+EN_LINE_EWT_GUM_PARTUT_TRAIN_LABEL, EN_LINE_EWT_GUM_PARTUT_TRAIN = "en_lines-en_ewt-en_gum-en_partut-ud-train", os.path.join(PROJECT_PATH, "./data/en_lines-en_ewt-en_gum-en_partut-ud-train.conllu")
+
+
 EN_LINES_DEV_LABEL, EN_LINES_DEV = "en_lines_dev", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en_lines-ud-dev.conllu")
 
 # SENT conll like
@@ -198,6 +201,7 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 LEX_TRAIN_SPACE_DEMO: LEX_TRAIN_SPACE_DEMO_LABEL,
                 LIU_TRAIN_OWOPUTI_LEX_TRAIN: LIU_TRAIN_OWOPUTI_LEX_TRAIN_LABEL,
                 LIU_DEV_OWOPUTI: LIU_DEV_OWOPUTI_LABEL,
+                EN_LINE_EWT_GUM_PARTUT_TRAIN: EN_LINE_EWT_GUM_PARTUT_TRAIN_LABEL,
                 LIU_OWOPUTI: LIU_OWOPUTI_LABEL,
                 LEX_TRAIN: LEX_TRAIN_LABEL,
                 LEX_TEST: LEX_TEST_LABEL,

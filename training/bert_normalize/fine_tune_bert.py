@@ -158,6 +158,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                    must_get_norm=True,
                                    verbose=verbose) if dev_path is not None else None
         # Load tokenizer
+        early_stoping_val_former = 1000
         try:
             for epoch in range(n_epoch):
 
@@ -191,7 +192,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                              lr_init=lr, betas=(0.9, 0.99),
                                                                              epoch=epoch, verbose=verbose)
                 print("RUNNING TRAIN on GET_BATCH_MODE ")
-                loss_train, iter_train, perf_report_train = epoch_run(batchIter_train, tokenizer,
+                early_stoppin_metric = "accuracy-exact-pos"
+                loss_train, iter_train, perf_report_train, _ = epoch_run(batchIter_train, tokenizer,
                                                                       pos_dictionary=pos_dictionary,
                                                                       data_label=train_data_label,
                                                                       bert_with_classifier=bert_with_classifier, writer=writer,
@@ -210,34 +212,36 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                       norm_2_noise_training=norm_2_noise_training,
                                                                       norm_2_noise_eval=False,
                                                                       aggregating_bert_layer_mode=aggregating_bert_layer_mode,
+                                                                      early_stoppin_metric=None,
                                                                       n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
                 bert_with_classifier.eval()
 
                 if dev_path is not None:
                     print("RUNNING DEV on ITERATION MODE")
-                    loss_dev, iter_dev, perf_report_dev = epoch_run(batchIter_dev, tokenizer,
-                                                                    pos_dictionary=pos_dictionary,
-                                                                    iter=iter_dev, use_gpu=use_gpu,
-                                                                    bert_with_classifier=bert_with_classifier,
-                                                                    writer=writer,
-                                                                    writing_pred=epoch == (n_epoch - 1),
-                                                                    dir_end_pred=end_predictions,
-                                                                    predict_mode=True, data_label=dev_data_label,
-                                                                    epoch=epoch, tasks=tasks,
-                                                                    null_token_index=null_token_index, null_str=null_str,
-                                                                    model_id=model_id,
-                                                                    skip_1_t_n=skip_1_t_n,
-                                                                    dropout_input_bpe=0,
-                                                                    masking_strategy=masking_strategy,
-                                                                    portion_mask=portion_mask,
-                                                                    heuristic_ls=heuristic_ls,
-                                                                    gold_error_detection=gold_error_detection,
-                                                                    reference_word_dic={"InV": inv_word_dic},
-                                                                    norm_2_noise_training=norm_2_noise_training,# as training otherwise loss dev not more meaning
-                                                                    norm_2_noise_eval=False,
-                                                                    aggregating_bert_layer_mode=aggregating_bert_layer_mode,
-                                                                    n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+                    loss_dev, iter_dev, perf_report_dev, early_stoping_val = epoch_run(batchIter_dev, tokenizer,
+                                                                                       pos_dictionary=pos_dictionary,
+                                                                                       iter=iter_dev, use_gpu=use_gpu,
+                                                                                       bert_with_classifier=bert_with_classifier,
+                                                                                       writer=writer,
+                                                                                       writing_pred=epoch == (n_epoch - 1),
+                                                                                       dir_end_pred=end_predictions,
+                                                                                       predict_mode=True, data_label=dev_data_label,
+                                                                                       epoch=epoch, tasks=tasks,
+                                                                                       null_token_index=null_token_index, null_str=null_str,
+                                                                                       model_id=model_id,
+                                                                                       skip_1_t_n=skip_1_t_n,
+                                                                                       dropout_input_bpe=0,
+                                                                                       masking_strategy=masking_strategy,
+                                                                                       portion_mask=portion_mask,
+                                                                                       heuristic_ls=heuristic_ls,
+                                                                                       gold_error_detection=gold_error_detection,
+                                                                                       reference_word_dic={"InV": inv_word_dic},
+                                                                                       norm_2_noise_training=norm_2_noise_training,# as training otherwise loss dev not more meaning
+                                                                                       norm_2_noise_eval=False,
+                                                                                       early_stoppin_metric=early_stoppin_metric,
+                                                                                       aggregating_bert_layer_mode=aggregating_bert_layer_mode,
+                                                                                       n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                 else:
                     loss_dev, iter_dev, perf_report_dev = None, 0, None
 
@@ -246,9 +250,14 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                 printing("PERFORMANCE {} DEV", var=[epoch, perf_report_dev], verbose=verbose, verbose_level=1)
 
                 printing("TRAINING : loss train:{} dev:{} for epoch {}  out of {}", var=[loss_train, loss_dev, epoch, n_epoch], verbose=1, verbose_level=1)
-                checkpoint_dir = os.path.join(model_location, "{}-ep{}-checkpoint.pt".format(model_id, epoch))
 
-                if checkpointing_model_data :
+                if checkpointing_model_data or early_stoping_val < early_stoping_val_former:
+                    _epoch = "best" if early_stoping_val < early_stoping_val_former else epoch
+                    if early_stoping_val < early_stoping_val_former:
+                        early_stoping_val_former = early_stoping_val
+                    checkpoint_dir = os.path.join(model_location, "{}-ep{}-checkpoint.pt".format(model_id, _epoch))
+                    if _epoch == "best":
+                        print("SAVING BEST MODEL {} (epoch:{})".format(checkpoint_dir, epoch))
                     last_model = ""
                     if epoch == (n_epoch - 1):
                         last_model = "last"
@@ -349,6 +358,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                            aggregating_bert_layer_mode=aggregating_bert_layer_mode,
                                                                            reference_word_dic={"InV": inv_word_dic},
                                                                            n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+                        pdb.set_trace()
                     except Exception as e:
                         print("ERROR test_path {} , heuristic {} , gold error {} , norm2noise {} ".format(test,
                                                                                                           heuristic,

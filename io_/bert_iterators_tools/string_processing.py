@@ -118,7 +118,6 @@ def from_bpe_token_to_str(
     elif task == "pos":
         # NB +1 because index 0 is related to UNK
         #print("DEBUG", predictions_topk_ls, len(pos_dictionary.instances))
-        pdb.set_trace()
         sent_ls_top = [[[pos_dictionary.instances[token_ind-1] if token_ind > 0 else "UNK"
                          for token_ind in sent_bpe] for sent_bpe in predictions_topk]
                        for predictions_topk in predictions_topk_ls]
