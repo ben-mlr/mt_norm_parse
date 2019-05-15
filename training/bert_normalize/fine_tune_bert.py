@@ -331,7 +331,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                         dropout_input=0.0,
                                                                         verbose=verbose)
                     try:
-                        loss_test, iter_test, perf_report_test = epoch_run(batchIter_test, tokenizer,
+                        loss_test, iter_test, perf_report_test, _ = epoch_run(batchIter_test, tokenizer,
                                                                            pos_dictionary=pos_dictionary,
                                                                            iter=iter_dev, use_gpu=use_gpu,
                                                                            bert_with_classifier=bert_with_classifier,

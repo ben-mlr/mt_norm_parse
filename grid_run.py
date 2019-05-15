@@ -381,11 +381,11 @@ if __name__ == "__main__":
 
           BERT_NORMALIZE = True
           if BERT_NORMALIZE:
-              epochs = 10
+              epochs = 5
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
-                                                  batch_size_ls=[1, 4, 8],
+                                                  batch_size_ls=[1],
                                                   #checkpoint_dir_ls=["'"+os.path.join(PROJECT_PATH,
                                                   #                    "checkpoints", "bert", 
                                                   #                    "9318015-B-133b1-9318015-B-model_6/9318015-B-133b1-9318015-B-model_6-ep20-checkpoint.pt")+"'"],
@@ -401,10 +401,11 @@ if __name__ == "__main__":
                                                   dropout_classifier_ls=[0.3],
                                                   #dropout_input_bpe_ls=[0., 0.25, 0.5],
                                                   #aggregating_bert_layer_mode_ls=["sum", "1", "4", "8"],
-                                                  dropout_bert_ls=[0.15],# 0.2, 0.1],
+                                                  dropout_bert_ls=[0.15,0.2,0.1],# 0.2, 0.1],
                                                   #gold_error_detection_ls=[0], heuristic_ls_ls=[["'#'","'@'"]],
-                                                  overall_report_dir=dir_grid, overall_label=LABEL_GRID,  
-                                                  train_path=[[EN_LINE_EWT_GUM_PARTUT_TRAIN]],
+                                                  overall_report_dir=dir_grid, overall_label=LABEL_GRID,
+                                                  aggregating_bert_layer_mode_ls=[5],
+                                                  train_path=[[EN_LINES_EWT_TRAIN]],
                                                   dev_path=[[EWT_DEV]],
                                                   #train_path=[[AUGMENTED_LEX_DIC[n_sent]] for n_sent in [80, 100, 120, 150, 250, 350]],
                                                   #dev_path=[[LIU_DEV] for n_sent in [80, 100, 120,150,250,350]],
