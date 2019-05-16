@@ -1,15 +1,18 @@
+from env.importing import pdb
 
 
 def agg_func_batch_score(overall_ls_sent_score, overall_filter, agg_func):
 
     # sanity check
     try:
-        assert len(overall_ls_sent_score) == len(overall_filter), "ERROR : filter uncorrect score:{} filter:{}".format(overall_ls_sent_score, overall_filter)
+        assert len(overall_ls_sent_score) == len(overall_filter), "ERROR (scoring/agg_func_batch_score) : " \
+                                                                  "filter uncorrect score:{} filter:{}".format(overall_ls_sent_score, overall_filter)
         for ind in range(len(overall_ls_sent_score)):
             assert len(overall_ls_sent_score[ind]) == len(overall_filter[ind]), "ERROR : filter uncorrect " \
                                                                                 "len sent score={} filter={} ".format(overall_ls_sent_score, overall_filter[ind])
     except AssertionError as e:
         print(e)
+        pdb.set_trace()
         print("SKIPED,batch+1 : score:{} filter:{}".format(overall_ls_sent_score, overall_filter))
         return 0
     # if filter 1 we keep otherise we ignore the token (and its score) in evaluation

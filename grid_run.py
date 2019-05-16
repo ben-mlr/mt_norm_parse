@@ -381,7 +381,7 @@ if __name__ == "__main__":
 
           BERT_NORMALIZE = True
           if BERT_NORMALIZE:
-              epochs = 5
+              epochs = 10
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
@@ -391,7 +391,7 @@ if __name__ == "__main__":
                                                   #                    "9318015-B-133b1-9318015-B-model_6/9318015-B-133b1-9318015-B-model_6-ep20-checkpoint.pt")+"'"],
                                                   gpu_mode="random",
                                                   #norm_2_noise_training_ls=[0., 1.],
-                                                  lr_ls=[0.00001, 0.00002],
+                                                  lr_ls=[0.00001],
                                                   masking_strategy_ls=[None],# ["normed", "0.05"],["normed", "0.1"],["normed", "0.2"]],
                                                   #                     ["normed", "0.75"],["normed", "1."]],#[None,,
                                                   #lr_ls=[OrderedDict([("bert", "0.00001"), ("classifier", "0.0001")]),
@@ -400,8 +400,8 @@ if __name__ == "__main__":
                                                   fine_tuning_strategy_ls=["standart"],
                                                   dropout_classifier_ls=[0.3],
                                                   #dropout_input_bpe_ls=[0., 0.25, 0.5],
-                                                  aggregating_bert_layer_mode_ls=["1"],
-                                                  dropout_bert_ls=[0.15, 0.2, 0.1],
+                                                  aggregating_bert_layer_mode_ls=["1","5","7","11"],
+                                                  dropout_bert_ls=[0.15],
                                                   #gold_error_detection_ls=[0], heuristic_ls_ls=[["'#'","'@'"]],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   #train_path=[[LEX_TRAIN, EN_LINES_EWT_TRAIN]],
@@ -411,7 +411,7 @@ if __name__ == "__main__":
                                                   #dev_path=[[LIU_DEV] for n_sent in [80, 100, 120,150,250,350]],
                                                   #test_paths=[[[LIU_DEV], [TEST], [LEX_TEST], [LEX_TRAIN], [GENERATED_DIC[350]]] for _ in [80, 100, 120,150,250,350]],
                                                   #test_paths=[[[LEX_TEST,EWT_DEV], [LEX_TRAIN,EN_LINES_EWT_TRAIN], [LIU_DEV,EWT_TEST], [DEV, DEV], [TEST, TEST]]],
-                                                  test_paths=[[[EWT_DEV], [EN_LINES_EWT_TRAIN],[EWT_TEST], [DEV], [TEST]]],
+                                                  test_paths=[[[EWT_DEV],[EN_LINE_EWT_GUM_PARTUT_TRAIN], [EN_LINES_EWT_TRAIN],[EWT_TEST], [DEV], [TEST]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,

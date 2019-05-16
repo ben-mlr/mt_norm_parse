@@ -24,7 +24,7 @@ def word_level_scoring(metric, gold, topk_pred, topk):
         return 0
 
 
-def word_level_filter(gold, topk_pred, topk, src, sample="all", word_reference_dic_ls=None):
+def word_level_filter(gold, topk_pred, topk, src, sample="all", sample_2=None, word_reference_dic_ls=None):
     """
     compare a gold string and a list of candidate
     return a score based on it
@@ -43,16 +43,38 @@ def word_level_filter(gold, topk_pred, topk, src, sample="all", word_reference_d
         return 0
 
     if sample == "all":
-        return 1
-    elif sample == "NORMED":
-        return src == gold
+        sample_1_filter = 1
+    elif sample == "NORMED" :
+        sample_1_filter = src == gold
     elif sample == "NEED_NORM":
-        return src != gold
+        sample_1_filter = src != gold
     elif sample == "InV":
         assert word_reference_dic_ls is not None, "No word_reference_dic_ls provided"
         assert word_reference_dic_ls.get("InV", None) is not None, "No word_reference_dic_ls['InV'] provided"
-        return src in word_reference_dic_ls["InV"] or src.lower() in word_reference_dic_ls["InV"]
+        sample_1_filter = src in word_reference_dic_ls["InV"] or src.lower() in word_reference_dic_ls["InV"]
     elif sample == "OOV":
         assert word_reference_dic_ls is not None, "No word_reference_dic_ls provided"
         assert word_reference_dic_ls.get("InV", None) is not None, "No word_reference_dic_ls['InV'] provided"
-        return src not in word_reference_dic_ls["InV"] and src.lower() not in word_reference_dic_ls["InV"]
+        sample_1_filter = src not in word_reference_dic_ls["InV"] and src.lower() not in word_reference_dic_ls["InV"]
+
+    if sample_2 is not None:
+        assert sample_2 != sample, "we don't want reduncancies"
+        assert sample != "all", " we don't want intersction with all "
+        if sample_2 == "all":
+            sample_2_filter = 1
+        elif sample_2 == "NORMED":
+            sample_2_filter = src == gold
+        elif sample_2 == "NEED_NORM":
+            sample_2_filter = src != gold
+        elif sample_2 == "InV":
+            assert word_reference_dic_ls is not None, "No word_reference_dic_ls provided"
+            assert word_reference_dic_ls.get("InV", None) is not None, "No word_reference_dic_ls['InV'] provided"
+            sample_2_filter = src in word_reference_dic_ls["InV"] or src.lower() in word_reference_dic_ls["InV"]
+        elif sample_2 == "OOV":
+            assert word_reference_dic_ls is not None, "No word_reference_dic_ls provided"
+            assert word_reference_dic_ls.get("InV", None) is not None, "No word_reference_dic_ls['InV'] provided"
+            sample_2_filter = src not in word_reference_dic_ls["InV"] and src.lower() not in word_reference_dic_ls["InV"]
+    else:
+        sample_2_filter = 1
+
+    return sample_1_filter * sample_2_filter

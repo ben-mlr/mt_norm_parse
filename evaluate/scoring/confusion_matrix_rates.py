@@ -14,7 +14,8 @@ def get_perf_rate(metric, score_dic, n_tokens_dic, agg_func, task="normalize", v
     """
     if metric in ["recall-normalize", "f1-normalize", "accuracy-normalize"]:
         positive_obs = n_tokens_dic[agg_func][TASKS_PARAMETER[task]["predicted_classes"][1]]
-        recall = score_dic[agg_func][TASKS_PARAMETER[task]["predicted_classes"][1]] / positive_obs if positive_obs>0 else None
+        recall = score_dic[agg_func][TASKS_PARAMETER[task]["predicted_classes"][1]] / positive_obs \
+            if positive_obs > 0 else None
         if positive_obs == 0:
             printing("WARNING : no positive observation were seen ", verbose=verbose, verbose_level=1)
         if metric == "recall-normalize":

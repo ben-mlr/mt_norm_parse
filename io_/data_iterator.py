@@ -87,7 +87,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                                                                                                       normalization=normalization,
                                                                                                       unk_replace=0)
             if char.size(0) <= 1:
-                print("WARNING : NOT Skip character ")
+                printing("WARNING : NOT Skip character ", verbose_level=2, verbose=verbose)
                 #continue
             printing("TYPE {} word, char {} , chars_norm {} length {} ", var=(word.is_cuda, char.is_cuda,
                                                                               #chars_norm.is_cuda, lenght.is_cuda

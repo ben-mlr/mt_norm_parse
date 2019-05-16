@@ -39,6 +39,7 @@ def epoch_run(batchIter, tokenizer,
               log_perf=True, masking_strategy=None, portion_mask=None, remove_mask_str_prediction=False,
               inverse_writing=False,
               norm_2_noise_eval=False, norm_2_noise_training=None, aggregating_bert_layer_mode="sum",
+              compute_intersection_score = False,
               subsample_early_stoping_metric_val="all",
               verbose=0):
     """
@@ -141,10 +142,15 @@ def epoch_run(batchIter, tokenizer,
 
     loss = 0
     samples = ["all", "NEED_NORM", "NORMED", "InV", "OOV"]
+    init_samples = samples.copy()
+    if compute_intersection_score:
+        for ind,sam in enumerate(samples[1:]):
+            for ind_2 in range(ind):
+                init_samples.append(sam+"-n-"+samples[ind_2+1])
     agg_func_ls = ["sum"]
-    score_dic = {agg_func: {sample: 0 for sample in samples} for agg_func in agg_func_ls }
-    n_tokens_dic = {agg_func: {sample: 0 for sample in samples} for agg_func in agg_func_ls}
-    n_sents_dic = {agg_func: {sample: 0 for sample in samples} for agg_func in agg_func_ls}
+    score_dic = {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls }
+    n_tokens_dic = {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls}
+    n_sents_dic = {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls}
     skipping_evaluated_batch = 0
     mode = "?"
     new_file = True
@@ -153,7 +159,8 @@ def epoch_run(batchIter, tokenizer,
     loss_pos = 0
     n_batch_pos = 0
     n_batch_norm = 0
-
+    n_task_pos_sanity = 0
+    n_task_normalize_sanity = 0
     while True:
 
         try:
@@ -163,7 +170,9 @@ def epoch_run(batchIter, tokenizer,
             # if no normalization found : should have pos
             task_pos_is = len(batch.raw_output[0]) == 0
             task_normalize_is = not task_pos_is
-            print("ITERATING on {} task".format("pos" if task_pos_is else "normalize"))
+            #print("ITERATING on {} task".format("pos" if task_pos_is else "normalize"))
+            n_task_pos_sanity += int(task_pos_is)
+            n_task_normalize_sanity += int(task_normalize_is)
             norm2noise_bool = False
             batch_raw_output = None
             # Handling input
@@ -235,7 +244,6 @@ def epoch_run(batchIter, tokenizer,
                         mask = _input_mask[ind_sent][ind_tok]
                         try:
                             label = output_tokens_tensor[ind_sent, ind_tok-shift]
-                            pdb.set_trace()
                         except Exception as e:
                             print("ERROR ind_send:{} ind_tok {} shift {} output_tokens_tensor {} {}".format(ind_sent, ind_tok, shift, output_tokens_tensor, e))
                             print("ERROR ind_send ", batch.raw_input, batch.raw_output)
@@ -333,8 +341,8 @@ def epoch_run(batchIter, tokenizer,
                                              )
             except Exception as e:
                 print(e)
-                print(output_tokens_tensor_aligned, input_tokens_tensor, input_mask)
-                loss_dic = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,aggregating_bert_layer_mode=aggregating_bert_layer_mode,
+                print(" MAX ", torch.max(output_tokens_tensor_aligned), input_tokens_tensor, input_mask)
+                loss_dic = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask, aggregating_bert_layer_mode=aggregating_bert_layer_mode,
                                              labels=output_tokens_tensor_aligned if task_normalize_is else None,#if tasks[0] == "normalize" else None,
                                              labels_task_2=output_tokens_tensor_aligned if task_pos_is else None)#if tasks[0] == "pos" else None)
             _loss = loss_dic["loss"]
@@ -370,6 +378,9 @@ def epoch_run(batchIter, tokenizer,
                 gold_detokenized = realigne(gold, input_alignement_with_raw, remove_null_str=True, null_str=null_str,
                                             tasks=tasks,
                                             mask_str=MASK_BERT)
+                if task_pos_is:
+                    # we remove padding here based on src that is corectly padded
+                    gold_detokenized = [gold_sent[:len(src_sent)] for gold_sent, src_sent in zip(gold_detokenized,src_detokenized)]
                 pred_detokenized_topk = []
                 for sent_ls in sent_ls_top:
                     pred_detokenized_topk.append(realigne(sent_ls, input_alignement_with_raw, remove_null_str=True,
@@ -405,20 +416,23 @@ def epoch_run(batchIter, tokenizer,
                                 tasks=["pos" if task_pos_is else "normalize"],
                                 ind_batch=iter + batch_i, new_file=new_file, verbose=verbose)
                     new_file = False
-                perf_prediction, skipping = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk,
-                                                                              topk,
-                                                                              metric=metric,
-                                                                              samples=samples,
-                                                                              agg_func_ls=agg_func_ls,
-                                                                              reference_word_dic=reference_word_dic,
-                                                                              src_detokenized=src_detokenized)
+                pdb.set_trace()
+                perf_prediction, skipping, _samples = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk,
+                                                                                        topk,
+                                                                                        metric=metric,
+                                                                                        samples=samples,
+                                                                                        agg_func_ls=agg_func_ls,
+                                                                                        reference_word_dic=reference_word_dic,
+                                                                                        compute_intersection_score=compute_intersection_score,
+                                                                                        src_detokenized=src_detokenized)
 
                 score_dic, n_tokens_dic, n_sents_dic = accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
-                                                                                      sample_ls=samples,
+                                                                                      sample_ls=_samples,
                                                                                       dic_prediction_score=perf_prediction,
                                                                                       score_dic=score_dic,
                                                                                       n_tokens_dic=n_tokens_dic,
                                                                                       n_sents_dic=n_sents_dic)
+                pdb.set_trace()
 
                 skipping_evaluated_batch += skipping
 
@@ -448,21 +462,21 @@ def epoch_run(batchIter, tokenizer,
                     printing("TRAINING : BPE eval src {}-{} {}", var=[iter, batch_i, input_alignement_with_raw],
                              verbose=verbose, verbose_level=2)
 
-                    def print_align_bpe(source_preprocessed, gold, input_alignement_with_raw, verbose,verbose_level):
-                        if isinstance(verbose, int) or verbose == "alignement":
-                            if verbose == "alignement" or verbose >= verbose_level:
-                                assert len(source_preprocessed) == len(gold), ""
-                                assert len(input_alignement_with_raw) == len(gold), ""
-                                for sent_src, sent_gold, index_match_with_src in zip(source_preprocessed, gold, input_alignement_with_raw):
-                                    assert len(sent_src) == len(sent_gold)
-                                    assert len(sent_src) == len(sent_gold)
-                                    for src, gold_tok, index in zip(sent_src,sent_gold, index_match_with_src):
-                                        printing("{}:{} --> {} ", var=[index, src, gold_tok],
-                                                 verbose=verbose, verbose_level="alignement")
-                                        printing("{}:{} --> {} ", var=[index, src, gold_tok],
-                                                 verbose=verbose, verbose_level=verbose_level)
+                def print_align_bpe(source_preprocessed, gold, input_alignement_with_raw, verbose,verbose_level):
+                    if isinstance(verbose, int) or verbose == "alignement":
+                        if verbose == "alignement" or verbose >= verbose_level:
+                            assert len(source_preprocessed) == len(gold), ""
+                            assert len(input_alignement_with_raw) == len(gold), ""
+                            for sent_src, sent_gold, index_match_with_src in zip(source_preprocessed, gold, input_alignement_with_raw):
+                                assert len(sent_src) == len(sent_gold)
+                                assert len(sent_src) == len(sent_gold)
+                                for src, gold_tok, index in zip(sent_src, sent_gold, index_match_with_src):
+                                    printing("{}:{} --> {} ", var=[index, src, gold_tok],
+                                             verbose=1, verbose_level=1)
+                                    #printing("{}:{} --> {} ", var=[index, src, gold_tok],
+                                    #         verbose=verbose, verbose_level=verbose_level)
 
-                    print_align_bpe(source_preprocessed, gold, input_alignement_with_raw, verbose=verbose, verbose_level=4)
+                print_align_bpe(source_preprocessed, gold, input_alignement_with_raw, verbose=verbose, verbose_level=4)
 
             loss += _loss.detach()
 
@@ -478,7 +492,7 @@ def epoch_run(batchIter, tokenizer,
                 printing("MODE data {} not optimizing".format(data_label), verbose=verbose, verbose_level=4)
 
             if writer is not None:
-                writer.add_scalars("loss",
+                writer.add_scalars("loss-alteranate",
                                    {"loss-{}-{}-bpe".format(mode, model_id): _loss.clone().cpu().data.numpy()
                                    if not isinstance(_loss, int) else 0},
                                    iter+batch_i)
@@ -505,9 +519,11 @@ def epoch_run(batchIter, tokenizer,
              verbose=verbose, verbose_level=0)
     printing("WARNING on {} ON THE EVALUATION SIDE we skipped extra {} batch ", var=[data_label, skipping_evaluated_batch], verbose_level=1, verbose=1)
     early_stoppin_metric_val = 1000
+    samples = _samples
+    print("CHECKING SAMPLES", _samples)
     if predict_mode:
         if writer is not None:
-            writer.add_scalars("loss-mean-{}-{}".format(tasks[0], mode),
+            writer.add_scalars("loss-overall-mean-{}-{}".format(tasks[0], mode),
                            {"{}-{}-{}".format("loss", mode, model_id): loss/batch_i
                             }, iter + batch_i)
             if "normalize" in tasks:
@@ -594,7 +610,7 @@ def epoch_run(batchIter, tokenizer,
                         reports.append(report)
 
                         if writer is not None and log_perf:
-                            writer.add_scalars("perf-{}".format(mode),
+                            writer.add_scalars("perf-{}-{}".format(mode,tasks[0]),
                                                {"{}-{}-{}-bpe".format(metric_val, mode, model_id):
                                                     score if score is not None else 0
                                                 }, iter + batch_i)
@@ -605,5 +621,6 @@ def epoch_run(batchIter, tokenizer,
 
     if writing_pred:
         printing("DATA WRITTEN TO {} ", var=[dir_end_pred], verbose=verbose, verbose_level=1)
-
+    printing("END EPOCH {} mode, iterated {} on pos {} on normalisation ",
+             var=[mode, n_task_pos_sanity, n_task_normalize_sanity], verbose_level=1, verbose=verbose)
     return loss, iter, reports, early_stoppin_metric_val

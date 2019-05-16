@@ -30,6 +30,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         extra_label_for_prediction="",
         random_iterator_train=True, bucket_test=True, must_get_norm_test=True,
         aggregating_bert_layer_mode=None,early_stoppin_metric =None,
+        compute_intersection_score_test=True,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
@@ -358,12 +359,10 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                            # we decide wether we eval everything in mode
                                                                            # norm2noise or not
                                                                            # --> we could also add a loop and tag in report
-                                                                           norm_2_noise_eval=norm_2_noise_eval,
+                                                                           norm_2_noise_eval=norm_2_noise_eval, compute_intersection_score=compute_intersection_score_test,
                                                                            remove_mask_str_prediction=remove_mask_str_prediction, inverse_writing=inverse_writing,
                                                                            aggregating_bert_layer_mode=aggregating_bert_layer_mode,
-                                                                           reference_word_dic={"InV": inv_word_dic},
-                                                                           n_iter_max=n_iter_max_per_epoch, verbose=verbose)
-                        pdb.set_trace()
+                                                                           reference_word_dic={"InV": inv_word_dic}, n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                     except Exception as e:
                         print("ERROR test_path {} , heuristic {} , gold error {} , norm2noise {} ".format(test,
                                                                                                           heuristic,

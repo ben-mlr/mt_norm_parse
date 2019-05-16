@@ -204,15 +204,6 @@ def realigne(ls_sent_str, input_alignement_with_raw, null_str, mask_str, tasks,
                 new_sent.append(token)
                 break
             former_index = index
-            if "pos" == tasks[0] and False:
-                if token == PAD_POS:
-                    pass
-                if index != former_index or _i + 1 == len(index_ls):
-                    new_sent.append(former_token)
-                    former_token = token
-                    if trigger_end_sent:
-                        break
-                else:
-                    new_sent.append(token)
+
         new_sent_ls.append(new_sent[1:])
     return new_sent_ls

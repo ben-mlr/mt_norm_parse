@@ -39,12 +39,12 @@ if train:
     initialize_bpe_layer = True
     freeze_parameters = True
     freeze_layer_prefix_ls = ["bert"]
-    tasks = ["pos"]
-    train_path = [DEMO]#, DEMO]
+    tasks = ["normalize"]
+    train_path = [EWT_DEV]#, DEMO]
     dev_path = [DEMO]#, DEMO]
     test_paths_ls = [[DEMO]]
 
-    voc_pos_size = 16
+    voc_pos_size = 21
     #["bert"]
     model = get_bert_token_classification(pretrained_model_dir=model_dir,
                                           vocab_size=vocab_size, dropout_classifier=0.5,
@@ -53,7 +53,7 @@ if train:
                                           freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                                           dropout_bert=0.0, initialize_bpe_layer=initialize_bpe_layer)
     lr = 0.0001
-    batch_size = 1
+    batch_size = 2
     null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary
     description = "DEBUGGING_LEAK-AS_BEFORE"
     print("{} lr batch_size initialize_bpe_layer training_data".format(REPORT_FLAG_VARIABLES_ENRICH_STR))
@@ -67,19 +67,19 @@ if train:
                 saving_every_epoch=10,
                 lr=0.001,#OrderedDict([("bert", lr), ("classifier", lr)]),
                 batch_size=batch_size, n_iter_max_per_epoch=10,
-                n_epoch=10,
+                n_epoch=1,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
-                model_suffix="{}".format(description), debug=True,
+                model_suffix="{}".format(description), debug=False,
                 fine_tuning_strategy="standart",
                 #masking_strategy=["normed", 1.],
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                 initialize_bpe_layer=initialize_bpe_layer, args=None, skip_1_t_n=False, dropout_input_bpe=0.0,
                 heuristic_ls=None, gold_error_detection=False,
-                bucket_test=True, must_get_norm_test=False,
-                norm_2_noise_eval=False, norm_2_noise_training=0.,
+                bucket_test=True, must_get_norm_test=True,
+                norm_2_noise_eval=False, #norm_2_noise_training=,
                 aggregating_bert_layer_mode=5,
-                report=True, verbose=1)
+                report=True, verbose="raw_data")
 
 
 null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary
@@ -116,7 +116,7 @@ if playwith:
     #model.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
     # NB : AT TEST TIME :  null_token_index should be loaded not passed as argument
     pref_suffix = ""
-    batch_size = 1
+    batch_size = 2
     lr = ""
     evalu = True
     if evalu:

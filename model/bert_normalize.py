@@ -36,7 +36,7 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
         num_labels = vocab_size + 1
     else:
         num_labels = 1
-        printing("WE ARE STILL DEFINING a CLASSIFIER_1 but it should be left untrained ", verbose=verbose,verbose_level=1)
+        printing("MODEL : WE ARE STILL DEFINING a CLASSIFIER_1 but it should be left untrained ", verbose=verbose,verbose_level=1)
     if "pos" in tasks:
         assert voc_pos_size is not None
 
