@@ -29,7 +29,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         remove_mask_str_prediction=False, inverse_writing=False,
         extra_label_for_prediction="",
         random_iterator_train=True, bucket_test=True, must_get_norm_test=True,
-        aggregating_bert_layer_mode=None,
+        aggregating_bert_layer_mode=None,early_stoppin_metric =None,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
@@ -39,6 +39,12 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
     assert run_mode in ["train", "test"], "ERROR run mode {} corrupted ".format(run_mode)
     printing("MODEL : RUNNING IN {} mode", var=[run_mode], verbose=verbose, verbose_level=1)
 
+    if early_stoppin_metric is None:
+        if "pos" in tasks:
+            early_stoppin_metric = "accuracy-exact-pos"
+        elif "normalize" in tasks:
+            early_stoppin_metric = "f1-normalize"
+        printing("INFO : setting early_stoppin_metric to {}", var=[early_stoppin_metric], verbose=verbose, verbose_level=1)
     assert len(tasks) == len(train_path), "ERROR tasks is {} bu train path are {}".format(tasks, train_path)
     assert len(dev_path) == len(train_path)
     #assert len(test_path_ls) == len(tasks), "{} tasks test_path_ls {}".format(test_path_ls, tasks)
@@ -192,7 +198,6 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                              lr_init=lr, betas=(0.9, 0.99),
                                                                              epoch=epoch, verbose=verbose)
                 print("RUNNING TRAIN on GET_BATCH_MODE ")
-                early_stoppin_metric = "accuracy-exact-pos"
                 loss_train, iter_train, perf_report_train, _ = epoch_run(batchIter_train, tokenizer,
                                                                       pos_dictionary=pos_dictionary,
                                                                       data_label=train_data_label,

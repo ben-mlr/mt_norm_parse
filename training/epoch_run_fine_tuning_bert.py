@@ -233,7 +233,14 @@ def epoch_run(batchIter, tokenizer,
                     shift = 0
                     for ind_tok in range(len(_input_mask[ind_sent])):
                         mask = _input_mask[ind_sent][ind_tok]
-                        label = output_tokens_tensor[ind_sent, ind_tok-shift]
+                        try:
+                            label = output_tokens_tensor[ind_sent, ind_tok-shift]
+                            pdb.set_trace()
+                        except Exception as e:
+                            print("ERROR ind_send:{} ind_tok {} shift {} output_tokens_tensor {} {}".format(ind_sent, ind_tok, shift, output_tokens_tensor, e))
+                            print("ERROR ind_send ", batch.raw_input, batch.raw_output)
+                            label = output_tokens_tensor[ind_sent, output_tokens_tensor.shape[1]-1]
+
                         if mask != 0:
                             output_tokens_tensor_new_ls.append(label)
                         else:
