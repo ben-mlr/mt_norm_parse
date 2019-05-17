@@ -89,6 +89,10 @@ LIU_TRAIN_LABEL, LIU_TRAIN = "liu_train", os.path.join(PROJECT_PATH, "./data/LiL
 LIU_TRAIN_OWOPUTI_LEX_TRAIN_LABEL, LIU_TRAIN_OWOPUTI_LEX_TRAIN = "lex_norm2015_train-space_demo", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-train_2009-fixed+owoputi_integrated_fixed+lexnorm_train.conll")
 LEX_TRAIN_SPACE_DEMO_LABEL, LEX_TRAIN_SPACE_DEMO = "lex_norm2015_train-space_demo", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/train_data-space_demo.conll")
 LEX_TRAIN_LABEL, LEX_TRAIN = "lex_norm2015_train", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/train_data.conll")
+
+LEX_TRAIN_SPLIT_LABEL, LEX_TRAIN_SPLIT = "lex_norm2015_train", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/train_split_data.conll")
+LEX_DEV_SPLIT_LABEL, LEX_DEV_SPLIT = "lex_norm2015_train", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/dev_split_data.conll")
+
 LEX_TEST_LABEL, LEX_TEST = "lex_norm2015_test", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/test_truth.conll")
 
 LEX_LIU_LABEL, LEX_LIU_TRAIN = "lex_train+liu", os.path.join(PROJECT_PATH, "./data/lexnorm2015/lex_norm_train+liu_2577.conll")
@@ -201,6 +205,8 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 LEX_TRAIN_SPACE_DEMO: LEX_TRAIN_SPACE_DEMO_LABEL,
                 LIU_TRAIN_OWOPUTI_LEX_TRAIN: LIU_TRAIN_OWOPUTI_LEX_TRAIN_LABEL,
                 LIU_DEV_OWOPUTI: LIU_DEV_OWOPUTI_LABEL,
+                LEX_TRAIN_SPLIT: LEX_TRAIN_SPLIT_LABEL,
+                LEX_DEV_SPLIT:  LEX_DEV_SPLIT_LABEL,
                 EN_LINE_EWT_GUM_PARTUT_TRAIN: EN_LINE_EWT_GUM_PARTUT_TRAIN_LABEL,
                 LIU_OWOPUTI: LIU_OWOPUTI_LABEL,
                 LEX_TRAIN: LEX_TRAIN_LABEL,

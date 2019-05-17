@@ -29,7 +29,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         remove_mask_str_prediction=False, inverse_writing=False,
         extra_label_for_prediction="",
         random_iterator_train=True, bucket_test=True, must_get_norm_test=True,
-        aggregating_bert_layer_mode=None,early_stoppin_metric =None,
+        aggregating_bert_layer_mode=None,
+        early_stoppin_metric=None,subsample_early_stoping_metric_val=None,
         compute_intersection_score_test=True,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
@@ -43,8 +44,10 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
     if early_stoppin_metric is None:
         if "pos" in tasks:
             early_stoppin_metric = "accuracy-exact-pos"
+            subsample_early_stoping_metric_val = "all"
         elif "normalize" in tasks:
-            early_stoppin_metric = "f1-normalize"
+            early_stoppin_metric = "recall-normalize"
+            subsample_early_stoping_metric_val = "rates"
         printing("INFO : setting early_stoppin_metric to {}", var=[early_stoppin_metric], verbose=verbose, verbose_level=1)
     assert len(tasks) == len(train_path), "ERROR tasks is {} bu train path are {}".format(tasks, train_path)
     assert len(dev_path) == len(train_path)
@@ -97,6 +100,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         if report:
             if report_full_path_shared is not None:
                 tensorboard_log = os.path.join(report_full_path_shared, "tensorboard")
+            printing("tensorboard --logdir={} --host=localhost --port=1234 ", var=[tensorboard_log], verbose_level=1,verbose=verbose)
             writer = SummaryWriter(log_dir=tensorboard_log)
             if writer is not None:
                 writer.add_text("INFO-ARGUMENT-MODEL-{}".format(model_id), str(hyperparameters), 0)
@@ -246,6 +250,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                                        norm_2_noise_training=norm_2_noise_training,# as training otherwise loss dev not more meaning
                                                                                        norm_2_noise_eval=False,
                                                                                        early_stoppin_metric=early_stoppin_metric,
+                                                                                       subsample_early_stoping_metric_val=subsample_early_stoping_metric_val,
                                                                                        aggregating_bert_layer_mode=aggregating_bert_layer_mode,
                                                                                        n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                 else:
@@ -259,11 +264,15 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
 
                 if checkpointing_model_data or early_stoping_val < early_stoping_val_former:
                     _epoch = "best" if early_stoping_val < early_stoping_val_former else epoch
-                    if early_stoping_val < early_stoping_val_former:
-                        early_stoping_val_former = early_stoping_val
                     checkpoint_dir = os.path.join(model_location, "{}-ep{}-checkpoint.pt".format(model_id, _epoch))
                     if _epoch == "best":
-                        print("SAVING BEST MODEL {} (epoch:{})".format(checkpoint_dir, epoch))
+                        print("SAVING BEST MODEL {} (epoch:{}) (new loss is {} former was {})".format(checkpoint_dir, epoch, early_stoping_val, early_stoping_val_former))
+                        last_checkpoint_dir_best = checkpoint_dir
+                        early_stoping_val_former = early_stoping_val
+                        best_epoch = epoch
+                        best_loss = early_stoping_val
+                    else:
+                        print("NOT SAVING BEST MODEL : new loss {} did not beat first loss {}".format(early_stoping_val , early_stoping_val_former))
                     last_model = ""
                     if epoch == (n_epoch - 1):
                         last_model = "last"
@@ -289,9 +298,17 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
             raise(e)
     if run_mode in ["train", "test"] and test_path_ls is not None:
         report_all = []
+        if use_gpu:
+            bert_with_classifier.load_state_dict(torch.load(last_checkpoint_dir_best))
+            bert_with_classifier = bert_with_classifier.cuda()
+        else:
+            bert_with_classifier.load_state_dict(torch.load(last_checkpoint_dir_best, map_location=lambda storage, loc: storage))
+        printing("MODEL : RELOADING best model of epoch {} with loss {} based on {}({}) metric (from checkpoint {})",
+                 var=[best_epoch, best_loss, early_stoppin_metric, subsample_early_stoping_metric_val,
+                      last_checkpoint_dir_best], verbose=verbose, verbose_level=1)
         bert_with_classifier.eval()
-        #assert len(test_path_ls[0]) == 1, "ERROR 1 task supported so far for bert"
-        #pdb.set_trace()
+        pdb.set_trace()
+
         for test_path in test_path_ls:
             assert len(test_path) == len(tasks)
             for test, task_to_eval in zip(test_path, tasks):
@@ -387,8 +404,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
 
     if writer is not None:
         writer.close()
-        printing("tensorboard --logdir={} --host=localhost --port=1234 ", var=[tensorboard_log], verbose_level=1,
-                 verbose=verbose)
+        printing("tensorboard --logdir={} --host=localhost --port=1234 ", var=[tensorboard_log], verbose_level=1,verbose=verbose)
     if row is not None:
         update_status(row=row, new_status="done", verbose=1)
         update_status(row=row, new_status=tensorboard_log, verbose=1, col_number=10)

@@ -335,10 +335,9 @@ def epoch_run(batchIter, tokenizer,
             try:
                 printing("MASK mask:{} input:{} ", var=[input_mask, input_tokens_tensor], verbose_level="mask", verbose=verbose)
                 loss_dic = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
-                                             labels=output_tokens_tensor_aligned if task_normalize_is else None, #tasks[0] == "normalize" else None,
-                                             labels_task_2=output_tokens_tensor_aligned if task_pos_is else None, #tasks[0] == "pos" else None
-                                             aggregating_bert_layer_mode=aggregating_bert_layer_mode,
-                                             )
+                                                labels=output_tokens_tensor_aligned if task_normalize_is else None, #tasks[0] == "normalize" else None,
+                                                labels_task_2=output_tokens_tensor_aligned if task_pos_is else None, #tasks[0] == "pos" else None
+                                                aggregating_bert_layer_mode=aggregating_bert_layer_mode)
             except Exception as e:
                 print(e)
                 print(" MAX ", torch.max(output_tokens_tensor_aligned), input_tokens_tensor, input_mask)
@@ -416,7 +415,6 @@ def epoch_run(batchIter, tokenizer,
                                 tasks=["pos" if task_pos_is else "normalize"],
                                 ind_batch=iter + batch_i, new_file=new_file, verbose=verbose)
                     new_file = False
-                pdb.set_trace()
                 perf_prediction, skipping, _samples = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk,
                                                                                         topk,
                                                                                         metric=metric,
@@ -432,7 +430,6 @@ def epoch_run(batchIter, tokenizer,
                                                                                       score_dic=score_dic,
                                                                                       n_tokens_dic=n_tokens_dic,
                                                                                       n_sents_dic=n_sents_dic)
-                pdb.set_trace()
 
                 skipping_evaluated_batch += skipping
 
@@ -518,26 +515,26 @@ def epoch_run(batchIter, tokenizer,
                   skipping_batch_n_to_1],
              verbose=verbose, verbose_level=0)
     printing("WARNING on {} ON THE EVALUATION SIDE we skipped extra {} batch ", var=[data_label, skipping_evaluated_batch], verbose_level=1, verbose=1)
-    early_stoppin_metric_val = 1000
+    early_stoppin_metric_val = None
     samples = _samples
     print("CHECKING SAMPLES", _samples)
     if predict_mode:
         if writer is not None:
             writer.add_scalars("loss-overall-mean-{}-{}".format(tasks[0], mode),
                            {"{}-{}-{}".format("loss", mode, model_id): loss/batch_i
-                            }, iter + batch_i)
+                            }, epoch)
             if "normalize" in tasks:
                 try:
                     writer.add_scalars("loss-norm",
                                {"loss-{}-{}-bpe".format(mode, model_id): loss_norm.clone().cpu().data.numpy()/n_batch_norm},
-                               iter + batch_i)
+                               epoch)
                 except Exception as e:
                     print("ERROR {} loss_pos is , n_batch_pos is {} coud not log ".format(e, loss_norm, n_batch_norm))
             if "pos" in tasks:
                 try:
                     writer.add_scalars("loss-pos",
                                {"loss-{}-{}-bpe".format(mode, model_id): loss_pos.clone().cpu().data.numpy()/n_batch_pos},
-                               iter + batch_i)
+                               epoch)
                 except Exception as e:
                     print("ERROR {} loss_pos is , n_batch_pos is {} coud not log ".format(e, loss_pos, n_batch_pos))
 
@@ -570,6 +567,7 @@ def epoch_run(batchIter, tokenizer,
                                          token_type="word",
                                          report_path_val=None,
                                          data_val=data_label)
+
                 if early_stoppin_metric is not None:
                     if metric_val == early_stoppin_metric and subsample_early_stoping_metric_val == sample+label_heuristic:
                         early_stoppin_metric_val = -score/n_tokens
@@ -577,7 +575,7 @@ def epoch_run(batchIter, tokenizer,
                     writer.add_scalars("perf-{}-{}".format(tasks[0], mode),
                                        {"{}-{}-{}-{}".format(metric_val, mode, model_id, sample):
                                             score/n_tokens if n_tokens>0 and score is not None else 0
-                                        }, iter + batch_i)
+                                        }, epoch)
                 reports.append(report)
             # class negative 0 , class positive 1
             # TODO : make that more consistent with user needs !
@@ -610,10 +608,10 @@ def epoch_run(batchIter, tokenizer,
                         reports.append(report)
 
                         if writer is not None and log_perf:
-                            writer.add_scalars("perf-{}-{}".format(mode,tasks[0]),
+                            writer.add_scalars("perf-{}-{}".format(tasks[0], mode),
                                                {"{}-{}-{}-bpe".format(metric_val, mode, model_id):
                                                     score if score is not None else 0
-                                                }, iter + batch_i)
+                                                }, epoch)
 
     else:
         reports = None
@@ -623,4 +621,7 @@ def epoch_run(batchIter, tokenizer,
         printing("DATA WRITTEN TO {} ", var=[dir_end_pred], verbose=verbose, verbose_level=1)
     printing("END EPOCH {} mode, iterated {} on pos {} on normalisation ",
              var=[mode, n_task_pos_sanity, n_task_normalize_sanity], verbose_level=1, verbose=verbose)
+    if early_stoppin_metric is not None:
+        assert early_stoppin_metric_val is not None, "ERROR : early_stoppin_metric_val should have been found " \
+                                                     "but was not {} sample metric {}  ".format(early_stoppin_metric, subsample_early_stoping_metric_val)
     return loss, iter, reports, early_stoppin_metric_val
