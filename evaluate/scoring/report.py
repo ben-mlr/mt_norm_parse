@@ -47,12 +47,31 @@ def overall_word_level_metric_measure(gold_sent_ls,
         # TODO test for all topk
         try:
             assert len(gold_sent) == len(pred_sent_ls_topk[0][gold_ind_sent])
+            # WARNING : this might not be true in POS mode for some cases (when mask bpe is used)
         except Exception as e:
             pdb.set_trace()
             print(e)
-            skipping_sent += len(gold_sent_ls)
-            overall_score_ls_sent = [[0]]
-            break
+            if len(gold_sent) > len(pred_sent_ls_topk[0][gold_ind_sent]):
+                counter = 0
+                n_to_solve = len(gold_sent) - len(pred_sent_ls_topk[0][gold_ind_sent])
+                for ind in range(n_to_solve):
+                    counter += gold_sent[-n_to_solve:][ind] == "_PAD_POS"
+
+                if n_to_solve == counter:
+                    pdb.set_trace()
+                    gold_sent = gold_sent[:-n_to_solve]
+                    src_detokenized[gold_ind_sent] = src_detokenized[gold_ind_sent][:-n_to_solve]
+                    pdb.set_trace()
+                    print("WARNING : we handled mismatch between pred len/src and gold len by cutting it based on "
+                          "GOLD padding (SHOULD BE RAISED IN TASK POS)")
+                    # NB : this should be handle properly : the detokenization has a problem when dropout_bpe_mask is not null
+                else:
+                    raise(Exception("ERROR : could not handled mismatch between pred len/src and gold len by cutting "
+                                    "it based on GOLD padding (SHOULD BE RAISED IN TASK POS)"))
+            else:
+                skipping_sent += len(gold_sent_ls)
+                overall_score_ls_sent = [[0]]
+                break
         if src_detokenized is not None:
             assert len(gold_sent) == len(src_detokenized[gold_ind_sent]), \
                 "ERROR src_detokenized and gold_sent_ls for sent {} have different length ".format(gold_sent)

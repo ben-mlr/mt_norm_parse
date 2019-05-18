@@ -190,7 +190,7 @@ def realigne(ls_sent_str, input_alignement_with_raw, null_str, mask_str, tasks,
                     else:
                         former_token += token
             elif "pos" in tasks:
-                # we just if ignore token
+                # we just  ignore token
                 if index == former_index:
                     pass
             if index != former_index or _i + 1 == len(index_ls):

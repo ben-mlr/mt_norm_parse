@@ -42,7 +42,7 @@ SCORE_AUX = ["norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recal
 AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm", "pos", "edit_prediction"]
 AVAILABLE_AGGREGATION_FUNC_AUX_TASKS = ["norm_not_norm", "edit_prediction"]
 AVAILABLE_BERT_FINE_TUNING_STRATEGY = ["bert_out_first", "standart","flexible_lr", "only_first_and_last"]
-AVAILABLE_BERT_MASKING_STRATEGY = ["normed", "cls"]
+AVAILABLE_BERT_MASKING_STRATEGY = ["normed", "cls", "start_stop"]
 
 
 TASKS_2_METRICS_STR = {"all": ["accuracy-exact-normalize",
@@ -90,8 +90,8 @@ LIU_TRAIN_OWOPUTI_LEX_TRAIN_LABEL, LIU_TRAIN_OWOPUTI_LEX_TRAIN = "lex_norm2015_t
 LEX_TRAIN_SPACE_DEMO_LABEL, LEX_TRAIN_SPACE_DEMO = "lex_norm2015_train-space_demo", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/train_data-space_demo.conll")
 LEX_TRAIN_LABEL, LEX_TRAIN = "lex_norm2015_train", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/train_data.conll")
 
-LEX_TRAIN_SPLIT_LABEL, LEX_TRAIN_SPLIT = "lex_norm2015_train", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/train_split_data.conll")
-LEX_DEV_SPLIT_LABEL, LEX_DEV_SPLIT = "lex_norm2015_train", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/dev_split_data.conll")
+LEX_TRAIN_SPLIT_LABEL, LEX_TRAIN_SPLIT = "lex_norm2015_split_train", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/train_split_data.conll")
+LEX_DEV_SPLIT_LABEL, LEX_DEV_SPLIT = "lex_norm2015_split_dev", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/dev_split_data.conll")
 
 LEX_TEST_LABEL, LEX_TEST = "lex_norm2015_test", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/test_truth.conll")
 

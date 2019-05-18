@@ -307,7 +307,6 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                  var=[best_epoch, best_loss, early_stoppin_metric, subsample_early_stoping_metric_val,
                       last_checkpoint_dir_best], verbose=verbose, verbose_level=1)
         bert_with_classifier.eval()
-        pdb.set_trace()
 
         for test_path in test_path_ls:
             assert len(test_path) == len(tasks)

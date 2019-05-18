@@ -42,9 +42,10 @@ TOKEN_BPE_BERT_SEP = "[SEP]"
 PAD_ID_BERT = 0
 PAD_BERT = "[PAD]"
 MASK_BERT = "[MASK]"
+SEP_BERT = "[SEP]"
+CLS_BERT = "[CLS]"
 NULL_STR = "[SPACE]"
 NULL_STR_TO_SHOW = "_"
-
 
 
 import re

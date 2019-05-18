@@ -1,6 +1,6 @@
 from env.importing import *
 from env.project_variables import *
-from io_.dat.constants import PAD_ID_BERT, MASK_BERT
+from io_.dat.constants import PAD_ID_BERT, MASK_BERT, CLS_BERT, SEP_BERT
 from io_.info_print import printing
 from io_.dat.normalized_writer import write_conll
 from io_.bert_iterators_tools.string_processing import preprocess_batch_string_for_bert, from_bpe_token_to_str, get_indexes
@@ -94,8 +94,8 @@ def epoch_run(batchIter, tokenizer,
         label_heuristic += "-noise_generation"
 
     if masking_strategy is not None:
-        assert "normalize" in tasks, "SO FAR : inconsistency between task {} and masking strategy {}".format(tasks,
-                                                                                                    masking_strategy)
+        if "start_stop" not in masking_strategy:
+            assert "normalize" in tasks, "SO FAR : inconsistency between task {} and masking strategy {}".format(tasks, masking_strategy)
         if isinstance(masking_strategy, list):
             assert len(masking_strategy) <= 2, \
                 "first element should be strategy, second should be portion or first element only ".format(masking_strategy)
@@ -120,7 +120,7 @@ def epoch_run(batchIter, tokenizer,
         assert dir_end_pred is not None
         if extra_label_for_prediction != "":
             extra_label_for_prediction = "-"+extra_label_for_prediction
-        extra_label_for_prediction+="-"+label_heuristic
+        extra_label_for_prediction += "-"+label_heuristic
         dir_normalized = os.path.join(dir_end_pred, "{}_ep-prediction{}.conll".format(epoch,
                                                                                       extra_label_for_prediction))
         dir_normalized_original_only = os.path.join(dir_end_pred, "{}_ep-prediction_src{}.conll".format(epoch,
@@ -131,7 +131,9 @@ def epoch_run(batchIter, tokenizer,
                                                                                             extra_label_for_prediction))
 
     mask_token_index = tokenizer.convert_tokens_to_ids([MASK_BERT])[0]
-    printing("WARNING : [MASK] set to {}", var=[mask_token_index],
+    cls_token_index = tokenizer.convert_tokens_to_ids([CLS_BERT])[0]
+    sep_token_index = tokenizer.convert_tokens_to_ids([SEP_BERT])[0]
+    printing("WARNING : [MASK] set to {} [CLS] {} [SEP] {}", var=[mask_token_index,cls_token_index, sep_token_index],
              verbose=verbose, verbose_level=1)
 
     batch_i = 0
@@ -191,9 +193,9 @@ def epoch_run(batchIter, tokenizer,
                 printing("WARNING : input is input ", verbose_level=2, verbose=1)
                 batch_raw_input = preprocess_batch_string_for_bert(batch.raw_input)
 
-            if masking_strategy is None:
-                group_to_mask = None
-            elif masking_strategy == "cls":
+
+            group_to_mask = None
+            if masking_strategy == "cls":
                 # we trick batch.output_norm_not_norm : set all 1 to 0 (not to touch padding)
                 # we set first element to 1
                 batch.output_norm_not_norm[batch.output_norm_not_norm == 1] = 0
@@ -206,6 +208,9 @@ def epoch_run(batchIter, tokenizer,
             input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = \
                 get_indexes(batch_raw_input, tokenizer, verbose, use_gpu,
                             word_norm_not_norm=group_to_mask)
+            if masking_strategy == "start_stop":
+                input_mask[input_tokens_tensor == sep_token_index] = 0
+                input_mask[input_tokens_tensor == cls_token_index] = 0
             #if "normalize" in tasks:
             if task_normalize_is:
                 if norm2noise_bool or norm_2_noise_eval:
@@ -324,7 +329,7 @@ def epoch_run(batchIter, tokenizer,
             token_type_ids = torch.zeros_like(input_tokens_tensor)
             if use_gpu:
                 token_type_ids = token_type_ids.cuda()
-            printing("CUDA SANITY CHECK input_tokens:{}  type:{} input_mask:{}  label:{}",
+            printing("CUDA SANITY CHECK input_tokens:{}  type:{}input_mask:{}  label:{}",
                      var=[input_tokens_tensor.is_cuda, token_type_ids.is_cuda, input_mask.is_cuda,
                           output_tokens_tensor_aligned.is_cuda],
                      verbose=verbose, verbose_level="cuda")
@@ -333,7 +338,9 @@ def epoch_run(batchIter, tokenizer,
                 input_tokens_tensor = dropout_input_tensor(input_tokens_tensor, mask_token_index,
                                                            dropout=dropout_input_bpe)
             try:
-                printing("MASK mask:{} input:{} ", var=[input_mask, input_tokens_tensor], verbose_level="mask", verbose=verbose)
+                printing("MASK mask:{}\nMASK input:{}\nMASK output:{}", var=[input_mask, input_tokens_tensor,
+                                                                         output_tokens_tensor_aligned],
+                         verbose_level="raw_data", verbose=verbose)
                 loss_dic = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
                                                 labels=output_tokens_tensor_aligned if task_normalize_is else None, #tasks[0] == "normalize" else None,
                                                 labels_task_2=output_tokens_tensor_aligned if task_pos_is else None, #tasks[0] == "pos" else None
@@ -379,7 +386,8 @@ def epoch_run(batchIter, tokenizer,
                                             mask_str=MASK_BERT)
                 if task_pos_is:
                     # we remove padding here based on src that is corectly padded
-                    gold_detokenized = [gold_sent[:len(src_sent)] for gold_sent, src_sent in zip(gold_detokenized,src_detokenized)]
+                    gold_detokenized = [gold_sent[:len(src_sent)] for gold_sent, src_sent in zip(gold_detokenized, src_detokenized)]
+                    print("HANDLE GOLD PADDING", len(src_detokenized[1]), src_detokenized[1], source_preprocessed[1])
                 pred_detokenized_topk = []
                 for sent_ls in sent_ls_top:
                     pred_detokenized_topk.append(realigne(sent_ls, input_alignement_with_raw, remove_null_str=True,
