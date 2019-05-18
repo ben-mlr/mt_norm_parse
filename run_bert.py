@@ -24,8 +24,8 @@ train_path = [GENERATED_DIC[100]]
 dev_path = [GENERATED_DIC[100]]
 
 
-train = True
-playwith = False
+train = False
+playwith = True
 
 
 if train:
@@ -97,10 +97,10 @@ if playwith:
     #model_name = "9319649-B-14cf0-9319649-B-model_0-ep4-checkpoint.pt"
     #model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/checkpoints/bert/9320927-B-ed1e8-9320927-B-model_0"
     #model_name = "9320927-B-ed1e8-9320927-B-model_0-ep19-checkpoint.pt"
-    model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/checkpoints/bert/9326829-B-fbbe9-9326829-B-model_1"
-    model_name = "9326829-B-fbbe9-9326829-B-model_1-ep19-checkpoint.pt"
+    model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/checkpoints/bert/9337555-B-57db3-9337555-B-model_2/"
+    model_name = "9337555-B-57db3-9337555-B-model_2-epbest-checkpoint.pt"
     checkpoint_dir = os.path.join(model_location, model_name)
-    test_paths_ls = [[EN_LINES_EWT_TRAIN]]
+    test_paths_ls = [[TEST]]
     # TODO : predict with a norm2noise model
     #  can use tasks trick ..
     voc_pos_size = 21
@@ -116,29 +116,53 @@ if playwith:
     #model.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
     # NB : AT TEST TIME :  null_token_index should be loaded not passed as argument
     pref_suffix = ""
-    batch_size = 2
+    batch_size = 1
     lr = ""
     evalu = True
+
+    list_reference_heuristic_test = json.load(open("./data/words_dictionary.json", "r"))
+    slang_dic = json.load(open("./data/urban_dic_abbreviations.json","r"))
     if evalu:
-        for n_sent in [50, 80, 120, 150, 250, 350]:
-            model = run(bert_with_classifier=model,
-                        voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
-                        auxilliary_task_norm_not_norm=True,
-                        saving_every_epoch=10, lr=lr,
-                        dict_path=os.path.join(model_location, "dictionaries"),
-                        end_predictions=os.path.join(model_location, "predictions"),
-                        batch_size=batch_size, n_iter_max_per_epoch=n_sent, n_epoch=1,
-                        test_path_ls=test_paths_ls, run_mode="test",
-                        args=None,
-                        description="", null_token_index=null_token_index, null_str=NULL_STR, model_location=model_location,
-                        model_id="9326829-B-fbbe9-9326829",
-                        model_suffix="{}-{}batch-{}lr".format(pref_suffix, batch_size, lr),
-                        debug=False, report=True,
-                        remove_mask_str_prediction=True, inverse_writing=True,
-                        extra_label_for_prediction="{}".format(n_sent),
-                        bucket_test=False, must_get_norm_test=False,
-                        verbose=1)
-            print("DONE ", n_sent)
+        model = run(bert_with_classifier=model,
+                    voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
+                    auxilliary_task_norm_not_norm=True,
+                    saving_every_epoch=10, lr=lr,
+                    dict_path=os.path.join(model_location, "dictionaries"),
+                    end_predictions=os.path.join(model_location, "predictions"),
+                    batch_size=batch_size, n_iter_max_per_epoch=n_sent, n_epoch=1,
+                    test_path_ls=test_paths_ls, run_mode="test",
+                    args=None,
+                    description="", null_token_index=null_token_index, null_str=NULL_STR, model_location=model_location,
+                    model_id="9337555-B-57db3-9337555-B-model_2-epbest",
+                    model_suffix="{}-{}batch-{}lr".format(pref_suffix, batch_size, lr),
+                    debug=True, report=True,
+                    remove_mask_str_prediction=True, inverse_writing=False,
+                    extra_label_for_prediction="RE_PREDICT",
+                    heuristic_test_ls=[["slang_translate"]],
+                    bucket_test=False, must_get_norm_test=False,
+                    slang_dic_test=slang_dic, list_reference_heuristic_test=list_reference_heuristic_test,
+                    verbose="raw_data")
+        sentences = False
+        if sentences:
+            for n_sent in [50, 80, 120, 150, 250, 350]:
+                model = run(bert_with_classifier=model,
+                            voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
+                            auxilliary_task_norm_not_norm=True,
+                            saving_every_epoch=10, lr=lr,
+                            dict_path=os.path.join(model_location, "dictionaries"),
+                            end_predictions=os.path.join(model_location, "predictions"),
+                            batch_size=batch_size, n_iter_max_per_epoch=n_sent, n_epoch=1,
+                            test_path_ls=test_paths_ls, run_mode="test",
+                            args=None,
+                            description="", null_token_index=null_token_index, null_str=NULL_STR, model_location=model_location,
+                            model_id="9326829-B-fbbe9-9326829",
+                            model_suffix="{}-{}batch-{}lr".format(pref_suffix, batch_size, lr),
+                            debug=False, report=True,
+                            remove_mask_str_prediction=True, inverse_writing=True,
+                            extra_label_for_prediction="{}".format(n_sent),
+                            bucket_test=False, must_get_norm_test=False,
+                            verbose=1)
+                print("DONE ", n_sent)
 
     # TO SEE TOKENIZATION IMPACT : verbose='raw_data'
     interact_bert_wrap(tokenizer, model,
@@ -149,3 +173,17 @@ if playwith:
 
 
 
+some_processing=False
+#print(json.load(open("./data/words_dictionary.json", "r")))
+if some_processing:
+    with open("./data/urban_dic_abbreviations.txt","r") as f:
+        urban_dic = {}
+        for line in f:
+            if len(line.strip())!=0:
+                reg = re.match("(.*):(.*)", line.strip())
+                original = reg.group(1).lower()
+                def_ = reg.group(2).lower().replace(" ","")
+                print(original, def_)
+                urban_dic[original] = def_
+
+        #json.dump(urban_dic, open("./data/urban_dic_abbreviations.json","w"))

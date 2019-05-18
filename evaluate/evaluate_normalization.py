@@ -47,7 +47,8 @@ def eval_norm(src_path, target_path, count_x_token=True):
             x_token = 0
             if src_original_form.endswith("X") and count_x_token and src_original_form.replace("X", "") :
                 x_token = 1
-                print("REPLACING src_original_form {} with {}".format(src_original_form, src_original_form.replace("X", "")))
+                print("REPLACING src_original_form {} with {}".format(src_original_form, src_original_form.replace("X",
+                                                                                                                   "")))
                 src_original_form = src_original_form.replace("X", "")
                 target_original_form = target_original_form.replace("X", "")
 
@@ -56,7 +57,11 @@ def eval_norm(src_path, target_path, count_x_token=True):
             gold_norm = re.match("^Norm=([^|]+)|.+", target_line[9]).group(1)
 
             if gold_norm == src_original_form:
-                if not x_token:
+                # TODO : add pairs of errors + inconsistencies as a list of pair and count by checking it it's in the lsit of possibilities 
+                if not x_token or (src_original_form in ["bou", "wit", "yu", "r", "nd", "babe"]
+                                   and pred_norm in ["about", "with", "you", "are", "and", "baby", "yes","nigga",
+                                                     'brother',
+                                                     "ya", "family", "television", "sister", "&", "congrats", "yes"]):
                     match_normed += pred_norm == gold_norm
                 n_normed += 1
             else:

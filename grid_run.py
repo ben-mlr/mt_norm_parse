@@ -381,11 +381,11 @@ if __name__ == "__main__":
 
           BERT_NORMALIZE = True
           if BERT_NORMALIZE:
-              epochs = 5
+              epochs = 10
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
-                                                  batch_size_ls=[1],
+                                                  batch_size_ls=[1, 8],
                                                   #checkpoint_dir_ls=["'"+os.path.join(PROJECT_PATH,
                                                   #                    "checkpoints", "bert", 
                                                   #                    "9318015-B-133b1-9318015-B-model_6/9318015-B-133b1-9318015-B-model_6-ep20-checkpoint.pt")+"'"],
@@ -399,9 +399,10 @@ if __name__ == "__main__":
                                                   tasks_ls=[["pos"]],
                                                   fine_tuning_strategy_ls=["standart"],
                                                   dropout_classifier_ls=[0.1],
-                                                  #dropout_input_bpe_ls=[0., 0.25, 0.5],
+                                                  dropout_input_bpe_ls=[0., 0.1],
                                                   aggregating_bert_layer_mode_ls=["last"],
-                                                  dropout_bert_ls=[None, 0.15, 0.2],dropout_input_bpe_ls=[0.,0.05, 0.1, 0.15],
+                                                  #dropout_bert_ls=[None, 0.15, 0.2],
+                                                  
                                                   #gold_error_detection_ls=[0], heuristic_ls_ls=[["'#'","'@'"]],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   #train_path=[[LEX_TRAIN, EN_LINES_EWT_TRAIN]],dev_path=[[LEX_TEST, EWT_DEV]],

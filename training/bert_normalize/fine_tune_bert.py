@@ -23,7 +23,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         # those two have been factorized out in fine_tuning_strategy
         dropout_input_bpe=0,
         report_full_path_shared=None, shared_id=None, bert_model=None, skip_1_t_n=False,
-        heuristic_ls=None, gold_error_detection=False,
+        heuristic_ls=None, gold_error_detection=False,heuristic_test_ls=[None],
         portion_mask=None, masking_strategy=None,
         norm_2_noise_eval=False, norm_2_noise_training=None,
         remove_mask_str_prediction=False, inverse_writing=False,
@@ -32,6 +32,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         aggregating_bert_layer_mode=None,
         early_stoppin_metric=None,subsample_early_stoping_metric_val=None,
         compute_intersection_score_test=True,
+        slang_dic_test=None, list_reference_heuristic_test=None,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
@@ -298,16 +299,19 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
             raise(e)
     if run_mode in ["train", "test"] and test_path_ls is not None:
         report_all = []
-        if use_gpu:
-            bert_with_classifier.load_state_dict(torch.load(last_checkpoint_dir_best))
-            bert_with_classifier = bert_with_classifier.cuda()
-        else:
-            bert_with_classifier.load_state_dict(torch.load(last_checkpoint_dir_best, map_location=lambda storage, loc: storage))
-        printing("MODEL : RELOADING best model of epoch {} with loss {} based on {}({}) metric (from checkpoint {})",
-                 var=[best_epoch, best_loss, early_stoppin_metric, subsample_early_stoping_metric_val,
-                      last_checkpoint_dir_best], verbose=verbose, verbose_level=1)
-        bert_with_classifier.eval()
+        if run_mode == "train":
+            if use_gpu:
+                bert_with_classifier.load_state_dict(torch.load(last_checkpoint_dir_best))
+                bert_with_classifier = bert_with_classifier.cuda()
+            else:
+                bert_with_classifier.load_state_dict(torch.load(last_checkpoint_dir_best, map_location=lambda storage, loc: storage))
+            printing("MODEL : RELOADING best model of epoch {} with loss {} based on {}({}) metric (from checkpoint {})",
+                     var=[best_epoch, best_loss, early_stoppin_metric,
+                          subsample_early_stoping_metric_val,
+                          last_checkpoint_dir_best],
+                     verbose=verbose, verbose_level=1)
 
+        bert_with_classifier.eval()
         for test_path in test_path_ls:
             assert len(test_path) == len(tasks)
             for test, task_to_eval in zip(test_path, tasks):
@@ -333,16 +337,31 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                             verbose=verbose)
 
                 zip_1 = [None] if task_to_eval == "pos" else [None, ["@", "#"], ["@", "#"], None, None]
+                if heuristic_test_ls is not None:
+                    assert isinstance(heuristic_test_ls, list)
+                    if heuristic_test_ls[0] is not None:
+                        assert isinstance(heuristic_test_ls,list)
+                    zip_1 = heuristic_test_ls
+                    printing("PREDICTION : setting heuristics to heuristic_test_ls {}",
+                             var=[heuristic_test_ls], verbose_level=1, verbose=verbose)
                 zip_2 = [False] if task_to_eval == "pos" else [False, False, True, True, False]
                 zip_3 = [False] if task_to_eval == "pos" else [False, False, False, False, True]
-                assert len(zip_2) == len(zip_1) and len(zip_1) == len(zip_3)
+                if heuristic_test_ls is None:
+                    assert len(zip_2) == len(zip_1) and len(zip_1) == len(zip_3)
+                else:
+                    if not (len(zip_2) == len(zip_1) and len(zip_1) == len(zip_3)):
+                        zip_1 = zip_1[:len(heuristic_test_ls)]
+                        zip_2 = zip_2[:len(heuristic_test_ls)]
+                        printing("WARNING : SHORTENING gold_error zip and norm2noise "
+                                 "for prediction purpose because heuristic_test_ls was set",
+                                 verbose_level=1, verbose=verbose)
                 if inverse_writing:
                     print("WARNING : prediction : only straight pred ")
                     zip_1 = [None]
                     zip_2 = [False]
                     zip_3 = [False]
 
-                for (heuristic, gold_error, norm_2_noise_eval) in zip(zip_1, zip_2, zip_3):
+                for (heuristic_test, gold_error, norm_2_noise_eval) in zip(zip_1, zip_2, zip_3):
                     batchIter_test = data_gen_multi_task_sampling_batch(tasks=[task_to_eval], readers=readers_test, batch_size=batch_size,
                                                                         word_dictionary=word_dictionary,
                                                                         char_dictionary=char_dictionary,
@@ -370,7 +389,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                            dropout_input_bpe=0,
                                                                            masking_strategy=masking_strategy,
                                                                            portion_mask=portion_mask,
-                                                                           heuristic_ls=heuristic, gold_error_detection=gold_error,
+                                                                           heuristic_ls=heuristic_test, gold_error_detection=gold_error,
+                                                                           slang_dic=slang_dic_test, list_reference_heuristic=list_reference_heuristic_test,
                                                                            norm_2_noise_training=None,
                                                                            # we decide wether we eval everything in mode
                                                                            # norm2noise or not
@@ -381,7 +401,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                            reference_word_dic={"InV": inv_word_dic}, n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                     except Exception as e:
                         print("ERROR test_path {} , heuristic {} , gold error {} , norm2noise {} ".format(test,
-                                                                                                          heuristic,
+                                                                                                          heuristic_test,
                                                                                                           gold_error,
                                                                                                           norm_2_noise_eval))
                         print(e)

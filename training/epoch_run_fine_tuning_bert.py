@@ -41,6 +41,7 @@ def epoch_run(batchIter, tokenizer,
               norm_2_noise_eval=False, norm_2_noise_training=None, aggregating_bert_layer_mode="sum",
               compute_intersection_score = False,
               subsample_early_stoping_metric_val="all",
+              slang_dic=None, list_reference_heuristic=None,
               verbose=0):
     """
     About Evaluation :
@@ -387,7 +388,6 @@ def epoch_run(batchIter, tokenizer,
                 if task_pos_is:
                     # we remove padding here based on src that is corectly padded
                     gold_detokenized = [gold_sent[:len(src_sent)] for gold_sent, src_sent in zip(gold_detokenized, src_detokenized)]
-                    print("HANDLE GOLD PADDING", len(src_detokenized[1]), src_detokenized[1], source_preprocessed[1])
                 pred_detokenized_topk = []
                 for sent_ls in sent_ls_top:
                     pred_detokenized_topk.append(realigne(sent_ls, input_alignement_with_raw, remove_null_str=True,
@@ -398,6 +398,8 @@ def epoch_run(batchIter, tokenizer,
                         if heuristic_ls is not None:
                             pred_detokenized_topk = predict_with_heuristic(src_detokenized=src_detokenized,
                                                                            pred_detokenized_topk=pred_detokenized_topk,
+                                                                           list_reference=list_reference_heuristic,
+                                                                           slang_dic=slang_dic,
                                                                            heuristic_ls=heuristic_ls, verbose=verbose)
                             #print("PRED after @ and #",src_detokenized, pred_detokenized_topk)
                         if gold_error_detection:
