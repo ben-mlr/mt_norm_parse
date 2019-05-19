@@ -24,8 +24,8 @@ train_path = [GENERATED_DIC[100]]
 dev_path = [GENERATED_DIC[100]]
 
 
-train = False
-playwith = True
+train = True
+playwith = False
 
 
 if train:
@@ -37,11 +37,11 @@ if train:
     vocab_size = BERT_MODEL_DIC["bert-cased"]["vocab_size"]
 
     initialize_bpe_layer = True
-    freeze_parameters = True
-    freeze_layer_prefix_ls = ["bert"]
-    tasks = ["pos"]
-    train_path = [EWT_DEV]#, DEMO]
-    dev_path = [EWT_DEV]#, DEMO]
+    freeze_parameters = False
+    freeze_layer_prefix_ls = None#["bert"]
+    tasks = ["normalize"]
+    train_path = [DEMO]
+    dev_path = [DEMO]
     test_paths_ls = [[DEMO]]
 
     voc_pos_size = 21
@@ -61,25 +61,34 @@ if train:
     print("{} ".format(REPORT_FLAG_VARIABLES_FIXED_STR))
     print("{} lr batch_size initialize_bpe_layer training_data".format(REPORT_FLAG_VARIABLES_ANALYSED_STR))
 
+    list_reference_heuristic_test = list(json.load(open(os.path.join(PROJECT_PATH, "./data/words_dictionary.json"),
+                                                        "r"),
+                                                   object_pairs_hook=OrderedDict).keys())
+    slang_dic = json.load(open(os.path.join(PROJECT_PATH, "./data/urban_dic_abbreviations.json"), "r"))
+    index_alphabetical_order = json.load(open(os.path.join(PROJECT_PATH, "data/words_dictionary_letter_to_index.json"),
+                                              "r"))
+
     model = run(bert_with_classifier=model,
                 voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
                 auxilliary_task_norm_not_norm=True,
                 saving_every_epoch=10,
-                lr=0.001,#OrderedDict([("bert", lr), ("classifier", lr)]),
-                batch_size=batch_size, n_iter_max_per_epoch=100,
-                n_epoch=2,
+                lr=0.0001,#OrderedDict([("bert", 5e-5), ("classifier", 0.001)]),
+                batch_size=batch_size, n_iter_max_per_epoch=10,
+                n_epoch=1,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
-                model_suffix="{}".format(description), debug=False,
+                model_suffix="{}".format(description), debug=True,
                 fine_tuning_strategy="standart",
-                masking_strategy=["start_stop"],
+                #masking_strategy=["start_stop"],
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
-                initialize_bpe_layer=initialize_bpe_layer, args=None, skip_1_t_n=False, dropout_input_bpe=0.1,
+                initialize_bpe_layer=initialize_bpe_layer, args=None, skip_1_t_n=False, dropout_input_bpe=0.0,
                 heuristic_ls=None, gold_error_detection=False,
                 bucket_test=True, must_get_norm_test=True,
+                index_alphabetical_order=index_alphabetical_order,
+                list_reference_heuristic_test=list_reference_heuristic_test,
                 norm_2_noise_eval=False, #norm_2_noise_training=,
                 aggregating_bert_layer_mode=5,
-                report=True, verbose="raw_data")
+                report=True, verbose=1)
 
 
 null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary
@@ -171,19 +180,41 @@ if playwith:
                        topk=5, verbose=3)
 
 
+some_processing = False
 
-
-some_processing=False
-#print(json.load(open("./data/words_dictionary.json", "r")))
 if some_processing:
-    with open("./data/urban_dic_abbreviations.txt","r") as f:
-        urban_dic = {}
-        for line in f:
-            if len(line.strip())!=0:
-                reg = re.match("(.*):(.*)", line.strip())
-                original = reg.group(1).lower()
-                def_ = reg.group(2).lower().replace(" ","")
-                print(original, def_)
-                urban_dic[original] = def_
+
+    data = json.load(open("./data/words_dictionary.json", "r"), object_pairs_hook=OrderedDict)
+    new_letter = ["a", "b", "c", "d", "e", "f", "g", "h",  "j", "k", "l", "m", "n", "o", "p", 'q', 'r', "s", "t",
+                  "u",
+                  "v", "w", "x", "z", "-"]
+    dic_ind = {}
+    ind_letter = 0
+    ind_former_2 = 0
+    ind_former_1 = 0
+    letter_former = "?"
+    for ind, word in enumerate(data):
+        if word.startswith(new_letter[ind_letter]):
+            dic_ind[letter_former] = [ind_former_1, ind]
+            if letter_former == "j":
+                dic_ind["y"] = [ind_former_1, ind]
+            ind_former_1 = ind
+            letter_former = new_letter[ind_letter]
+            ind_letter += 1
+    dic_ind[letter_former] = [ind_former_1, len(data)]
+    dic_ind.pop("?")
+    pdb.set_trace()
+
+    json.dump(dic_ind, open("./data/words_dictionary_letter_to_index.json", "w"))
+    if False:
+        with open("./data/urban_dic_abbreviations.txt","r") as f:
+            urban_dic = {}
+            for line in f:
+                if len(line.strip()) != 0:
+                    reg = re.match("(.*):(.*)", line.strip())
+                    original = reg.group(1).lower()
+                    def_ = reg.group(2).lower().replace(" ","")
+                    print(original, def_)
+                    urban_dic[original] = def_
 
         #json.dump(urban_dic, open("./data/urban_dic_abbreviations.json","w"))

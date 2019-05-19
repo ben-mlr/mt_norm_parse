@@ -57,7 +57,7 @@ def eval_norm(src_path, target_path, count_x_token=True):
             gold_norm = re.match("^Norm=([^|]+)|.+", target_line[9]).group(1)
 
             if gold_norm == src_original_form:
-                # TODO : add pairs of errors + inconsistencies as a list of pair and count by checking it it's in the lsit of possibilities 
+                # TODO : add pairs of errors + inconsistencies as a list of pair and count by checking it it's in the lsit of possibilities
                 if not x_token or (src_original_form in ["bou", "wit", "yu", "r", "nd", "babe"]
                                    and pred_norm in ["about", "with", "you", "are", "and", "baby", "yes","nigga",
                                                      'brother',

@@ -41,7 +41,7 @@ def epoch_run(batchIter, tokenizer,
               norm_2_noise_eval=False, norm_2_noise_training=None, aggregating_bert_layer_mode="sum",
               compute_intersection_score = False,
               subsample_early_stoping_metric_val="all",
-              slang_dic=None, list_reference_heuristic=None,
+              slang_dic=None, list_reference_heuristic=None, index_alphabetical_order=None,
               verbose=0):
     """
     About Evaluation :
@@ -396,12 +396,15 @@ def epoch_run(batchIter, tokenizer,
                     # NB : applying those successively might overlay heuristic
                     if task_normalize_is:
                         if heuristic_ls is not None:
+                            # NB : if the rules in heuristic_ls are not exclusive their order matters !!
+                            # the last one will be the one that is applied
                             pred_detokenized_topk = predict_with_heuristic(src_detokenized=src_detokenized,
                                                                            pred_detokenized_topk=pred_detokenized_topk,
                                                                            list_reference=list_reference_heuristic,
                                                                            slang_dic=slang_dic,
+                                                                           index_alphabetical_order=index_alphabetical_order,
                                                                            heuristic_ls=heuristic_ls, verbose=verbose)
-                            #print("PRED after @ and #",src_detokenized, pred_detokenized_topk)
+                        # NB : we overlay prediction with gold_error_detection
                         if gold_error_detection:
                             pred_detokenized_topk = predict_with_heuristic(src_detokenized=src_detokenized,
                                                                            gold_detokenized=gold_detokenized,

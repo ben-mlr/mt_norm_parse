@@ -41,9 +41,9 @@ SCORE_AUX = ["norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recal
 
 AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm", "pos", "edit_prediction"]
 AVAILABLE_AGGREGATION_FUNC_AUX_TASKS = ["norm_not_norm", "edit_prediction"]
-AVAILABLE_BERT_FINE_TUNING_STRATEGY = ["bert_out_first", "standart","flexible_lr", "only_first_and_last"]
+AVAILABLE_BERT_FINE_TUNING_STRATEGY = ["bert_out_first", "standart", "flexible_lr", "only_first_and_last"]
 AVAILABLE_BERT_MASKING_STRATEGY = ["normed", "cls", "start_stop"]
-
+HEURISTICS = ["gold_detection", "#", "@", "url", "slang_translate", "edit_check"]
 
 TASKS_2_METRICS_STR = {"all": ["accuracy-exact-normalize",
                                "accuracy-normalize","InV-accuracy-normalize","OOV-accuracy-normalize","npv-normalize",

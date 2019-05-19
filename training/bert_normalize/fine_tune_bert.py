@@ -23,7 +23,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         # those two have been factorized out in fine_tuning_strategy
         dropout_input_bpe=0,
         report_full_path_shared=None, shared_id=None, bert_model=None, skip_1_t_n=False,
-        heuristic_ls=None, gold_error_detection=False,heuristic_test_ls=[None],
+        heuristic_ls=None, gold_error_detection=False, heuristic_test_ls=None,
         portion_mask=None, masking_strategy=None,
         norm_2_noise_eval=False, norm_2_noise_training=None,
         remove_mask_str_prediction=False, inverse_writing=False,
@@ -32,7 +32,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         aggregating_bert_layer_mode=None,
         early_stoppin_metric=None,subsample_early_stoping_metric_val=None,
         compute_intersection_score_test=True,
-        slang_dic_test=None, list_reference_heuristic_test=None,
+        slang_dic_test=None, list_reference_heuristic_test=None, index_alphabetical_order=None,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
@@ -336,32 +336,37 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                             must_get_norm=must_get_norm_test,
                                             verbose=verbose)
 
-                zip_1 = [None] if task_to_eval == "pos" else [None, ["@", "#"], ["@", "#"], None, None]
+                heuritics_zip = [None] if task_to_eval == "pos" else [None, ["@", "#"], ["@", "#"], None, None]
+                gold_error_or_not_zip = [False] if task_to_eval == "pos" else [False, False, True, True, False]
+                norm2noise_zip = [False] if task_to_eval == "pos" else [False, False, False, False, True]
+                heuritics_zip = [None] if task_to_eval == "pos" else [None, None, ["edit_check"],  ["@", "#", "url"], ["slang_translate"]]
+                gold_error_or_not_zip = [False] if task_to_eval == "pos" else [False, True, False, False, False]
+                norm2noise_zip = [False] if task_to_eval == "pos" else [False, False, False, False, False]
+
                 if heuristic_test_ls is not None:
                     assert isinstance(heuristic_test_ls, list)
                     if heuristic_test_ls[0] is not None:
                         assert isinstance(heuristic_test_ls,list)
-                    zip_1 = heuristic_test_ls
+                    heuritics_zip = heuristic_test_ls
                     printing("PREDICTION : setting heuristics to heuristic_test_ls {}",
                              var=[heuristic_test_ls], verbose_level=1, verbose=verbose)
-                zip_2 = [False] if task_to_eval == "pos" else [False, False, True, True, False]
-                zip_3 = [False] if task_to_eval == "pos" else [False, False, False, False, True]
+
                 if heuristic_test_ls is None:
-                    assert len(zip_2) == len(zip_1) and len(zip_1) == len(zip_3)
+                    assert len(gold_error_or_not_zip) == len(heuritics_zip) and len(heuritics_zip) == len(norm2noise_zip)
                 else:
-                    if not (len(zip_2) == len(zip_1) and len(zip_1) == len(zip_3)):
-                        zip_1 = zip_1[:len(heuristic_test_ls)]
-                        zip_2 = zip_2[:len(heuristic_test_ls)]
+                    if not (len(gold_error_or_not_zip) == len(heuritics_zip) and len(heuritics_zip) == len(norm2noise_zip)):
+                        heuritics_zip = heuritics_zip[:len(heuristic_test_ls)]
+                        gold_error_or_not_zip = gold_error_or_not_zip[:len(heuristic_test_ls)]
                         printing("WARNING : SHORTENING gold_error zip and norm2noise "
                                  "for prediction purpose because heuristic_test_ls was set",
                                  verbose_level=1, verbose=verbose)
                 if inverse_writing:
                     print("WARNING : prediction : only straight pred ")
-                    zip_1 = [None]
-                    zip_2 = [False]
-                    zip_3 = [False]
+                    heuritics_zip = [None]
+                    gold_error_or_not_zip = [False]
+                    norm2noise_zip = [False]
 
-                for (heuristic_test, gold_error, norm_2_noise_eval) in zip(zip_1, zip_2, zip_3):
+                for (heuristic_test, gold_error, norm_2_noise_eval) in zip(heuritics_zip, gold_error_or_not_zip, norm2noise_zip):
                     batchIter_test = data_gen_multi_task_sampling_batch(tasks=[task_to_eval], readers=readers_test, batch_size=batch_size,
                                                                         word_dictionary=word_dictionary,
                                                                         char_dictionary=char_dictionary,
@@ -373,32 +378,37 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                         verbose=verbose)
                     try:
                         loss_test, iter_test, perf_report_test, _ = epoch_run(batchIter_test, tokenizer,
-                                                                           pos_dictionary=pos_dictionary,
-                                                                           iter=iter_dev, use_gpu=use_gpu,
-                                                                           bert_with_classifier=bert_with_classifier,
-                                                                           writer=None,
-                                                                           writing_pred=True,
-                                                                           optimizer=None, tasks=[task_to_eval],
-                                                                           args_dir=args_dir, model_id=model_id,
-                                                                           dir_end_pred=end_predictions,
-                                                                           skip_1_t_n=skip_1_t_n,
-                                                                           predict_mode=True, data_label=label_data,
-                                                                           epoch="LAST", extra_label_for_prediction=label_data,
-                                                                           null_token_index=null_token_index, null_str=null_str,
-                                                                           log_perf=False,
-                                                                           dropout_input_bpe=0,
-                                                                           masking_strategy=masking_strategy,
-                                                                           portion_mask=portion_mask,
-                                                                           heuristic_ls=heuristic_test, gold_error_detection=gold_error,
-                                                                           slang_dic=slang_dic_test, list_reference_heuristic=list_reference_heuristic_test,
-                                                                           norm_2_noise_training=None,
-                                                                           # we decide wether we eval everything in mode
-                                                                           # norm2noise or not
-                                                                           # --> we could also add a loop and tag in report
-                                                                           norm_2_noise_eval=norm_2_noise_eval, compute_intersection_score=compute_intersection_score_test,
-                                                                           remove_mask_str_prediction=remove_mask_str_prediction, inverse_writing=inverse_writing,
-                                                                           aggregating_bert_layer_mode=aggregating_bert_layer_mode,
-                                                                           reference_word_dic={"InV": inv_word_dic}, n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+                                                                              pos_dictionary=pos_dictionary,
+                                                                              iter=iter_dev, use_gpu=use_gpu,
+                                                                              bert_with_classifier=bert_with_classifier,
+                                                                              writer=None,
+                                                                              writing_pred=True,
+                                                                              optimizer=None, tasks=[task_to_eval],
+                                                                              args_dir=args_dir, model_id=model_id,
+                                                                              dir_end_pred=end_predictions,
+                                                                              skip_1_t_n=skip_1_t_n,
+                                                                              predict_mode=True, data_label=label_data,
+                                                                              epoch="LAST", extra_label_for_prediction=label_data,
+                                                                              null_token_index=null_token_index, null_str=null_str,
+                                                                              log_perf=False,
+                                                                              dropout_input_bpe=0,
+                                                                              masking_strategy=masking_strategy,
+                                                                              portion_mask=portion_mask,
+                                                                              heuristic_ls=heuristic_test, gold_error_detection=gold_error,
+                                                                              slang_dic=slang_dic_test,
+                                                                              list_reference_heuristic=list_reference_heuristic_test,
+                                                                              index_alphabetical_order=index_alphabetical_order,
+                                                                              norm_2_noise_training=None,
+                                                                              # we decide wether we eval everything in mode
+                                                                              # norm2noise or not
+                                                                              # --> we could also add a loop and tag in report
+                                                                              norm_2_noise_eval=norm_2_noise_eval,
+                                                                              compute_intersection_score=compute_intersection_score_test,
+                                                                              remove_mask_str_prediction=remove_mask_str_prediction,
+                                                                              inverse_writing=inverse_writing,
+                                                                              aggregating_bert_layer_mode=aggregating_bert_layer_mode,
+                                                                              reference_word_dic={"InV": inv_word_dic},
+                                                                              n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                     except Exception as e:
                         print("ERROR test_path {} , heuristic {} , gold error {} , norm2noise {} ".format(test,
                                                                                                           heuristic_test,

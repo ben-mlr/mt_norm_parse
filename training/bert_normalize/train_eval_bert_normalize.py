@@ -1,5 +1,6 @@
-from env.importing import os, nn
+from env.importing import os, nn, json, OrderedDict
 from training.bert_normalize.fine_tune_bert import run
+from env.project_variables import PROJECT_PATH
 from model.bert_normalize import get_bert_token_classification
 from io_.dat.constants import TOKEN_BPE_BERT_START, TOKEN_BPE_BERT_SEP, NULL_STR, PAD_BERT, PAD_ID_BERT
 from env.models_dir import BERT_MODEL_DIC
@@ -59,6 +60,15 @@ def train_eval_bert_normalize(args, verbose=1):
     description = "grid"
     dir_grid = args.overall_report_dir
 
+
+
+    list_reference_heuristic_test = list(json.load(open(os.path.join(PROJECT_PATH, "./data/words_dictionary.json"),
+                                                        "r"),
+                                                   object_pairs_hook=OrderedDict).keys())
+    slang_dic = json.load(open(os.path.join(PROJECT_PATH, "./data/urban_dic_abbreviations.json"), "r"))
+    index_alphabetical_order = json.load(open(os.path.join(PROJECT_PATH, "data/words_dictionary_letter_to_index.json"),
+                                              "r"))
+
     run(bert_with_classifier=model,
         voc_tokenizer=voc_tokenizer, tasks=args.tasks, train_path=args.train_path, dev_path=args.dev_path,
         auxilliary_task_norm_not_norm=True,
@@ -77,6 +87,8 @@ def train_eval_bert_normalize(args, verbose=1):
         random_iterator_train=True,  bucket_test=False,
         compute_intersection_score_test=True,
         aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
+        list_reference_heuristic_test=list_reference_heuristic_test,
+        slang_dic_test=slang_dic, index_alphabetical_order=index_alphabetical_order,
         report=True, verbose=1)
 
     printing("MODEL {} trained and evaluated", var=[args.model_id_pref], verbose_level=1, verbose=verbose)
