@@ -87,7 +87,7 @@ if train:
                 list_reference_heuristic_test=list_reference_heuristic_test,
                 slang_dic_test=slang_dic,
                 norm_2_noise_eval=False, #norm_2_noise_training=,
-                aggregating_bert_layer_mode=5,
+                aggregating_bert_layer_mode=5, case="lower",
                 report=True, verbose=1)
 
 

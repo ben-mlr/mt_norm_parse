@@ -15,6 +15,7 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None,
               word_normalization=False, pos_specific_data_set=None,
               word_embed_dict=None, tasks=None,
               dry_run=0, expand_vocab=False, add_start_char=None,
+              case=None,
               force_new_dic=False, verbose=1):
 
   # TODO : CLEAN THIS to_create
@@ -40,7 +41,7 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None,
                                                    word_embed_dict=word_embed_dict,
                                                    expand_vocab_bool=expand_vocab, add_start_char=add_start_char,
                                                    pos_specific_data_set=pos_specific_data_set,
-                                                   tasks=tasks,
+                                                   tasks=tasks,case=case,
                                                    word_normalization=word_normalization, verbose=verbose)
   else:
     # ??
@@ -91,7 +92,8 @@ def pos_specific_dic_builder(pos_specific_data_set, pos_dictionary):
 
 def create_dict(dict_path, train_path, dev_path, test_path, tasks,
                 dry_run, word_normalization=False, expand_vocab_bool=False, add_start_char=0,
-                min_occurence=0, pos_specific_data_set=None,word_embed_dict=None, verbose=1,
+                min_occurence=0, pos_specific_data_set=None,word_embed_dict=None, case=None,
+                verbose=1,
                ):
   """
   Given train, dev, test treebanks and a word embedding matrix :
@@ -108,6 +110,7 @@ def create_dict(dict_path, train_path, dev_path, test_path, tasks,
   TODO : to be tested : test based on a given conll --> vocab word is correct
       in regard to min_occurence and that the created matrix is correct also   (index --> vetor correct
   """
+  printing("WARNING : CASING IS {} for dictionary ", var=case, verbose=verbose, verbose_level=1)
   default_value = True
   if word_embed_dict is None:
     word_embed_dict = {}
@@ -168,6 +171,8 @@ def create_dict(dict_path, train_path, dev_path, test_path, tasks,
         for char in tokens[1]:
           char_dictionary.add(char)
         word = DIGIT_RE.sub(b"0", str.encode(tokens[1])).decode()
+        if case == "lower":
+          word = word.lower()
         pos = tokens[3]  #if tokens[4]=='_' else tokens[3]+'$$$'+tokens[4]
         xpos = tokens[4]
         typ = tokens[7]
@@ -180,6 +185,8 @@ def create_dict(dict_path, train_path, dev_path, test_path, tasks,
           type_dictionary.add(typ)
         if word_normalization and task in ["normalize", "all"]:
           token_norm, _ = get_normalized_token(tokens[9], 0, verbose=verbose)
+          if case == "lower":
+            token_norm = token_norm.lower()
           if token_norm in vocab_norm:
             vocab_norm[token_norm] += 1
           else:
@@ -239,6 +246,8 @@ def create_dict(dict_path, train_path, dev_path, test_path, tasks,
           for char in tokens[1]:
             char_dictionary.add(char)
           word = DIGIT_RE.sub(b"0", str.encode(tokens[1])).decode()
+          if case == "lower":
+            word = word.lower()
           pos = tokens[3] # if tokens[4]=='_' else tokens[3]+'$$$'+tokens[4]
           xpos = tokens[4]
           typ = tokens[7]
@@ -247,7 +256,7 @@ def create_dict(dict_path, train_path, dev_path, test_path, tasks,
             token_norm, _ = get_normalized_token(tokens[9], 0, verbose=0)
           if word_normalization:
             # TODO : add word_norm_embed_dict to allow expansion !
-            if False and word_norm not in vocab_norm_set :
+            if False and word_norm not in vocab_norm_set:
               vocab_norm_set.add(word_norm)
               vocab_norm_list.append(word_norm)
           # TODO : ANswer : WHY WOULD WE LIKE TO EXPAND IT ON DEV, TEST ?
@@ -265,7 +274,8 @@ def create_dict(dict_path, train_path, dev_path, test_path, tasks,
           li = li + 1
           if dry_run and li == 100:
             break
-        printing("VOCABULARY EXPAND word source vocabulary expanded of {} tokens based on {} ", var=[expand, data_path], verbose=verbose, verbose_level=0)
+        printing("VOCABULARY EXPAND word source vocabulary expanded of {} tokens based on {} ", var=[expand, data_path],
+                 verbose=verbose, verbose_level=0)
   if expand_vocab_bool:
     assert len(word_embed_dict)>0, "ERROR : how do you want to expand if no wod embedding dict"
     if isinstance(dev_path, str):

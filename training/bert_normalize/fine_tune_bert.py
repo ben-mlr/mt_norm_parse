@@ -34,6 +34,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         early_stoppin_metric=None,subsample_early_stoping_metric_val=None,
         compute_intersection_score_test=True,
         slang_dic_test=None, list_reference_heuristic_test=None,
+        case=None,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
@@ -42,7 +43,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
     """
     assert run_mode in ["train", "test"], "ERROR run mode {} corrupted ".format(run_mode)
     printing("MODEL : RUNNING IN {} mode", var=[run_mode], verbose=verbose, verbose_level=1)
-
+    printing("WARNING : casing was set to {} (this should be consistent at train and test)", var=[case], verbose=verbose, verbose_level=1)
     if early_stoppin_metric is None:
         if "pos" in tasks:
             early_stoppin_metric = "accuracy-exact-pos"
@@ -96,7 +97,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                        ("norm_2_noise_training",norm_2_noise_training),
                                        ("random_iterator_train",random_iterator_train),
                                        ("aggregating_bert_layer_mode",aggregating_bert_layer_mode),
-                                       ("SEED", SEED_TORCH),
+                                       ("SEED", SEED_TORCH),("case", case)
                                        ])
         printing("HYPERPARAMETERS {} ", var=[hyperparameters], verbose=verbose, verbose_level=1)
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
@@ -145,6 +146,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                               force_new_dic=True if run_mode == "train" else False,
                               tasks=tasks,
                               pos_specific_data_set=train_path[1] if len(tasks)>1 and "pos" in tasks else None,
+                              case=case,
                               add_start_char=1 if run_mode == "train" else None,
                               verbose=1)
 
@@ -226,6 +228,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                       norm_2_noise_eval=False,
                                                                       aggregating_bert_layer_mode=aggregating_bert_layer_mode,
                                                                       early_stoppin_metric=None,
+                                                                      case=case,
                                                                       n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
                 bert_with_classifier.eval()
@@ -255,6 +258,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                                        early_stoppin_metric=early_stoppin_metric,
                                                                                        subsample_early_stoping_metric_val=subsample_early_stoping_metric_val,
                                                                                        aggregating_bert_layer_mode=aggregating_bert_layer_mode,
+                                                                                       case=case,
                                                                                        n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                 else:
                     loss_dev, iter_dev, perf_report_dev = None, 0, None
@@ -315,6 +319,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
 
         bert_with_classifier.eval()
         list_reference_heuristic_test = list_reference_heuristic_test + word_norm_dictionary.instances
+        list_reference_heuristic_test.sort()
         alphabet_index = get_letter_indexes(list_reference_heuristic_test)
         list_candidates = None
         for test_path in test_path_ls:
@@ -392,7 +397,6 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                             list_candidates = list_reference_heuristic_test
                         else:
                             raise(Exception("mode_heuristics {} not supported".format(mode_heuristic)))
-                        list_candidates.sort()
                         info_details_heursitics = "means we concatanete train+dev data dictionary with ref"
                         printing("HEURISTICS : {} words used as reference (ref+data) {} as candidates ('{}' mode) : ",
                                  var=[len(list_reference_heuristic_test), len(list_candidates),mode_heuristic, info_details_heursitics],
@@ -442,6 +446,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                               inverse_writing=inverse_writing,
                                                                               aggregating_bert_layer_mode=aggregating_bert_layer_mode,
                                                                               reference_word_dic={"InV": inv_word_dic},
+                                                                              case=case,
                                                                               n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                         print("LOSS TEST", loss_test)
                     except Exception as e:

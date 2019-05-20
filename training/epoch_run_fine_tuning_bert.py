@@ -1,6 +1,6 @@
 from env.importing import *
 from env.project_variables import *
-from io_.dat.constants import PAD_ID_BERT, MASK_BERT, CLS_BERT, SEP_BERT
+from io_.dat.constants import PAD_ID_BERT, MASK_BERT, CLS_BERT, SEP_BERT, SPECIAL_TOKEN_LS
 from io_.info_print import printing
 from io_.dat.normalized_writer import write_conll
 from io_.bert_iterators_tools.string_processing import preprocess_batch_string_for_bert, from_bpe_token_to_str, get_indexes
@@ -43,6 +43,7 @@ def epoch_run(batchIter, tokenizer,
               compute_intersection_score = False,
               subsample_early_stoping_metric_val="all",
               slang_dic=None, list_reference_heuristic=None,list_candidates=None, index_alphabetical_order=None,
+              case=None,
               verbose=0):
     """
     About Evaluation :
@@ -52,6 +53,9 @@ def epoch_run(batchIter, tokenizer,
             Can also have different aggregation function
             TODO : TEST those scoring fucntions
     """
+    if case is not None:
+        AVAILABLE_CASE_OPTIONS = ["lower"]
+        assert case in AVAILABLE_CASE_OPTIONS
     assert norm_2_noise_training is None or not norm_2_noise_eval, "only one of the two should be triggered but we" \
                                                                    " have norm_2_noise_training : {} norm_2_noise_" \
                                                                    "eval:{}".format(norm_2_noise_training,
@@ -82,7 +86,7 @@ def epoch_run(batchIter, tokenizer,
                 masking_strategy = masking_strategy[0]
             else:
                 masking_strategy = masking_strategy[0]
-        assert masking_strategy in AVAILABLE_BERT_MASKING_STRATEGY , "masking_strategy {} should be in {}".format(AVAILABLE_BERT_MASKING_STRATEGY)
+        assert masking_strategy in AVAILABLE_BERT_MASKING_STRATEGY, "masking_strategy {} should be in {}".format(AVAILABLE_BERT_MASKING_STRATEGY)
         if masking_strategy == "normed":
             printing("INFO : Portion mask was found to {}", var=[portion_mask], verbose=verbose, verbose_level=1)
     if predict_mode:
@@ -150,9 +154,17 @@ def epoch_run(batchIter, tokenizer,
             # if no normalization found : should have pos
             task_pos_is = len(batch.raw_output[0]) == 0
             task_normalize_is = not task_pos_is
+            pdb.set_trace()
+            if case is not None:
+                if case == "lower":
+                    batch.raw_input = [[word.lower() if word not in SPECIAL_TOKEN_LS else word for word in sent] for sent in batch.raw_input]
+                    if task_normalize_is:
+                        batch.raw_output = [[word.lower() if word not in SPECIAL_TOKEN_LS else word for word in sent] for sent in batch.raw_output]
+            pdb.set_trace()
             #print("ITERATING on {} task".format("pos" if task_pos_is else "normalize"))
             n_task_pos_sanity += int(task_pos_is)
             n_task_normalize_sanity += int(task_normalize_is)
+            pdb.set_trace()
             norm2noise_bool = False
             batch_raw_output = None
             # Handling input

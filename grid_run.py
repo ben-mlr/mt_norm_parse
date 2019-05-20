@@ -382,9 +382,9 @@ if __name__ == "__main__":
 
           BERT_NORMALIZE = True
           if BERT_NORMALIZE:
-              epochs = 15
+              epochs = 2
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
-                                                  init_param=None,
+                                                  init_param=None,  
                                                   grid_label=LABEL_GRID,
                                                   batch_size_ls=[1],
                                                   #checkpoint_dir_ls=["'"+os.path.join(PROJECT_PATH,

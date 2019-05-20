@@ -10,7 +10,10 @@ class CoNLLReader(object):
 
   def __init__(self, file_path, word_dictionary,
                char_dictionary, pos_dictionary, type_dictionary, xpos_dictionary,
-               lemma_dictionary, word_norm_dictionary=None, max_char_len=MAX_CHAR_LENGTH):
+
+               lemma_dictionary, word_norm_dictionary=None,
+               case=None,
+               max_char_len=MAX_CHAR_LENGTH):
     self.__source_file = codecs.open(file_path, 'r', 'utf-8', errors='ignore')
     self.__file_path = file_path
     self.__word_dictionary = word_dictionary
@@ -22,6 +25,7 @@ class CoNLLReader(object):
     self.__xpos_dictionary = xpos_dictionary
 
     self.__type_dictionary = type_dictionary
+    self.case = case
     if max_char_len is None:
       max_char_len = MAX_CHAR_LENGTH
     printing("MODEL : max_char_len set to {} in CoNLLREADER ", var=max_char_len, verbose_level=1, verbose=1)
@@ -121,12 +125,15 @@ class CoNLLReader(object):
         open("/scratch/bemuller/parsing/sosweet/processing/logs/catching_errors.txt", "a").write("Line broken {} because of tokens "
                                                                                               "{} from {} file \n ".format(lines, tokens,self.__file_path))
         continue
+
       n_exception = 0
       if normalization:
         # includes sequence level and word level
         normalized_token, n_exception = get_normalized_token(norm_field=tokens[9], n_exception=n_exception,
                                                              predict_mode_only=not must_get_norm,
                                                              verbose=verbose)
+        if self.case is not None and self.case == "lower":
+          normalized_token = normalized_token.lower()
         # extracting normalized words as sequence of characters as string and ids, string and ids
         if word_decoder:
           normalized_token_id = self.__word_norm_dictionary.get_index(normalized_token)
@@ -167,10 +174,14 @@ class CoNLLReader(object):
       char_id_seqs.append(char_ids)
       #pdb.set_trace()
       #sys.stderr.write("CHAR FILLED \n")
-      words.append(tokens[1])
+      _word = tokens[1]
+      if self.case is not None and self.case == "lower":
+        _word = _word.lower()
+      words.append(_word)
       lemmas.append(tokens[2])
       #sys.stderr.write("LEMMAS  FILLED \n")
-      word = DIGIT_RE.sub(b"0", str.encode(tokens[1])).decode()
+      #word = DIGIT_RE.sub(b"0", str.encode(tokens[1])).decode()
+      word = DIGIT_RE.sub(b"0", str.encode(_word)).decode()
       word_ids.append(self.__word_dictionary.get_index(word))
       #lemma_ids.append(self.__lemma_dictionary.get_index(tokens[2]))
       pos = tokens[3]# if tokens[4]=='_' else tokens[3]+'$$$'+tokens[4]
