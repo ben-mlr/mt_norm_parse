@@ -43,13 +43,10 @@ AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm", "pos", "edit_prediction"
 AVAILABLE_AGGREGATION_FUNC_AUX_TASKS = ["norm_not_norm", "edit_prediction"]
 AVAILABLE_BERT_FINE_TUNING_STRATEGY = ["bert_out_first", "standart", "flexible_lr", "only_first_and_last"]
 AVAILABLE_BERT_MASKING_STRATEGY = ["normed", "cls", "start_stop"]
-HEURISTICS = ["gold_detection", "#", "@", "url", "slang_translate", "edit_check"]
+HEURISTICS = ["gold_detection", "#", "@", "url", "slang_translate", "edit_check-all", "edit_check-data", "edit_check-ref"]
 
-TASKS_2_METRICS_STR = {"all": ["accuracy-exact-normalize",
-                               "accuracy-normalize","InV-accuracy-normalize","OOV-accuracy-normalize","npv-normalize",
-                               "recall-normalize","precision-normalize","tnr-normalize", "accuracy-exact-pos", "f1-normalize"],
-                       "normalize": ["accuracy-exact-normalize", "accuracy-normalize", "npv-normalize", "recall-normalize",
-                                     "precision-normalize", "tnr-normalize", "f1-normalize"],
+TASKS_2_METRICS_STR = {"all": ["accuracy-exact-normalize", "accuracy-normalize","InV-accuracy-normalize","OOV-accuracy-normalize","npv-normalize", "recall-normalize","precision-normalize","tnr-normalize", "accuracy-exact-pos", "f1-normalize"],
+                       "normalize": ["accuracy-exact-normalize", "accuracy-normalize", "npv-normalize", "recall-normalize", "precision-normalize", "tnr-normalize", "f1-normalize"],
                        "pos": ["accuracy-exact-pos"],
                        "edit_prediction": [""],
                        "norm_not_norm": ["IoU-pred-normed","recall-norm_not_norm","accuracy-norm_not_norm","IoU-pred-need_norm","precision-norm_not_norm"]}

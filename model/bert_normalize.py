@@ -67,12 +67,12 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
             # it needs to be the first as we are setting classifier (1) to the normalizaiton classifier
             output_layer = torch.cat((model.bert.embeddings.word_embeddings.weight.data, torch.rand((1, 768))),
                                      dim=0)
-            model.classifier.weight = nn.Parameter(output_layer)
+            model.classifier_task_1.weight = nn.Parameter(output_layer)
             printing("MODEL : initializing output normalization layer with embedding layer + extra token ",
                      verbose=verbose,
                      verbose_level=1)
         if freeze_parameters:
-            model = freeze_param(model, freeze_layer_prefix_ls=freeze_layer_prefix_ls,verbose=verbose)
+            model = freeze_param(model, freeze_layer_prefix_ls=freeze_layer_prefix_ls, verbose=verbose)
 
     elif checkpoint_dir is not None:
         assert initialize_bpe_layer is None, \

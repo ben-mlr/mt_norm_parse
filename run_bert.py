@@ -4,6 +4,7 @@ from training.bert_normalize.fine_tune_bert import run
 from evaluate.interact import interact_bert_wrap
 from model.bert_tools_from_core_code.tokenization import BertTokenizer
 from predict.predict_string_bert import interact_bert
+from toolbox.pred_tools.heuristics import get_letter_indexes
 from io_.dat.constants import TOKEN_BPE_BERT_START, TOKEN_BPE_BERT_SEP, NULL_STR
 
 PAD_ID_BERT = 0
@@ -40,9 +41,9 @@ if train:
     freeze_parameters = False
     freeze_layer_prefix_ls = None#["bert"]
     tasks = ["normalize"]
-    train_path = [DEMO]
-    dev_path = [DEMO]
-    test_paths_ls = [[DEMO]]
+    train_path = [DEMO]#, DEMO]
+    dev_path = [DEMO]#, DEMO]
+    test_paths_ls = [[DEMO]]#, DEMO]]
 
     voc_pos_size = 16
     #["bert"]
@@ -53,6 +54,7 @@ if train:
                                           freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                                           dropout_bert=0.0, initialize_bpe_layer=initialize_bpe_layer)
     lr = 0.0001
+
     batch_size = 2
     null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary
     description = "DEBUGGING_LEAK-AS_BEFORE"
@@ -61,20 +63,18 @@ if train:
     print("{} ".format(REPORT_FLAG_VARIABLES_FIXED_STR))
     print("{} lr batch_size initialize_bpe_layer training_data".format(REPORT_FLAG_VARIABLES_ANALYSED_STR))
 
-    list_reference_heuristic_test = list(json.load(open(os.path.join(PROJECT_PATH, "./data/words_dictionary.json"),
-                                                        "r"),
-                                                   object_pairs_hook=OrderedDict).keys())
+    list_reference_heuristic_test = pickle.load(open(os.path.join(PROJECT_PATH, "./data/wiki-news-FAIR-SG-top50000.pkl"), "rb"))#list(json.load(open(os.path.join(PROJECT_PATH, "./data/words_dictionary.json"), "r"), object_pairs_hook=OrderedDict).keys())
+    #index_alphabetical_order = json.load(open(os.path.join(PROJECT_PATH,"data/wiki-news-FAIR-SG-top50000-letter_to_index.json"), "r"))#json.load(open(os.path.join(PROJECT_PATH, "data/words_dictionary_letter_to_index.json"), "r"))
+
     slang_dic = json.load(open(os.path.join(PROJECT_PATH, "./data/urban_dic_abbreviations.json"), "r"))
-    index_alphabetical_order = json.load(open(os.path.join(PROJECT_PATH, "data/words_dictionary_letter_to_index.json"),
-                                              "r"))
 
     model = run(bert_with_classifier=model,
                 voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
                 auxilliary_task_norm_not_norm=True,
                 saving_every_epoch=10,
-                lr=0.0001,#OrderedDict([("bert", 5e-5), ("classifier", 0.001)]),
+                lr=0.00001,#OrderedDict([("bert", 5e-5), ("classifier_task_1", 0.001), ("classifier_task_2", 0.001)]),
                 batch_size=batch_size, n_iter_max_per_epoch=100,
-                n_epoch=1,
+                n_epoch=3,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
                 model_suffix="{}".format(description), debug=False,
@@ -84,11 +84,11 @@ if train:
                 initialize_bpe_layer=initialize_bpe_layer, args=None, skip_1_t_n=False, dropout_input_bpe=0.1,
                 heuristic_ls=None, gold_error_detection=False,
                 bucket_test=True, must_get_norm_test=True,
-                index_alphabetical_order=index_alphabetical_order,
                 list_reference_heuristic_test=list_reference_heuristic_test,
+                slang_dic_test=slang_dic,
                 norm_2_noise_eval=False, #norm_2_noise_training=,
                 aggregating_bert_layer_mode=5,
-                report=True, verbose="raw_data")
+                report=True, verbose=1)
 
 
 null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary
@@ -182,30 +182,34 @@ if playwith:
 
 some_processing = False
 
+
 if some_processing:
 
+    with open("./data/wiki-news-300d-1M-subword-top50000.vec", "r") as f:
+        ind = 0
+        ls = []
+        for line in f:
+            ind += 1
+            if ind == 1:
+                continue
+            word = line.strip().split(" ")[0].lower()
+            if word.isalpha():
+                ls.append(word)
+        print(word, word.isalpha())
+        ls.sort()
+        #pickle.dump(ls, open("./data/wiki-news-FAIR-SG-top50000.pkl", "wb"))
+        ls_2 = pickle.load(open("./data/wiki-news-FAIR-SG-top50000.pkl", "rb"))
+        pdb.set_trace()
+
     data = json.load(open("./data/words_dictionary.json", "r"), object_pairs_hook=OrderedDict)
-    new_letter = ["a", "b", "c", "d", "e", "f", "g", "h",  "j", "k", "l", "m", "n", "o", "p", 'q', 'r', "s", "t",
-                  "u",
-                  "v", "w", "x", "z", "-"]
-    dic_ind = {}
-    ind_letter = 0
-    ind_former_2 = 0
-    ind_former_1 = 0
-    letter_former = "?"
-    for ind, word in enumerate(data):
-        if word.startswith(new_letter[ind_letter]):
-            dic_ind[letter_former] = [ind_former_1, ind]
-            if letter_former == "j":
-                dic_ind["y"] = [ind_former_1, ind]
-            ind_former_1 = ind
-            letter_former = new_letter[ind_letter]
-            ind_letter += 1
-    dic_ind[letter_former] = [ind_former_1, len(data)]
-    dic_ind.pop("?")
+    new_letter = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", 'q', 'r', "s", "t","u","v", "w", "x", "y", "z", "-"]
+    len_max = len(ls)
+
+    dic_ind = get_letter_indexes(ls)
     pdb.set_trace()
 
-    json.dump(dic_ind, open("./data/words_dictionary_letter_to_index.json", "w"))
+    #json.dump(dic_ind, open("./data/wiki-news-FAIR-SG-top50000-letter_to_index.json", "w"))
+    #json.dump(dic_ind, open("./data/wiki-news-FAIR-SG-top50000.pkl", "w"))
     if False:
         with open("./data/urban_dic_abbreviations.txt","r") as f:
             urban_dic = {}

@@ -431,7 +431,7 @@ def grid_param_label_generate(param,
         metric_add_ls.extend(TASKS_2_METRICS_STR[task])
     metric_add = " ".join(list(set(metric_add_ls)))
     print("GRID_INFO metric    =  ", metric_add)
-    print("GRID_INFO enrch vars=  ", to_enrich)
-    print("GRID_INFO analy vars=  ", to_analysed)
+    print("GRID_INFO enrch vars=  SEED ", to_enrich)
+    print("GRID_INFO analy vars=  SEED ", to_analysed)
     print("GRID_INFO fixed vals=   ", to_keep_only)
   return params, labels, info_default, studied_vars, fixed_vars

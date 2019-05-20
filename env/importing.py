@@ -56,6 +56,7 @@ from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence, pack_s
 from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 from torch.nn.utils.rnn import pack_sequence
 import torch.nn.functional as F
+from torch.nn import CrossEntropyLoss
 
 
 # google sheet
@@ -77,7 +78,7 @@ except Exception as e :
 
 # SEED INITIALIZATION
 print("IMPORTS : initializing seeds...")
-sys.path.insert(0,".")
+sys.path.insert(0, ".")
 from env.project_variables import SEED_NP, SEED_TORCH
 # SEED_TORCH used for any model related randomness + batch picking, dropouts, ..
 # SEED_NP used for picking the bucket, for generating word embedding when loading embedding matrix and maybe other stuff
@@ -85,5 +86,6 @@ torch.manual_seed(SEED_TORCH)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 np.random.seed(SEED_NP)
+assert SEED_TORCH == SEED_NP, "For reporting purpose : we want both seeds to be same "
 
 print("IMPORTS : all imports successfully loaded {}  ".format("with exception : "+exception if exception != "" else ""))

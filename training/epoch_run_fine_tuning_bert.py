@@ -9,7 +9,8 @@ from io_.bert_iterators_tools.alignement import aligned_output, realigne
 from evaluate.scoring.report import overall_word_level_metric_measure
 from evaluate.scoring.confusion_matrix_rates import get_perf_rate
 
-from toolbox.predictions.heuristics import predict_with_heuristic
+from toolbox.pred_tools.heuristics import predict_with_heuristic
+
 from toolbox.deep_learning_toolbox import dropout_input_tensor
 sys.path.insert(0, os.path.join(PROJECT_PATH, "..", "experimental_pipe"))
 from reporting.write_to_performance_repo import report_template, write_dic
@@ -41,7 +42,7 @@ def epoch_run(batchIter, tokenizer,
               norm_2_noise_eval=False, norm_2_noise_training=None, aggregating_bert_layer_mode="sum",
               compute_intersection_score = False,
               subsample_early_stoping_metric_val="all",
-              slang_dic=None, list_reference_heuristic=None, index_alphabetical_order=None,
+              slang_dic=None, list_reference_heuristic=None,list_candidates=None, index_alphabetical_order=None,
               verbose=0):
     """
     About Evaluation :
@@ -207,8 +208,7 @@ def epoch_run(batchIter, tokenizer,
                 group_to_mask = np.array(batch.output_norm_not_norm.cpu()) if portion_mask >= rand else None
 
             input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = \
-                get_indexes(batch_raw_input, tokenizer, verbose, use_gpu,
-                            word_norm_not_norm=group_to_mask)
+                get_indexes(batch_raw_input, tokenizer, verbose, use_gpu, word_norm_not_norm=group_to_mask)
             if masking_strategy == "start_stop":
                 input_mask[input_tokens_tensor == sep_token_index] = 0
                 input_mask[input_tokens_tensor == cls_token_index] = 0
@@ -351,8 +351,8 @@ def epoch_run(batchIter, tokenizer,
                 print(e)
                 print(" MAX ", torch.max(output_tokens_tensor_aligned), input_tokens_tensor, input_mask)
                 loss_dic = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask, aggregating_bert_layer_mode=aggregating_bert_layer_mode,
-                                             labels=output_tokens_tensor_aligned if task_normalize_is else None,#if tasks[0] == "normalize" else None,
-                                             labels_task_2=output_tokens_tensor_aligned if task_pos_is else None)#if tasks[0] == "pos" else None)
+                                                labels=output_tokens_tensor_aligned if task_normalize_is else None,#if tasks[0] == "normalize" else None,
+                                                labels_task_2=output_tokens_tensor_aligned if task_pos_is else None)#if tasks[0] == "pos" else None)
             _loss = loss_dic["loss"]
             if task_normalize_is:
                 loss_norm += loss_dic["loss_task_1"].detach()
@@ -402,7 +402,7 @@ def epoch_run(batchIter, tokenizer,
                             # the last one will be the one that is applied
                             pred_detokenized_topk = predict_with_heuristic(src_detokenized=src_detokenized,
                                                                            pred_detokenized_topk=pred_detokenized_topk,
-                                                                           list_reference=list_reference_heuristic,
+                                                                           list_reference=list_reference_heuristic, list_candidates=list_candidates,
                                                                            slang_dic=slang_dic,
                                                                            index_alphabetical_order=index_alphabetical_order,
                                                                            heuristic_ls=heuristic_ls, verbose=verbose)
@@ -570,7 +570,7 @@ def epoch_run(batchIter, tokenizer,
                 score = score_dic[agg_func][sample]
                 n_tokens = n_tokens_dic[agg_func][sample]
                 n_sents = n_sents_dic[agg_func][sample]
-                metric_val = "accuracy-exact-{}".format(tasks[0])
+                metric_val = "accuracy-exact-{}".format(tasks[1] if len(tasks)>1 else tasks[0])
                 report = report_template(metric_val=metric_val, subsample=sample+label_heuristic, info_score_val=None,
                                          score_val=score/n_tokens if n_tokens > 0 else None,
                                          n_sents=n_sents,
@@ -638,5 +638,5 @@ def epoch_run(batchIter, tokenizer,
              var=[mode, n_task_pos_sanity, n_task_normalize_sanity], verbose_level=1, verbose=verbose)
     if early_stoppin_metric is not None:
         assert early_stoppin_metric_val is not None, "ERROR : early_stoppin_metric_val should have been found " \
-                                                     "but was not {} sample metric {}  ".format(early_stoppin_metric, subsample_early_stoping_metric_val)
+                                                     "but was not {} sample metric {} not found in {}  ".format(early_stoppin_metric, subsample_early_stoping_metric_val, reports)
     return loss/batch_i, iter, reports, early_stoppin_metric_val

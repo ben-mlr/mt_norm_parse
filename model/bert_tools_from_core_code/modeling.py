@@ -30,9 +30,7 @@ import sys
 from io import open
 import pdb
 
-import torch
-from torch import nn
-from torch.nn import CrossEntropyLoss
+from env.importing import torch, nn, CrossEntropyLoss
 
 #from .file_utils import cached_path
 from model.bert_tools_from_core_code.tools import *
@@ -51,6 +49,7 @@ PRETRAINED_MODEL_ARCHIVE_MAP = {
 CONFIG_NAME = 'bert_config.json'
 WEIGHTS_NAME = 'pytorch_model.bin'
 TF_WEIGHTS_NAME = 'model.ckpt'
+
 
 def load_tf_weights_in_bert(model, tf_checkpoint_path):
     """ Load tf checkpoints in a pytorch model
@@ -1112,7 +1111,7 @@ class BertForTokenClassification(BertPreTrainedModel):
             log = "CUSTOM"
         print("{} : DROPOUT CLASSIFIER set to {} ".format(log, dropout_classifier))
         self.dropout = nn.Dropout(dropout_classifier)
-        self.classifier = nn.Linear(config.hidden_size, num_labels)
+        self.classifier_task_1 = nn.Linear(config.hidden_size, num_labels)
         self.classifier_task_2 = None #nn.Linear(config.hidden_size, num_labels_2) if num_labels_2 is not None else None
         self.num_labels_2 = num_labels_2
         self.loss_weights_default = OrderedDict([("loss_task_1", 1), ("loss_task_2", 1)])
@@ -1140,7 +1139,7 @@ class BertForTokenClassification(BertPreTrainedModel):
                 sequence_output = torch.sum(torch.stack(sequence_output, dim=-1).squeeze(-1), dim=-1)
 
         sequence_output = self.dropout(sequence_output)
-        logits = self.classifier(sequence_output)
+        logits = self.classifier_task_1(sequence_output)
 
         loss_dict = OrderedDict([("loss", None), ("loss_task_1", 0), ("loss_task_2", 0)])
         pred_dict = OrderedDict([("logits_task_1", None), ("logits_task_2", None)])

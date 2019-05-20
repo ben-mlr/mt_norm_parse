@@ -12,6 +12,7 @@ from model.bert_tools_from_core_code.tokenization import BertTokenizer
 from training.epoch_run_fine_tuning_bert import epoch_run
 from toolbox.report_tools import write_args
 
+from toolbox.pred_tools.heuristics import get_letter_indexes
 
 def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         voc_tokenizer, auxilliary_task_norm_not_norm, bert_with_classifier,
@@ -32,7 +33,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         aggregating_bert_layer_mode=None,
         early_stoppin_metric=None,subsample_early_stoping_metric_val=None,
         compute_intersection_score_test=True,
-        slang_dic_test=None, list_reference_heuristic_test=None, index_alphabetical_order=None,
+        slang_dic_test=None, list_reference_heuristic_test=None,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
@@ -94,7 +95,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                        ("checkpoint_dir", args.checkpoint_dir if args is not None else None),
                                        ("norm_2_noise_training",norm_2_noise_training),
                                        ("random_iterator_train",random_iterator_train),
-                                       ("aggregating_bert_layer_mode",aggregating_bert_layer_mode)
+                                       ("aggregating_bert_layer_mode",aggregating_bert_layer_mode),
+                                       ("SEED", SEED_TORCH),
                                        ])
         printing("HYPERPARAMETERS {} ", var=[hyperparameters], verbose=verbose, verbose_level=1)
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
@@ -312,8 +314,11 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                      verbose=verbose, verbose_level=1)
 
         bert_with_classifier.eval()
+        list_reference_heuristic_test = list_reference_heuristic_test + word_norm_dictionary.instances
+        alphabet_index = get_letter_indexes(list_reference_heuristic_test)
+        list_candidates = None
         for test_path in test_path_ls:
-            assert len(test_path) == len(tasks)
+            assert len(test_path) == len(tasks), "ERROR test_path {} tasks {}".format(test_path, tasks)
             for test, task_to_eval in zip(test_path, tasks):
                 #label_data = "|".join([REPO_DATASET[_test_path] for _test_path in test_path])
                 label_data = REPO_DATASET[test]+"-"+task_to_eval
@@ -339,9 +344,9 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                 heuritics_zip = [None] if task_to_eval == "pos" else [None, ["@", "#"], ["@", "#"], None, None]
                 gold_error_or_not_zip = [False] if task_to_eval == "pos" else [False, False, True, True, False]
                 norm2noise_zip = [False] if task_to_eval == "pos" else [False, False, False, False, True]
-                heuritics_zip = [None] if task_to_eval == "pos" else [None, None, ["edit_check"],  ["@", "#", "url"], ["slang_translate"]]
-                gold_error_or_not_zip = [False] if task_to_eval == "pos" else [False, True, False, False, False]
-                norm2noise_zip = [False] if task_to_eval == "pos" else [False, False, False, False, False]
+                heuritics_zip = [None] if task_to_eval == "pos" else [None, None, ["edit_check-all"], ["edit_check-data"], ["edit_check-ref"],  ["@", "#", "url"], ["slang_translate"]]
+                gold_error_or_not_zip = [False] if task_to_eval == "pos" else [False, True, False, False, False, False, False]
+                norm2noise_zip = [False] if task_to_eval == "pos" else [False, False, False, False, False, False, False]
 
                 if heuristic_test_ls is not None:
                     assert isinstance(heuristic_test_ls, list)
@@ -366,9 +371,33 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                     gold_error_or_not_zip = [False]
                     norm2noise_zip = [False]
 
-                # batch_size_TEST = 1
-                # print("WARNING : batch_size for final eval was hardcoded and set to {}".format(batch_size_TEST))
+                batch_size_TEST = 1
+                print("WARNING : batch_size for final eval was hardcoded and set to {}".format(batch_size_TEST))
                 for (heuristic_test, gold_error, norm_2_noise_eval) in zip(heuritics_zip, gold_error_or_not_zip, norm2noise_zip):
+
+                    if heuristic_test is not None and heuristic_test[0].startswith("edit_check"):
+                        assert len(heuristic_test) == 1,\
+                            "ERROR if heuristic_test is edit_check {} category then it should be the only heuristic".format(heuristic_test)
+                        pattern = "(.*)-(.*)"
+                        match = re.match(pattern, heuristic_test[0])
+                        assert match is not None, "ERROR did not find pattern {} in {}".format(pattern, heuristic_test[0])
+                        mode_heuristic = match.group(2)
+                        assert mode_heuristic in ["all", "ref", "data"]
+                        assert list_reference_heuristic_test is not None
+                        if mode_heuristic == "all":
+                            list_candidates = list_reference_heuristic_test + word_norm_dictionary.instances
+                        elif mode_heuristic == "data":
+                            list_candidates = word_norm_dictionary.instances
+                        elif mode_heuristic == "ref":
+                            list_candidates = list_reference_heuristic_test
+                        else:
+                            raise(Exception("mode_heuristics {} not supported".format(mode_heuristic)))
+                        list_candidates.sort()
+                        info_details_heursitics = "means we concatanete train+dev data dictionary with ref"
+                        printing("HEURISTICS : {} words used as reference (ref+data) {} as candidates ('{}' mode) : ",
+                                 var=[len(list_reference_heuristic_test), len(list_candidates),mode_heuristic, info_details_heursitics],
+                                 verbose=verbose, verbose_level=1)
+
                     batchIter_test = data_gen_multi_task_sampling_batch(tasks=[task_to_eval], readers=readers_test,
                                                                         batch_size=batch_size,
                                                                         word_dictionary=word_dictionary,
@@ -380,6 +409,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                         dropout_input=0.0,
                                                                         verbose=verbose)
                     try:
+
                         loss_test, iter_test, perf_report_test, _ = epoch_run(batchIter_test, tokenizer,
                                                                               pos_dictionary=pos_dictionary,
                                                                               iter=iter_dev, use_gpu=use_gpu,
@@ -397,10 +427,11 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                               dropout_input_bpe=0,
                                                                               masking_strategy=masking_strategy,
                                                                               portion_mask=portion_mask,
-                                                                              heuristic_ls=heuristic_test, gold_error_detection=gold_error,
+                                                                              heuristic_ls=heuristic_test,
+                                                                              gold_error_detection=gold_error,
                                                                               slang_dic=slang_dic_test,
-                                                                              list_reference_heuristic=list_reference_heuristic_test,
-                                                                              index_alphabetical_order=index_alphabetical_order,
+                                                                              list_reference_heuristic=list_reference_heuristic_test, list_candidates=list_candidates,
+                                                                              index_alphabetical_order=alphabet_index,
                                                                               norm_2_noise_training=None,
                                                                               # we decide wether we eval everything in mode
                                                                               # norm2noise or not
@@ -414,12 +445,13 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                               n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                         print("LOSS TEST", loss_test)
                     except Exception as e:
-                        print("ERROR test_path {} , heuristic {} , gold error {} , norm2noise {} ".format(test,
-                                                                                                          heuristic_test,
-                                                                                                          gold_error,
-                                                                                                          norm_2_noise_eval))
-                        print(e)
-
+                        raise(e)
+                        print("ERROR {} test_path {} , heuristic {} , gold error {} , norm2noise {} ".format(e,
+                                                                                                             test,
+                                                                                                             heuristic_test,
+                                                                                                             gold_error,
+                                                                                                             norm_2_noise_eval
+                                                                                                             ))
                         perf_report_test = []
                     print("PERFORMANCE TEST on data  {} is {} ".format(label_data, perf_report_test))
                     print("DATA WRITTEN {}".format(end_predictions))
