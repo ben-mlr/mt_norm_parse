@@ -51,30 +51,6 @@ def epoch_run(batchIter, tokenizer,
             CAN add SAMPLE Parameter to get scores on specific subsample of the data : e.g. NEED_NORM, NORMED...
             Can also have different aggregation function
             TODO : TEST those scoring fucntions
-    :param batchIter:
-    :param tokenizer:
-    :param iter:
-    :param n_iter_max:
-    :param bert_with_classifier:
-    :param epoch:
-    :param use_gpu:
-    :param data_label:
-    :param null_token_index:
-    :param null_str:
-    :param model_id:
-    :param skip_1_t_n:
-    :param writer:
-    :param optimizer:
-    :param predict_mode:
-    :param topk:
-    :param metric:
-    :param print_pred:
-    :param args_dir:
-    :param writing_pred:
-    :param dir_end_pred:
-    :param extra_label_for_prediction:
-    :param verbose:
-    :return:
     """
     assert norm_2_noise_training is None or not norm_2_noise_eval, "only one of the two should be triggered but we" \
                                                                    " have norm_2_noise_training : {} norm_2_noise_" \
@@ -91,10 +67,10 @@ def epoch_run(batchIter, tokenizer,
     if gold_error_detection:
         label_heuristic += "-gold"
     if heuristic_ls is not None:
-        label_heuristic += "-#-@"
+        label_heuristic += "-"+"_".join(heuristic_ls)
     if norm_2_noise_eval:
         label_heuristic += "-noise_generation"
-
+    print("HEURISTIC", heuristic_ls, label_heuristic)
     if masking_strategy is not None:
         if "start_stop" not in masking_strategy:
             assert "normalize" in tasks, "SO FAR : inconsistency between task {} and masking strategy {}".format(tasks, masking_strategy)
