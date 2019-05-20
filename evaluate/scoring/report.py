@@ -61,17 +61,26 @@ def overall_word_level_metric_measure(gold_sent_ls,
                     src_detokenized[gold_ind_sent] = src_detokenized[gold_ind_sent][:-n_to_solve]
                     print("WARNING : we handled mismatch between pred len/src and gold len by cutting it based on "
                           "GOLD padding (SHOULD BE RAISED IN TASK POS)")
-                    # NB : this should be handle properly : the detokenization has a problem when dropout_bpe_mask is not null
+                    # NB : this should be handle properly :
+                    #   the detokenization has a problem when dropout_bpe_mask is not null
                 else:
-                    raise(Exception("ERROR : could not handled mismatch between pred len/src and gold len by cutting "
-                                    "it based on GOLD padding (SHOULD BE RAISED IN TASK POS)"))
+                    pdb.set_trace()
+                    print(Exception("ERROR {} : could not handled mismatch between pred {} len/src {} "
+                                    "and gold len by cutting "
+                                    "it based on GOLD padding "
+                                    "(SHOULD BE RAISED IN TASK POS)".format(e, gold_sent,
+                                                                            pred_sent_ls_topk[0][gold_ind_sent])))
+                    skipping_sent += len(gold_sent_ls)
+                    overall_score_ls_sent = [[0]]
+                    break
             else:
                 skipping_sent += len(gold_sent_ls)
                 overall_score_ls_sent = [[0]]
                 break
         if src_detokenized is not None:
-            assert len(gold_sent) == len(src_detokenized[gold_ind_sent]), \
-                "ERROR src_detokenized {} and gold_sent_ls for sent {} have different length ".format(gold_sent, src_detokenized[gold_ind_sent])
+            assert len(gold_sent) == len(src_detokenized[gold_ind_sent]), "ERROR src_detokenized {} and gold_sent_ls for sent {} have different length ".format(gold_sent, src_detokenized[gold_ind_sent])
+
+
         score_sent = []
         filter_sent = {_sample: [] for _sample in samples}
         for ind_word in range(len(gold_sent)):

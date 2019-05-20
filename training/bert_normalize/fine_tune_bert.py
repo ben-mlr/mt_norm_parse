@@ -366,8 +366,11 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                     gold_error_or_not_zip = [False]
                     norm2noise_zip = [False]
 
+                # batch_size_TEST = 1
+                # print("WARNING : batch_size for final eval was hardcoded and set to {}".format(batch_size_TEST))
                 for (heuristic_test, gold_error, norm_2_noise_eval) in zip(heuritics_zip, gold_error_or_not_zip, norm2noise_zip):
-                    batchIter_test = data_gen_multi_task_sampling_batch(tasks=[task_to_eval], readers=readers_test, batch_size=batch_size,
+                    batchIter_test = data_gen_multi_task_sampling_batch(tasks=[task_to_eval], readers=readers_test,
+                                                                        batch_size=batch_size,
                                                                         word_dictionary=word_dictionary,
                                                                         char_dictionary=char_dictionary,
                                                                         pos_dictionary=pos_dictionary,
@@ -409,6 +412,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                               aggregating_bert_layer_mode=aggregating_bert_layer_mode,
                                                                               reference_word_dic={"InV": inv_word_dic},
                                                                               n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+                        print("LOSS TEST", loss_test)
                     except Exception as e:
                         print("ERROR test_path {} , heuristic {} , gold error {} , norm2noise {} ".format(test,
                                                                                                           heuristic_test,

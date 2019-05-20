@@ -66,7 +66,9 @@ def freeze_param(model, freeze_layer_prefix_ls=None, not_freeze_layer_prefix_ls=
     return model
 
 
-def dropout_input_tensor(input_tokens_tensor, mask_token_index, dropout):
+def dropout_input_tensor(input_tokens_tensor, mask_token_index, sep_token_index, dropout):
     droping_multiplier_input_tokens_tensor = torch.zeros_like(input_tokens_tensor).bernoulli_(1 - dropout)
+    droping_multiplier_input_tokens_tensor[input_tokens_tensor == sep_token_index] = 1
+    # we mask all the tokens which got droping_multiplier_input_tokens_tensor 0
     input_tokens_tensor[droping_multiplier_input_tokens_tensor == 0] = mask_token_index
     return input_tokens_tensor

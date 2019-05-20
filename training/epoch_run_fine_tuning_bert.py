@@ -337,6 +337,7 @@ def epoch_run(batchIter, tokenizer,
             # we have to recompute the mask based on aligned input
             if dropout_input_bpe > 0:
                 input_tokens_tensor = dropout_input_tensor(input_tokens_tensor, mask_token_index,
+                                                           sep_token_index=sep_token_index,
                                                            dropout=dropout_input_bpe)
             try:
                 printing("MASK mask:{}\nMASK input:{}\nMASK output:{}", var=[input_mask, input_tokens_tensor,
@@ -362,7 +363,8 @@ def epoch_run(batchIter, tokenizer,
             if predict_mode:
                 # if predict more : will evaluate the model and write its predictions
                 # TODO : add mapping_info between task_id to model and task name necessary to iterator
-                logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,aggregating_bert_layer_mode=aggregating_bert_layer_mode,
+                logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
+                                              aggregating_bert_layer_mode=aggregating_bert_layer_mode,
                                               )["logits_task_2" if task_pos_is else "logits_task_1"]
                 predictions_topk = torch.argsort(logits, dim=-1, descending=True)[:, :, :topk]
                 # from bpe index to string
@@ -376,7 +378,7 @@ def epoch_run(batchIter, tokenizer,
                 source_preprocessed = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer,
                                                             pos_dictionary=pos_dictionary,
                                                             pred_mode=False, null_token_index=null_token_index,
-                                                            null_str=null_str)
+                                                            null_str=null_str, verbose=verbose)
 
                 # de-BPE-tokenize
                 src_detokenized = realigne(source_preprocessed, input_alignement_with_raw, null_str=null_str,
@@ -637,4 +639,4 @@ def epoch_run(batchIter, tokenizer,
     if early_stoppin_metric is not None:
         assert early_stoppin_metric_val is not None, "ERROR : early_stoppin_metric_val should have been found " \
                                                      "but was not {} sample metric {}  ".format(early_stoppin_metric, subsample_early_stoping_metric_val)
-    return loss, iter, reports, early_stoppin_metric_val
+    return loss/batch_i, iter, reports, early_stoppin_metric_val

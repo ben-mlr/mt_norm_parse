@@ -16,7 +16,10 @@ def eval_norm(src_path, target_path, count_x_token=True):
     target = open(target_path, "r")
 
     exact_match = 0
+    exact_match_flex = 0
     match_need_norm = 0
+    match_need_norm_flex = 0
+    match_normed_flex = 0
     match_normed = 0
     n_normed = 0
     n_need_norm = 0
@@ -58,30 +61,69 @@ def eval_norm(src_path, target_path, count_x_token=True):
 
             if gold_norm == src_original_form:
                 # TODO : add pairs of errors + inconsistencies as a list of pair and count by checking it it's in the lsit of possibilities
-                if not x_token or (src_original_form in ["bou", "wit", "yu", "r", "nd", "babe"]
-                                   and pred_norm in ["about", "with", "you", "are", "and", "baby", "yes","nigga",
-                                                     'brother',
-                                                     "ya", "family", "television", "sister", "&", "congrats", "yes"]):
+                if not x_token :
                     match_normed += pred_norm == gold_norm
+                    match_normed_flex += weak_match(pred_norm=pred_norm, gold_norm=gold_norm, src=src_original_form)
+
                 n_normed += 1
             else:
                 if not x_token:
                     match_need_norm += pred_norm == gold_norm
+                    match_need_norm_flex += weak_match(pred_norm=pred_norm, gold_norm=gold_norm, src=src_original_form)
+
                 n_need_norm += 1
             if src_original_form != pred_norm:
                 n_pred_need_norm += 1
             if not x_token:
                 exact_match += pred_norm == gold_norm
+                exact_match_flex += weak_match(pred_norm=pred_norm, gold_norm=gold_norm, src=src_original_form)
             n_tokens += 1
 
     accuracy = exact_match/n_tokens
+    accuracy_flex = exact_match_flex / n_tokens
     recall = match_need_norm/n_need_norm
+    recall_flex = match_need_norm_flex / n_need_norm
     precision = match_need_norm/n_pred_need_norm
+    precision_flex = match_need_norm_flex/n_pred_need_norm
     f1 = hmean([recall, precision]) if recall > 0 and precision > 0 else None
+    f1_flex = hmean([recall_flex, precision_flex]) if recall_flex > 0 and precision_flex > 0 else None
 
     print("ACCURACY {:0.2f} , RECALL:{:0.2f} , PRECISION:{:0.2f}, F1:{:0.2f} / {} tokens {} need Norm".format(accuracy*100, recall*100,
                                                                                       precision*100, f1*100, n_tokens, n_need_norm))
+    print("FLEX ACCURACY {:0.2f} , RECALL:{:0.2f} , PRECISION:{:0.2f}, F1:{:0.2f} / {} tokens {} need Norm".format(
+        accuracy_flex * 100, recall_flex * 100,
+        precision_flex * 100, f1_flex * 100, n_tokens, n_need_norm))
 
+# defining possible normalization (independent of annotation mistake of TEST)
+## - we remove mistake form test
+## - we add inconsistencies of DEV/TEST
+
+
+REF_DIC = {"about": ["about"],
+           "bout": ["about"],
+           "with": ["with"],
+           "you": ["you"],
+           "are": ["are"],
+           "and": ["and"],
+           "babe": ["babe", "baby"],
+           "television": ["television", "tv"],
+           "family": ["family", "fam"],
+           "sister": ["sister"],
+           "brother": ["brother"],
+           "&": ["and", "&"],
+           "congrats": ["congrats", "congratulations"],
+           "niggas": ["niggas", "niggers"],
+           "yes": ["yes", "ya"]
+           }
+
+
+def weak_match(pred_norm, gold_norm,src, ref_dic=REF_DIC):
+    if gold_norm in ref_dic:
+        print("{} WEAK MATCH for pred [{}] vs [gold:{}] [src {}]: {} while hard is {}".format(int(pred_norm in ref_dic[gold_norm]) and not int(pred_norm == gold_norm),
+              pred_norm, gold_norm, src,int(pred_norm in ref_dic[gold_norm]), int(pred_norm == gold_norm)))
+        return int(pred_norm in ref_dic[gold_norm])
+    else:
+        return pred_norm == gold_norm
 
 dir = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/checkpoints/bert"
 
