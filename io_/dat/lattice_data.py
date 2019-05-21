@@ -5,7 +5,6 @@ from .conllu_reader import CoNLLReader
 from .dictionary import Dictionary
 
 
-
 def _get_lexicial_feature(lexicon, word, pos):
   raw_token = word
   lower_token = word.lower()
@@ -22,6 +21,7 @@ def _get_lexicial_feature(lexicon, word, pos):
     return lexicon.wordpos2feats[lower_token]
   return [ [ UNK_ID, UNK_ID ] ]
 
+
 def get_lexical_features(lexicon, words, poss):
   feats = []
   for i in range(len(words)):
@@ -31,6 +31,7 @@ def get_lexical_features(lexicon, words, poss):
     else:
       feats.append(_get_lexicial_feature(lexicon, word, pos))
   return feats
+
 
 def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary, max_size=None, normalize_digits=True, symbolic_root=False, symbolic_end=False, dry_run=False, lattice=None):
   _buckets = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, -1]
@@ -61,6 +62,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
     counter += 1
   reader.close()
   return data, max_char_length, _buckets, max_morpho_sent
+
 
 def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary, max_size=None, normalize_digits=True, symbolic_root=False, symbolic_end=False, use_gpu=False, volatile=False, dry_run=False, lattice=None):
   data, max_char_length, _buckets, max_morpho_sent = read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary, type_dictionary, max_size=max_size, normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end, dry_run=dry_run, lattice=lattice)

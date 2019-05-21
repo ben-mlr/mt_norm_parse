@@ -80,7 +80,6 @@ def overall_word_level_metric_measure(gold_sent_ls,
         if src_detokenized is not None:
             assert len(gold_sent) == len(src_detokenized[gold_ind_sent]), "ERROR src_detokenized {} and gold_sent_ls for sent {} have different length ".format(gold_sent, src_detokenized[gold_ind_sent])
 
-
         score_sent = []
         filter_sent = {_sample: [] for _sample in samples}
         for ind_word in range(len(gold_sent)):

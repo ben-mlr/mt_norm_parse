@@ -129,7 +129,7 @@ def epoch_run(batchIter, tokenizer,
     skipping_batch_n_to_1 = 0
 
     loss = 0
-    samples = ["all", "NEED_NORM", "NORMED", "InV", "OOV"]
+    samples = ["all", "NEED_NORM", "NORMED", "PRED_NEED_NORM", "PRED_NORMED", "InV", "OOV"]
     init_samples = samples.copy()
     if compute_intersection_score:
         for ind,sam in enumerate(samples[1:]):
@@ -339,7 +339,8 @@ def epoch_run(batchIter, tokenizer,
             except Exception as e:
                 print(e)
                 print(" MAX ", torch.max(output_tokens_tensor_aligned), input_tokens_tensor, input_mask)
-                loss_dic = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask, aggregating_bert_layer_mode=aggregating_bert_layer_mode,
+                loss_dic = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
+                                                aggregating_bert_layer_mode=aggregating_bert_layer_mode,
                                                 labels=output_tokens_tensor_aligned if task_normalize_is else None,#if tasks[0] == "normalize" else None,
                                                 labels_task_2=output_tokens_tensor_aligned if task_pos_is else None)#if tasks[0] == "pos" else None)
             _loss = loss_dic["loss"]

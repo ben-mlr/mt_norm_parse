@@ -44,7 +44,11 @@ def word_level_filter(gold, topk_pred, topk, src, sample="all", sample_2=None, w
 
     if sample == "all":
         sample_1_filter = 1
-    elif sample == "NORMED" :
+    elif sample == "PRED_NORMED":
+        sample_1_filter = src == topk_pred[0]
+    elif sample == "PRED_NEED_NORM":
+        sample_1_filter = src != topk_pred[0]
+    elif sample == "NORMED":
         sample_1_filter = src == gold
     elif sample == "NEED_NORM":
         sample_1_filter = src != gold
@@ -74,6 +78,10 @@ def word_level_filter(gold, topk_pred, topk, src, sample="all", sample_2=None, w
             assert word_reference_dic_ls is not None, "No word_reference_dic_ls provided"
             assert word_reference_dic_ls.get("InV", None) is not None, "No word_reference_dic_ls['InV'] provided"
             sample_2_filter = src not in word_reference_dic_ls["InV"] and src.lower() not in word_reference_dic_ls["InV"]
+        elif sample_2 == "PRED_NORMED":
+            sample_2_filter = src == topk_pred[0]
+        elif sample_2 == "PRED_NEED_NORM":
+            sample_2_filter = src != topk_pred[0]
     else:
         sample_2_filter = 1
 

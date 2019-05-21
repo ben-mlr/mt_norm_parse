@@ -5,8 +5,6 @@ from training.train_eval import train_eval
 from env.project_variables import DEFAULT_SCORING_FUNCTION, MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE , AVAILABLE_TASKS, DIC_ARGS
 
 
-
-
 if __name__ == "__main__":
 
     args = args_train()

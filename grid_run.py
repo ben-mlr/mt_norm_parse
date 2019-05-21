@@ -382,7 +382,7 @@ if __name__ == "__main__":
 
           BERT_NORMALIZE = True
           if BERT_NORMALIZE:
-              epochs = 20
+              epochs = 10
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,  
                                                   grid_label=LABEL_GRID,
@@ -393,7 +393,9 @@ if __name__ == "__main__":
                                                   gpu_mode="random",
                                                   #norm_2_noise_training_ls=[0., 1.],
                                                   lr_ls=[0.00001],# 0.00002, 0.00003, 0.000005],
-                                                  #lr_ls=[OrderedDict([("bert", 1e-5), ("classifier", 1e-4)])],
+                                                  #lr_ls=[OrderedDict([("bert", 1e-5), ("classifier_task_2", 1e-4), ("classifier_task_1", 1e-5)]),
+                                                  #       OrderedDict([("bert", 5e-6), ("classifier_task_2", 1e-4), ("classifier_task_1", 1e-5)]),
+                                                  #       OrderedDict([("bert", 1e-5), ("classifier_task_2", 1e-3), ("classifier_task_1", 1e-5)])],
                                                   #       OrderedDict([("bert", 2e-5), ("classifier", 0.0001)]),
                                                   #       OrderedDict([("bert", 1e-5), ("classifier", 0.001)]),
                                                   #       OrderedDict([("bert", 1e-5), ("classifier", 1e-5)])],
@@ -401,7 +403,7 @@ if __name__ == "__main__":
                                                   #                     ["normed", "0.75"],["normed", "1."]],#[None,,
                                                   #lr_ls=[OrderedDict([("bert", "0.00001"), ("classifier", "0.0001")]),
                                                   #       OrderedDict([("bert", "0.00001"), ("classifier", "0.00001")])],
-                                                  tasks_ls=[["normalize"], ["normalize"]],
+                                                  tasks_ls=[["normalize"],["normalize"]],
                                                   fine_tuning_strategy_ls=["standart"],
                                                   dropout_classifier_ls=[0.3],
                                                   dropout_input_bpe_ls=[0.1],
@@ -409,13 +411,14 @@ if __name__ == "__main__":
                                                   dropout_bert_ls=[0.1],
                                                   #gold_error_detection_ls=[0], heuristic_ls_ls=[["'#'","'@'"]],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
-                                                  #train_path=[[EN_LINES_EWT_TRAIN],[LEX_TRAIN, EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV], [LEX_TEST, EWT_DEV]],
+                                                  #train_path=[[EN_LINES_EWT_TRAIN], [LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED, EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV], [LIU_DEV, EWT_DEV]],
                                                   train_path=[[LIU_TRAIN_OWOPUTI], [LEX_TRAIN_SPLIT]],  dev_path=[[LIU_DEV], [LEX_DEV_SPLIT]],
+                                                  #train_path=[[LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED]], dev_path=[[LIU_DEV]],
                                                   #train_path=[[EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV]],
                                                   #train_path=[[AUGMENTED_LEX_DIC[n_sent]] for n_sent in [80, 100, 120, 150, 250, 350]],
                                                   #dev_path=[[LIU_DEV] for n_sent in [80, 100, 120,150,250,350]],
-                                                  test_paths=[[[LIU_DEV], [DEV], [TEST], [LEX_TEST], [LEX_DEV_SPLIT], [LEX_TRAIN], [GENERATED_DIC[350]]] for _ in range(2)],# for _ in [80, 100, 120,150,250,350]],
-                                                  #test_paths=[[[TEST], [LEX_TEST]] for _ in range(2)],
+                                                  #test_paths=[[[LIU_DEV], [DEV], [TEST], [LEX_TEST], [LEX_DEV_SPLIT], [LEX_TRAIN], [GENERATED_DIC[350]]]],# for _ in [80, 100, 120,150,250,350]],
+                                                  test_paths=[[[TEST], [LEX_TEST]] for _ in range(2)],
                                                   #test_paths=[[[EWT_DEV], [EN_LINES_EWT_TRAIN], [EWT_TEST], [DEV], [TEST]], [[LEX_TEST, EWT_DEV], [LEX_TRAIN,EN_LINES_EWT_TRAIN], [LIU_DEV, EWT_TEST], [DEV,  DEV], [TEST, TEST]]],
                                                   #test_paths=[[[EWT_DEV], [EN_LINES_EWT_TRAIN], [EWT_TEST], [DEV], [TEST]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,

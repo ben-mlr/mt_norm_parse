@@ -85,6 +85,9 @@ LIU_DEV_OWOPUTI_LABEL, LIU_DEV_OWOPUTI = "liu_dev_owoputi", os.path.join(PROJECT
 
 LIU_TRAIN_LABEL, LIU_TRAIN = "liu_train", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-train_2009.conll")
 
+LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED_LABEL, LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED = "liu_lex_filtered_train", os.path.join(PROJECT_PATH, "./data/lex_train_split_liu_train_owuputi.conll")
+LIU_OWOPUTI_DEV_LEX_DEV_FILTERED_LABEL, LIU_OWOPUTI_DEV_LEX_DEV_FILTERED = "liu_lex_filtered_dev", os.path.join(PROJECT_PATH, "./data/lex_dev_split_liu_dev_owuputi.conll")
+
 LIU_TRAIN_OWOPUTI_LEX_TRAIN_LABEL, LIU_TRAIN_OWOPUTI_LEX_TRAIN = "lex_norm2015_train-space_demo", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-train_2009-fixed+owoputi_integrated_fixed+lexnorm_train.conll")
 LEX_TRAIN_SPACE_DEMO_LABEL, LEX_TRAIN_SPACE_DEMO = "lex_norm2015_train-space_demo", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/train_data-space_demo.conll")
 LEX_TRAIN_LABEL, LEX_TRAIN = "lex_norm2015_train", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/train_data.conll")
@@ -203,6 +206,8 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 TEST: TEST_LABEL, LIU: LIU_LABEL,
                 LEX_TRAIN_SPACE_DEMO: LEX_TRAIN_SPACE_DEMO_LABEL,
                 LIU_TRAIN_OWOPUTI_LEX_TRAIN: LIU_TRAIN_OWOPUTI_LEX_TRAIN_LABEL,
+                LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED: LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED_LABEL,
+                LIU_OWOPUTI_DEV_LEX_DEV_FILTERED: LIU_OWOPUTI_DEV_LEX_DEV_FILTERED_LABEL,
                 LIU_DEV_OWOPUTI: LIU_DEV_OWOPUTI_LABEL,
                 LEX_TRAIN_SPLIT: LEX_TRAIN_SPLIT_LABEL,
                 LEX_DEV_SPLIT:  LEX_DEV_SPLIT_LABEL,
@@ -260,7 +265,8 @@ REPO_W2V = {
 # NB : predicted_classes does not necessarily mean that the task is to predict those classes but that
 # it can be deduced in a straitforward way from he prediciton !!
 TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact_match",
-                                 "predicted_classes": ["NORMED", "NEED_NORM"]},
+                                 "predicted_classes": ["NORMED", "NEED_NORM"],
+                                 "predicted_classes_pred_field": ["PRED_NORMED", "PRED_NEED_NORM"]},
                    "norm_not_norm": {"normalization": True},
                    "edit_prediction": {"normalization": True},
                    "pos": {"normalization": False, "default_metric": "accuracy-pos"},

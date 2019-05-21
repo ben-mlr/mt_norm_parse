@@ -43,7 +43,7 @@ if train:
     tasks = ["normalize"]
     train_path = [DEMO]#, DEMO]
     dev_path = [DEMO]#, DEMO]
-    test_paths_ls = [[DEMO]]#, DEMO]]
+    test_paths_ls = [[DEMO]]#, [DEMO]]
 
     voc_pos_size = 16
     #["bert"]
@@ -55,7 +55,7 @@ if train:
                                           dropout_bert=0.0, initialize_bpe_layer=initialize_bpe_layer)
     lr = 0.0001
 
-    batch_size = 2
+    batch_size = 1
     null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary
     description = "DEBUGGING_LEAK-AS_BEFORE"
     print("{} lr batch_size initialize_bpe_layer training_data".format(REPORT_FLAG_VARIABLES_ENRICH_STR))
@@ -72,9 +72,9 @@ if train:
                 voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
                 auxilliary_task_norm_not_norm=True,
                 saving_every_epoch=10,
-                lr=0.00001,#OrderedDict([("bert", 5e-5), ("classifier_task_1", 0.001), ("classifier_task_2", 0.001)]),
-                batch_size=batch_size, n_iter_max_per_epoch=100,
-                n_epoch=3,
+                lr=0.00001, #lr=OrderedDict([("bert", 5e-5), ("classifier_task_1", 0.001), ("classifier_task_2", 0.001)]),
+                batch_size=batch_size, n_iter_max_per_epoch=1000,
+                n_epoch=5,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
                 model_suffix="{}".format(description), debug=False,
@@ -128,6 +128,7 @@ if playwith:
     pref_suffix = ""
     batch_size = 1
     lr = ""
+
     evalu = True
 
     list_reference_heuristic_test = json.load(open("./data/words_dictionary.json", "r"))
@@ -148,7 +149,7 @@ if playwith:
                     debug=True, report=True,
                     remove_mask_str_prediction=True, inverse_writing=False,
                     extra_label_for_prediction="RE_PREDICT",
-                    heuristic_test_ls=[["slang_translate"]],
+                    heuristic_test_ls=[None],
                     bucket_test=False, must_get_norm_test=False,
                     slang_dic_test=slang_dic, list_reference_heuristic_test=list_reference_heuristic_test,
                     verbose="raw_data")

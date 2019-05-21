@@ -21,8 +21,9 @@ def get_perf_rate(metric, score_dic, n_tokens_dic, agg_func, task="normalize", v
         if metric == "recall-normalize":
             return recall, positive_obs
     if metric in ["precision-normalize", "f1-normalize", "accuracy-normalize"]:
-        positive_prediction = n_tokens_dic[agg_func][TASKS_PARAMETER[task]["predicted_classes"][0]] - score_dic[agg_func][
-            TASKS_PARAMETER[task]["predicted_classes"][0]] + score_dic[agg_func][TASKS_PARAMETER[task]["predicted_classes"][1]]
+        #positive_prediction = n_tokens_dic[agg_func][TASKS_PARAMETER[task]["predicted_classes"][0]] - score_dic[agg_func][TASKS_PARAMETER[task]["predicted_classes"][0]] \
+        #                      + score_dic[agg_func][TASKS_PARAMETER[task]["predicted_classes"][1]]
+        positive_prediction = n_tokens_dic[agg_func][TASKS_PARAMETER[task]["predicted_classes_pred_field"][1]]
         precision = score_dic[agg_func][
                         TASKS_PARAMETER[task]["predicted_classes"][1]] / positive_prediction if positive_prediction > 0 else None
         if metric == "precision-normalize":
@@ -40,8 +41,9 @@ def get_perf_rate(metric, score_dic, n_tokens_dic, agg_func, task="normalize", v
             return None, negative_obs + positive_obs
 
     if metric in ["npv-normalize"]:
-        negative_prediction = n_tokens_dic[agg_func][TASKS_PARAMETER[task]["predicted_classes"][1]] - score_dic[agg_func][
-            TASKS_PARAMETER[task]["predicted_classes"][1]] + score_dic[agg_func][TASKS_PARAMETER[task]["predicted_classes"][0]]
+        #negative_prediction = n_tokens_dic[agg_func][TASKS_PARAMETER[task]["predicted_classes"][1]] - score_dic[agg_func][
+        #    TASKS_PARAMETER[task]["predicted_classes"][1]] + score_dic[agg_func][TASKS_PARAMETER[task]["predicted_classes"][0]]
+        negative_prediction = n_tokens_dic[agg_func][TASKS_PARAMETER[task]["predicted_classes_pred_field"][0]]
         return score_dic[agg_func][
                    TASKS_PARAMETER[task]["predicted_classes"][0]] / negative_prediction if negative_prediction > 0 else None, \
                negative_prediction

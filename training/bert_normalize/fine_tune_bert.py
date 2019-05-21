@@ -354,8 +354,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                       ["edit_check-all-need_normed"],
                                                                       ["edit_check-data-need_normed"],
                                                                       ["edit_check-ref-need_normed"],
-                                                                      ["@", "#", "url", "slang_translate"],
-                                                                      ["edit_check-all-need_normed", "@", "#", "url", "slang_translate",],
+                                                                      ["@", "#", "url"],
+                                                                      ["edit_check-all-need_normed", "@", "#", "url"],
                                                                       ["slang_translate"]]
                 gold_error_or_not_zip = [False] if task_to_eval == "pos" else [False, True, False, False, False, False, False, False, False]
                 norm2noise_zip = [False] if task_to_eval == "pos" else [False, False, False, False, False, False, False, False, False]
