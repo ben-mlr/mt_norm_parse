@@ -43,7 +43,9 @@ AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm", "pos", "edit_prediction"
 AVAILABLE_AGGREGATION_FUNC_AUX_TASKS = ["norm_not_norm", "edit_prediction"]
 AVAILABLE_BERT_FINE_TUNING_STRATEGY = ["bert_out_first", "standart", "flexible_lr", "only_first_and_last"]
 AVAILABLE_BERT_MASKING_STRATEGY = ["normed", "cls", "start_stop"]
-HEURISTICS = ["gold_detection", "#", "@", "url", "slang_translate", "edit_check-all", "edit_check-data", "edit_check-ref"]
+edit_rules = ["edit_check-"+ref_list_label+"-"+need_normed_rule for ref_list_label in ["data", "ref", "all"] for need_normed_rule in ["need_normed", "all"]]
+heuristics = ["gold_detection", "#", "@", "url", "slang_translate"]
+HEURISTICS = heuristics+edit_rules
 
 TASKS_2_METRICS_STR = {"all": ["accuracy-exact-normalize", "accuracy-normalize","InV-accuracy-normalize","OOV-accuracy-normalize","npv-normalize", "recall-normalize","precision-normalize","tnr-normalize", "accuracy-exact-pos", "f1-normalize"],
                        "normalize": ["accuracy-exact-normalize", "accuracy-normalize", "npv-normalize", "recall-normalize", "precision-normalize", "tnr-normalize", "f1-normalize"],

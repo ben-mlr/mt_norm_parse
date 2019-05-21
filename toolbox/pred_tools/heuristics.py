@@ -30,6 +30,7 @@ def get_letter_indexes(list_ordered_words, new_letter=None):
 def predict_with_heuristic(src_detokenized, pred_detokenized_topk, heuristic_ls,
                            gold_detokenized=None, slang_dic=None,
                            list_reference=None, index_alphabetical_order=None, list_candidates=None,
+                           threshold_edit=None, edit_module_pred_need_norm_only=True,
                            verbose=1):
     """
     applies heuristic based on src data to correct prediction
@@ -45,8 +46,8 @@ def predict_with_heuristic(src_detokenized, pred_detokenized_topk, heuristic_ls,
 
     printing("TRAINING : postprocessing predictions with extra heuristics {} ", var=[heuristic_ls], verbose=verbose, verbose_level=1)
     assert len(list(set(heuristic_ls))) == len(heuristic_ls), "ERROR redudancies in {}".format(heuristic_ls)
-    assert len(list(set(heuristic_ls )&set(HEURISTICS)) ) == len(heuristic_ls), \
-        "ERROR heuristic {} does not match {}".format(HEURISTICS , heuristic_ls)
+    assert len(list(set(heuristic_ls) & set(HEURISTICS)) ) == len(heuristic_ls), \
+        "ERROR heuristic {} does not match {}".format(HEURISTICS, heuristic_ls)
     if "gold_detection" in heuristic_ls:
         assert gold_detokenized is not None
     else:
@@ -70,33 +71,66 @@ def predict_with_heuristic(src_detokenized, pred_detokenized_topk, heuristic_ls,
                         src = src_detokenized[sent][ind_token]
                         pred = pred_detokenized_topk[ind_top][sent][ind_token]
 
-                        def edit_check(list_reference,  src, pred, list_candidates):
+                        def edit_check(list_reference,  src, pred, list_candidates, threshold_edit,
+                                       pred_need_norm_only=True):
                             assert list_candidates is not None, "ERROR list_candidates {} ".format(list_candidates)
-                            if pred not in list_reference and pred not in SPECIAL_TOKEN_LS and \
-                                    src not in SPECIAL_TOKEN_LS and pred[0] in "abcdefghijklmnopqrstuvwxyz":
-                                # NB : # , @ , numbers won't be considered here
+
+                            if pred not in list_reference and pred not in SPECIAL_TOKEN_LS \
+                                and src not in SPECIAL_TOKEN_LS and len(pred) > 0 \
+                                and pred[0] in "abcdefghijklmnopqrstuvwxyz":
+
+                                if pred_need_norm_only and src == pred:
+                                    print("EDIT CHECK (pred_need_norm_only is TRUE) "
+                                          "on src {} : predicted a NORMED so not editing ".format(src))
+                                    return pred
+                                # NB : THIS edit check only involve tokens
+                                #      that are normalized by the model and not  # , @ , numbers won't
                                 if src in list_reference:
                                     return src
                                 else:
                                     start = time.time()
-                                    index_letter_start = index_alphabetical_order[src[0]][0]
-                                    index_letter_end = index_alphabetical_order[src[0]][1]
-                                    _list_reference = list_candidates[index_letter_start:index_letter_end]
-                                    if len(_list_reference) == 0:
-                                        _list_reference = list_candidates
-                                    pred_to_ref = np.array([edit_distance(pred, ref)/max([len(pred)]) for ref in _list_reference])
-                                    src_to_ref = np.array([edit_distance(src, ref)/max([len(src)]) for ref in _list_reference])
-                                    min_pred = _list_reference[np.argmin(pred_to_ref)]
-                                    min_src = _list_reference[np.argmin(src_to_ref)]
-                                    predict = min_pred if np.min(pred_to_ref) < np.min(src_to_ref) else min_src
-                                    print("EDIT CHECK on {} mode  src {} -> {} , pred {} -> {} : {} ".format(heuristic,src, min_src, pred, min_pred, predict))
-                                    print("EDIT CHECK done in {:0.2f}s".format(time.time()-start))
+                                    try:
+                                        index_letter_start = index_alphabetical_order[src[0]][0]
+                                        index_letter_end = index_alphabetical_order[src[0]][1]
+                                        _list_reference = list_candidates[index_letter_start:index_letter_end]
+                                        if len(_list_reference) == 0:
+                                            _list_reference = list_candidates
+                                        pred_to_ref = np.array([edit_distance(pred, ref) for ref in _list_reference])
+                                        src_to_ref = np.array([edit_distance(src, ref) for ref in _list_reference])
+
+                                        index_min_pred_to_ref = np.argmin(pred_to_ref)
+                                        inde_min_src_to_ref = np.argmin(src_to_ref)
+
+                                        min_pred = _list_reference[index_min_pred_to_ref]
+                                        min_src = _list_reference[inde_min_src_to_ref]
+                                        pdb.set_trace()
+                                        if pred_to_ref[index_min_pred_to_ref] >= threshold_edit \
+                                                and src_to_ref[inde_min_src_to_ref] >= threshold_edit:
+                                            print("EDIT CHECK : edit module did not find close enough candidate "
+                                                  "so not modifying prediciton for {} : pred {}".format(src, pred))
+                                            return pred
+                                        norm_edit_pred = pred_to_ref[index_min_pred_to_ref]/len(pred)
+                                        norm_edit_src = src_to_ref[inde_min_src_to_ref]/len(src)
+
+                                        pdb.set_trace()
+                                        # TODO : if distance is too high should return pred anyway
+                                        predict = min_pred if norm_edit_pred < norm_edit_src else min_src
+                                        print("EDIT CHECK on {} mode  src {} "
+                                              "-> {} , pred {} -> {} : {} ".format(heuristic, src, min_src, pred, min_pred, predict))
+                                        print("EDIT CHECK done in {:0.2f}s".format(time.time()-start))
+                                    except Exception as e:
+                                        print("ERROR (heuristics) : {} src was {}".format(e, src))
+                                        return pred
                                     return predict
                                 # find the edit the closest in
                             else:
+                                if len(pred) == 0:
+                                    print("WARNING : pred {} is empty".format(pred))
                                 return pred
                         pred_detokenized_topk[ind_top][sent][ind_token] = edit_check(list_reference, src, pred,
-                                                                                     list_candidates=list_candidates)
+                                                                                     list_candidates=list_candidates,
+                                                                                     threshold_edit=threshold_edit,
+                                                                                     pred_need_norm_only=edit_module_pred_need_norm_only)
 
                     if heuristic == "@" and src_detokenized[sent][ind_token].startswith("@"):
 

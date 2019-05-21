@@ -43,7 +43,7 @@ def epoch_run(batchIter, tokenizer,
               compute_intersection_score = False,
               subsample_early_stoping_metric_val="all",
               slang_dic=None, list_reference_heuristic=None,list_candidates=None, index_alphabetical_order=None,
-              case=None,
+              case=None, threshold_edit=None, edit_module_pred_need_norm_only=True,
               verbose=0):
     """
     About Evaluation :
@@ -53,6 +53,10 @@ def epoch_run(batchIter, tokenizer,
             Can also have different aggregation function
             TODO : TEST those scoring fucntions
     """
+    if heuristic_ls is not None:
+        for edit_rule in ["all", "ref", "data"]:
+            if "edit_check-"+edit_rule in heuristic_ls:
+                assert threshold_edit is not None, "ERROR threshold_edit required as heuristic_ls is {}".format(heuristic_ls)
     if case is not None:
         AVAILABLE_CASE_OPTIONS = ["lower"]
         assert case in AVAILABLE_CASE_OPTIONS
@@ -154,17 +158,14 @@ def epoch_run(batchIter, tokenizer,
             # if no normalization found : should have pos
             task_pos_is = len(batch.raw_output[0]) == 0
             task_normalize_is = not task_pos_is
-            pdb.set_trace()
             if case is not None:
                 if case == "lower":
                     batch.raw_input = [[word.lower() if word not in SPECIAL_TOKEN_LS else word for word in sent] for sent in batch.raw_input]
                     if task_normalize_is:
                         batch.raw_output = [[word.lower() if word not in SPECIAL_TOKEN_LS else word for word in sent] for sent in batch.raw_output]
-            pdb.set_trace()
             #print("ITERATING on {} task".format("pos" if task_pos_is else "normalize"))
             n_task_pos_sanity += int(task_pos_is)
             n_task_normalize_sanity += int(task_normalize_is)
-            pdb.set_trace()
             norm2noise_bool = False
             batch_raw_output = None
             # Handling input
@@ -393,7 +394,10 @@ def epoch_run(batchIter, tokenizer,
                                                                            list_reference=list_reference_heuristic, list_candidates=list_candidates,
                                                                            slang_dic=slang_dic,
                                                                            index_alphabetical_order=index_alphabetical_order,
-                                                                           heuristic_ls=heuristic_ls, verbose=verbose)
+                                                                           heuristic_ls=heuristic_ls,
+                                                                           threshold_edit=threshold_edit,
+                                                                           edit_module_pred_need_norm_only=edit_module_pred_need_norm_only,
+                                                                           verbose=verbose)
                         # NB : we overlay prediction with gold_error_detection
                         if gold_error_detection:
                             pred_detokenized_topk = predict_with_heuristic(src_detokenized=src_detokenized,

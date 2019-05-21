@@ -11,8 +11,8 @@ from io_.data_iterator import readers_load, conllu_data, data_gen_multi_task_sam
 from model.bert_tools_from_core_code.tokenization import BertTokenizer
 from training.epoch_run_fine_tuning_bert import epoch_run
 from toolbox.report_tools import write_args
-
 from toolbox.pred_tools.heuristics import get_letter_indexes
+
 
 def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         voc_tokenizer, auxilliary_task_norm_not_norm, bert_with_classifier,
@@ -34,7 +34,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         early_stoppin_metric=None,subsample_early_stoping_metric_val=None,
         compute_intersection_score_test=True,
         slang_dic_test=None, list_reference_heuristic_test=None,
-        case=None,
+        case=None, threshold_edit=3,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
@@ -322,6 +322,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         list_reference_heuristic_test.sort()
         alphabet_index = get_letter_indexes(list_reference_heuristic_test)
         list_candidates = None
+        mode_need_norm_heuristic = None
         for test_path in test_path_ls:
             assert len(test_path) == len(tasks), "ERROR test_path {} tasks {}".format(test_path, tasks)
             for test, task_to_eval in zip(test_path, tasks):
@@ -349,10 +350,15 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                 heuritics_zip = [None] if task_to_eval == "pos" else [None, ["@", "#"], ["@", "#"], None, None]
                 gold_error_or_not_zip = [False] if task_to_eval == "pos" else [False, False, True, True, False]
                 norm2noise_zip = [False] if task_to_eval == "pos" else [False, False, False, False, True]
-                heuritics_zip = [None] if task_to_eval == "pos" else [None, None, ["edit_check-all"], ["edit_check-data"], ["edit_check-ref"],  ["@", "#", "url"], ["slang_translate"]]
-                gold_error_or_not_zip = [False] if task_to_eval == "pos" else [False, True, False, False, False, False, False]
-                norm2noise_zip = [False] if task_to_eval == "pos" else [False, False, False, False, False, False, False]
-
+                heuritics_zip = [None] if task_to_eval == "pos" else [None, None, ["edit_check-all-all"],
+                                                                      ["edit_check-all-need_normed"],
+                                                                      ["edit_check-data-need_normed"],
+                                                                      ["edit_check-ref-need_normed"],
+                                                                      ["@", "#", "url", "slang_translate"],
+                                                                      ["edit_check-all-need_normed", "@", "#", "url", "slang_translate",],
+                                                                      ["slang_translate"]]
+                gold_error_or_not_zip = [False] if task_to_eval == "pos" else [False, True, False, False, False, False, False, False, False]
+                norm2noise_zip = [False] if task_to_eval == "pos" else [False, False, False, False, False, False, False, False, False]
                 if heuristic_test_ls is not None:
                     assert isinstance(heuristic_test_ls, list)
                     if heuristic_test_ls[0] is not None:
@@ -377,16 +383,18 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                     norm2noise_zip = [False]
 
                 batch_size_TEST = 1
+
                 print("WARNING : batch_size for final eval was hardcoded and set to {}".format(batch_size_TEST))
                 for (heuristic_test, gold_error, norm_2_noise_eval) in zip(heuritics_zip, gold_error_or_not_zip, norm2noise_zip):
 
                     if heuristic_test is not None and heuristic_test[0].startswith("edit_check"):
-                        assert len(heuristic_test) == 1,\
-                            "ERROR if heuristic_test is edit_check {} category then it should be the only heuristic".format(heuristic_test)
-                        pattern = "(.*)-(.*)"
+                        #assert len(heuristic_test) == 1,\
+                        #    "ERROR if heuristic_test is edit_check {} category then it should be the only heuristic".format(heuristic_test)
+                        pattern = "(.*)-(.*)-(.*)"
                         match = re.match(pattern, heuristic_test[0])
                         assert match is not None, "ERROR did not find pattern {} in {}".format(pattern, heuristic_test[0])
                         mode_heuristic = match.group(2)
+                        mode_need_norm_heuristic = match.group(3)
                         assert mode_heuristic in ["all", "ref", "data"]
                         assert list_reference_heuristic_test is not None
                         if mode_heuristic == "all":
@@ -397,10 +405,19 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                             list_candidates = list_reference_heuristic_test
                         else:
                             raise(Exception("mode_heuristics {} not supported".format(mode_heuristic)))
+                        assert mode_need_norm_heuristic in ["need_normed", "all"], "ERROR mode_need_norm_heuristic " \
+                                                                                   "should be in " \
+                                                                                   "[all, need_normed] " \
+                                                                                   "but is {}".format(mode_need_norm_heuristic)
+
                         info_details_heursitics = "means we concatanete train+dev data dictionary with ref"
                         printing("HEURISTICS : {} words used as reference (ref+data) {} as candidates ('{}' mode) : ",
-                                 var=[len(list_reference_heuristic_test), len(list_candidates),mode_heuristic, info_details_heursitics],
+                                 var=[len(list_reference_heuristic_test),
+                                      len(list_candidates),
+                                      mode_heuristic, info_details_heursitics],
                                  verbose=verbose, verbose_level=1)
+                        printing("HEURISTICS : edit threshold set to {}", var=[threshold_edit], verbose=verbose,
+                                 verbose_level=1)
 
                     batchIter_test = data_gen_multi_task_sampling_batch(tasks=[task_to_eval], readers=readers_test,
                                                                         batch_size=batch_size,
@@ -426,7 +443,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                               skip_1_t_n=skip_1_t_n,
                                                                               predict_mode=True, data_label=label_data,
                                                                               epoch="LAST", extra_label_for_prediction=label_data,
-                                                                              null_token_index=null_token_index, null_str=null_str,
+                                                                              null_token_index=null_token_index,
+                                                                              null_str=null_str,
                                                                               log_perf=False,
                                                                               dropout_input_bpe=0,
                                                                               masking_strategy=masking_strategy,
@@ -434,7 +452,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                               heuristic_ls=heuristic_test,
                                                                               gold_error_detection=gold_error,
                                                                               slang_dic=slang_dic_test,
-                                                                              list_reference_heuristic=list_reference_heuristic_test, list_candidates=list_candidates,
+                                                                              list_reference_heuristic=list_reference_heuristic_test,
+                                                                              list_candidates=list_candidates,
                                                                               index_alphabetical_order=alphabet_index,
                                                                               norm_2_noise_training=None,
                                                                               # we decide wether we eval everything in mode
@@ -446,7 +465,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                               inverse_writing=inverse_writing,
                                                                               aggregating_bert_layer_mode=aggregating_bert_layer_mode,
                                                                               reference_word_dic={"InV": inv_word_dic},
-                                                                              case=case,
+                                                                              case=case, threshold_edit=threshold_edit,
+                                                                              edit_module_pred_need_norm_only=mode_need_norm_heuristic == "need_normed",
                                                                               n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                         print("LOSS TEST", loss_test)
                     except Exception as e:

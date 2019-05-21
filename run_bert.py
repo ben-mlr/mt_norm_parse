@@ -81,13 +81,14 @@ if train:
                 fine_tuning_strategy="standart",
                 #masking_strategy=["start_stop"],
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
-                initialize_bpe_layer=initialize_bpe_layer, args=None, skip_1_t_n=False, dropout_input_bpe=0.1,
+                initialize_bpe_layer=initialize_bpe_layer, args=None,
+                skip_1_t_n=False, dropout_input_bpe=0.1,
                 heuristic_ls=None, gold_error_detection=False,
                 bucket_test=True, must_get_norm_test=True,
                 list_reference_heuristic_test=list_reference_heuristic_test,
                 slang_dic_test=slang_dic,
                 norm_2_noise_eval=False, #norm_2_noise_training=,
-                aggregating_bert_layer_mode=5, case="lower",
+                aggregating_bert_layer_mode=5, case="lower", #threshold_edit=2.9,
                 report=True, verbose=1)
 
 
