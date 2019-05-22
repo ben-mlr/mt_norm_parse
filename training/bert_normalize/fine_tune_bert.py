@@ -348,17 +348,25 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                             verbose=verbose)
 
                 heuritics_zip = [None] if task_to_eval == "pos" else [None, ["@", "#"], ["@", "#"], None, None]
-                gold_error_or_not_zip = [False] if task_to_eval == "pos" else [False, False, True, True, False]
+                gold_error_or_not_zip = [False] if task_to_eval == "pos" else [False, False, True, True, True, False]
                 norm2noise_zip = [False] if task_to_eval == "pos" else [False, False, False, False, True]
+
+                if label_data.startswith("lex_norm2015"):
+                    best_heurisitc = ["@", "#", "url", "slang_translate"]
+                elif label_data.startswith("lexnorm-normalize"):
+                    best_heurisitc = ["edit_check-all-need_normed", "@", "#", "url"]
+                else:
+                    best_heurisitc = ["@", "#", "url"]
                 heuritics_zip = [None] if task_to_eval == "pos" else [None, None, ["edit_check-all-all"],
                                                                       ["edit_check-all-need_normed"],
                                                                       ["edit_check-data-need_normed"],
                                                                       ["edit_check-ref-need_normed"],
                                                                       ["@", "#", "url"],
-                                                                      ["edit_check-all-need_normed", "@", "#", "url"],
+                                                                      best_heurisitc,
+                                                                      best_heurisitc,
                                                                       ["slang_translate"]]
-                gold_error_or_not_zip = [False] if task_to_eval == "pos" else [False, True, False, False, False, False, False, False, False]
-                norm2noise_zip = [False] if task_to_eval == "pos" else [False, False, False, False, False, False, False, False, False]
+                gold_error_or_not_zip = [False] if task_to_eval == "pos" else [False, True, False, False, False, False, False, False, False, False]
+                norm2noise_zip = [False] if task_to_eval == "pos" else [False, False, False, False, False, False, False, False, False, False]
                 if heuristic_test_ls is not None:
                     assert isinstance(heuristic_test_ls, list)
                     if heuristic_test_ls[0] is not None:

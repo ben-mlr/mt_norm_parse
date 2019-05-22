@@ -382,7 +382,7 @@ if __name__ == "__main__":
 
           BERT_NORMALIZE = True
           if BERT_NORMALIZE:
-              epochs = 10
+              epochs = 15
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,  
                                                   grid_label=LABEL_GRID,
@@ -403,7 +403,7 @@ if __name__ == "__main__":
                                                   #                     ["normed", "0.75"],["normed", "1."]],#[None,,
                                                   #lr_ls=[OrderedDict([("bert", "0.00001"), ("classifier", "0.0001")]),
                                                   #       OrderedDict([("bert", "0.00001"), ("classifier", "0.00001")])],
-                                                  tasks_ls=[["normalize"],["normalize"]],
+                                                  tasks_ls=[["normalize"], ["normalize"]],#[["pos"], ["normalize", "pos"]],#, ["normalize"]],
                                                   fine_tuning_strategy_ls=["standart"],
                                                   dropout_classifier_ls=[0.3],
                                                   dropout_input_bpe_ls=[0.1],
@@ -412,14 +412,15 @@ if __name__ == "__main__":
                                                   #gold_error_detection_ls=[0], heuristic_ls_ls=[["'#'","'@'"]],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   #train_path=[[EN_LINES_EWT_TRAIN], [LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED, EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV], [LIU_DEV, EWT_DEV]],
-                                                  train_path=[[LIU_TRAIN_OWOPUTI], [LEX_TRAIN_SPLIT]],  dev_path=[[LIU_DEV], [LEX_DEV_SPLIT]],
+                                                  #[LIU_TRAIN_OWOPUTI],
+                                                  train_path=[[LEX_TRAIN_SPLIT],  [LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED]],  dev_path=[[LEX_DEV_SPLIT], [LIU_DEV]],
                                                   #train_path=[[LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED]], dev_path=[[LIU_DEV]],
                                                   #train_path=[[EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV]],
                                                   #train_path=[[AUGMENTED_LEX_DIC[n_sent]] for n_sent in [80, 100, 120, 150, 250, 350]],
                                                   #dev_path=[[LIU_DEV] for n_sent in [80, 100, 120,150,250,350]],
                                                   #test_paths=[[[LIU_DEV], [DEV], [TEST], [LEX_TEST], [LEX_DEV_SPLIT], [LEX_TRAIN], [GENERATED_DIC[350]]]],# for _ in [80, 100, 120,150,250,350]],
                                                   test_paths=[[[TEST], [LEX_TEST]] for _ in range(2)],
-                                                  #test_paths=[[[EWT_DEV], [EN_LINES_EWT_TRAIN], [EWT_TEST], [DEV], [TEST]], [[LEX_TEST, EWT_DEV], [LEX_TRAIN,EN_LINES_EWT_TRAIN], [LIU_DEV, EWT_TEST], [DEV,  DEV], [TEST, TEST]]],
+                                                  #test_paths=[[[EWT_DEV], [EN_LINES_EWT_TRAIN], [EWT_TEST], [DEV], [TEST]], [[LEX_TEST, EWT_DEV], [LIU_DEV, EWT_TEST], [DEV,  DEV], [TEST, TEST]]],
                                                   #test_paths=[[[EWT_DEV], [EN_LINES_EWT_TRAIN], [EWT_TEST], [DEV], [TEST]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
@@ -427,7 +428,7 @@ if __name__ == "__main__":
                                                   gpus_ls=gpu_ls,
                                                   write_to_dir=RUN_SCRIPTS_DIR, description_comment=description_comment,
                                                   bert_model_ls=["cased"], initialize_bpe_layer_ls=[1],
-                                                  freeze_parameters_ls=[0], freeze_layer_prefix_ls_ls=[None],
+                                                  freeze_parameters_ls=[1], freeze_layer_prefix_ls_ls=[None, "classifier_task_1"],
                                                   word_recurrent_cell_encoder_ls=None, dropout_word_encoder_cell_ls=None,
                                                   stable_decoding_state_ls=None,
                                                   word_decoding_ls=None, word_embed_ls=None, dir_sent_encoder_ls=None,

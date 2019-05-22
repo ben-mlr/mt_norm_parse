@@ -1,13 +1,14 @@
 from env.models_dir import *
 from io_.info_print import printing
 from toolbox.deep_learning_toolbox import freeze_param
-from model.bert_tools_from_core_code.modeling import BertForTokenClassification, BertConfig
+from model.bert_tools_from_core_code.modeling import BertForTokenClassification, BertConfig, BertForMaskedLM
 
 
 def get_bert_token_classification(vocab_size, voc_pos_size=None,
                                   pretrained_model_dir=None, checkpoint_dir=None,
                                   freeze_parameters=False, freeze_layer_prefix_ls=None,
                                   dropout_classifier=None,dropout_bert=0.,tasks=None,
+                                  bert_module="token_class",
                                   initialize_bpe_layer=None, verbose=1):
     """
     two use case :
@@ -40,30 +41,36 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
     if "pos" in tasks:
         assert voc_pos_size is not None
 
-    model = BertForTokenClassification(config, num_labels, dropout_classifier=dropout_classifier, num_labels_2=voc_pos_size)
-
+    if bert_module == "token_class":
+        model = BertForTokenClassification(config, num_labels, dropout_classifier=dropout_classifier, num_labels_2=voc_pos_size)
+    elif bert_module == "mlm":
+        model = BertForMaskedLM(config)
     if pretrained_model_dir is not None:
-
-        assert initialize_bpe_layer is not None, "ERROR initialize_bpe_layer should not be None "
-
-        model = model.from_pretrained(pretrained_model_dir, num_labels=num_labels, dropout_custom=dropout_bert)
+        if bert_module == "token_class":
+            assert initialize_bpe_layer is not None, "ERROR initialize_bpe_layer should not be None "
+        if bert_module == "token_class":
+            model = model.from_pretrained(pretrained_model_dir, num_labels=num_labels, dropout_custom=dropout_bert)
+        elif bert_module == "mlm":
+            model = model.from_pretrained(pretrained_model_dir)
+            # TODO : add one vector in the classifier which should be random
+            #model.cls.predictions.decoder
         printing("MODEL : loading pretrained BERT and adding extra module for token classification based on {}",
                  var=[pretrained_model_dir],
                  verbose=verbose,
                  verbose_level=1)
-        if dropout_classifier is not None:
+        if dropout_classifier is not None and bert_module == "token_class":
             model.dropout = nn.Dropout(dropout_classifier)
             printing("MODEL : SETTING DROPOUT CLASSIFIER TO {}".format(dropout_classifier), verbose=verbose, verbose_level=1)
 
         #if (len(tasks) > 1 and "normalize" in tasks:
-        if "pos" in tasks:
+        if "pos" in tasks and bert_module == "token_class":
             #assert tasks[1] == "pos", "ONLY  POS and normalize supported so far"
             model.classifier_task_2 = nn.Linear(model.bert.config.hidden_size, voc_pos_size)
             model.num_labels_2 = voc_pos_size
             printing("MODEL : adding classifier_task_2 for POS with voc_pos_size {}",
                      var=[voc_pos_size], verbose=verbose, verbose_level=1)
 
-        if initialize_bpe_layer and tasks[0] == "normalize":
+        if initialize_bpe_layer and tasks[0] == "normalize" and bert_module == "token_class":
             # it needs to be the first as we are setting classifier (1) to the normalizaiton classifier
             output_layer = torch.cat((model.bert.embeddings.word_embeddings.weight.data, torch.rand((1, 768))),
                                      dim=0)
@@ -71,7 +78,7 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
             printing("MODEL : initializing output normalization layer with embedding layer + extra token ",
                      verbose=verbose,
                      verbose_level=1)
-        if freeze_parameters:
+        if freeze_parameters and freeze_layer_prefix_ls is not None:
             model = freeze_param(model, freeze_layer_prefix_ls=freeze_layer_prefix_ls, verbose=verbose)
 
     elif checkpoint_dir is not None:

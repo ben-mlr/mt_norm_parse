@@ -38,8 +38,8 @@ if train:
     vocab_size = BERT_MODEL_DIC["bert-cased"]["vocab_size"]
 
     initialize_bpe_layer = True
-    freeze_parameters = False
-    freeze_layer_prefix_ls = None#["bert"]
+    freeze_parameters = True
+    freeze_layer_prefix_ls = ["classifier_task_1"]
     tasks = ["normalize"]
     train_path = [DEMO]#, DEMO]
     dev_path = [DEMO]#, DEMO]

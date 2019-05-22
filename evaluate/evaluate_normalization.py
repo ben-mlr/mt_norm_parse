@@ -125,21 +125,52 @@ def eval_norm(src_path, target_path, count_x_token=True):
 
 
 REF_DIC = {"about": ["about"],
-           "bout": ["about"],
+
            "with": ["with"],
            "you": ["you", "u"],
-           "are": ["are"],
-           "and": ["and"],
+           "are": ["are", "'re"],
+
            "babe": ["babe", "baby"],
-           "television": ["television", "tv"],
-           "fam": ["family", "fam"],
-           "sister": ["sister"],
+           "television": ["television", "tv", "tele"],
+
+
            "brother": ["brother"],
            "okay": ["ok", "okay"],
            "&": ["and", "&"],
            "congrats": ["congrats", "congratulations"],
            "niggas": ["niggas", "niggers"],
-           "yes": ["yes", "ya"]
+           "nigga": ["nigga", "nigger"],
+           "yes": ["yes", "ya"],
+           "'m": ["am", "'m"],
+           "3": ["three","3"],
+           "seven":["7", "seven"],
+           "4": ["4","for", "four"],
+           "realize": ["realize", "realise"],
+           "!!!":["!", "!!!"],
+           "cause":["cause", "because"],
+           # synonoes
+           "nation": ["nation", "country"],
+           "opportunity": ["chance", "opportunity"],
+           "near": ["close", "near"],
+           # test annotation mistake
+           ## lexnorm
+           "no": ["now", "no"], # of naw
+           "ur": ["your"], # of naw
+           "bout": ["about"],
+           "s": ["s","she"],
+           "wo": ["will", "wo"],
+           "ca": ["can", "ca"],
+           "nt": ["not","nt"],
+           "lets":["let's", "lets"],
+           # lexnorm 2015
+           "fer":["fer", "for"],
+           # train annotation mitake
+           # liu
+           "fam": ["family", "fam"], # fam annotated as fam
+            "sister": ["sister", "sis"],
+           "nd": ["and"],
+
+
            }
 
 
@@ -167,8 +198,20 @@ target = os.path.join(dir, model, "predictions", "LAST_ep-gold.conll-lexnorm-nor
 #src = os.path.join(dir, model, "predictions", "LAST_ep-prediction-lexnorm-normalize--edit_check-all-need_normed.conll")
 src = os.path.join(dir, model, "predictions", "LAST_ep-prediction-lexnorm-normalize-.conll")
 
-src = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/.././checkpoints/bert/2e522-DEBUGGING_LEAK-AS_BEFORE/predictions/LAST_ep-prediction-lexnorm-Demo-normalize-.conll"
-target = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/../checkpoints/bert/2e522-DEBUGGING_LEAK-AS_BEFORE/predictions/LAST_ep-gold.conll-lexnorm-Demo-normalize-"
+#src = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/.././checkpoints/bert/2e522-DEBUGGING_LEAK-AS_BEFORE/predictions/LAST_ep-prediction-lexnorm-Demo-normalize-.conll"
+#target = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/../checkpoints/bert/2e522-DEBUGGING_LEAK-AS_BEFORE/predictions/LAST_ep-gold.conll-lexnorm-Demo-normalize-"
+
+model = "9340371-B-141bd-9340371-B-model_1"
+data = "lex_norm2015_test"
+
+model = "9340371-B-38614-9340371-B-model_2"
+data = "lexnorm"
+
+gold = "LAST_ep-gold.conll-{}-normalize-".format(data)
+pred = "LAST_ep-prediction-{}-normalize--@_#_url.conll".format(data)
+
+src = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/.././checkpoints/bert/{}/predictions/{}".format(model, pred)
+target = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/../checkpoints/bert/{}/predictions/{}".format(model, gold)
 
 eval_norm(src_path=src, target_path=target, count_x_token=False)
 
