@@ -166,6 +166,9 @@ def args_train(mode="command_line", script="train_evaluate_run"):
         parser.add_argument('--checkpoint_dir', type=str, default=None)
         parser.add_argument('--norm_2_noise_training', type=float, default=None)
         parser.add_argument('--aggregating_bert_layer_mode',type=str, default=None)
+
+        parser.add_argument('--bert_module', type=str, default="token_class")
+
         args = parser.parse_args()
         if args.aggregating_bert_layer_mode is not None:
             try:

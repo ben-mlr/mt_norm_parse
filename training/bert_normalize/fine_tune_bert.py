@@ -34,6 +34,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         early_stoppin_metric=None,subsample_early_stoping_metric_val=None,
         compute_intersection_score_test=True,
         slang_dic_test=None, list_reference_heuristic_test=None,
+        bert_module=None,
         case=None, threshold_edit=3,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
@@ -97,7 +98,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                        ("norm_2_noise_training",norm_2_noise_training),
                                        ("random_iterator_train",random_iterator_train),
                                        ("aggregating_bert_layer_mode",aggregating_bert_layer_mode),
-                                       ("SEED", SEED_TORCH),("case", case)
+                                       ("SEED", SEED_TORCH), ("case", case), ("bert_module", bert_module)
                                        ])
         printing("HYPERPARAMETERS {} ", var=[hyperparameters], verbose=verbose, verbose_level=1)
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)

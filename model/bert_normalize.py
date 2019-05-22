@@ -23,14 +23,15 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
     """
     if tasks is None:
         tasks = ["normalize"]
+    AVAILABLE_BERT_MODE = ["mlm", "token_class"]
+    assert bert_module in AVAILABLE_BERT_MODE, "ERROR bert_module should be in {} ".format(AVAILABLE_BERT_MODE)
 
     assert checkpoint_dir is not None or True, \
         "Neither checkpoint_dir or pretrained_model_dir was provided"
     assert pretrained_model_dir is None or checkpoint_dir is None, \
         "Only one of checkpoint_dir or pretrained_model_dir should be provided "
-    config = BertConfig(vocab_size_or_config_json_file=vocab_size, hidden_size=768,
-                        num_hidden_layers=12, num_attention_heads=12, intermediate_size=3072)
-    #config.hidden_dropout_prob = 0.2
+    config = BertConfig(vocab_size_or_config_json_file=vocab_size, hidden_size=768, num_hidden_layers=12, num_attention_heads=12, intermediate_size=3072)
+    # config.hidden_dropout_prob = 0.2
     # QUESTION : WHERE IS THE MODEL ACTUALLY BEING LOADED ???
     # this line is useless apparently as it does it load it again
     if "normalize" in tasks:
@@ -42,7 +43,8 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
         assert voc_pos_size is not None
 
     if bert_module == "token_class":
-        model = BertForTokenClassification(config, num_labels, dropout_classifier=dropout_classifier, num_labels_2=voc_pos_size)
+        model = BertForTokenClassification(config, num_labels, dropout_classifier=dropout_classifier,
+                                           num_labels_2=voc_pos_size)
     elif bert_module == "mlm":
         model = BertForMaskedLM(config)
     if pretrained_model_dir is not None:
@@ -51,11 +53,15 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
         if bert_module == "token_class":
             model = model.from_pretrained(pretrained_model_dir, num_labels=num_labels, dropout_custom=dropout_bert)
         elif bert_module == "mlm":
-            model = model.from_pretrained(pretrained_model_dir)
-            # TODO : add one vector in the classifier which should be random
-            #model.cls.predictions.decoder
-        printing("MODEL : loading pretrained BERT and adding extra module for token classification based on {}",
-                 var=[pretrained_model_dir],
+            model = model.from_pretrained(pretrained_model_dir, normalization_mode=True)
+            output_layer = torch.cat((model.bert.embeddings.word_embeddings.weight.data, torch.rand((1, 768))), dim=0)
+            model.cls.predictions.decoder = nn.Linear(model.bert.config.hidden_size, vocab_size + 1, bias=False)
+            model.cls.predictions.decoder.weight = nn.Parameter(output_layer)
+            model.cls.predictions.bias = nn.Parameter(torch.zeros(vocab_size + 1))
+            pdb.set_trace()
+
+        printing("MODEL {} mode loading pretrained BERT and adding extra module for token classification based on {}",
+                 var=[bert_module, pretrained_model_dir],
                  verbose=verbose,
                  verbose_level=1)
         if dropout_classifier is not None and bert_module == "token_class":
@@ -72,8 +78,7 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
 
         if initialize_bpe_layer and tasks[0] == "normalize" and bert_module == "token_class":
             # it needs to be the first as we are setting classifier (1) to the normalizaiton classifier
-            output_layer = torch.cat((model.bert.embeddings.word_embeddings.weight.data, torch.rand((1, 768))),
-                                     dim=0)
+            output_layer = torch.cat((model.bert.embeddings.word_embeddings.weight.data, torch.rand((1, 768))),dim=0)
             model.classifier_task_1.weight = nn.Parameter(output_layer)
             printing("MODEL : initializing output normalization layer with embedding layer + extra token ",
                      verbose=verbose,

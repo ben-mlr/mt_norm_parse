@@ -382,7 +382,7 @@ if __name__ == "__main__":
 
           BERT_NORMALIZE = True
           if BERT_NORMALIZE:
-              epochs = 15
+              epochs = 20
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,  
                                                   grid_label=LABEL_GRID,
@@ -391,6 +391,7 @@ if __name__ == "__main__":
                                                   #                    "checkpoints", "bert", 
                                                   #                    "9318015-B-133b1-9318015-B-model_6/9318015-B-133b1-9318015-B-model_6-ep20-checkpoint.pt")+"'"],
                                                   gpu_mode="random",
+                                                  bert_module_ls=["mlm", "token_class"],
                                                   #norm_2_noise_training_ls=[0., 1.],
                                                   lr_ls=[0.00001],# 0.00002, 0.00003, 0.000005],
                                                   #lr_ls=[OrderedDict([("bert", 1e-5), ("classifier_task_2", 1e-4), ("classifier_task_1", 1e-5)]),
@@ -411,6 +412,8 @@ if __name__ == "__main__":
                                                   dropout_bert_ls=[0.1],
                                                   #gold_error_detection_ls=[0], heuristic_ls_ls=[["'#'","'@'"]],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
+                                                  freeze_parameters_ls=[0],freeze_layer_prefix_ls_ls=[None],
+                                                  #freeze_parameters_ls=[1],freeze_layer_prefix_ls_ls=[None, "classifier_task_1"],
                                                   #train_path=[[EN_LINES_EWT_TRAIN], [LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED, EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV], [LIU_DEV, EWT_DEV]],
                                                   #[LIU_TRAIN_OWOPUTI],
                                                   train_path=[[LEX_TRAIN_SPLIT],  [LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED]],  dev_path=[[LEX_DEV_SPLIT], [LIU_DEV]],
@@ -428,7 +431,6 @@ if __name__ == "__main__":
                                                   gpus_ls=gpu_ls,
                                                   write_to_dir=RUN_SCRIPTS_DIR, description_comment=description_comment,
                                                   bert_model_ls=["cased"], initialize_bpe_layer_ls=[1],
-                                                  freeze_parameters_ls=[1], freeze_layer_prefix_ls_ls=[None, "classifier_task_1"],
                                                   word_recurrent_cell_encoder_ls=None, dropout_word_encoder_cell_ls=None,
                                                   stable_decoding_state_ls=None,
                                                   word_decoding_ls=None, word_embed_ls=None, dir_sent_encoder_ls=None,

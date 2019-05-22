@@ -116,7 +116,7 @@ def gelu(x):
     """Implementation of the gelu activation function.
         For information: OpenAI GPT's gelu is slightly different (and gives slightly different results):
         0.5 * x * (1 + torch.tanh(math.sqrt(2 / math.pi) * (x + 0.044715 * torch.pow(x, 3))))
-        Also see https://arxiv.org/abs/1606.08415
+        Also see https://arxiv.org/abs/1606.08415BertConfig
     """
     return x * 0.5 * (1.0 + torch.erf(x / math.sqrt(2.0)))
 
@@ -142,7 +142,7 @@ class BertConfig(object):
                  attention_probs_dropout_prob=0.1,
                  max_position_embeddings=512,
                  type_vocab_size=2,
-                 initializer_range=0.02):
+                 initializer_range=0.02, normalization_module=False):
         """Constructs BertConfig.
 
         Args:
@@ -167,6 +167,7 @@ class BertConfig(object):
             initializer_range: The sttdev of the truncated_normal_initializer for
                 initializing all weight matrices.
         """
+        self.normalization_module = normalization_module
         if isinstance(vocab_size_or_config_json_file, str) or (sys.version_info[0] == 2
                         and isinstance(vocab_size_or_config_json_file, unicode)):
             with open(vocab_size_or_config_json_file, "r", encoding='utf-8') as reader:
@@ -185,6 +186,7 @@ class BertConfig(object):
             self.max_position_embeddings = max_position_embeddings
             self.type_vocab_size = type_vocab_size
             self.initializer_range = initializer_range
+
         else:
             raise ValueError("First argument must be either a vocabulary size (int)"
                              "or the path to a pretrained model config file (str)")
@@ -442,11 +444,12 @@ class BertLMPredictionHead(nn.Module):
 
         # The output weights are the same as the input embeddings, but there is
         # an output-only bias for each token.
-        self.decoder = nn.Linear(bert_model_embedding_weights.size(1),
-                                 bert_model_embedding_weights.size(0),
-                                 bias=False)
+        #num_labels = bert_model_embedding_weights.size(0)+1 if config.normalization_module else bert_model_embedding_weights.size(0)
+        num_labels = bert_model_embedding_weights.size(0)
+
+        self.decoder = nn.Linear(bert_model_embedding_weights.size(1), num_labels, bias=False)
         self.decoder.weight = bert_model_embedding_weights
-        self.bias = nn.Parameter(torch.zeros(bert_model_embedding_weights.size(0)))
+        self.bias = nn.Parameter(torch.zeros(num_labels))
 
     def forward(self, hidden_states):
         hidden_states = self.transform(hidden_states)
@@ -516,7 +519,7 @@ class BertPreTrainedModel(nn.Module):
 
     @classmethod
     def from_pretrained(cls, pretrained_model_name_or_path, state_dict=None, cache_dir=None,
-                        dropout_custom=0.,
+                        dropout_custom=0.,normalization_mode=True,
                         from_tf=False, *inputs, **kwargs):
         """
         Instantiate a BertPreTrainedModel from a pre-trained model file or a pytorch state dict.
@@ -581,6 +584,8 @@ class BertPreTrainedModel(nn.Module):
 
         config = BertConfig.from_json_file(config_file)
         logger.info("Model config {}".format(config))
+        if normalization_mode:
+            config.normalization_module = normalization_mode
         if dropout_custom > 0:
             config.hidden_dropout_prob = dropout_custom
             config.attention_probs_dropout_prob = dropout_custom
@@ -842,20 +847,36 @@ class BertForMaskedLM(BertPreTrainedModel):
     def __init__(self, config):
         super(BertForMaskedLM, self).__init__(config)
         self.bert = BertModel(config)
+        self.normalization_module = config.normalization_module
         self.cls = BertOnlyMLMHead(config, self.bert.embeddings.word_embeddings.weight)
         self.apply(self.init_bert_weights)
+        print("WARNING : NB in forward(modelling) aggregating_bert_layer_mode is ignore in BertForMaskedLM")
 
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None, masked_lm_labels=None):
-        sequence_output, _ = self.bert(input_ids, token_type_ids, attention_mask,
-                                       output_all_encoded_layers=False)
+    def forward(self, input_ids, token_type_ids=None, attention_mask=None,
+                masked_lm_labels=None, labels=None, labels_task_2=None,
+                aggregating_bert_layer_mode=None):
+
+        assert labels_task_2 is None
+        if masked_lm_labels is None:
+            masked_lm_labels = labels
+        sequence_output, _ = self.bert(input_ids, token_type_ids, attention_mask, output_all_encoded_layers=False)
         prediction_scores = self.cls(sequence_output)
+        loss_dict = OrderedDict([("loss", None), ("loss_task_1", 0), ("loss_task_2", 0)])
+        pred_dict = OrderedDict([("logits_task_1", None), ("logits_task_2", None)])
 
         if masked_lm_labels is not None:
             loss_fct = CrossEntropyLoss(ignore_index=-1)
-            masked_lm_loss = loss_fct(prediction_scores.view(-1, self.config.vocab_size), masked_lm_labels.view(-1))
-            return masked_lm_loss
+            num_labels = self.config.vocab_size
+
+            if self.normalization_module:
+                num_labels += 1
+            masked_lm_loss = loss_fct(prediction_scores.view(-1, num_labels), masked_lm_labels.view(-1))
+            loss_dict["loss_task_1"] = masked_lm_loss
+            loss_dict["loss"] = loss_dict["loss_task_1"]
+            return loss_dict
         else:
-            return prediction_scores
+            pred_dict["logits_task_1"] = prediction_scores
+            return pred_dict
 
 
 class BertForNextSentencePrediction(BertPreTrainedModel):
