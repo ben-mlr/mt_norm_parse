@@ -1,15 +1,16 @@
 from env.importing import pdb
 
-from env.project_variables import LIU_TRAIN, LEX_TRAIN_SPLIT, LIU_TRAIN_OWOPUTI, LIU_DEV, LEX_DEV_SPLIT
+from env.project_variables import LIU_TRAIN, LEX_TRAIN_SPLIT, LIU_TRAIN_OWOPUTI, LIU_DEV, LEX_DEV_SPLIT, EN_LINES_EWT_TRAIN
 from io_.data_iterator import readers_load, conllu_data, data_gen_multi_task_sampling_batch
 from io_.dat.normalized_writer import write_conll
 
 if __name__ == "__main__":
 
     tasks = ["normalize"]
-    train_path = [LEX_DEV_SPLIT]
+    train_path = [EN_LINES_EWT_TRAIN]
     run_mode = "train"
     case = None
+    word_normalization = False
     random_iterator_train = False
     batch_size = 1
     print(train_path)
@@ -22,7 +23,7 @@ if __name__ == "__main__":
                               word_embed_dict={},
                               dry_run=False,
                               expand_vocab=False,
-                              word_normalization=True,
+                              word_normalization=word_normalization,
                               force_new_dic=True if run_mode == "train" else False,
                               tasks=tasks,
                               pos_specific_data_set=train_path[1] if len(tasks) > 1 and "pos" in tasks else None,
@@ -34,10 +35,10 @@ if __name__ == "__main__":
                                  word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
                                  pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
                                  type_dictionary=type_dictionary, use_gpu=False,
-                                 norm_not_norm=True, word_decoder=True,
+                                 norm_not_norm=word_normalization, word_decoder=word_normalization,
                                  add_start_char=1, add_end_char=1, symbolic_end=1,
-                                 symbolic_root=1, bucket=True, max_char_len=20,
-                                 must_get_norm=True,
+                                 symbolic_root=1, bucket=False, max_char_len=20,
+                                 must_get_norm=word_normalization,
                                  verbose=1)
 
     batchIter = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_train, batch_size=batch_size,
@@ -55,10 +56,14 @@ if __name__ == "__main__":
 
     not_skiped = 0
     label = "dev"
+    extra = "random_replace"
     ind = 0
-    write = False
+    write = True
+    new_file = True
     while True:
+
         try:
+
             batch = batchIter.__next__()
             ind += 1
             print(batch.raw_output, batch.raw_input)
@@ -76,13 +81,15 @@ if __name__ == "__main__":
             else:
                 not_skiped += 1
             if write:
-                write_conll(format="conll", dir_normalized="../data/lex_{}_split_liu_{}_owuputi.conll".format(label, label),
-                        dir_original="../data/lex_{}_split_liu_or-{}_owuputi.conll".format(label, label),
-                        src_text_ls=batch.raw_input,
-                        text_decoded_ls=batch.raw_output, tasks=tasks,
-                        src_text_pos=None, pred_pos_ls=None, verbose="raw_data",
-                        ind_batch=ind)
-
+                write_conll(format="conll", dir_normalized=train_path[0]+"-{}.conll".format(extra),
+                            dir_original=train_path[0]+"-src_token_only-{}.conll".format(extra),
+                            src_text_ls=batch.raw_input,
+                            text_decoded_ls=None, tasks=tasks,
+                            src_text_pos=None, pred_pos_ls=None, verbose="raw_data",
+                            new_file=new_file,
+                            permuting_mode="sample_mode",#"2_following_letters",
+                            ind_batch=ind)
+            new_file = False
         except StopIteration:
             break
 

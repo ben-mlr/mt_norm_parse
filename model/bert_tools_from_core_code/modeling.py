@@ -1170,7 +1170,7 @@ class BertForTokenClassification(BertPreTrainedModel):
             logits_task_2 = self.classifier_task_2(sequence_output)
             pred_dict["logits_task_2"] = logits_task_2
         if labels_task_2 is not None:
-            loss_fct_task_2 = CrossEntropyLoss()
+            loss_fct_task_2 = CrossEntropyLoss(ignore_index=-1)
             assert self.classifier_task_2 is not None, "labels_task_2 was provided but self.classifier_task_2 has not been defined"
             if attention_mask is not None:
                 active_loss = attention_mask.view(-1) == 1
@@ -1183,7 +1183,7 @@ class BertForTokenClassification(BertPreTrainedModel):
             loss_dict["loss_task_2"] = loss_task_2
 
         if labels is not None:
-            loss_fct = CrossEntropyLoss()
+            loss_fct = CrossEntropyLoss(ignore_index=-1)
             # Only keep active parts of the loss
             if attention_mask is not None:
                 active_loss = attention_mask.view(-1) == 1

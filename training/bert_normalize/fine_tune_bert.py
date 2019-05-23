@@ -95,10 +95,10 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                        ("tasks", tasks),
                                        ("masking_strategy", masking_strategy), ("portion_mask", portion_mask),
                                        ("checkpoint_dir", args.checkpoint_dir if args is not None else None),
-                                       ("norm_2_noise_training",norm_2_noise_training),
+                                       ("norm_2_noise_training", norm_2_noise_training),
                                        ("random_iterator_train",random_iterator_train),
                                        ("aggregating_bert_layer_mode",aggregating_bert_layer_mode),
-                                       ("SEED", SEED_TORCH), ("case", case), ("bert_module", bert_module)
+                                       ("SEED", SEED_TORCH), ("case", case), ("bert_module", bert_module), ("freeze_layer_prefix_ls", freeze_layer_prefix_ls)
                                        ])
         printing("HYPERPARAMETERS {} ", var=[hyperparameters], verbose=verbose, verbose_level=1)
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
@@ -146,7 +146,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                               word_normalization=True,
                               force_new_dic=True if run_mode == "train" else False,
                               tasks=tasks,
-                              pos_specific_data_set=train_path[1] if len(tasks)>1 and "pos" in tasks else None,
+                              pos_specific_data_set=train_path[1] if len(tasks) > 1 and "pos" in tasks else None,
                               case=case,
                               add_start_char=1 if run_mode == "train" else None,
                               verbose=1)

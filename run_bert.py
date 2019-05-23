@@ -38,8 +38,8 @@ if train:
     vocab_size = BERT_MODEL_DIC["bert-cased"]["vocab_size"]
 
     initialize_bpe_layer = True
-    freeze_parameters = False
-    freeze_layer_prefix_ls = None#["classifier_task_1"]
+    freeze_parameters = True
+    freeze_layer_prefix_ls = ["cls"]
     tasks = ["normalize"]
     train_path = [DEMO]#, DEMO]
     dev_path = [DEMO]#, DEMO]
@@ -77,7 +77,7 @@ if train:
                 n_epoch=1,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
-                model_suffix="{}".format(description), debug=False,
+                model_suffix="{}".format(description), debug=True,
                 fine_tuning_strategy="standart",
                 #masking_strategy=["start_stop"],
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,

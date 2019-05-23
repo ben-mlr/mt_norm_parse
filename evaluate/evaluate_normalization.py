@@ -3,7 +3,7 @@ import re
 from env.importing import hmean, os
 
 
-def eval_norm(src_path, target_path, count_x_token=True):
+def eval_norm(src_path, target_path, count_x_token=True, ignore_x_token=False):
     """
     evaluating normalization with exact_match only on aligned conll like files gold and prediction
     TODO : - add flexible scoring metric
@@ -14,7 +14,8 @@ def eval_norm(src_path, target_path, count_x_token=True):
     """
     src = open(src_path, "r")
     target = open(target_path, "r")
-
+    if ignore_x_token:
+        assert count_x_token
     exact_match = 0
     exact_match_flex = 0
     match_need_norm = 0
@@ -24,7 +25,10 @@ def eval_norm(src_path, target_path, count_x_token=True):
     n_normed = 0
     n_need_norm = 0
     n_tokens = 0
+
     n_pred_need_norm = 0
+    n_pred_normed = 0
+
     empty_line = 0
 
     negative_class = 0
@@ -57,11 +61,13 @@ def eval_norm(src_path, target_path, count_x_token=True):
                 continue
             src_original_form = src_line[1]
             target_original_form = target_line[1]
+            target_original_form = target_original_form.replace(" ", "")
             x_token = 0
             if src_original_form.endswith("X") and count_x_token and src_original_form.replace("X", ""):
                 x_token = 1
-                print("REPLACING src_original_form {} with {}".format(src_original_form, src_original_form.replace("X",
-                                                                                                                   "")))
+                print("REPLACING src_original_form {} with {}".format(src_original_form, src_original_form.replace("X","")))
+                if ignore_x_token:
+                    continue
                 src_original_form = src_original_form.replace("X", "")
                 target_original_form = target_original_form.replace("X", "")
 
@@ -77,6 +83,8 @@ def eval_norm(src_path, target_path, count_x_token=True):
 
                 fn += pred_norm != gold_norm
                 tn += pred_norm == gold_norm
+                if pred_norm != gold_norm:
+                    print("PREDNORM ", pred_norm , gold_norm, src_original_form)
                 n_normed += 1
             else:
                 if not x_token:
@@ -89,10 +97,13 @@ def eval_norm(src_path, target_path, count_x_token=True):
                 tp += pred_norm == src_original_form
 
                 n_need_norm += 1
+
             negative_class += src_original_form == gold_norm
             positive_class += src_original_form != gold_norm
             if src_original_form != pred_norm:
                 n_pred_need_norm += 1
+            else:
+                n_pred_normed += 1
             if not x_token:
                 exact_match += pred_norm == gold_norm
                 exact_match_flex += weak_match(pred_norm=pred_norm, gold_norm=gold_norm, src=src_original_form)
@@ -104,13 +115,16 @@ def eval_norm(src_path, target_path, count_x_token=True):
     recall_flex = match_need_norm_flex / n_need_norm
     precision = match_need_norm/n_pred_need_norm
     precision_2 = match_need_norm/(negative_class-match_normed+match_need_norm)
+
+    npv = tn/n_pred_normed
+
     precision_flex = match_need_norm_flex/n_pred_need_norm
     f1 = hmean([recall, precision]) if recall > 0 and precision > 0 else None
     f1_flex = hmean([recall_flex, precision_flex]) if recall_flex > 0 and precision_flex > 0 else None
 
-    print("ACCURACY {:0.2f} , RECALL:{:0.10f} , PRECISION:{:0.5f}, F1:{:0.2f} / {} tokens {} need Norm".format(accuracy*100, recall*100,
-                                                                                      precision*100, f1*100, n_tokens, n_need_norm))
-    print("FLEX ACCURACY {:0.2f} , RECALL:{:0.2f} , PRECISION:{:0.2f}, F1:{:0.2f} / {} tokens {} need Norm".format(
+    print("ACCURACY {:0.2f} , RECALL:{:0.10f} , PRECISION:{:0.5f}, F1:{:0.2f} NPV {} / {} tokens {} need Norm".format( accuracy*100, recall*100,
+                                                                                      precision*100, f1*100, npv, n_tokens, n_need_norm))
+    print("FLEX ACCURACY {:0.2f} , RECALL:{:0.2f} , PRECISION:{:0.2f}, F1:{:0.4f}  / {} tokens {} need Norm".format(
         accuracy_flex * 100, recall_flex * 100,
         precision_flex * 100, f1_flex * 100, n_tokens, n_need_norm))
     print("{} need norm {} pred need_norm , total {} : # pred TP {}  , pred_need_norm sanity vs {}".format(n_need_norm, n_pred_need_norm, n_tokens,
@@ -128,7 +142,7 @@ REF_DIC = {"about": ["about"],
 
            "with": ["with"],
            "you": ["you", "u"],
-           "are": ["are", "'re"],
+           "are": ["are", "'re", "re"],
 
            "babe": ["babe", "baby"],
            "television": ["television", "tv", "tele"],
@@ -161,14 +175,16 @@ REF_DIC = {"about": ["about"],
            "wo": ["will", "wo"],
            "ca": ["can", "ca"],
            "nt": ["not","nt"],
-           "lets":["let's", "lets"],
+           "lets": ["let's", "lets"],
            # lexnorm 2015
-           "fer":["fer", "for"],
+           "fer": ["fer", "for"],
+           #"complaining": ["complaing", "complaining"],
            # train annotation mitake
            # liu
            "fam": ["family", "fam"], # fam annotated as fam
             "sister": ["sister", "sis"],
            "nd": ["and"],
+           "lmk": ["lmk", "letmeknow"]
 
 
            }
@@ -207,12 +223,18 @@ data = "lex_norm2015_test"
 model = "9340371-B-38614-9340371-B-model_2"
 data = "lexnorm"
 
+data = "lex_norm2015_test"
+model = "9342425-B-39eab-9342425-B-model_1"
 gold = "LAST_ep-gold.conll-{}-normalize-".format(data)
-pred = "LAST_ep-prediction-{}-normalize--@_#_url.conll".format(data)
+pred = "LAST_ep-prediction-{}-normalize-.conll".format(data)
 
 src = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/.././checkpoints/bert/{}/predictions/{}".format(model, pred)
 target = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/../checkpoints/bert/{}/predictions/{}".format(model, gold)
 
-eval_norm(src_path=src, target_path=target, count_x_token=False)
+#src = "../mt_norm_parse/checkpoints/bert/9342425-B-39eab-9342425-B-model_1/predictions"
+#target = "../mt_norm_parse/checkpoints/bert/9342425-B-39eab-9342425-B-model_1/predictions"
+
+
+eval_norm(src_path=src, target_path=target, count_x_token=False, ignore_x_token=False)
 
 # ls  ["lol", "idk", "lmfao", "lmao", "tbh", "asap", "omg", "omfg", "wtf", "im", "ima", "youre", "dont", "doesnt","wasnt","cant", "didnt", "its"]

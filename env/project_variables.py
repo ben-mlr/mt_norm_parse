@@ -140,6 +140,9 @@ MTNT_EN_TOK_DEV_DEMO_CONLL_LABEL, MTNT_EN_TOK_DEV_DEMO_CONLL = "mtnt_tok_dev_dem
                                                                os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/dev.tok.en.demo.conll")
 
 #PERMUTATION
+
+
+
 PERMUTATION_TRAIN_LABEL, PERMUTATION_TRAIN = "permutation-train", \
                                              os.path.join(PROJECT_PATH, "./data/permutation-train.conll")
 PERMUTATION_TEST_LABEL, PERMUTATION_TEST= "permutation-test", \
@@ -168,7 +171,17 @@ for n_sent in [50, 80, 100, 120,150, 250, 350, 500, 1000]:
                                  augmented+"9326829-B-fbbe9-en_lines_ewt_train-noisy_generated_{}.conll").format(n_sent,".conll")
         dic_dir[n_sent] = dir_train
         dic_label[n_sent] = augmented+"9326829_B_fbbe9_en_lines_ewt_train_noisy_generated_{}".format(n_sent)
-
+# noise generation
+EN_LINES_TRAIN_NOISY_LABEL_DIC = {}
+EN_LINES_TRAIN_NOISY_DIC = {}
+EN_LINES_TRAIN_NOISY_ALL_LABEL, EN_LINES_TRAIN_ALL_NOISY = "ewt_en_lines_train_noisy", os.path.join(PROJECT_PATH,
+                                                                                                    "/data/noise_generation/en_lines+ewt-ud-train.conllu-random_replace.conll")
+LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_LABEL, LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY = "ewt_en_lines_train_noisy", os.path.join(PROJECT_PATH,
+                                                                                                                            "/data/noise_generation/lex_train_split+en_lines+ewt-ud-train.conllu-random_replace-top1000")
+LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_500_LABEL, LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_NOISY = "ewt_en_lines_train_noisy", os.path.join(PROJECT_PATH,
+                                                                                                                                    "/data/noise_generation/lex_train_split+en_lines+ewt-ud-train.conllu-random_replace-top500.conllu")
+LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_500_2_LABEL, LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_2_NOISY = "ewt_en_lines_train_noisy", os.path.join(PROJECT_PATH,
+                                                                                                                                        "/data/noise_generation/lex_train_split+en_lines+ewt-ud-train.conllu-random_replace-top500-2.conllu")
 
 # EMOJIs
 EMOJI_LS_LABEL, EMOJIS_LS = "emojis", os.path.join(PROJECT_PATH, "data/emojis_ls.txt")
@@ -178,7 +191,6 @@ EN_LINES_TRAIN_LABEL, EN_LINES_TRAIN = "en_lines_train", os.path.join(PROJECT_PA
 EN_LINES_EWT_TRAIN_LABEL, EN_LINES_EWT_TRAIN = "en_lines_ewt_train", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en_lines+ewt-ud-train.conllu")
 
 EN_LINE_EWT_GUM_PARTUT_TRAIN_LABEL, EN_LINE_EWT_GUM_PARTUT_TRAIN = "en_lines-en_ewt-en_gum-en_partut-ud-train", os.path.join(PROJECT_PATH, "./data/en_lines-en_ewt-en_gum-en_partut-ud-train.conllu")
-
 
 EN_LINES_DEV_LABEL, EN_LINES_DEV = "en_lines_dev", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en_lines-ud-dev.conllu")
 
@@ -210,6 +222,7 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 LIU_OWOPUTI_DEV_LEX_DEV_FILTERED: LIU_OWOPUTI_DEV_LEX_DEV_FILTERED_LABEL,
                 LIU_DEV_OWOPUTI: LIU_DEV_OWOPUTI_LABEL,
                 LEX_TRAIN_SPLIT: LEX_TRAIN_SPLIT_LABEL,
+                EN_LINES_TRAIN_NOISY: EN_LINES_TRAIN_NOISY_LABEL,
                 LEX_DEV_SPLIT:  LEX_DEV_SPLIT_LABEL,
                 EN_LINE_EWT_GUM_PARTUT_TRAIN: EN_LINE_EWT_GUM_PARTUT_TRAIN_LABEL,
                 LIU_OWOPUTI: LIU_OWOPUTI_LABEL,

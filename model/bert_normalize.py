@@ -58,7 +58,6 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
             model.cls.predictions.decoder = nn.Linear(model.bert.config.hidden_size, vocab_size + 1, bias=False)
             model.cls.predictions.decoder.weight = nn.Parameter(output_layer)
             model.cls.predictions.bias = nn.Parameter(torch.zeros(vocab_size + 1))
-            pdb.set_trace()
 
         printing("MODEL {} mode loading pretrained BERT and adding extra module for token classification based on {}",
                  var=[bert_module, pretrained_model_dir],
