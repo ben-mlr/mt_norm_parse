@@ -45,6 +45,9 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
     assert run_mode in ["train", "test"], "ERROR run mode {} corrupted ".format(run_mode)
     printing("MODEL : RUNNING IN {} mode", var=[run_mode], verbose=verbose, verbose_level=1)
     printing("WARNING : casing was set to {} (this should be consistent at train and test)", var=[case], verbose=verbose, verbose_level=1)
+    use_gpu_hardcoded_readers = False
+    printing("WARNING use_gpu_hardcoded_readers hardcoded for readers set to {}",var=[use_gpu_hardcoded_readers],
+             verbose=verbose, verbose_level=1)
     if early_stoppin_metric is None:
         if "pos" in tasks:
             early_stoppin_metric = "accuracy-exact-pos"
@@ -158,7 +161,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         readers_train = readers_load(datasets=train_path, tasks=tasks, word_dictionary=word_dictionary,
                                      word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
                                      pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
-                                     type_dictionary=type_dictionary, use_gpu=use_gpu,
+                                     type_dictionary=type_dictionary, use_gpu=use_gpu_hardcoded_readers ,
                                      norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=True,
                                      add_start_char=1, add_end_char=1, symbolic_end=1,
                                      symbolic_root=1, bucket=True, max_char_len=20,
@@ -171,7 +174,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                    type_dictionary=type_dictionary, use_gpu=use_gpu,
                                    norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=True,
                                    add_start_char=1, add_end_char=1,
-                                   symbolic_end=1, symbolic_root=1, bucket=True, max_char_len=20,
+                                   symbolic_end=1, symbolic_root=1, bucket=use_gpu_hardcoded_readers , max_char_len=20,
                                    must_get_norm=True,
                                    verbose=verbose) if dev_path is not None else None
         # Load tokenizer
@@ -339,7 +342,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                             pos_dictionary=pos_dictionary,
                                             xpos_dictionary=xpos_dictionary,
                                             type_dictionary=type_dictionary,
-                                            use_gpu=use_gpu,
+                                            use_gpu=use_gpu_hardcoded_readers ,
                                             norm_not_norm=auxilliary_task_norm_not_norm,
                                             word_decoder=True,
                                             add_start_char=1, add_end_char=1, symbolic_end=1,

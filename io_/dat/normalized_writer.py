@@ -60,12 +60,14 @@ def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_
                                 permuting_mode = np.random.choice(["permute", "double", "random_replace",
                                                                    "multiply_last", "double_last","remove",
                                                                    "remove_last", "z_replace_s"])
+                            print("PERMUTATION is ", permuting_mode, rand_word, APPLY_PERMUTE_WORD,
+                                  noise_level_sentence)
+
                         else:
                             rand_word = None
 
                         # TODO : when want simultanuous training : assert src_pos src_norm same
                         #   --> assert pred_pos and pred_norm are same lengh (number of words) ans write
-                        print("PERMUTATION is ", permuting_mode,  rand_word, APPLY_PERMUTE_WORD, noise_level_sentence)
                         if tasks[0] == "normalize":
                             if inverse:
                                 _original_token = normalized_token

@@ -43,7 +43,8 @@ def epoch_run(batchIter, tokenizer,
               compute_intersection_score = False,
               subsample_early_stoping_metric_val="all",
               slang_dic=None, list_reference_heuristic=None,list_candidates=None, index_alphabetical_order=None,
-              case=None, threshold_edit=None, edit_module_pred_need_norm_only=True,
+              case=None, threshold_edit=None, edit_module_pred_need_norm_only=True, low_memory_foot_print_batch_mode=False,
+              batch_size_real=0,
               verbose=0):
     """
     About Evaluation :
@@ -53,6 +54,9 @@ def epoch_run(batchIter, tokenizer,
             Can also have different aggregation function
             TODO : TEST those scoring fucntions
     """
+    if low_memory_foot_print_batch_mode:
+        assert batch_size_real>0, "ERROR have to define batch_size_real in low_memory_foot_print_batch_mode"
+
     if heuristic_ls is not None:
         for edit_rule in ["all", "ref", "data"]:
             if "edit_check-"+edit_rule in heuristic_ls:
@@ -184,8 +188,8 @@ def epoch_run(batchIter, tokenizer,
                 printing("WARNING : input is input ", verbose_level=2, verbose=1)
                 batch_raw_input = preprocess_batch_string_for_bert(batch.raw_input)
 
-
             group_to_mask = None
+
             if masking_strategy == "cls":
                 # we trick batch.output_norm_not_norm : set all 1 to 0 (not to touch padding)
                 # we set first element to 1
@@ -487,11 +491,15 @@ def epoch_run(batchIter, tokenizer,
 
             if optimizer is not None:
                 _loss.backward()
-                for opti in optimizer:
-                    opti.step()
-                    opti.zero_grad()
-                mode = "train"
-                printing("MODE data {} optimizing".format(data_label), verbose=verbose, verbose_level=4)
+                if (low_memory_foot_print_batch_mode and batch_i % batch_size_real==0) or not low_memory_foot_print_batch_mode:
+                    if low_memory_foot_print_batch_mode:
+                        printing("OPTIMIZING in low_memory_foot_print_batch_mode cause batch index {} is batch_size_real",
+                                 var=[batch_i, batch_size_real], verbose=verbose, verbose_level=1)
+                    for opti in optimizer:
+                        opti.step()
+                        opti.zero_grad()
+                    mode = "train"
+                    printing("MODE data {} optimizing".format(data_label), verbose=verbose, verbose_level=4)
             else:
                 mode = "dev"
                 printing("MODE data {} not optimizing".format(data_label), verbose=verbose, verbose_level=4)

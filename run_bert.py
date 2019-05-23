@@ -41,7 +41,7 @@ if train:
     freeze_parameters = True
     freeze_layer_prefix_ls = ["cls"]
     tasks = ["normalize"]
-    train_path = [DEMO]#, DEMO]
+    train_path = [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_1000]#, DEMO]
     dev_path = [DEMO]#, DEMO]
     test_paths_ls = [[DEMO]]#, [DEMO]]
     bert_module = "mlm"
@@ -77,7 +77,7 @@ if train:
                 n_epoch=1,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
-                model_suffix="{}".format(description), debug=True,
+                model_suffix="{}".format(description), debug=False,
                 fine_tuning_strategy="standart",
                 #masking_strategy=["start_stop"],
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,

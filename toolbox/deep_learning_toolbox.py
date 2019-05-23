@@ -43,7 +43,6 @@ def freeze_param(model, freeze_layer_prefix_ls=None, not_freeze_layer_prefix_ls=
         not_freeze_layer_prefix_ls = []
     if freeze_layer_prefix_ls is None:
         freeze_layer_prefix_ls = []
-    pdb.set_trace()
     for name, param in model.named_parameters():
         for prefix in freeze_layer_prefix_ls:
             if name.startswith(prefix):
