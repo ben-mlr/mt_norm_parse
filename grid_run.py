@@ -382,7 +382,7 @@ if __name__ == "__main__":
 
           BERT_NORMALIZE = True
           if BERT_NORMALIZE:
-              epochs = 15
+              epochs = 20
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,  
                                                   grid_label=LABEL_GRID,
@@ -404,7 +404,7 @@ if __name__ == "__main__":
                                                   #                     ["normed", "0.75"],["normed", "1."]],#[None,,
                                                   #lr_ls=[OrderedDict([("bert", "0.00001"), ("classifier", "0.0001")]),
                                                   #       OrderedDict([("bert", "0.00001"), ("classifier", "0.00001")])],
-                                                  tasks_ls=[["normalize"] for _ in range(4)],#[["pos"], ["normalize", "pos"]],#, ["normalize"]],
+                                                  tasks_ls=[["normalize"] for _ in range(1)],#[["pos"], ["normalize", "pos"]],#, ["normalize"]],
                                                   fine_tuning_strategy_ls=["standart"],
                                                   dropout_classifier_ls=[0.3],
                                                   dropout_input_bpe_ls=[0.1],
@@ -412,19 +412,19 @@ if __name__ == "__main__":
                                                   dropout_bert_ls=[0.1],
                                                   #gold_error_detection_ls=[0], heuristic_ls_ls=[["'#'","'@'"]],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
-                                                  freeze_parameters_ls=[0], freeze_layer_prefix_ls_ls=[None], #freeze_layer_prefix_ls_ls=["model.cls.predictions", "model.cls.decoder"]
-                                                  #freeze_parameters_ls=[1],freeze_layer_prefix_ls_ls=[None, "classifier_task_1"],
+                                                  #freeze_parameters_ls=[0], freeze_layer_prefix_ls_ls=[None], #freeze_layer_prefix_ls_ls=["model.cls.predictions", "model.cls.decoder"]
+                                                  freeze_parameters_ls=[1],
+                                                  freeze_layer_prefix_ls_ls=[None, ["cls"]+["bert.encoder.layer.{}".format(i) for i in range(6, 12)], ["cls", "bert.encoder"]],
                                                   #train_path=[[EN_LINES_EWT_TRAIN], [LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED, EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV], [LIU_DEV, EWT_DEV]],
                                                   #[LIU_TRAIN_OWOPUTI],
-                                                  train_path=[[LEX_TRAIN_SPLIT],  [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_NOISY],
-                                                              [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_2_NOISY], [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_1000]],
-                                                  dev_path=[[LEX_DEV_SPLIT] for _ in range(4)],
+                                                  train_path=[[LEX_TRAIN_SPLIT]],#  [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_NOISY],[LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_2_NOISY], [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_1000]],
+                                                  dev_path=[[LEX_DEV_SPLIT] for _ in range(1)],
                                                   #train_path=[[LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED]], dev_path=[[LIU_DEV]],
                                                   #train_path=[[EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV]],
                                                   #train_path=[[AUGMENTED_LEX_DIC[n_sent]] for n_sent in [80, 100, 120, 150, 250, 350]],
                                                   #dev_path=[[LIU_DEV] for n_sent in [80, 100, 120,150,250,350]],
                                                   #test_paths=[[[LIU_DEV], [DEV], [TEST], [LEX_TEST], [LEX_DEV_SPLIT], [LEX_TRAIN], [GENERATED_DIC[350]]]],# for _ in [80, 100, 120,150,250,350]],
-                                                  test_paths=[[[LEX_TRAIN_SPLIT], [LEX_DEV_SPLIT], [LEX_TEST]] for _ in range(4)],
+                                                  test_paths=[[[LEX_TRAIN_SPLIT], [LEX_DEV_SPLIT], [LEX_TEST]] for _ in range(1)],
                                                   #test_paths=[[[EWT_DEV], [EN_LINES_EWT_TRAIN], [EWT_TEST], [DEV], [TEST]], [[LEX_TEST, EWT_DEV], [LIU_DEV, EWT_TEST], [DEV,  DEV], [TEST, TEST]]],
                                                   #test_paths=[[[EWT_DEV], [EN_LINES_EWT_TRAIN], [EWT_TEST], [DEV], [TEST]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,

@@ -19,7 +19,7 @@ assert os.path.isdir(CHECKPOINT_BERT_DIR ), "ERROR : {} CHECKPOINT_BERT_DIR  doe
 CLIENT_GOOGLE_CLOUD = os.path.join(PROJECT_PATH, "tracking/google_api")
 SHEET_NAME_DEFAULT, TAB_NAME_DEFAULT = "model_evaluation", "experiments_tracking"
 
-LIST_ARGS = ["tasks", "train_path", "dev_path", "test_path", "heuristic_ls", "masking_strategy"]
+LIST_ARGS = ["tasks", "train_path", "dev_path", "test_path", "heuristic_ls", "masking_strategy", "freeze_layer_prefix_ls"]
 NONE_ARGS = ["gpu"]
 BOOL_ARGS = ["word_embed", "teacher_force", "char_decoding", "unrolling_word", "init_context_decoder",
              "word_decoding", "stable_decoding_state", "char_src_attention"]

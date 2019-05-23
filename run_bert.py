@@ -39,7 +39,7 @@ if train:
 
     initialize_bpe_layer = True
     freeze_parameters = True
-    freeze_layer_prefix_ls = ["cls"]
+    freeze_layer_prefix_ls = ["cls", "bert.encoder", "bert.encoder.layer.1"]
     tasks = ["normalize"]
     train_path = [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_1000]#, DEMO]
     dev_path = [DEMO]#, DEMO]

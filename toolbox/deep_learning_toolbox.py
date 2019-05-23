@@ -39,6 +39,7 @@ def get_cumulated_list(sent_len):
 
 def freeze_param(model, freeze_layer_prefix_ls=None, not_freeze_layer_prefix_ls=None,verbose=1):
     freezing_layer = 0
+
     if not_freeze_layer_prefix_ls is None:
         not_freeze_layer_prefix_ls = []
     if freeze_layer_prefix_ls is None:

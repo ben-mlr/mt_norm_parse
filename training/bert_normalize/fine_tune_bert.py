@@ -432,7 +432,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                  verbose_level=1)
 
                     batchIter_test = data_gen_multi_task_sampling_batch(tasks=[task_to_eval], readers=readers_test,
-                                                                        batch_size=batch_size,
+                                                                        batch_size=batch_size_TEST,
                                                                         word_dictionary=word_dictionary,
                                                                         char_dictionary=char_dictionary,
                                                                         pos_dictionary=pos_dictionary,

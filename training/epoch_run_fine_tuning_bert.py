@@ -115,7 +115,7 @@ def epoch_run(batchIter, tokenizer,
                                                                                       extra_label_for_prediction))
         dir_normalized_original_only = os.path.join(dir_end_pred, "{}_ep-prediction_src{}.conll".format(epoch,
                                                                                                         extra_label_for_prediction))
-        dir_gold = os.path.join(dir_end_pred, "{}_ep-gold.conll{}".format(epoch,
+        dir_gold = os.path.join(dir_end_pred, "{}_ep-gold-{}.conll".format(epoch,
                                                                           extra_label_for_prediction))
         dir_gold_original_only = os.path.join(dir_end_pred, "{}_ep-gold_src{}.conll".format(epoch,
                                                                                             extra_label_for_prediction))
