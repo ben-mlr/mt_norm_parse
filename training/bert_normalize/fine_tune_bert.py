@@ -35,7 +35,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         compute_intersection_score_test=True,
         slang_dic_test=None, list_reference_heuristic_test=None,
         bert_module=None,
-        case=None, threshold_edit=3,
+        case=None, threshold_edit=3,tokenize_and_bpe=False,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
@@ -232,7 +232,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                       norm_2_noise_eval=False,
                                                                       aggregating_bert_layer_mode=aggregating_bert_layer_mode,
                                                                       early_stoppin_metric=None,
-                                                                      case=case,
+                                                                      case=case, tokenize_and_bpe=tokenize_and_bpe,
                                                                       n_iter_max=n_iter_max_per_epoch, verbose=verbose)
 
                 bert_with_classifier.eval()
@@ -260,6 +260,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                                        norm_2_noise_training=norm_2_noise_training,# as training otherwise loss dev not more meaning
                                                                                        norm_2_noise_eval=False,
                                                                                        early_stoppin_metric=early_stoppin_metric,
+                                                                                       tokenize_and_bpe=tokenize_and_bpe,
                                                                                        subsample_early_stoping_metric_val=subsample_early_stoping_metric_val,
                                                                                        aggregating_bert_layer_mode=aggregating_bert_layer_mode,
                                                                                        case=case,
@@ -478,6 +479,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                               aggregating_bert_layer_mode=aggregating_bert_layer_mode,
                                                                               reference_word_dic={"InV": inv_word_dic},
                                                                               case=case, threshold_edit=threshold_edit,
+                                                                              tokenize_and_bpe=tokenize_and_bpe,
                                                                               edit_module_pred_need_norm_only=mode_need_norm_heuristic == "need_normed",
                                                                               n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                         print("LOSS TEST", loss_test)

@@ -3,7 +3,7 @@ from env.project_variables import *
 from io_.dat.constants import PAD_ID_BERT, MASK_BERT, CLS_BERT, SEP_BERT, SPECIAL_TOKEN_LS
 from io_.info_print import printing
 from io_.dat.normalized_writer import write_conll
-from io_.bert_iterators_tools.string_processing import preprocess_batch_string_for_bert, from_bpe_token_to_str, get_indexes
+from io_.bert_iterators_tools.string_processing import preprocess_batch_string_for_bert, from_bpe_token_to_str, get_indexes, get_indexes_src_gold
 from io_.bert_iterators_tools.alignement import aligned_output, realigne
 
 from evaluate.scoring.report import overall_word_level_metric_measure
@@ -44,7 +44,7 @@ def epoch_run(batchIter, tokenizer,
               subsample_early_stoping_metric_val="all",
               slang_dic=None, list_reference_heuristic=None,list_candidates=None, index_alphabetical_order=None,
               case=None, threshold_edit=None, edit_module_pred_need_norm_only=True, low_memory_foot_print_batch_mode=False,
-              batch_size_real=0,
+              batch_size_real=0, tokenize_and_bpe=False,
               verbose=0):
     """
     About Evaluation :
@@ -153,6 +153,8 @@ def epoch_run(batchIter, tokenizer,
     n_batch_norm = 0
     n_task_pos_sanity = 0
     n_task_normalize_sanity = 0
+
+    counting_failure_parralel_bpe_batch = 0
     while True:
 
         try:
@@ -199,8 +201,8 @@ def epoch_run(batchIter, tokenizer,
             elif masking_strategy == "normed":
                 rand = np.random.uniform(low=0, high=1, size=1)[0]
                 group_to_mask = np.array(batch.output_norm_not_norm.cpu()) if portion_mask >= rand else None
-
-            input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = \
+            if not tokenize_and_bpe:
+                input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = \
                 get_indexes(batch_raw_input, tokenizer, verbose, use_gpu, word_norm_not_norm=group_to_mask)
             if masking_strategy == "start_stop":
                 input_mask[input_tokens_tensor == sep_token_index] = 0
@@ -213,7 +215,30 @@ def epoch_run(batchIter, tokenizer,
                 else:
                     printing("WARNING : output is output", verbose_level=2, verbose=1)
                     batch_raw_output = preprocess_batch_string_for_bert(batch.raw_output, rp_space=True)
-                output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask =\
+
+                if tokenize_and_bpe:
+                    try:
+                        tokens_tensor_dic, segments_tensors_dic, tokenized_dic, aligned_index_padded_dic, mask_dic = \
+                        get_indexes_src_gold(list_pretokenized_str_source=batch_raw_input, list_pretokenized_str_gold=batch_raw_output, tokenizer=tokenizer, verbose=verbose, use_gpu= use_gpu)
+
+                        output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask = \
+                            tokens_tensor_dic["gold"], segments_tensors_dic["gold"], tokenized_dic["gold"], \
+                            aligned_index_padded_dic["gold"], mask_dic["gold"]
+
+                        input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = \
+                            tokens_tensor_dic["src"], segments_tensors_dic["src"], tokenized_dic["src"], \
+                            aligned_index_padded_dic["src"], mask_dic["src"]
+
+                    except Exception as e:
+                        print("FAILLING error {} TO ALIGN batch_raw_input {} with batch_raw_output {} so using the old method".format(e, batch_raw_input, batch_raw_output))
+                        input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = \
+                            get_indexes(batch_raw_input, tokenizer, verbose, use_gpu, word_norm_not_norm=group_to_mask)
+                        output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask = \
+                            get_indexes(batch_raw_output, tokenizer, verbose, use_gpu)
+                        counting_failure_parralel_bpe_batch += 1
+
+                else:
+                    output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask =\
                     get_indexes(batch_raw_output, tokenizer, verbose, use_gpu)
                 printing("DATA dim : {} input {} output ", var=[input_tokens_tensor.size(), output_tokens_tensor.size()],
                          verbose_level=2, verbose=verbose)
@@ -296,6 +321,10 @@ def epoch_run(batchIter, tokenizer,
                                    input_mask=input_mask, use_gpu=use_gpu,
                                    null_token_index=null_token_index, verbose=verbose)
                 input_tokens_tensor = input_tokens_tensor_aligned
+                #
+                #TODO : creaate a tensor same dim as output_tokens_tensor based on output_alignement_with_raw
+                # number of repetition in output_alignement_with_raw
+                # or number of bpe tokens related to each bpe
             #elif "pos" in tasks:
             elif task_pos_is:
                 # NB : we use the aligned input with the
@@ -314,8 +343,7 @@ def epoch_run(batchIter, tokenizer,
             # CHECKING ALIGNEMENT
             # PADDING TO HANDLE !!
             assert output_tokens_tensor_aligned.size(0) == input_tokens_tensor.size(0),\
-                "output_tokens_tensor_aligned.size(0) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(),
-                                                                                               input_tokens_tensor.size())
+                "output_tokens_tensor_aligned.size(0) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(), input_tokens_tensor.size())
             assert output_tokens_tensor_aligned.size(1) == input_tokens_tensor.size(1), \
                 "output_tokens_tensor_aligned.size(1) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(1),
                                                                                                input_tokens_tensor.size(1))
@@ -520,7 +548,7 @@ def epoch_run(batchIter, tokenizer,
                                        iter + batch_i)
         except StopIteration:
             break
-
+    printing("WARNING {} aignement failure caused by parallel ", var=[counting_failure_parralel_bpe_batch], verbose=verbose, verbose_level=1)
     printing("WARNING on {} : Out of {} batch of {} sentences each {} skipped ({} batch aligned ; "
              "{} with at least 1 sentence "
              "noisy MORE SPLITTED "
@@ -531,6 +559,7 @@ def epoch_run(batchIter, tokenizer,
                   skipping_batch_n_to_1],
              verbose=verbose, verbose_level=0)
     printing("WARNING on {} ON THE EVALUATION SIDE we skipped extra {} batch ", var=[data_label, skipping_evaluated_batch], verbose_level=1, verbose=1)
+
     early_stoppin_metric_val = None
     samples = _samples
     print("CHECKING SAMPLES", _samples)

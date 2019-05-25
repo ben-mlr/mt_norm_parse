@@ -382,18 +382,18 @@ if __name__ == "__main__":
 
           BERT_NORMALIZE = True
           if BERT_NORMALIZE:
-              epochs = 20
+              epochs = 15
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,  
                                                   grid_label=LABEL_GRID,
-                                                  batch_size_ls=[4],
+                                                  batch_size_ls=[1],
                                                   #checkpoint_dir_ls=["'"+os.path.join(PROJECT_PATH,
                                                   #                    "checkpoints", "bert", 
                                                   #                    "9318015-B-133b1-9318015-B-model_6/9318015-B-133b1-9318015-B-model_6-ep20-checkpoint.pt")+"'"],
                                                   gpu_mode="random",
                                                   bert_module_ls=["mlm"],
                                                   #norm_2_noise_training_ls=[0., 1.],
-                                                  lr_ls=[0.00001],# 0.00002, 0.00003, 0.000005],
+                                                  lr_ls=[0.00001],
                                                   #lr_ls=[OrderedDict([("bert", 1e-5), ("classifier_task_2", 1e-4), ("classifier_task_1", 1e-5)]),
                                                   #       OrderedDict([("bert", 5e-6), ("classifier_task_2", 1e-4), ("classifier_task_1", 1e-5)]),
                                                   #       OrderedDict([("bert", 1e-5), ("classifier_task_2", 1e-3), ("classifier_task_1", 1e-5)])],
@@ -407,14 +407,12 @@ if __name__ == "__main__":
                                                   tasks_ls=[["normalize"] for _ in range(1)],#[["pos"], ["normalize", "pos"]],#, ["normalize"]],
                                                   fine_tuning_strategy_ls=["standart"],
                                                   dropout_classifier_ls=[0.3],
-                                                  dropout_input_bpe_ls=[0.1],
+                                                  dropout_input_bpe_ls=[0., 0.05, 0.1, 0.2],
                                                   aggregating_bert_layer_mode_ls=["last"],
                                                   dropout_bert_ls=[0.1],
-                                                  #gold_error_detection_ls=[0], heuristic_ls_ls=[["'#'","'@'"]],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
-                                                  #freeze_parameters_ls=[0], freeze_layer_prefix_ls_ls=[None], #freeze_layer_prefix_ls_ls=["model.cls.predictions", "model.cls.decoder"]
                                                   freeze_parameters_ls=[1],
-                                                  freeze_layer_prefix_ls_ls=[None, ["cls"]+["bert.encoder.layer.{}".format(i) for i in range(6, 12)], ["cls", "bert.encoder"]],
+                                                  freeze_layer_prefix_ls_ls=[None],
                                                   #train_path=[[EN_LINES_EWT_TRAIN], [LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED, EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV], [LIU_DEV, EWT_DEV]],
                                                   #[LIU_TRAIN_OWOPUTI],
                                                   train_path=[[LEX_TRAIN_SPLIT]],#  [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_NOISY],[LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_2_NOISY], [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_1000]],

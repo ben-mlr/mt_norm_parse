@@ -26,6 +26,7 @@ from io import open
 
 from model.bert_tools_from_core_code.tools import *
 
+import pdb
 
 logger = logging.getLogger(__name__)
 
@@ -91,22 +92,96 @@ class BertTokenizer(object):
         self.wordpiece_tokenizer = WordpieceTokenizer(vocab=self.vocab)
         self.max_len = max_len if max_len is not None else int(1e12)
 
-    def tokenize(self, text, verbose=1):
+    def tokenize(self, text, target=None, aligne=False, verbose=1):
         split_tokens = []
+        split_tokens_gold = []
         alignement_index = []
+        alignement_index_gold = []
         basic_tokenization, alignement_with_original_index = self.basic_tokenizer.tokenize(text)
-        for token, index in zip(basic_tokenization, alignement_with_original_index):
-            word_piece_token = self.wordpiece_tokenizer.tokenize(token)
+        #assert aligne, "only align supported here"
+        if aligne:
+            assert target is not None
+            basic_tokenization_target, alignement_with_original_index_target = self.basic_tokenizer.tokenize(target)
+        bpe_reading_ind_gold = 0
+        bpe_reading_ind = 0
+        word_piece_token, word_piece_token_gold = None, None
+        breakpoint=False
+        attachement_index_shift_gold = 0
+        while True:
+            #for ind_token, (token, index) in enumerate(zip(basic_tokenization, alignement_with_original_index)):
+            if aligne:
+                # n to 1
+                mask_input = False
+                space_gold = False
+                if alignement_with_original_index[bpe_reading_ind] < alignement_with_original_index_target[bpe_reading_ind_gold]:
+                    bpe_reading_ind_gold -= 1
+                    space_gold = True
+                    #pdb.set_trace()
+                    # two possibilities : or we split more gold or we add space somewhere
+                # 1 to n
+                elif alignement_with_original_index[bpe_reading_ind] > alignement_with_original_index_target[bpe_reading_ind_gold]:
+                    bpe_reading_ind -= 1
+                    mask_input = True
+                    #bpe_reading_ind_gold -= 1
+                    #pdb.set_trace()
+                try:
+                    if mask_input:
+                        pdb.set_trace()
+                        word_piece_token_gold = self.wordpiece_tokenizer.tokenize(basic_tokenization_target[bpe_reading_ind_gold])
+                        word_piece_token = ["[MASK]"]
+                        attachement_index_shift_gold -= 1
+                        breakpoint = True
+
+                    else:
+                        word_piece_token, word_piece_token_gold, former_gold = \
+                        self.wordpiece_tokenizer.tokenize_aligned(basic_tokenization[bpe_reading_ind],
+                                                                  basic_tokenization_target[bpe_reading_ind_gold],
+                                                                  former_src=word_piece_token,
+                                                                  former_gold=word_piece_token_gold)
+
+                    bpe_reading_ind_gold += 1
+                    bpe_reading_ind += 1
+                except Exception as e:
+                    raise(e)
+            else:
+                bpe_reading_ind += 1
+                word_piece_token = self.wordpiece_tokenizer.tokenize(basic_tokenization[bpe_reading_ind])
             for sub_token in word_piece_token:
                 split_tokens.append(sub_token)
-            alignement_index.extend([index for _ in range(len(word_piece_token))])
-        return split_tokens, alignement_index
+            if aligne:
+                for sub_token_gold in word_piece_token_gold:
+                    split_tokens_gold.append(sub_token_gold)
+                if breakpoint:
+                    pass
+                    #pdb.set_trace()
+                alignement_index_gold.extend([bpe_reading_ind_gold+attachement_index_shift_gold for _ in range(len(word_piece_token_gold))])
+            else:
+                split_tokens_gold = None
+                alignement_index_gold = None
+            alignement_index.extend([bpe_reading_ind for _ in range(len(word_piece_token))])
+
+            if bpe_reading_ind+1 == len(alignement_with_original_index):
+                print("bpe_reading_ind {} ouf of / {} ".format(bpe_reading_ind, len(alignement_with_original_index)))
+                break
+            if aligne:
+                if bpe_reading_ind_gold+1 == len(alignement_with_original_index_target):
+                    print("bpe_reading_ind {} ouf of / {} ".format(bpe_reading_ind, bpe_reading_ind_gold, len(alignement_with_original_index), len(alignement_with_original_index_target)))
+                    break
+        if breakpoint:
+            print("ADDED MASK")
+            print("split_tokens", split_tokens)
+            print("split_tokens_gold", split_tokens_gold)
+        return split_tokens, alignement_index, split_tokens_gold, alignement_index_gold
 
     def convert_tokens_to_ids(self, tokens):
         """Converts a sequence of tokens into ids using the vocab."""
         ids = []
         for token in tokens:
-            ids.append(self.vocab[token])
+            if token != "[SPACE]":
+                ids.append(self.vocab[token])
+            else:
+                print("WARNING : adding SPACE WITH {} index", len(self.vocab))
+                ids.append(len(self.vocab))
         if len(ids) > self.max_len:
             raise ValueError(
                 "Token indices sequence length is longer than the specified maximum "
@@ -288,6 +363,24 @@ class BasicTokenizer(object):
         return "".join(output)
 
 
+def get_biggest_bpe_in(char_list, vocab, token_begining=True):
+    ind_start = 0
+    while ind_start < len(char_list):
+        ind_end = len(char_list)
+        while ind_start < ind_end:
+            substr = "".join(char_list[ind_start:ind_end])
+            if not token_begining > 0:
+                substr = "##" + substr
+            if substr in vocab:
+                cur_substr = substr
+                print("WARNING : LEAVING ABREVIATION MATCH (SHOULD ADD MASK)", char_list[ind_end:],char_list)
+                return cur_substr, ind_end, char_list[ind_end:]
+            ind_end -= 1
+        # sub_tokens_gold_is_abbreviation.append(cur_substr)
+        ind_start = ind_end
+    raise (Exception("WARNING  : not match found for char_list {}".format(char_list)))
+
+
 class WordpieceTokenizer(object):
     """Runs WordPiece tokenization."""
 
@@ -295,6 +388,251 @@ class WordpieceTokenizer(object):
         self.vocab = vocab
         self.unk_token = unk_token
         self.max_input_chars_per_word = max_input_chars_per_word
+
+    def tokenize_aligned(self, text, text_target, former_gold, former_src):
+        """Tokenizes a piece of text into its word pieces.
+
+        This uses a greedy longest-match-first algorithm to perform tokenization
+        using the given vocabulary.
+
+        For example:
+          input = "unaffable"
+          output = ["un", "##aff", "##able"]
+
+        Args:
+          text: A single token or whitespace separated tokens. This should have
+            already been passed through `BasicTokenizer`.
+
+        Returns:
+          A list of wordpiece tokens.
+        """
+
+        output_tokens = []
+        output_tokens_gold = []
+        import pdb
+
+        for token, token_gold in zip(whitespace_tokenize(text), whitespace_tokenize(text_target)):
+            chars = list(token)
+            chars_gold = list(token_gold)
+            if len(chars) > self.max_input_chars_per_word:
+                output_tokens.append(self.unk_token)
+                continue
+            if len(chars_gold) > self.max_input_chars_per_word:
+                output_tokens_gold.append(self.unk_token)
+                continue
+            is_bad = False
+            start = 0
+            sub_tokens = []
+            sub_tokens_gold = []
+            start_gold = 0
+            left_out_gold = []
+            while start < len(chars):
+                end = len(chars)
+                cur_substr = None
+                cur_substr_gold = None
+                while start < end:
+                    substr = "".join(chars[start:end])
+                    if start > 0:
+                        substr = "##" + substr
+                    if substr in self.vocab:
+                        cur_substr = substr
+                        if not ((len(cur_substr) == 1 and start == 0) or (len(cur_substr) == 3 and start > 0)) and \
+                                (start == 0 and cur_substr == "".join(chars_gold[start:end])) or (start > 0 and cur_substr[2:] == "".join(chars_gold[start:end])):
+                            # means we have BPE alignement between src ang gold
+                            # exception : if it's only a 1 letter bpe where we want the possibility to find larger bpe
+                            cur_substr_gold = cur_substr
+                        else:
+                            # we look in the substrings of chars_gold[start_gold:end_gold] if there are bpe
+                            # if we reached the end of the source sequence :
+                            # we want to match all the rest of the gold sequence otherwise we can split
+                            end_gold = len(chars_gold) if end == len(chars) else end
+                            _end_gold = end_gold
+                            # we start at the same character as noisy
+                            start_gold = start
+                            #if token_gold != "[SPACE]":
+                            while start_gold < _end_gold:
+                                substr_gold = "".join(chars_gold[start_gold:_end_gold])
+                                if start_gold > 0:
+                                    substr_gold = "##" + substr_gold
+                                if substr_gold in self.vocab:
+                                    cur_substr_gold = substr_gold
+                                    left_out_gold = chars_gold[_end_gold:end_gold]
+                                    print("FOUND gold substring of {} : src:{} of token ({}) --> {} LEAVING {}".format(chars_gold, cur_substr, chars, substr_gold, left_out_gold))
+                                    break
+                                _end_gold -= 1
+                            if cur_substr_gold is None:
+                                cur_substr_gold = "[SPACE]"
+                        #start_gold = _end_gold
+                        break
+                    end -= 1
+                if cur_substr is None:
+                    is_bad = True
+                    break
+                sub_tokens.append(cur_substr)
+                #if token_gold != "[SPACE]":
+                sub_tokens_gold.append(cur_substr_gold)
+                #else:
+                #    sub_tokens_gold.append("[SPACE]")
+                start = end
+
+            is_n_to_1 = len(left_out_gold) > 0
+            if is_n_to_1:
+                print("HANDLING as is_n_to_1 src:{} gold:{}".format(sub_tokens, sub_tokens_gold))
+            if is_n_to_1:
+                end_gold_is_n_to_1 = len(chars_gold)
+                start_gold_is_n_to_1 = 0
+                _end_gold_is_1_to_n = end_gold_is_n_to_1
+                is_abbrebiation = False
+                if is_n_to_1:
+                    # if noise smaller we test if it can be an abbreviation
+                    remember_index_char_gold = {}
+                    remember_index_char_gold_former = {}
+                    if len(token) < len(token_gold):
+                        n_char_in_gold = 0
+                        char_former = "£"#token_gold[0]
+                        for ind_char, char in enumerate(token):
+                            if char in token_gold:
+                                indices_char = [i for i, x in enumerate(token_gold) if x == char]
+                                if len(indices_char) > 1:
+                                    first_meet = remember_index_char_gold.get(char, None) is None
+                                    if first_meet:
+                                        remember_index_char_gold[char] = 0
+                                    occurence = remember_index_char_gold[char]
+                                    remember_index_char_gold[char] += 1
+                                else:
+                                    occurence = 0
+
+                                indices_char_former = [i for i, x in enumerate(token_gold) if x == char_former]
+
+                                if len(indices_char_former) > 1:
+                                    first_meet = remember_index_char_gold_former.get(char_former, None) is None
+                                    if first_meet:
+                                        remember_index_char_gold_former[char_former] = 0
+                                    occurence_former_char = remember_index_char_gold_former[char_former]
+                                    remember_index_char_gold_former[char_former] += 1
+                                else:
+                                    occurence_former_char = 0
+
+                                if (ind_char == 0 or indices_char[occurence] > indices_char_former[occurence_former_char] or (len(indices_char) > occurence+1 and indices_char[occurence+1] > indices_char_former[occurence_former_char])):
+                                        try:
+                                            if indices_char[occurence+1] > indices_char_former[occurence_former_char] and not indices_char[occurence] > indices_char_former[occurence_former_char]:
+                                                print("WARNING looking for abbreviarion add to look into occurence+1 to find it",token, token_gold)
+                                        except Exception:
+                                            pass
+
+                                        n_char_in_gold += 1
+                                if char == char_former:
+                                    print("WARNING : mishandling double")
+                                    # TODO HANDE DOUBLE LETTERS AS REAL ABREVIATION
+                                    n_char_in_gold += 0
+                                char_former = char
+                        if n_char_in_gold == len(token):
+                            is_abbrebiation = True
+                if is_abbrebiation:
+
+                    print("HANDLING {} as an abbreviation normalized as {} ".format(token, token_gold))
+                    sub_tokens_is_abbreviation = []
+                    sub_tokens_gold_is_abbreviation = []
+                    for ind, letter in enumerate(chars):
+                        if ind > 0:
+                            letter = "##"+letter
+                        assert letter in self.vocab
+                        sub_tokens_is_abbreviation.append(letter)
+
+                    remember_index = {}
+                    remember_index_next = {}
+                    forgotten = []
+                    print("sub_tokens_is_abbreviation", sub_tokens_is_abbreviation)
+                    to_alert = False
+                    for split in range(len(sub_tokens_is_abbreviation)):
+                        letter_start = sub_tokens_is_abbreviation[split]
+                        #print("LOOKING FOR ABBREVIATION MATCH", letter_start)
+                        _letter_start_real = letter_start if not letter_start.startswith("##") else letter_start[2:]
+                        # where is this letter in the gold token : we assume that their could be doubles but then the first will be accounted
+                        indices = [i for i, x in enumerate(chars_gold) if x == _letter_start_real]
+                        # handling multiple occurences of a same leter
+                        if len(indices) > 1:
+                            first_meet = remember_index.get(_letter_start_real, None) is None
+                            if first_meet:
+                                remember_index[_letter_start_real] = 0
+                            occurence = remember_index[_letter_start_real]
+                            remember_index[_letter_start_real] += 1
+                        else:
+                            occurence = 0
+                        if split < len(sub_tokens_is_abbreviation)-1:
+                            letter_next = sub_tokens_is_abbreviation[split+1]
+                            _letter_next_real = letter_next if not letter_next.startswith("##") else letter_next[2:]
+                            indices_next = [i for i, x in enumerate(chars_gold) if x == _letter_next_real]
+                            if len(indices_next) == 0:
+                                occurence_next_letter = 0
+                            else:
+                                first_meet_as_next = remember_index.get(_letter_next_real) is None#remember_index_next.get(_letter_next_real) is None
+                                if first_meet_as_next:
+                                    occurence_next_letter = 0
+                                    remember_index_next[_letter_next_real] = 0
+                                else:
+                                    occurence_next_letter = remember_index[_letter_next_real]
+                        else:
+                            occurence_next_letter = 0
+                            indices_next = [len(chars_gold)]
+
+                        substring_to_look = chars_gold[indices[occurence]:indices_next[occurence_next_letter]]
+
+                        if indices[occurence] > indices_next[occurence_next_letter]:
+                            try:
+                                substring_to_look = chars_gold[indices[occurence]:indices_next[occurence_next_letter+1]]
+                                if _letter_next_real in remember_index:
+                                    remember_index[_letter_next_real] += 1
+                                else:
+                                    remember_index[_letter_next_real] = 1
+                            except Exception as e:
+                                print("ERROR did not find next letter as after the current letter ")
+                                raise(e)
+                        print("LOOKING INTO ", substring_to_look, indices[occurence], indices_next[occurence_next_letter])
+                        cur_substr_gold, ind_end, forgotten_list = get_biggest_bpe_in(char_list=substring_to_look,
+                                                                      token_begining=indices[occurence] == 0,
+                                                                      vocab=self.vocab)
+                        print("FOUND cur_substr_gold ", cur_substr_gold)
+                        if len(forgotten_list)>0:
+                            to_alert = True
+                            to_alert_forgotten = forgotten_list
+                        forgotten.append(forgotten_list)
+                        sub_tokens_gold_is_abbreviation.append(cur_substr_gold)
+                    if to_alert:
+                        print("WARNING : LEAVING OUT ", to_alert_forgotten)
+                    print("FINAL sub_tokens_gold_is_abbreviation {} : WARNING forgot {}".format(sub_tokens_gold_is_abbreviation, forgotten))
+                    sub_tokens = sub_tokens_is_abbreviation
+                    sub_tokens_gold = sub_tokens_gold_is_abbreviation
+                else:
+                    print("1 to n but not abbreviation")
+                    start = 0
+                    while start < len(left_out_gold):
+                        cur_substr_gold, ind_end, forgotten_list = get_biggest_bpe_in(left_out_gold[start:],
+                                                                                      self.vocab, False)
+                        sub_tokens_gold.append(cur_substr_gold)
+                        sub_tokens.append("[MASK]")
+                        start += ind_end
+                    print("ADDING MASK in sub_tokens {} to match {} ".format(sub_tokens, sub_tokens_gold))
+
+            if is_bad:
+                output_tokens.append(self.unk_token)
+            else:
+                if token == "[MASK]":
+                    sub_tokens = ["[MASK]"]
+                output_tokens.extend(sub_tokens)
+            if token_gold == "[SPACE]":
+                sub_tokens_gold = "[SPACE]"
+            if None in sub_tokens_gold:
+                output_tokens_gold.append(self.unk_token)
+            else:
+                # handling doublons
+                if former_gold is not None and former_gold[-1] == sub_tokens_gold[0]:
+                    print("DOUBLONS")
+                    #pdb.set_trace()
+                output_tokens_gold.extend(sub_tokens_gold)
+
+        #print("FINAL output_tokens {}  output_tokens_gold {} ".format(output_tokens, output_tokens_gold))
+        return output_tokens, output_tokens_gold, former_gold
 
     def tokenize(self, text):
         """Tokenizes a piece of text into its word pieces.
@@ -324,6 +662,7 @@ class WordpieceTokenizer(object):
             is_bad = False
             start = 0
             sub_tokens = []
+
             while start < len(chars):
                 end = len(chars)
                 cur_substr = None

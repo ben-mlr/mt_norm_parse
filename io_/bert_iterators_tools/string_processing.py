@@ -30,6 +30,57 @@ def preprocess_batch_string_for_bert(batch,
     return batch
 
 
+def get_indexes_src_gold(list_pretokenized_str_source, list_pretokenized_str_gold, tokenizer, verbose, use_gpu,
+                         word_norm_not_norm=None):
+    " mostly a copy of get_indexes adapted to handle both src and gold sequence in parrallel"
+    assert word_norm_not_norm is None, "ERROR not possible in tokenize_and_bpe mode"
+
+    # final tensors
+    segments_tensors_dic = {}
+    tokens_tensor_dic = {}
+    print("SOURE", list_pretokenized_str_source)
+    all_tokenized_ls = [tokenizer.tokenize(src, gold, aligne=True) for src, gold in zip(list_pretokenized_str_source, list_pretokenized_str_gold)]
+
+    tokenized_dic = {}
+    aligned_index_dic = {}
+    segments_ids_dic = {}
+    ids_ls_dic = {}
+    max_sent_len_dic = {}
+    ids_padded_dic = {}
+    aligned_index_padded_dic = {}
+    segments_padded_dic = {}
+    mask_dic = {}
+
+    tokenized_dic["src"] = [tup[0] for tup in all_tokenized_ls]
+    aligned_index_dic["src"] = [tup[1] for tup in all_tokenized_ls]
+    tokenized_dic["gold"] = [tup[2] for tup in all_tokenized_ls]
+    aligned_index_dic["gold"] = [tup[3] for tup in all_tokenized_ls]
+
+    for sequence in ["src", "gold"]:
+        segments_ids_dic[sequence] = [[0 for _ in range(len(tokenized))] for tokenized in tokenized_dic[sequence]]
+
+        printing("DATA : bpe tokenized {}", var=[tokenized_dic[sequence]], verbose=verbose, verbose_level="raw_data")
+
+        ids_ls_dic[sequence] = [tokenizer.convert_tokens_to_ids(inp) for inp in tokenized_dic[sequence]]
+        max_sent_len_dic[sequence] = max([len(inp) for inp in tokenized_dic[sequence]])
+        ids_padded_dic[sequence] = [inp + [PAD_ID_BERT for _ in range(max_sent_len_dic[sequence] - len(inp))] for inp in ids_ls_dic[sequence]]
+        aligned_index_padded_dic[sequence] = [[e for e in inp] + [1000 for _ in range(max_sent_len_dic[sequence] - len(inp))] for inp in aligned_index_dic[sequence]]
+        segments_padded_dic[sequence] = [inp + [PAD_ID_BERT for _ in range(max_sent_len_dic[sequence] - len(inp))] for inp in segments_ids_dic[sequence]]
+        mask_dic[sequence] = [[1 for _ in inp] + [0 for _ in range(max_sent_len_dic[sequence]  - len(inp))] for inp in segments_ids_dic[sequence]]
+
+        mask_dic[sequence] = torch.LongTensor(mask_dic[sequence])
+        tokens_tensor_dic[sequence] = torch.LongTensor(ids_ls_dic[sequence])
+        segments_tensors_dic[sequence] = torch.LongTensor(segments_padded_dic[sequence] )
+        if use_gpu:
+            mask_dic[sequence] = mask_dic[sequence].cuda()
+            tokens_tensor_dic[sequence] = tokens_tensor_dic[sequence].cuda()
+            segments_tensors_dic[sequence] = segments_tensors_dic[sequence].cuda()
+        sanity_check_data_len(tokens_tensor_dic[sequence], segments_tensors_dic[sequence] , tokens_tensor_dic[sequence],
+                              aligned_index_padded_dic[sequence], raising_error=True)
+
+    return tokens_tensor_dic, segments_tensors_dic, tokenized_dic, aligned_index_padded_dic, mask_dic
+
+
 def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu,
                 word_norm_not_norm=None):
     """
@@ -41,7 +92,8 @@ def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu,
     :param use_gpu:
     :return:
     """
-    all_tokenized_ls = [tokenizer.tokenize(inp) for inp in list_pretokenized_str]
+    all_tokenized_ls = [tokenizer.tokenize(inp,) for inp in list_pretokenized_str]
+
     tokenized_ls = [tup[0] for tup in all_tokenized_ls]
     aligned_index = [tup[1] for tup in all_tokenized_ls]
     segments_ids = [[0 for _ in range(len(tokenized))] for tokenized in tokenized_ls]

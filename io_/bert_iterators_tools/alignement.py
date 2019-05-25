@@ -44,7 +44,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
             # did we reach padding on the src side ?
             padded_reach = _input_alignement_with_raw[_i_input] == 1000
 
-            if not (padded_reach and len(_output_alignement_with_raw) ==_i_output):
+            if not padded_reach and len(_output_alignement_with_raw) > _i_output:
                 # usual case
                 # n to 1 : the index of the output is faster than on the input side :
                 #  one (at least) extra btoken on the src side
@@ -52,7 +52,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
                     n_to_1_token = _input_alignement_with_raw[_i_input] < _output_alignement_with_raw[_i_output]
                 except Exception as e:
                     print(e)
-                    print("ERROR {} index , len(input) {} , index {} len(output) {} "
+                    print("ERROR {} index input  , len(input) {} , index ouput {} len(output) {} "
                           .format(_i_input, len(_input_alignement_with_raw),
                                   _i_output, len(_output_alignement_with_raw)))
                     n_to_1_token = _input_alignement_with_raw[_i_input] < _output_alignement_with_raw[_i_output]
@@ -68,7 +68,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
             if _1_to_n_token:
                 printing("WARNING : _1_to_n_token --> next batch ",
                          verbose=verbose, verbose_level=2)
-                _1_to_n_token_counter+=1
+                _1_to_n_token_counter += 1
                 #break
             if padded_reach and not n_to_1_token:
                 # we assert we also reached padding in the output

@@ -171,7 +171,7 @@ REF_DIC = {"about": ["about"],
            "no": ["now", "no"], # of naw
            "ur": ["your"], # of naw
            "bout": ["about"],
-           "s": ["s","she"],
+           "s": ["s", "she"],
            "wo": ["will", "wo"],
            "ca": ["can", "ca"],
            "nt": ["not","nt"],

@@ -41,7 +41,7 @@ if train:
     freeze_parameters = True
     freeze_layer_prefix_ls = ["cls", "bert.encoder", "bert.encoder.layer.1"]
     tasks = ["normalize"]
-    train_path = [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_1000]#, DEMO]
+    train_path = [LEX_TEST]#, DEMO]
     dev_path = [DEMO]#, DEMO]
     test_paths_ls = [[DEMO]]#, [DEMO]]
     bert_module = "mlm"
@@ -73,23 +73,23 @@ if train:
                 auxilliary_task_norm_not_norm=True,
                 saving_every_epoch=10,
                 lr=0.00001, #lr=OrderedDict([("bert", 5e-5), ("classifier_task_1", 0.001), ("classifier_task_2", 0.001)]),
-                batch_size=batch_size, n_iter_max_per_epoch=10,
+                batch_size=batch_size, n_iter_max_per_epoch=1000,
                 n_epoch=1,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
-                model_suffix="{}".format(description), debug=False,
+                model_suffix="{}".format(description), debug=False, tokenize_and_bpe=True,
                 fine_tuning_strategy="standart",
                 #masking_strategy=["start_stop"],
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                 initialize_bpe_layer=initialize_bpe_layer, args=None,
-                skip_1_t_n=False, dropout_input_bpe=0.1,
+                skip_1_t_n=False, dropout_input_bpe=0.0,
                 heuristic_ls=None, gold_error_detection=False,
                 bucket_test=True, must_get_norm_test=True,
                 list_reference_heuristic_test=list_reference_heuristic_test,
                 slang_dic_test=slang_dic,bert_module=bert_module,
                 norm_2_noise_eval=False, #norm_2_noise_training=,
                 aggregating_bert_layer_mode=5, case="lower", #threshold_edit=2.9,
-                report=True, verbose=1)
+                report=True, verbose="alignement")
 
 
 null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary

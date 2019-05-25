@@ -178,7 +178,7 @@ EN_LINES_TRAIN_NOISY_ALL_LABEL, EN_LINES_TRAIN_ALL_NOISY = \
 LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_1000_LABEL, LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_1000 = \
     "lex_train_split-ewt_en_lines_train_noisy-1000", os.path.join(PROJECT_PATH, "data/noise_generation/lex_train_split+en_lines+ewt-ud-train.conllu-random_replace-top1000.conllu")
 LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_500_LABEL, LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_NOISY = \
-    "lex_train_split-ewt_en_lines_train_noisy-500_2", \
+    "lex_train_split-ewt_en_lines_train_noisy-500", \
     os.path.join(PROJECT_PATH, "data/noise_generation/lex_train_split+en_lines+ewt-ud-train.conllu-random_replace-top500.conllu")
 LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_500_2_LABEL, LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_2_NOISY = \
     "lex_train_split-ewt_en_lines_train_noisy-500_2", os.path.join(PROJECT_PATH, "data/noise_generation/lex_train_split+en_lines+ewt-ud-train.conllu-random_replace-top500-2.conllu")
