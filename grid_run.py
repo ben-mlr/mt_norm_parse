@@ -382,7 +382,7 @@ if __name__ == "__main__":
 
           BERT_NORMALIZE = True
           if BERT_NORMALIZE:
-              epochs = 25
+              epochs = 5
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,  
                                                   grid_label=LABEL_GRID,
@@ -406,7 +406,7 @@ if __name__ == "__main__":
                                                   #       OrderedDict([("bert", "0.00001"), ("classifier", "0.00001")])],
                                                   tasks_ls=[["normalize"] for _ in range(1)],#[["pos"], ["normalize", "pos"]],#, ["normalize"]],
                                                   fine_tuning_strategy_ls=["standart"],
-                                                  dropout_classifier_ls=[0.3, 0.1],
+                                                  dropout_classifier_ls=[0.1],
                                                   dropout_input_bpe_ls=[0., 0.05, 0.1, 0.2],
                                                   aggregating_bert_layer_mode_ls=["last"],
                                                   dropout_bert_ls=[0.1],
@@ -415,7 +415,7 @@ if __name__ == "__main__":
                                                   freeze_layer_prefix_ls_ls=[None],
                                                   #train_path=[[EN_LINES_EWT_TRAIN], [LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED, EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV], [LIU_DEV, EWT_DEV]],
                                                   #[LIU_TRAIN_OWOPUTI],
-                                                  train_path=[[LEX_TRAIN_SPLIT]],#  [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_NOISY],[LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_2_NOISY], [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_1000]],
+                                                  train_path=[[LEX_EWT_EWT_NOISY]],#  [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_NOISY],[LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_2_NOISY], [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_1000]],
                                                   dev_path=[[LEX_DEV_SPLIT] for _ in range(1)],
                                                   #train_path=[[LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED]], dev_path=[[LIU_DEV]],
                                                   #train_path=[[EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV]],

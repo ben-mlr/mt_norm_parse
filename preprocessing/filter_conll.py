@@ -62,9 +62,7 @@ if __name__ == "__main__":
     new_file = False
     file_name = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/.././data/wnut-2015-ressources/lexnorm2015/lex_train+ewt_train+ewt_noisy"#train_path[0]
     while True:
-
         try:
-
             batch = batchIter.__next__()
             ind += 1
             print(batch.raw_output, batch.raw_input)
@@ -87,8 +85,9 @@ if __name__ == "__main__":
                             src_text_ls=batch.raw_input,
                             text_decoded_ls=None, tasks=tasks,
                             src_text_pos=None, pred_pos_ls=None, verbose="raw_data",
-                            new_file=new_file, cp_paste=True,
-                            permuting_mode=None,#"sample_mode",#"2_following_letters",
+                            new_file=new_file, cp_paste=False,
+                            permuting_mode="sample_mode",
+                            #"2_following_letters",
                             ind_batch=ind)
             new_file = False
         except StopIteration:

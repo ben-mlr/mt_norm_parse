@@ -122,7 +122,6 @@ class BertTokenizer(object):
         breakpoint=False
         attachement_index_shift_gold = 0
 
-
         while True:
             #for ind_token, (token, index) in enumerate(zip(basic_tokenization, alignement_with_original_index)):
             if aligne:
@@ -174,19 +173,22 @@ class BertTokenizer(object):
                 if breakpoint:
                     pass
                     #pdb.set_trace()
-                alignement_index_gold.extend([alignement_with_original_index_target[bpe_reading_ind_gold]+attachement_index_shift_gold for _ in range(len(word_piece_token_gold))])
+                alignement_index_gold.extend([alignement_with_original_index_target[bpe_reading_ind_gold] for _ in range(len(word_piece_token_gold))])
             else:
                 split_tokens_gold = None
                 alignement_index_gold = None
             alignement_index.extend([alignement_with_original_index[bpe_reading_ind] for _ in range(len(word_piece_token))])
+            pdb.set_trace()
             bpe_reading_ind_gold += 1
             bpe_reading_ind += 1
-            if bpe_reading_ind+1 == len(alignement_with_original_index):
+            if bpe_reading_ind == len(alignement_with_original_index):
                 print("bpe_reading_ind {} ouf of / {} ".format(bpe_reading_ind, len(alignement_with_original_index)))
                 break
             if aligne:
-                if bpe_reading_ind_gold+1 == len(alignement_with_original_index_target):
-                    print("bpe_reading_ind {} ouf of / {} ".format(bpe_reading_ind, bpe_reading_ind_gold, len(alignement_with_original_index), len(alignement_with_original_index_target)))
+                if bpe_reading_ind_gold == len(alignement_with_original_index_target):
+                    print("bpe_reading_ind {} ouf of / {} ".format(bpe_reading_ind, bpe_reading_ind_gold,
+                                                                   len(alignement_with_original_index),
+                                                                   len(alignement_with_original_index_target)))
                     break
         if breakpoint:
             print("ADDED MASK")

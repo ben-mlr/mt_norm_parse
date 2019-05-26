@@ -172,9 +172,14 @@ for n_sent in [50, 80, 100, 120,150, 250, 350, 500, 1000]:
         dic_dir[n_sent] = dir_train
         dic_label[n_sent] = augmented+"9326829_B_fbbe9_en_lines_ewt_train_noisy_generated_{}".format(n_sent)
 
+# concat
+"lex_train+ewt_train+ewt_noisy-norm+norm2norm+permute.conll"
+LEX_EWT_EWT_NOISY_LABEL, LEX_EWT_EWT_NOISY = "lex_norm2015_ewt_ewt_noisy", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/lex_train+ewt_train+ewt_noisy-norm+norm2norm+permute.conll")
+
 # noise generation
 EN_LINES_TRAIN_NOISY_ALL_LABEL, EN_LINES_TRAIN_ALL_NOISY = \
     "ewt_en_lines_train_noisy", os.path.join(PROJECT_PATH, "data/noise_generation/en_lines+ewt-ud-train.conllu-random_replace.conllu")
+
 LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_1000_LABEL, LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_1000 = \
     "lex_train_split-ewt_en_lines_train_noisy-1000", os.path.join(PROJECT_PATH, "data/noise_generation/lex_train_split+en_lines+ewt-ud-train.conllu-random_replace-top1000.conllu")
 LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_500_LABEL, LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_NOISY = \
@@ -187,6 +192,7 @@ LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_500_2_LABEL, LEX_TRAIN_SPLIT_EN_LINES_TRAIN
 EMOJI_LS_LABEL, EMOJIS_LS = "emojis", os.path.join(PROJECT_PATH, "data/emojis_ls.txt")
 
 # EN
+
 EN_LINES_TRAIN_LABEL, EN_LINES_TRAIN = "en_lines_train", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en_lines-ud-train.conllu")
 EN_LINES_EWT_TRAIN_LABEL, EN_LINES_EWT_TRAIN = "en_lines_ewt_train", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en_lines+ewt-ud-train.conllu")
 
@@ -221,6 +227,7 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED: LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED_LABEL,
                 LIU_OWOPUTI_DEV_LEX_DEV_FILTERED: LIU_OWOPUTI_DEV_LEX_DEV_FILTERED_LABEL,
                 LIU_DEV_OWOPUTI: LIU_DEV_OWOPUTI_LABEL,
+                LEX_EWT_EWT_NOISY:LEX_EWT_EWT_NOISY_LABEL,
                 LEX_TRAIN_SPLIT: LEX_TRAIN_SPLIT_LABEL,
                 EN_LINES_TRAIN_ALL_NOISY: EN_LINES_TRAIN_NOISY_ALL_LABEL,
                 LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_2_NOISY: LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_500_2_LABEL,
