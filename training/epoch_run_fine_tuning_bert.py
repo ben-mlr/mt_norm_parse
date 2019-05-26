@@ -219,7 +219,10 @@ def epoch_run(batchIter, tokenizer,
                 if tokenize_and_bpe:
                     try:
                         tokens_tensor_dic, segments_tensors_dic, tokenized_dic, aligned_index_padded_dic, mask_dic = \
-                        get_indexes_src_gold(list_pretokenized_str_source=batch_raw_input, list_pretokenized_str_gold=batch_raw_output, tokenizer=tokenizer, verbose=verbose, use_gpu= use_gpu)
+                            get_indexes_src_gold(list_pretokenized_str_source=batch_raw_input,
+                                             list_pretokenized_str_gold=batch_raw_output,
+                                             tokenizer=tokenizer,
+                                             verbose=verbose, use_gpu= use_gpu)
 
                         output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask = \
                             tokens_tensor_dic["gold"], segments_tensors_dic["gold"], tokenized_dic["gold"], \

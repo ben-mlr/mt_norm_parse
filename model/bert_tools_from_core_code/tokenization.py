@@ -92,7 +92,21 @@ class BertTokenizer(object):
         self.wordpiece_tokenizer = WordpieceTokenizer(vocab=self.vocab)
         self.max_len = max_len if max_len is not None else int(1e12)
 
+
+    def tokenize_origin(self, text, verbose=1):
+        split_tokens = []
+        alignement_index = []
+        basic_tokenization, alignement_with_original_index = self.basic_tokenizer.tokenize(text)
+        for token, index in zip(basic_tokenization, alignement_with_original_index):
+            word_piece_token = self.wordpiece_tokenizer.tokenize(token)
+            for sub_token in word_piece_token:
+                split_tokens.append(sub_token)
+            alignement_index.extend([index for _ in range(len(word_piece_token))])
+        return split_tokens, alignement_index
+
+
     def tokenize(self, text, target=None, aligne=False, verbose=1):
+
         split_tokens = []
         split_tokens_gold = []
         alignement_index = []
@@ -107,6 +121,8 @@ class BertTokenizer(object):
         word_piece_token, word_piece_token_gold = None, None
         breakpoint=False
         attachement_index_shift_gold = 0
+
+
         while True:
             #for ind_token, (token, index) in enumerate(zip(basic_tokenization, alignement_with_original_index)):
             if aligne:
@@ -125,27 +141,31 @@ class BertTokenizer(object):
                     #bpe_reading_ind_gold -= 1
                     #pdb.set_trace()
                 try:
+                    if basic_tokenization_target[bpe_reading_ind_gold]=="@":
+                        pdb.set_trace()
+                    print("TEXT",text)
+
                     if mask_input:
                         pdb.set_trace()
                         word_piece_token_gold = self.wordpiece_tokenizer.tokenize(basic_tokenization_target[bpe_reading_ind_gold])
                         word_piece_token = ["[MASK]"]
                         attachement_index_shift_gold -= 1
-                        breakpoint = True
+                        breakpoint = False
 
                     else:
+
                         word_piece_token, word_piece_token_gold, former_gold = \
                         self.wordpiece_tokenizer.tokenize_aligned(basic_tokenization[bpe_reading_ind],
                                                                   basic_tokenization_target[bpe_reading_ind_gold],
                                                                   former_src=word_piece_token,
                                                                   former_gold=word_piece_token_gold)
 
-                    bpe_reading_ind_gold += 1
-                    bpe_reading_ind += 1
+
                 except Exception as e:
                     raise(e)
             else:
-                bpe_reading_ind += 1
                 word_piece_token = self.wordpiece_tokenizer.tokenize(basic_tokenization[bpe_reading_ind])
+                #bpe_reading_ind += 1
             for sub_token in word_piece_token:
                 split_tokens.append(sub_token)
             if aligne:
@@ -154,12 +174,13 @@ class BertTokenizer(object):
                 if breakpoint:
                     pass
                     #pdb.set_trace()
-                alignement_index_gold.extend([bpe_reading_ind_gold+attachement_index_shift_gold for _ in range(len(word_piece_token_gold))])
+                alignement_index_gold.extend([alignement_with_original_index_target[bpe_reading_ind_gold]+attachement_index_shift_gold for _ in range(len(word_piece_token_gold))])
             else:
                 split_tokens_gold = None
                 alignement_index_gold = None
-            alignement_index.extend([bpe_reading_ind for _ in range(len(word_piece_token))])
-
+            alignement_index.extend([alignement_with_original_index[bpe_reading_ind] for _ in range(len(word_piece_token))])
+            bpe_reading_ind_gold += 1
+            bpe_reading_ind += 1
             if bpe_reading_ind+1 == len(alignement_with_original_index):
                 print("bpe_reading_ind {} ouf of / {} ".format(bpe_reading_ind, len(alignement_with_original_index)))
                 break

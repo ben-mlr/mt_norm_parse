@@ -39,6 +39,7 @@ def get_indexes_src_gold(list_pretokenized_str_source, list_pretokenized_str_gol
     segments_tensors_dic = {}
     tokens_tensor_dic = {}
     print("SOURE", list_pretokenized_str_source)
+
     all_tokenized_ls = [tokenizer.tokenize(src, gold, aligne=True) for src, gold in zip(list_pretokenized_str_source, list_pretokenized_str_gold)]
 
     tokenized_dic = {}
@@ -92,7 +93,7 @@ def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu,
     :param use_gpu:
     :return:
     """
-    all_tokenized_ls = [tokenizer.tokenize(inp,) for inp in list_pretokenized_str]
+    all_tokenized_ls = [tokenizer.tokenize_origin(inp,) for inp in list_pretokenized_str]
 
     tokenized_ls = [tup[0] for tup in all_tokenized_ls]
     aligned_index = [tup[1] for tup in all_tokenized_ls]

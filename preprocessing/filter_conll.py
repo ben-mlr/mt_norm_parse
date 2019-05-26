@@ -56,10 +56,11 @@ if __name__ == "__main__":
 
     not_skiped = 0
     label = "dev"
-    extra = "random_replace"
+    extra = "norm+norm2norm+permute"
     ind = 0
     write = True
-    new_file = True
+    new_file = False
+    file_name = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/.././data/wnut-2015-ressources/lexnorm2015/lex_train+ewt_train+ewt_noisy"#train_path[0]
     while True:
 
         try:
@@ -81,13 +82,13 @@ if __name__ == "__main__":
             else:
                 not_skiped += 1
             if write:
-                write_conll(format="conll", dir_normalized=train_path[0]+"-{}.conll".format(extra),
-                            dir_original=train_path[0]+"-src_token_only-{}.conll".format(extra),
+                write_conll(format="conll", dir_normalized=file_name+"-{}.conll".format(extra),
+                            dir_original=file_name+"-src_token_only-{}.conll".format(extra),
                             src_text_ls=batch.raw_input,
                             text_decoded_ls=None, tasks=tasks,
                             src_text_pos=None, pred_pos_ls=None, verbose="raw_data",
-                            new_file=new_file,
-                            permuting_mode="sample_mode",#"2_following_letters",
+                            new_file=new_file, cp_paste=True,
+                            permuting_mode=None,#"sample_mode",#"2_following_letters",
                             ind_batch=ind)
             new_file = False
         except StopIteration:

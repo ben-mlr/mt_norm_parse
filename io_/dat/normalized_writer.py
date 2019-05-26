@@ -7,7 +7,7 @@ APPLY_PERMUTE_WORD = 0.8
 
 
 def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_ls,
-                src_text_pos, pred_pos_ls, tasks, inverse=False,permuting_mode=None,
+                src_text_pos, pred_pos_ls, tasks, inverse=False,permuting_mode=None,cp_paste=False,
                 ind_batch=0, new_file=False, verbose=0):
     assert format in ["conll"]
     #assert len(tasks) == 1, "ERROR : only supported so far 1 task at a time"
@@ -16,7 +16,7 @@ def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_
         src_ls = src_text_ls
         pred_ls = text_decoded_ls
         if text_decoded_ls is None:
-            assert permuting_mode is not None
+            assert permuting_mode is not None or cp_paste
             pred_ls = src_text_ls
     elif tasks[0] == "pos":
         src_ls = src_text_pos
@@ -70,12 +70,15 @@ def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_
                         #   --> assert pred_pos and pred_norm are same lengh (number of words) ans write
                         if tasks[0] == "normalize":
                             if inverse:
+                                assert not cp_paste
                                 _original_token = normalized_token
                                 _normalized_token = original_token
+
                             else:
                                 _original_token = original_token
                                 _normalized_token = normalized_token
                                 if permuting_mode is not None:
+                                    assert not cp_paste
                                     # rule one
                                     print("ORIGINAL TOKEN", original_token)
                                     if ( _original_token == _normalized_token or _original_token.lower() == _normalized_token.lower())\
@@ -136,6 +139,9 @@ def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_
                                         print("NEW TOKEN", permuting_mode, _original_token)
 
                                     #pdb.set_trace()
+
+                            if cp_paste:
+                                _normalized_token = _original_token
 
                             norm_file.write("{}\t{}\t_\t_\t_\t_\t{}\t_\t_\tNorm={}|\n".format(ind + 1 - ind_adjust,
                                                                                               _original_token,

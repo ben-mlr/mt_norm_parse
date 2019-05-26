@@ -83,7 +83,7 @@ def train_eval_bert_normalize(args, verbose=1):
         random_iterator_train=True,  bucket_test=False,
         compute_intersection_score_test=True,
         aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
-        bert_module=args.bert_module,tokenize_and_bpe=True,
+        bert_module=args.bert_module,tokenize_and_bpe=False,
         list_reference_heuristic_test=list_reference_heuristic_test, case="lower",
         slang_dic_test=slang_dic,
         report=True, verbose=1)

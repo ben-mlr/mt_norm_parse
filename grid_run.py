@@ -382,7 +382,7 @@ if __name__ == "__main__":
 
           BERT_NORMALIZE = True
           if BERT_NORMALIZE:
-              epochs = 15
+              epochs = 25
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,  
                                                   grid_label=LABEL_GRID,
@@ -406,7 +406,7 @@ if __name__ == "__main__":
                                                   #       OrderedDict([("bert", "0.00001"), ("classifier", "0.00001")])],
                                                   tasks_ls=[["normalize"] for _ in range(1)],#[["pos"], ["normalize", "pos"]],#, ["normalize"]],
                                                   fine_tuning_strategy_ls=["standart"],
-                                                  dropout_classifier_ls=[0.3],
+                                                  dropout_classifier_ls=[0.3, 0.1],
                                                   dropout_input_bpe_ls=[0., 0.05, 0.1, 0.2],
                                                   aggregating_bert_layer_mode_ls=["last"],
                                                   dropout_bert_ls=[0.1],
