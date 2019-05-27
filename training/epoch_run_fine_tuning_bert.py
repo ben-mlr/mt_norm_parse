@@ -44,7 +44,7 @@ def epoch_run(batchIter, tokenizer,
               subsample_early_stoping_metric_val="all",
               slang_dic=None, list_reference_heuristic=None,list_candidates=None, index_alphabetical_order=None,
               case=None, threshold_edit=None, edit_module_pred_need_norm_only=True, low_memory_foot_print_batch_mode=False,
-              batch_size_real=0, tokenize_and_bpe=False,
+              batch_size_real=0, tokenize_and_bpe=False, n_epoch=None,
               verbose=0):
     """
     About Evaluation :
@@ -365,29 +365,34 @@ def epoch_run(batchIter, tokenizer,
                                                            sep_token_index=sep_token_index,
                                                            dropout=dropout_input_bpe)
 
-            if masking_strategy == "mlm":
-                dropout = 0.2
-                assert dropout_input_bpe == 0., "in masking_strategy mlm we hardcoded dropout to 0.2{}".format(dropout)
-
-                _input_tokens_tensor = dropout_input_tensor(input_tokens_tensor, mask_token_index,
-                                                            sep_token_index=sep_token_index,
-                                                            dropout=dropout)
-                # we backpropagage only on tokens that receive a mask (MLM objective)
+            if masking_strategy == "mlm" and optimizer is not None:
+                dropout = 0.1
+                assert dropout_input_bpe == 0., "in masking_strategy mlm we hardcoded dropout to 0.2 {}".format(dropout)
+                input_tokens_tensor, mask_dropout = dropout_input_tensor(input_tokens_tensor, mask_token_index,
+                                                                          sep_token_index=sep_token_index,
+                                                                          apply_dropout=np.random.random() < 0.5,
+                                                                          dropout=dropout)
+                printing("LABEL NOT MASKING {}/1 of gold labels".format(((epoch+1)/n_epoch)**2), verbose=verbose, verbose_level=1)
+                _, mask_losses = dropout_input_tensor(input_tokens_tensor, mask_token_index,
+                                                      sep_token_index=sep_token_index,
+                                                      apply_dropout=False,
+                                                      dropout=((epoch+1)/n_epoch)**2)
+                # we backpropagate only on tokens that receive a mask (MLM objective)
                 feeding_the_model_with_label = output_tokens_tensor_aligned.clone()
-                feeding_the_model_with_label[_input_tokens_tensor != mask_token_index] = -1
+                mask_loss = mask_dropout*mask_losses
+                feeding_the_model_with_label[mask_loss != 0] = -1
+                print(feeding_the_model_with_label)
                 # hald the time we actually mask those tokens otherwise we predict
-                if np.random.random() < 0.5:
-                    input_tokens_tensor = _input_tokens_tensor
             else:
                 feeding_the_model_with_label = output_tokens_tensor_aligned
 
             try:
                 printing("MASK mask:{}\nMASK input:{}\nMASK output:{}", var=[input_mask, input_tokens_tensor, output_tokens_tensor_aligned],
                          verbose_level="raw_data", verbose=verbose)
-                print("input_mask", input_mask)
-                print("output_tokens_tensor_aligned", output_tokens_tensor_aligned)
-                print("feeding_the_model_with_label", feeding_the_model_with_label)
-                pdb.set_trace()
+                #print("input_mask", input_mask)
+                #print("output_tokens_tensor_aligned", output_tokens_tensor_aligned)
+                #print("feeding_the_model_with_label", feeding_the_model_with_label)
+                #pdb.set_trace()
                 loss_dic = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
                                                 labels=feeding_the_model_with_label if task_normalize_is else None, #tasks[0] == "normalize" else None,
                                                 labels_task_2=output_tokens_tensor_aligned if task_pos_is else None, #tasks[0] == "pos" else None

@@ -214,6 +214,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                 print("RUNNING TRAIN on GET_BATCH_MODE ")
                 loss_train, iter_train, perf_report_train, _ = epoch_run(batchIter_train, tokenizer,
                                                                       pos_dictionary=pos_dictionary,
+                                                                      n_epoch=n_epoch,
                                                                       data_label=train_data_label,
                                                                       bert_with_classifier=bert_with_classifier, writer=writer,
                                                                       iter=iter_train, epoch=epoch,
