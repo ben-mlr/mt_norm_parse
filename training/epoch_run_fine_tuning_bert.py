@@ -372,16 +372,20 @@ def epoch_run(batchIter, tokenizer,
                                                                           sep_token_index=sep_token_index,
                                                                           apply_dropout=np.random.random() < 0.5,
                                                                           dropout=dropout)
-                printing("LABEL NOT MASKING {}/1 of gold labels".format(((epoch+1)/n_epoch)**2), verbose=verbose, verbose_level=1)
+                power = 3
+                capped = 0.2
+                dropout_adated = min(((epoch + 1) / n_epoch) ** power, capped)
+                printing("LABEL NOT MASKING {}/1 of gold labels with power {} and capped {}".format(dropout_adated, power, capped), verbose=verbose, verbose_level=1)
                 _, mask_losses = dropout_input_tensor(input_tokens_tensor, mask_token_index,
                                                       sep_token_index=sep_token_index,
                                                       apply_dropout=False,
-                                                      dropout=((epoch+1)/n_epoch)**2)
+                                                      dropout=dropout_adated
+                                                      )
                 # we backpropagate only on tokens that receive a mask (MLM objective)
                 feeding_the_model_with_label = output_tokens_tensor_aligned.clone()
                 mask_loss = mask_dropout*mask_losses
                 feeding_the_model_with_label[mask_loss != 0] = -1
-                print(feeding_the_model_with_label)
+                pdb.set_trace()
                 # hald the time we actually mask those tokens otherwise we predict
             else:
                 feeding_the_model_with_label = output_tokens_tensor_aligned
@@ -393,14 +397,14 @@ def epoch_run(batchIter, tokenizer,
                 #print("output_tokens_tensor_aligned", output_tokens_tensor_aligned)
                 #print("feeding_the_model_with_label", feeding_the_model_with_label)
                 #pdb.set_trace()
-                loss_dic = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
+                loss_dic, layer_wise_weights = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
                                                 labels=feeding_the_model_with_label if task_normalize_is else None, #tasks[0] == "normalize" else None,
                                                 labels_task_2=output_tokens_tensor_aligned if task_pos_is else None, #tasks[0] == "pos" else None
                                                 aggregating_bert_layer_mode=aggregating_bert_layer_mode)
             except Exception as e:
                 print(e)
                 print(" MAX ", torch.max(output_tokens_tensor_aligned), input_tokens_tensor, input_mask)
-                loss_dic = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
+                loss_dic, _ = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
                                                 aggregating_bert_layer_mode=aggregating_bert_layer_mode,
                                                 labels=feeding_the_model_with_label if task_normalize_is else None,#if tasks[0] == "normalize" else None,
                                                 labels_task_2=output_tokens_tensor_aligned if task_pos_is else None)#if tasks[0] == "pos" else None)
@@ -414,9 +418,10 @@ def epoch_run(batchIter, tokenizer,
             if predict_mode:
                 # if predict more : will evaluate the model and write its predictions
                 # TODO : add mapping_info between task_id to model and task name necessary to iterator
-                logits = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
+                logits, layer_wise_weights = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
                                               aggregating_bert_layer_mode=aggregating_bert_layer_mode,
-                                              )["logits_task_2" if task_pos_is else "logits_task_1"]
+                                              )
+                logits = logits["logits_task_2" if task_pos_is else "logits_task_1"]
                 predictions_topk = torch.argsort(logits, dim=-1, descending=True)[:, :, :topk]
                 # from bpe index to string
                 sent_ls_top = from_bpe_token_to_str(predictions_topk, topk, tokenizer=tokenizer, pred_mode=True,

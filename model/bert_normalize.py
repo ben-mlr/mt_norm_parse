@@ -8,7 +8,7 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
                                   pretrained_model_dir=None, checkpoint_dir=None,
                                   freeze_parameters=False, freeze_layer_prefix_ls=None,
                                   dropout_classifier=None,dropout_bert=0.,tasks=None,
-                                  bert_module="token_class",
+                                  bert_module="token_class",layer_wise_attention=False,
                                   initialize_bpe_layer=None, verbose=1):
     """
     two use case :
@@ -53,7 +53,7 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
         if bert_module == "token_class":
             model = model.from_pretrained(pretrained_model_dir, num_labels=num_labels, dropout_custom=dropout_bert)
         elif bert_module == "mlm":
-            model = model.from_pretrained(pretrained_model_dir, normalization_mode=True)
+            model = model.from_pretrained(pretrained_model_dir, normalization_mode=True, layer_wise_attention=layer_wise_attention)
             output_layer = torch.cat((model.bert.embeddings.word_embeddings.weight.data, torch.rand((1, 768))), dim=0)
             model.cls.predictions.decoder = nn.Linear(model.bert.config.hidden_size, vocab_size + 1, bias=False)
             model.cls.predictions.decoder.weight = nn.Parameter(output_layer)

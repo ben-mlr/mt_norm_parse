@@ -41,6 +41,7 @@ if train:
     freeze_parameters = False
     freeze_layer_prefix_ls = ["cls", "bert.encoder", "bert.encoder.layer.1"]
     tasks = ["normalize"]
+    layer_wise_attention = 0
     train_path = [LEX_TRAIN_SPLIT_2]#, DEMO]
     dev_path = [DEMO]#, DEMO]
     test_paths_ls = [[LEX_TEST]]#, [DEMO]]
@@ -50,7 +51,7 @@ if train:
     model = get_bert_token_classification(pretrained_model_dir=model_dir,
                                           vocab_size=vocab_size, dropout_classifier=0.5,
                                           freeze_parameters=freeze_parameters,
-                                          voc_pos_size=voc_pos_size, tasks=tasks,
+                                          voc_pos_size=voc_pos_size, tasks=tasks,layer_wise_attention=layer_wise_attention,
                                           freeze_layer_prefix_ls=freeze_layer_prefix_ls, bert_module=bert_module,
                                           dropout_bert=0.0, initialize_bpe_layer=initialize_bpe_layer)
     lr = 0.0001
@@ -152,6 +153,7 @@ if playwith:
                     heuristic_test_ls=[None],
                     bucket_test=False, must_get_norm_test=False,
                     slang_dic_test=slang_dic, list_reference_heuristic_test=list_reference_heuristic_test,
+                    layer_wise_attention=layer_wise_attention,
                     verbose="raw_data")
         sentences = False
         if sentences:

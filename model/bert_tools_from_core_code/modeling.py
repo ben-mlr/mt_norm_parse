@@ -30,7 +30,7 @@ import sys
 from io import open
 import pdb
 
-from env.importing import torch, nn, CrossEntropyLoss
+from env.importing import torch, nn, CrossEntropyLoss, F, np
 
 #from .file_utils import cached_path
 from model.bert_tools_from_core_code.tools import *
@@ -142,7 +142,8 @@ class BertConfig(object):
                  attention_probs_dropout_prob=0.1,
                  max_position_embeddings=512,
                  type_vocab_size=2,
-                 initializer_range=0.02, normalization_module=False):
+                 initializer_range=0.02, normalization_module=False,
+                 layer_wise_attention=False):
         """Constructs BertConfig.
 
         Args:
@@ -168,6 +169,7 @@ class BertConfig(object):
                 initializing all weight matrices.
         """
         self.normalization_module = normalization_module
+        self.layer_wise_attention = layer_wise_attention
         if isinstance(vocab_size_or_config_json_file, str) or (sys.version_info[0] == 2
                         and isinstance(vocab_size_or_config_json_file, unicode)):
             with open(vocab_size_or_config_json_file, "r", encoding='utf-8') as reader:
@@ -519,7 +521,7 @@ class BertPreTrainedModel(nn.Module):
 
     @classmethod
     def from_pretrained(cls, pretrained_model_name_or_path, state_dict=None, cache_dir=None,
-                        dropout_custom=0.,normalization_mode=True,
+                        dropout_custom=0.,normalization_mode=True, layer_wise_attention=False,
                         from_tf=False, *inputs, **kwargs):
         """
         Instantiate a BertPreTrainedModel from a pre-trained model file or a pytorch state dict.
@@ -586,6 +588,8 @@ class BertPreTrainedModel(nn.Module):
         logger.info("Model config {}".format(config))
         if normalization_mode:
             config.normalization_module = normalization_mode
+        if layer_wise_attention:
+            config.layer_wise_attention = layer_wise_attention
         if dropout_custom > 0:
             config.hidden_dropout_prob = dropout_custom
             config.attention_probs_dropout_prob = dropout_custom
@@ -850,16 +854,46 @@ class BertForMaskedLM(BertPreTrainedModel):
         self.normalization_module = config.normalization_module
         self.cls = BertOnlyMLMHead(config, self.bert.embeddings.word_embeddings.weight)
         self.apply(self.init_bert_weights)
+        layer_wise_attention = config.layer_wise_attention
+        self.layer_wise_attention = nn.Linear(768, 1) if layer_wise_attention else None
+
         print("WARNING : NB in forward(modelling) aggregating_bert_layer_mode is ignore in BertForMaskedLM")
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None,
                 masked_lm_labels=None, labels=None, labels_task_2=None,
-                aggregating_bert_layer_mode=None):
+                aggregating_bert_layer_mode=None, output_all_encoded_layers=False):
 
         assert labels_task_2 is None
         if masked_lm_labels is None:
             masked_lm_labels = labels
-        sequence_output, _ = self.bert(input_ids, token_type_ids, attention_mask, output_all_encoded_layers=False)
+        pdb.set_trace()
+        sequence_output, _ = self.bert(input_ids, token_type_ids, attention_mask,
+                                       output_all_encoded_layers=self.layer_wise_attention is not None)
+        softmax_weight = None
+        if self.layer_wise_attention is not None:
+            stacked_layers = torch.stack(sequence_output, dim=-1).transpose(3, 2).squeeze(-1)
+            # for each batch, each input token we have a ponderation over the layers
+            energy = self.layer_wise_attention(stacked_layers).squeeze(-1)
+            if np.random.random() < 0.1:
+                layer_n = np.random.randint(12)
+                energy[:, :, layer_n] = -float("Inf")
+                print("DROPING LAYER {} IN ATTENTION".format(layer_n))
+            softmax_weight = F.softmax(energy, dim=-1).unsqueeze(-1)
+
+            stacked_layers = stacked_layers.transpose(3, 2)
+            batch_dim = softmax_weight.size(0)
+            len_seq = softmax_weight.size(1)
+            stacked_layers = stacked_layers.view(batch_dim*len_seq, stacked_layers.size(2), stacked_layers.size(3))
+            softmax_weight = softmax_weight.view(batch_dim*len_seq, softmax_weight.size(2), softmax_weight.size(3))
+            pdb.set_trace()
+            new_sequence = torch.bmm(stacked_layers, softmax_weight)
+            pdb.set_trace()
+            softmax_weight = softmax_weight.view(batch_dim, len_seq, stacked_layers.size(2))
+            sequence_output = new_sequence.view(batch_dim, len_seq, stacked_layers.size(1))
+
+
+
+
         prediction_scores = self.cls(sequence_output)
         loss_dict = OrderedDict([("loss", None), ("loss_task_1", 0), ("loss_task_2", 0)])
         pred_dict = OrderedDict([("logits_task_1", None), ("logits_task_2", None)])
@@ -873,10 +907,10 @@ class BertForMaskedLM(BertPreTrainedModel):
             masked_lm_loss = loss_fct(prediction_scores.view(-1, num_labels), masked_lm_labels.view(-1))
             loss_dict["loss_task_1"] = masked_lm_loss
             loss_dict["loss"] = loss_dict["loss_task_1"]
-            return loss_dict
+            return loss_dict, softmax_weight
         else:
             pred_dict["logits_task_1"] = prediction_scores
-            return pred_dict
+            return pred_dict, softmax_weight
 
 
 class BertForNextSentencePrediction(BertPreTrainedModel):

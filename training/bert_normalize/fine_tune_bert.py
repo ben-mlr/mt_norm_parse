@@ -35,7 +35,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         compute_intersection_score_test=True,
         slang_dic_test=None, list_reference_heuristic_test=None,
         bert_module=None,
-        case=None, threshold_edit=3,tokenize_and_bpe=False,
+        case=None, threshold_edit=3,tokenize_and_bpe=False,layer_wise_attention=None,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
@@ -101,7 +101,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                        ("norm_2_noise_training", norm_2_noise_training),
                                        ("random_iterator_train",random_iterator_train),
                                        ("aggregating_bert_layer_mode",aggregating_bert_layer_mode),
-                                       ("SEED", SEED_TORCH), ("case", case), ("bert_module", bert_module), ("freeze_layer_prefix_ls", freeze_layer_prefix_ls)
+                                       ("SEED", SEED_TORCH), ("case", case), ("bert_module", bert_module), ("freeze_layer_prefix_ls", freeze_layer_prefix_ls),
+                                       ("layer_wise_attention",layer_wise_attention)
                                        ])
         printing("HYPERPARAMETERS {} ", var=[hyperparameters], verbose=verbose, verbose_level=1)
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
@@ -363,16 +364,16 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                     best_heurisitc = ["edit_check-all-need_normed", "@", "#", "url"]
                 else:
                     best_heurisitc = ["@", "#", "url"]
-                heuritics_zip = [None] if task_to_eval == "pos" else [None, None, ["edit_check-all-all"],
-                                                                      ["edit_check-all-need_normed"],
-                                                                      ["edit_check-data-need_normed"],
-                                                                      ["edit_check-ref-need_normed"],
+                heuritics_zip = [None] if task_to_eval == "pos" else [None, None, #["edit_check-all-all"],
+                                                                      #["edit_check-all-need_normed"],
+                                                                      #["edit_check-data-need_normed"],
+                                                                      #["edit_check-ref-need_normed"],
                                                                       ["@", "#", "url"],
-                                                                      best_heurisitc,
+                                                                      #best_heurisitc,
                                                                       best_heurisitc,
                                                                       ["slang_translate"]]
-                gold_error_or_not_zip = [False] if task_to_eval == "pos" else [False, True, False, False, False, False, False, False, False, False]
-                norm2noise_zip = [False] if task_to_eval == "pos" else [False, False, False, False, False, False, False, False, False, False]
+                gold_error_or_not_zip = [False] if task_to_eval == "pos" else [False, True, False, False, False]
+                norm2noise_zip = [False] if task_to_eval == "pos" else [False, False, False, False, False]
                 if heuristic_test_ls is not None:
                     assert isinstance(heuristic_test_ls, list)
                     if heuristic_test_ls[0] is not None:
