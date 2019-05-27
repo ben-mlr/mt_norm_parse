@@ -140,12 +140,9 @@ class BertTokenizer(object):
                     #bpe_reading_ind_gold -= 1
                     #pdb.set_trace()
                 try:
-                    if basic_tokenization_target[bpe_reading_ind_gold]=="@":
-                        pdb.set_trace()
-                    print("TEXT",text)
+
 
                     if mask_input:
-                        pdb.set_trace()
                         word_piece_token_gold = self.wordpiece_tokenizer.tokenize(basic_tokenization_target[bpe_reading_ind_gold])
                         word_piece_token = ["[MASK]"]
                         attachement_index_shift_gold -= 1
@@ -178,7 +175,6 @@ class BertTokenizer(object):
                 split_tokens_gold = None
                 alignement_index_gold = None
             alignement_index.extend([alignement_with_original_index[bpe_reading_ind] for _ in range(len(word_piece_token))])
-            pdb.set_trace()
             bpe_reading_ind_gold += 1
             bpe_reading_ind += 1
             if bpe_reading_ind == len(alignement_with_original_index):
@@ -433,7 +429,11 @@ class WordpieceTokenizer(object):
         output_tokens = []
         output_tokens_gold = []
         import pdb
-
+        break_ing = False
+        #if "nic" in text:
+        #    break_ing = True
+        #print("SOURCE", text)
+        #print("TARGET", text_target)
         for token, token_gold in zip(whitespace_tokenize(text), whitespace_tokenize(text_target)):
             chars = list(token)
             chars_gold = list(token_gold)
@@ -480,7 +480,11 @@ class WordpieceTokenizer(object):
                                 if substr_gold in self.vocab:
                                     cur_substr_gold = substr_gold
                                     left_out_gold = chars_gold[_end_gold:end_gold]
+                                    if break_ing:
+                                        pdb.set_trace()
                                     print("FOUND gold substring of {} : src:{} of token ({}) --> {} LEAVING {}".format(chars_gold, cur_substr, chars, substr_gold, left_out_gold))
+
+
                                     break
                                 _end_gold -= 1
                             if cur_substr_gold is None:
@@ -494,6 +498,14 @@ class WordpieceTokenizer(object):
                 sub_tokens.append(cur_substr)
                 #if token_gold != "[SPACE]":
                 sub_tokens_gold.append(cur_substr_gold)
+                while len(left_out_gold) > 0:
+                    _forgotten_list = left_out_gold
+                    cur_substr_gold, ind_end, left_out_gold = get_biggest_bpe_in(char_list=left_out_gold,
+                                                                                 token_begining=False,
+                                                                                 vocab=self.vocab)
+                    print("FOUND {} in FORGOTTEN {}".format(cur_substr_gold, _forgotten_list))
+
+                    sub_tokens_gold.append(cur_substr_gold)
                 #else:
                 #    sub_tokens_gold.append("[SPACE]")
                 start = end
@@ -615,12 +627,19 @@ class WordpieceTokenizer(object):
                         cur_substr_gold, ind_end, forgotten_list = get_biggest_bpe_in(char_list=substring_to_look,
                                                                       token_begining=indices[occurence] == 0,
                                                                       vocab=self.vocab)
-                        print("FOUND cur_substr_gold ", cur_substr_gold)
-                        if len(forgotten_list)>0:
-                            to_alert = True
-                            to_alert_forgotten = forgotten_list
-                        forgotten.append(forgotten_list)
                         sub_tokens_gold_is_abbreviation.append(cur_substr_gold)
+                        print("FOUND cur_substr_gold ", cur_substr_gold)
+                        while len(forgotten_list) > 0:
+                            _forgotten_list = forgotten_list
+                            cur_substr_gold, ind_end, forgotten_list = get_biggest_bpe_in(char_list=forgotten_list,
+                                                                                          token_begining=False,
+                                                                                          vocab=self.vocab)
+                            print("FOUND ABBREVIATION {} in FORGOTTEN {}".format(cur_substr_gold, _forgotten_list))
+
+                            sub_tokens_gold_is_abbreviation.append(cur_substr_gold)
+                            to_alert = True
+                            to_alert_forgotten = _forgotten_list
+                        forgotten.append(forgotten_list)
                     if to_alert:
                         print("WARNING : LEAVING OUT ", to_alert_forgotten)
                     print("FINAL sub_tokens_gold_is_abbreviation {} : WARNING forgot {}".format(sub_tokens_gold_is_abbreviation, forgotten))

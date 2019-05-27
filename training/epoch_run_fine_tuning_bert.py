@@ -94,7 +94,7 @@ def epoch_run(batchIter, tokenizer,
                 masking_strategy = masking_strategy[0]
             else:
                 masking_strategy = masking_strategy[0]
-        assert masking_strategy in AVAILABLE_BERT_MASKING_STRATEGY, "masking_strategy {} should be in {}".format(AVAILABLE_BERT_MASKING_STRATEGY)
+        assert masking_strategy in AVAILABLE_BERT_MASKING_STRATEGY, "masking_strategy {} should be in {}".format(masking_strategy,AVAILABLE_BERT_MASKING_STRATEGY)
         if masking_strategy == "normed":
             printing("INFO : Portion mask was found to {}", var=[portion_mask], verbose=verbose, verbose_level=1)
     if predict_mode:
@@ -360,15 +360,36 @@ def epoch_run(batchIter, tokenizer,
                      verbose=verbose, verbose_level="cuda")
             # we have to recompute the mask based on aligned input
             if dropout_input_bpe > 0:
+
                 input_tokens_tensor = dropout_input_tensor(input_tokens_tensor, mask_token_index,
                                                            sep_token_index=sep_token_index,
                                                            dropout=dropout_input_bpe)
+
+            if masking_strategy == "mlm":
+                dropout = 0.2
+                assert dropout_input_bpe == 0., "in masking_strategy mlm we hardcoded dropout to 0.2{}".format(dropout)
+
+                _input_tokens_tensor = dropout_input_tensor(input_tokens_tensor, mask_token_index,
+                                                            sep_token_index=sep_token_index,
+                                                            dropout=dropout)
+                # we backpropagage only on tokens that receive a mask (MLM objective)
+                feeding_the_model_with_label = output_tokens_tensor_aligned.clone()
+                feeding_the_model_with_label[_input_tokens_tensor != mask_token_index] = -1
+                # hald the time we actually mask those tokens otherwise we predict
+                if np.random.random() < 0.5:
+                    input_tokens_tensor = _input_tokens_tensor
+            else:
+                feeding_the_model_with_label = output_tokens_tensor_aligned
+
             try:
-                printing("MASK mask:{}\nMASK input:{}\nMASK output:{}", var=[input_mask, input_tokens_tensor,
-                                                                         output_tokens_tensor_aligned],
+                printing("MASK mask:{}\nMASK input:{}\nMASK output:{}", var=[input_mask, input_tokens_tensor, output_tokens_tensor_aligned],
                          verbose_level="raw_data", verbose=verbose)
+                print("input_mask", input_mask)
+                print("output_tokens_tensor_aligned", output_tokens_tensor_aligned)
+                print("feeding_the_model_with_label", feeding_the_model_with_label)
+                pdb.set_trace()
                 loss_dic = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
-                                                labels=output_tokens_tensor_aligned if task_normalize_is else None, #tasks[0] == "normalize" else None,
+                                                labels=feeding_the_model_with_label if task_normalize_is else None, #tasks[0] == "normalize" else None,
                                                 labels_task_2=output_tokens_tensor_aligned if task_pos_is else None, #tasks[0] == "pos" else None
                                                 aggregating_bert_layer_mode=aggregating_bert_layer_mode)
             except Exception as e:
@@ -376,7 +397,7 @@ def epoch_run(batchIter, tokenizer,
                 print(" MAX ", torch.max(output_tokens_tensor_aligned), input_tokens_tensor, input_mask)
                 loss_dic = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
                                                 aggregating_bert_layer_mode=aggregating_bert_layer_mode,
-                                                labels=output_tokens_tensor_aligned if task_normalize_is else None,#if tasks[0] == "normalize" else None,
+                                                labels=feeding_the_model_with_label if task_normalize_is else None,#if tasks[0] == "normalize" else None,
                                                 labels_task_2=output_tokens_tensor_aligned if task_pos_is else None)#if tasks[0] == "pos" else None)
             _loss = loss_dic["loss"]
             if task_normalize_is:

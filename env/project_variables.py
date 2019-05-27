@@ -42,7 +42,7 @@ SCORE_AUX = ["norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recal
 AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm", "pos", "edit_prediction"]
 AVAILABLE_AGGREGATION_FUNC_AUX_TASKS = ["norm_not_norm", "edit_prediction"]
 AVAILABLE_BERT_FINE_TUNING_STRATEGY = ["bert_out_first", "standart", "flexible_lr", "only_first_and_last"]
-AVAILABLE_BERT_MASKING_STRATEGY = ["normed", "cls", "start_stop"]
+AVAILABLE_BERT_MASKING_STRATEGY = ["normed", "cls", "start_stop", "mlm"]
 edit_rules = ["edit_check-"+ref_list_label+"-"+need_normed_rule for ref_list_label in ["data", "ref", "all"] for need_normed_rule in ["need_normed", "all"]]
 heuristics = ["gold_detection", "#", "@", "url", "slang_translate"]
 HEURISTICS = heuristics+edit_rules
@@ -91,6 +91,9 @@ LIU_OWOPUTI_DEV_LEX_DEV_FILTERED_LABEL, LIU_OWOPUTI_DEV_LEX_DEV_FILTERED = "liu_
 LIU_TRAIN_OWOPUTI_LEX_TRAIN_LABEL, LIU_TRAIN_OWOPUTI_LEX_TRAIN = "lex_norm2015_train-space_demo", os.path.join(PROJECT_PATH, "./data/LiLiu/2577_tweets-li-train_2009-fixed+owoputi_integrated_fixed+lexnorm_train.conll")
 LEX_TRAIN_SPACE_DEMO_LABEL, LEX_TRAIN_SPACE_DEMO = "lex_norm2015_train-space_demo", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/train_data-space_demo.conll")
 LEX_TRAIN_LABEL, LEX_TRAIN = "lex_norm2015_train", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/train_data.conll")
+
+LEX_TRAIN_SPLIT_LABEL_2, LEX_TRAIN_SPLIT_2 = "lex_norm2015_split_train_2", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/train_split_data_2.conll")
+LEX_DEV_SPLIT_LABEL_2, LEX_DEV_SPLIT_2 = "lex_norm2015_split_dev_2", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/dev_split_data_2.conll")
 
 LEX_TRAIN_SPLIT_LABEL, LEX_TRAIN_SPLIT = "lex_norm2015_split_train", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/train_split_data.conll")
 LEX_DEV_SPLIT_LABEL, LEX_DEV_SPLIT = "lex_norm2015_split_dev", os.path.join(PROJECT_PATH, "./data/wnut-2015-ressources/lexnorm2015/dev_split_data.conll")
@@ -227,8 +230,9 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED: LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED_LABEL,
                 LIU_OWOPUTI_DEV_LEX_DEV_FILTERED: LIU_OWOPUTI_DEV_LEX_DEV_FILTERED_LABEL,
                 LIU_DEV_OWOPUTI: LIU_DEV_OWOPUTI_LABEL,
-                LEX_EWT_EWT_NOISY:LEX_EWT_EWT_NOISY_LABEL,
+                LEX_EWT_EWT_NOISY: LEX_EWT_EWT_NOISY_LABEL,
                 LEX_TRAIN_SPLIT: LEX_TRAIN_SPLIT_LABEL,
+                LEX_TRAIN_SPLIT_2: LEX_TRAIN_SPLIT_LABEL_2, LEX_DEV_SPLIT_2: LEX_DEV_SPLIT_LABEL_2,
                 EN_LINES_TRAIN_ALL_NOISY: EN_LINES_TRAIN_NOISY_ALL_LABEL,
                 LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_2_NOISY: LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_500_2_LABEL,
                 LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_NOISY: LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_500_LABEL,
