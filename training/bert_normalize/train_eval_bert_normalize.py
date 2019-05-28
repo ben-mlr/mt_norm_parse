@@ -36,7 +36,7 @@ def train_eval_bert_normalize(args, verbose=1):
                                               dropout_bert=args.dropout_bert,
                                               tasks=args.tasks,
                                               voc_pos_size=voc_pos_size,
-                                              bert_module=args.bert_module,
+                                              bert_module=args.bert_module,layer_wise_attention=args.layer_wise_attention,
                                               initialize_bpe_layer=initialize_bpe_layer)
     else:
         printing("MODEL : reloading from checkpoint {}", var=[args.checkpoint_dir], verbose_level=1, verbose=verbose)
@@ -83,8 +83,9 @@ def train_eval_bert_normalize(args, verbose=1):
         random_iterator_train=True,  bucket_test=False,
         compute_intersection_score_test=True,
         aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
-        bert_module=args.bert_module,tokenize_and_bpe=True,
+        bert_module=args.bert_module,tokenize_and_bpe=False,
         list_reference_heuristic_test=list_reference_heuristic_test, case="lower",
+        layer_wise_attention=args.layer_wise_attention,
         slang_dic_test=slang_dic,
         report=True, verbose=1)
 

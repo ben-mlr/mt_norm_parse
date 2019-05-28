@@ -55,7 +55,7 @@ def epoch_run(batchIter, tokenizer,
             TODO : TEST those scoring fucntions
     """
     if low_memory_foot_print_batch_mode:
-        assert batch_size_real>0, "ERROR have to define batch_size_real in low_memory_foot_print_batch_mode"
+        assert batch_size_real > 0, "ERROR have to define batch_size_real in low_memory_foot_print_batch_mode"
 
     if heuristic_ls is not None:
         for edit_rule in ["all", "ref", "data"]:
@@ -201,6 +201,7 @@ def epoch_run(batchIter, tokenizer,
             elif masking_strategy == "normed":
                 rand = np.random.uniform(low=0, high=1, size=1)[0]
                 group_to_mask = np.array(batch.output_norm_not_norm.cpu()) if portion_mask >= rand else None
+                pdb.set_trace()
             if not tokenize_and_bpe:
                 input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = \
                 get_indexes(batch_raw_input, tokenizer, verbose, use_gpu, word_norm_not_norm=group_to_mask)
@@ -235,14 +236,14 @@ def epoch_run(batchIter, tokenizer,
                     except Exception as e:
                         print("FAILLING error {} TO ALIGN batch_raw_input {} with batch_raw_output {} so using the old method".format(e, batch_raw_input, batch_raw_output))
                         input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = \
-                            get_indexes(batch_raw_input, tokenizer, verbose, use_gpu, word_norm_not_norm=group_to_mask)
+                            get_indexes(batch_raw_input, tokenizer, verbose, use_gpu, word_norm_not_norm=None)
                         output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask = \
                             get_indexes(batch_raw_output, tokenizer, verbose, use_gpu)
                         counting_failure_parralel_bpe_batch += 1
 
                 else:
                     output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask =\
-                    get_indexes(batch_raw_output, tokenizer, verbose, use_gpu)
+                    get_indexes(batch_raw_output, tokenizer, verbose, use_gpu, word_norm_not_norm=None)
                 printing("DATA dim : {} input {} output ", var=[input_tokens_tensor.size(), output_tokens_tensor.size()],
                          verbose_level=2, verbose=verbose)
             #elif "pos" in tasks:
@@ -364,29 +365,46 @@ def epoch_run(batchIter, tokenizer,
                 input_tokens_tensor = dropout_input_tensor(input_tokens_tensor, mask_token_index,
                                                            sep_token_index=sep_token_index,
                                                            dropout=dropout_input_bpe)
+            #from io_.bert_iterators_tools.string_processing import mask_group
+            #pdb.set_trace()
+            #mask_grouping = mask_group(bpe_aligned_index=output_alignement_with_raw, norm_not_norm=group_to_mask)
+            #pdb.set_trace()
 
             if masking_strategy == "mlm" and optimizer is not None:
-                dropout = 0.1
+                dropout = 0.15
                 assert dropout_input_bpe == 0., "in masking_strategy mlm we hardcoded dropout to 0.2 {}".format(dropout)
                 input_tokens_tensor, mask_dropout = dropout_input_tensor(input_tokens_tensor, mask_token_index,
-                                                                          sep_token_index=sep_token_index,
-                                                                          apply_dropout=np.random.random() < 0.5,
-                                                                          dropout=dropout)
-                power = 3
-                capped = 0.2
-                dropout_adated = min(((epoch + 1) / n_epoch) ** power, capped)
-                printing("LABEL NOT MASKING {}/1 of gold labels with power {} and capped {}".format(dropout_adated, power, capped), verbose=verbose, verbose_level=1)
-                _, mask_losses = dropout_input_tensor(input_tokens_tensor, mask_token_index,
-                                                      sep_token_index=sep_token_index,
-                                                      apply_dropout=False,
-                                                      dropout=dropout_adated
-                                                      )
-                # we backpropagate only on tokens that receive a mask (MLM objective)
+                                                                         sep_token_index=sep_token_index,
+                                                                         apply_dropout=np.random.random() < 0.75,
+                                                                         dropout=dropout)
+                unmask_loss = False
+
+                if unmask_loss:
+                    power = 3
+                    capped = 0.
+                    dropout_adated = min(((epoch + 1) / n_epoch) ** power, capped)
+                    printing("LABEL NOT MASKING {}/1 of gold labels with power {} and capped {}".format(dropout_adated, power, capped), verbose=verbose, verbose_level=1)
+                    _, mask_losses = dropout_input_tensor(input_tokens_tensor, mask_token_index,
+                                                          sep_token_index=sep_token_index,
+                                                          apply_dropout=False,
+                                                          dropout=dropout_adated)
+                    # we backpropagate only on tokens that receive a mask (MLM objective)
+                    mask_loss = mask_dropout*mask_losses
+                else:
+                    mask_loss = mask_dropout
                 feeding_the_model_with_label = output_tokens_tensor_aligned.clone()
-                mask_loss = mask_dropout*mask_losses
                 feeding_the_model_with_label[mask_loss != 0] = -1
                 pdb.set_trace()
                 # hald the time we actually mask those tokens otherwise we predict
+            elif masking_strategy in ["norm_mask", "norm_mask_variable"]:
+                if masking_strategy == "norm_mask_variable":
+                    portion_mask = min(((epoch + 1) / n_epoch), 0.8)
+                mask_normed = np.random.random() < portion_mask
+
+                feeding_the_model_with_label = output_tokens_tensor_aligned.clone()
+                if mask_normed:
+                    print("MASKING NORMED", portion_mask)
+                    feeding_the_model_with_label[input_tokens_tensor == output_tokens_tensor_aligned] = -1
             else:
                 feeding_the_model_with_label = output_tokens_tensor_aligned
 
@@ -397,6 +415,7 @@ def epoch_run(batchIter, tokenizer,
                 #print("output_tokens_tensor_aligned", output_tokens_tensor_aligned)
                 #print("feeding_the_model_with_label", feeding_the_model_with_label)
                 #pdb.set_trace()
+                pdb.set_trace()
                 loss_dic, layer_wise_weights = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
                                                 labels=feeding_the_model_with_label if task_normalize_is else None, #tasks[0] == "normalize" else None,
                                                 labels_task_2=output_tokens_tensor_aligned if task_pos_is else None, #tasks[0] == "pos" else None

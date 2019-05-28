@@ -76,10 +76,31 @@ def get_indexes_src_gold(list_pretokenized_str_source, list_pretokenized_str_gol
             mask_dic[sequence] = mask_dic[sequence].cuda()
             tokens_tensor_dic[sequence] = tokens_tensor_dic[sequence].cuda()
             segments_tensors_dic[sequence] = segments_tensors_dic[sequence].cuda()
-        sanity_check_data_len(tokens_tensor_dic[sequence], segments_tensors_dic[sequence] , tokens_tensor_dic[sequence],
+        sanity_check_data_len(tokens_tensor_dic[sequence], segments_tensors_dic[sequence], tokens_tensor_dic[sequence],
                               aligned_index_padded_dic[sequence], raising_error=True)
 
     return tokens_tensor_dic, segments_tensors_dic, tokenized_dic, aligned_index_padded_dic, mask_dic
+
+
+def mask_group(norm_not_norm, bpe_aligned_index):
+    """
+    norm_not_norm : 1 if group to mask (need_norm) 0 if normed
+    can be use with any group of token to mask
+    """
+    mask_batch = []
+    for i_sent, sent in enumerate(bpe_aligned_index):
+        mask_sent = []
+        for i in range(len(sent)):
+            original_index = sent[i]
+            # if original_index 1000 --> means we reached padding : mask should be 0
+            norm_not = norm_not_norm[i_sent, original_index] if original_index != 1000 else 1
+            mask_sent.append(1 - norm_not if norm_not != PAD_ID_NORM_NOT_NORM
+                             else PAD_ID_NORM_NOT_NORM)
+        if len(mask_sent) == sum([1 for mask in mask_sent if mask == 0]):
+            mask_sent[1] = 1
+            print("FORCING UNMASKING FOR SENT")
+        mask_batch.append(mask_sent)
+    return mask_batch
 
 
 def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu,
@@ -106,26 +127,6 @@ def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu,
     ids_padded = [inp + [PAD_ID_BERT for _ in range(max_sent_len - len(inp))] for inp in ids_ls]
     aligned_index_padded = [[e for e in inp] + [1000 for _ in range(max_sent_len - len(inp))] for inp in aligned_index]
     segments_padded = [inp + [PAD_ID_BERT for _ in range(max_sent_len - len(inp))] for inp in segments_ids]
-
-    def mask_group(norm_not_norm, bpe_aligned_index):
-        """
-        norm_not_norm : 1 if group to mask (need_norm) 0 if normed
-        can be use with any group of token to mask
-        """
-        mask_batch = []
-        for i_sent, sent in enumerate(bpe_aligned_index):
-            mask_sent = []
-            for i in range(len(sent)):
-                original_index = sent[i]
-                # if original_index 1000 --> means we reached padding : mask should be 0
-                norm_not = norm_not_norm[i_sent, original_index] if original_index != 1000 else 1
-                mask_sent.append(1 - norm_not if norm_not != PAD_ID_NORM_NOT_NORM
-                                 else PAD_ID_NORM_NOT_NORM)
-            if len(mask_sent) == sum([1 for mask in mask_sent if mask == 0]):
-                mask_sent[1] = 1
-                print("FORCING UNMASKING FOR SENT")
-            mask_batch.append(mask_sent)
-        return mask_batch
 
     if word_norm_not_norm is not None:
         mask = mask_group(word_norm_not_norm, bpe_aligned_index=aligned_index_padded)

@@ -866,7 +866,6 @@ class BertForMaskedLM(BertPreTrainedModel):
         assert labels_task_2 is None
         if masked_lm_labels is None:
             masked_lm_labels = labels
-        pdb.set_trace()
         sequence_output, _ = self.bert(input_ids, token_type_ids, attention_mask,
                                        output_all_encoded_layers=self.layer_wise_attention is not None)
         softmax_weight = None
@@ -885,9 +884,7 @@ class BertForMaskedLM(BertPreTrainedModel):
             len_seq = softmax_weight.size(1)
             stacked_layers = stacked_layers.view(batch_dim*len_seq, stacked_layers.size(2), stacked_layers.size(3))
             softmax_weight = softmax_weight.view(batch_dim*len_seq, softmax_weight.size(2), softmax_weight.size(3))
-            pdb.set_trace()
             new_sequence = torch.bmm(stacked_layers, softmax_weight)
-            pdb.set_trace()
             softmax_weight = softmax_weight.view(batch_dim, len_seq, stacked_layers.size(2))
             sequence_output = new_sequence.view(batch_dim, len_seq, stacked_layers.size(1))
 
