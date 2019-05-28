@@ -42,7 +42,7 @@ SCORE_AUX = ["norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recal
 AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm", "pos", "edit_prediction"]
 AVAILABLE_AGGREGATION_FUNC_AUX_TASKS = ["norm_not_norm", "edit_prediction"]
 AVAILABLE_BERT_FINE_TUNING_STRATEGY = ["bert_out_first", "standart", "flexible_lr", "only_first_and_last"]
-AVAILABLE_BERT_MASKING_STRATEGY = ["normed", "cls", "start_stop", "mlm", "norm_mask"]
+AVAILABLE_BERT_MASKING_STRATEGY = ["normed", "cls", "start_stop", "mlm", "norm_mask", "norm_mask_variable"]
 
 edit_rules = ["edit_check-"+ref_list_label+"-"+need_normed_rule for ref_list_label in ["data", "ref", "all"] for need_normed_rule in ["need_normed", "all"]]
 heuristics = ["gold_detection", "#", "@", "url", "slang_translate"]
@@ -142,11 +142,11 @@ MTNT_EN_TOK_DEV_CONLL_LABEL, MTNT_EN_TOK_DEV_CONLL = "mtnt_tok_dev_conll", \
                                                      os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/dev.tok.en.conll")
 MTNT_EN_TOK_DEV_DEMO_CONLL_LABEL, MTNT_EN_TOK_DEV_DEMO_CONLL = "mtnt_tok_dev_demo_conll", \
                                                                os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/dev.tok.en.demo.conll")
+# tweets
+TWEETS_GANESH_LABEL, TWEETS_GANESH = "pan_tweets_200k", os.path.join(PROJECT_PATH, "data", "pan_tweets-200k.conll")
+
 
 #PERMUTATION
-
-
-
 PERMUTATION_TRAIN_LABEL, PERMUTATION_TRAIN = "permutation-train", \
                                              os.path.join(PROJECT_PATH, "./data/permutation-train.conll")
 PERMUTATION_TEST_LABEL, PERMUTATION_TEST= "permutation-test", \
@@ -226,6 +226,7 @@ EMNLP12_DIC_LABEL, EMNLP12_DIC = "emnlp-dic-wnut", os.path.join(PROJECT_PATH, "d
 
 REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO2: DEMO2_LABEL,
                 TEST: TEST_LABEL, LIU: LIU_LABEL,
+                TWEETS_GANESH: TWEETS_GANESH_LABEL,
                 LEX_TRAIN_SPACE_DEMO: LEX_TRAIN_SPACE_DEMO_LABEL,
                 LIU_TRAIN_OWOPUTI_LEX_TRAIN: LIU_TRAIN_OWOPUTI_LEX_TRAIN_LABEL,
                 LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED: LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED_LABEL,

@@ -115,6 +115,9 @@ def conll_eric_to_conll_lexnorm(src_dr, target, mode="conll",skipping_mwe_sent=F
             ind += 1
 
 
+
+
+
 if __name__ == "__main__":
 
     #conll_eric_to_conll_lexnorm(ERIC_ORIGINAL_DEMO, ERIC_ORIGINAL_DEMO+"-ttt_TEST-skped.conllu",

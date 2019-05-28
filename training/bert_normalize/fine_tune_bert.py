@@ -172,10 +172,10 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         readers_dev = readers_load(datasets=dev_path, tasks=tasks, word_dictionary=word_dictionary,
                                    word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
                                    pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
-                                   type_dictionary=type_dictionary, use_gpu=use_gpu,
+                                   type_dictionary=type_dictionary, use_gpu=use_gpu_hardcoded_readers,
                                    norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=True,
                                    add_start_char=1, add_end_char=1,
-                                   symbolic_end=1, symbolic_root=1, bucket=use_gpu_hardcoded_readers , max_char_len=20,
+                                   symbolic_end=1, symbolic_root=1, bucket=use_gpu_hardcoded_readers, max_char_len=20,
                                    must_get_norm=True,
                                    verbose=verbose) if dev_path is not None else None
         # Load tokenizer

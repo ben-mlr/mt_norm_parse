@@ -65,11 +65,11 @@ def train_eval_bert_normalize(args, verbose=1):
     list_reference_heuristic_test = pickle.load(open(os.path.join(PROJECT_PATH, "./data/wiki-news-FAIR-SG-top50000.pkl"), "rb"))
     slang_dic = json.load(open(os.path.join(PROJECT_PATH, "./data/urban_dic_abbreviations.json"), "r"))
 
-    run(bert_with_classifier=model,
+    run(bert_with_classifier=model, 
         voc_tokenizer=voc_tokenizer, tasks=args.tasks, train_path=args.train_path, dev_path=args.dev_path,
         auxilliary_task_norm_not_norm=True,
         saving_every_epoch=10, lr=lr,
-        batch_size=batch_size, n_iter_max_per_epoch=10000, n_epoch=args.epochs,
+        batch_size=batch_size, n_iter_max_per_epoch=200000, n_epoch=args.epochs,
         test_path_ls=args.test_paths,
         description=description, null_token_index=null_token_index, null_str=NULL_STR,
         model_suffix="{}".format(args.model_id_pref), debug=False,

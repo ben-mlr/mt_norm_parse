@@ -375,15 +375,14 @@ def epoch_run(batchIter, tokenizer,
                 assert dropout_input_bpe == 0., "in masking_strategy mlm we hardcoded dropout to 0.2 {}".format(dropout)
                 input_tokens_tensor, mask_dropout = dropout_input_tensor(input_tokens_tensor, mask_token_index,
                                                                          sep_token_index=sep_token_index,
-                                                                         apply_dropout=np.random.random() < 0.75,
+                                                                         apply_dropout=np.random.random() < 0.90,
                                                                          dropout=dropout)
                 unmask_loss = False
-
                 if unmask_loss:
                     power = 3
                     capped = 0.
                     dropout_adated = min(((epoch + 1) / n_epoch) ** power, capped)
-                    printing("LABEL NOT MASKING {}/1 of gold labels with power {} and capped {}".format(dropout_adated, power, capped), verbose=verbose, verbose_level=1)
+                    printing("LABEL NOT MASKING {}/1 of gold labels with power {} and capped {}".format(dropout_adated, power, capped), verbose=verbose, verbose_level=2)
                     _, mask_losses = dropout_input_tensor(input_tokens_tensor, mask_token_index,
                                                           sep_token_index=sep_token_index,
                                                           apply_dropout=False,
@@ -396,14 +395,14 @@ def epoch_run(batchIter, tokenizer,
                 feeding_the_model_with_label[mask_loss != 0] = -1
                 pdb.set_trace()
                 # hald the time we actually mask those tokens otherwise we predict
-            elif masking_strategy in ["norm_mask", "norm_mask_variable"]:
+            elif masking_strategy in ["norm_mask", "norm_mask_variable"] and optimizer is not None:
                 if masking_strategy == "norm_mask_variable":
                     portion_mask = min(((epoch + 1) / n_epoch), 0.8)
                 mask_normed = np.random.random() < portion_mask
 
                 feeding_the_model_with_label = output_tokens_tensor_aligned.clone()
                 if mask_normed:
-                    print("MASKING NORMED", portion_mask)
+                    print("MASKING NORMED in mode {} portion mask {}".format(masking_strategy, portion_mask))
                     feeding_the_model_with_label[input_tokens_tensor == output_tokens_tensor_aligned] = -1
             else:
                 feeding_the_model_with_label = output_tokens_tensor_aligned
