@@ -178,18 +178,17 @@ class BertTokenizer(object):
             bpe_reading_ind_gold += 1
             bpe_reading_ind += 1
             if bpe_reading_ind == len(alignement_with_original_index):
-                print("bpe_reading_ind {} ouf of / {} ".format(bpe_reading_ind, len(alignement_with_original_index)))
+                #print("bpe_reading_ind {} ouf of / {} ".format(bpe_reading_ind, len(alignement_with_original_index)))
                 break
             if aligne:
                 if bpe_reading_ind_gold == len(alignement_with_original_index_target):
-                    print("bpe_reading_ind {} ouf of / {} ".format(bpe_reading_ind, bpe_reading_ind_gold,
-                                                                   len(alignement_with_original_index),
-                                                                   len(alignement_with_original_index_target)))
+                    #print("bpe_reading_ind {} ouf of / {} ".format(bpe_reading_ind, bpe_reading_ind_gold,len(alignement_with_original_index),len(alignement_with_original_index_target)))
                     break
         if breakpoint:
-            print("ADDED MASK")
-            print("split_tokens", split_tokens)
-            print("split_tokens_gold", split_tokens_gold)
+            pass
+            #print("ADDED MASK")
+            #print("split_tokens", split_tokens)
+            #print("split_tokens_gold", split_tokens_gold)
         return split_tokens, alignement_index, split_tokens_gold, alignement_index_gold
 
     def convert_tokens_to_ids(self, tokens):
@@ -482,7 +481,7 @@ class WordpieceTokenizer(object):
                                     left_out_gold = chars_gold[_end_gold:end_gold]
                                     if break_ing:
                                         pdb.set_trace()
-                                    print("FOUND gold substring of {} : src:{} of token ({}) --> {} LEAVING {}".format(chars_gold, cur_substr, chars, substr_gold, left_out_gold))
+                                    #print("FOUND gold substring of {} : src:{} of token ({}) --> {} LEAVING {}".format(chars_gold, cur_substr, chars, substr_gold, left_out_gold))
 
 
                                     break

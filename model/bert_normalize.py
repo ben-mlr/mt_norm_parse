@@ -55,7 +55,7 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
         elif bert_module == "mlm":
             model = model.from_pretrained(pretrained_model_dir, normalization_mode=True, layer_wise_attention=layer_wise_attention)
             space_vector = torch.normal(torch.mean(model.bert.embeddings.word_embeddings.weight.data,dim=0),std=torch.std(model.bert.embeddings.word_embeddings.weight.data,dim=0)).unsqueeze(0)#torch.rand((1, 768)
-            pdb.set_trace()
+
             output_layer = torch.cat((model.bert.embeddings.word_embeddings.weight.data, space_vector), dim=0)
             model.cls.predictions.decoder = nn.Linear(model.bert.config.hidden_size, vocab_size + 1, bias=False)
             model.cls.predictions.decoder.weight = nn.Parameter(output_layer)

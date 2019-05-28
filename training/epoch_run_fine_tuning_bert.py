@@ -397,13 +397,15 @@ def epoch_run(batchIter, tokenizer,
                 # hald the time we actually mask those tokens otherwise we predict
             elif masking_strategy in ["norm_mask", "norm_mask_variable"] and optimizer is not None:
                 if masking_strategy == "norm_mask_variable":
-                    portion_mask = min(((epoch + 1) / n_epoch), 0.8)
+                    portion_mask = min(((epoch + 1) / n_epoch), 0.6)
                 mask_normed = np.random.random() < portion_mask
-
                 feeding_the_model_with_label = output_tokens_tensor_aligned.clone()
                 if mask_normed:
                     print("MASKING NORMED in mode {} portion mask {}".format(masking_strategy, portion_mask))
                     feeding_the_model_with_label[input_tokens_tensor == output_tokens_tensor_aligned] = -1
+                    if np.random.random() < 0.5:
+                        # half the time we mask not to make the model only normalizing
+                        input_tokens_tensor[input_tokens_tensor != output_tokens_tensor_aligned] = mask_token_index
             else:
                 feeding_the_model_with_label = output_tokens_tensor_aligned
 
