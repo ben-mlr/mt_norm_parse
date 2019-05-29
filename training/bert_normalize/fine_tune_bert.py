@@ -54,7 +54,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
             early_stoppin_metric = "accuracy-exact-pos"
             subsample_early_stoping_metric_val = "all"
         elif "normalize" in tasks:
-            early_stoppin_metric = "recall-normalize"
+            early_stoppin_metric = "f1-normalize"
             subsample_early_stoping_metric_val = "rates"
         printing("INFO : setting early_stoppin_metric to {}", var=[early_stoppin_metric], verbose=verbose, verbose_level=1)
     assert len(tasks) == len(train_path), "ERROR tasks is {} bu train path are {}".format(tasks, train_path)

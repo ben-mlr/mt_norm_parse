@@ -404,7 +404,10 @@ def epoch_run(batchIter, tokenizer,
                 if not dropout_applied:
                     random_bpe_instead = np.random.random() < 0.5
                     if random_bpe_instead:
-                        input_tokens_tensor[mask_dropout == 0] = (torch.randperm(torch.tensor(len(tokenizer.vocab)-2))[:len(input_tokens_tensor[mask_dropout == 0])])+1
+                        permute = (torch.randperm(torch.tensor(len(tokenizer.vocab)-2))[:len(input_tokens_tensor[mask_dropout == 0])])+1
+                        if use_gpu:
+                            permute = permute.cuda()
+                        input_tokens_tensor[mask_dropout == 0] = permute
 
                 unmask_loss = portion_mask
 
@@ -412,7 +415,7 @@ def epoch_run(batchIter, tokenizer,
                     print("WARNING : unmaskloss is {}  (0 means only optimizing on the MASK >0 means optimizes "
                           "also on some other sampled based on dropout_adapted)".format(unmask_loss))
                     power = 3
-                    capped = 0.
+                    capped = 0.5
                     dropout_adated = min(((epoch + 1) / n_epoch) ** power, capped)
                     printing("LABEL NOT MASKING {}/1 of gold labels with power {} and capped {}".format(dropout_adated, power, capped), verbose=verbose, verbose_level=2)
                     _, mask_losses = dropout_input_tensor(input_tokens_tensor, mask_token_index,
@@ -429,7 +432,8 @@ def epoch_run(batchIter, tokenizer,
                 # hald the time we actually mask those tokens otherwise we predict
             elif masking_strategy in ["norm_mask", "norm_mask_variable"] and optimizer is not None:
                 if masking_strategy == "norm_mask_variable":
-                    portion_mask = min(((epoch + 1) / n_epoch), 0.6)
+                    #portion_mask = min(((epoch + 1) / n_epoch), 0.6)
+                    portion_mask = 1-(epoch + 1)/n_epoch #, 0.6))
                 mask_normed = np.random.random() < portion_mask
                 feeding_the_model_with_label = output_tokens_tensor_aligned.clone()
                 if mask_normed:
@@ -699,8 +703,10 @@ def epoch_run(batchIter, tokenizer,
                                          data_val=data_label)
 
                 if early_stoppin_metric is not None:
-                    if metric_val == early_stoppin_metric and subsample_early_stoping_metric_val == sample+label_heuristic:
+                    if metric_val == early_stoppin_metric and subsample_early_stoping_metric_val == sample+label_heuristic and score is not None:
                         early_stoppin_metric_val = -score/n_tokens
+                    elif score is None:
+                        print("WARNING : could no apply early sotpping metric cause score is None")
                 if writer is not None and log_perf:
                     writer.add_scalars("perf-{}-{}".format(tasks[0], mode),
                                        {"{}-{}-{}-{}".format(metric_val, mode, model_id, sample):

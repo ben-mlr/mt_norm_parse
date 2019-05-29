@@ -382,12 +382,12 @@ if __name__ == "__main__":
 
           BERT_NORMALIZE = True
           if BERT_NORMALIZE:
-              epochs = 1
+              epochs = 30
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,  
                                                   grid_label=LABEL_GRID,
-                                                  batch_size_ls=[2, 4, 6, 8],
-                                                  #checkpoint_dir_ls=["'"+os.path.join(PROJECT_PATH,"checkpoints", "bert", "9356861-B-36825-9356861-B-model_0/9356861-B-36825-9356861-B-model_0-epbest-checkpoint.pt")+"'"],
+                                                  batch_size_ls=[4, 8],
+                                                  checkpoint_dir_ls=["'"+os.path.join(PROJECT_PATH,"checkpoints", "bert", "9356861-B-36825-9356861-B-model_0/9356861-B-36825-9356861-B-model_0-epbest-checkpoint.pt")+"'"],
                                                   gpu_mode="random",
                                                   bert_module_ls=["mlm"],
                                                   #norm_2_noise_training_ls=[0., 1.],
@@ -398,14 +398,14 @@ if __name__ == "__main__":
                                                   #       OrderedDict([("bert", 2e-5), ("classifier", 0.0001)]),
                                                   #       OrderedDict([("bert", 1e-5), ("classifier", 0.001)]),
                                                   #       OrderedDict([("bert", 1e-5), ("classifier", 1e-5)])],
-                                                  masking_strategy_ls=[["mlm", "0"]],#, ["mlm", "1"], ["mlm", "0"]],
+                                                  masking_strategy_ls=[None, ["norm_mask", "0.5"],["norm_mask", "0.25"], ["norm_mask_variable", "0"]],#, ["mlm", "1"], ["mlm", "0"]],
                                                   #                     ["normed", "0.75"],["normed", "1."]],#[None,,
                                                   #lr_ls=[OrderedDict([("bert", "0.00001"), ("classifier", "0.0001")]),
                                                   #       OrderedDict([("bert", "0.00001"), ("classifier", "0.00001")])],
                                                   tasks_ls=[["normalize"] for _ in range(1)],#[["pos"], ["normalize", "pos"]],#, ["normalize"]],
                                                   fine_tuning_strategy_ls=["standart"],
                                                   dropout_classifier_ls=[0.1],
-                                                  dropout_input_bpe_ls=[0.0], layer_wise_attention_ls=[0],
+                                                  dropout_input_bpe_ls=[0.15], layer_wise_attention_ls=[0],
                                                   aggregating_bert_layer_mode_ls=["last"],
                                                   dropout_bert_ls=[0.1], tokenize_and_bpe_ls=[0],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
