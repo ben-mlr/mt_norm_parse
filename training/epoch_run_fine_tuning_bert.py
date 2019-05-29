@@ -393,32 +393,24 @@ def epoch_run(batchIter, tokenizer,
                 pred_n_bpe(input_tokens_tensor, mask_token_index, space_token_index)
 
             if masking_strategy == "mlm" and optimizer is not None:
-                dropout = 0.20
+                dropout = 0.15
                 assert dropout_input_bpe == 0., "in masking_strategy mlm we hardcoded dropout to 0.2 {}".format(dropout)
-                apply_dropout = np.random.random() < 0.50
 
-                input_tokens_tensor, mask_dropout = dropout_input_tensor(input_tokens_tensor, mask_token_index,
-                                                                         sep_token_index=sep_token_index,
-                                                                         apply_dropout=apply_dropout,
-                                                                         dropout=dropout)
-                print("BPE OLD -->", input_tokens_tensor[mask_dropout == 0])
-                if not apply_dropout:
+                input_tokens_tensor, mask_dropout, dropout_applied = dropout_input_tensor(input_tokens_tensor, mask_token_index,
+                                                                                          sep_token_index=sep_token_index,
+                                                                                          applied_dropout_rate=0.8,
+                                                                                          dropout=dropout)
+
+                if not dropout_applied:
                     random_bpe_instead = np.random.random() < 0.5
                     if random_bpe_instead:
-                        print("checking input")
-                        pdb.set_trace()
-                        print("RANDOM BPE")
                         input_tokens_tensor[mask_dropout == 0] = (torch.randperm(torch.tensor(len(tokenizer.vocab)-2))[:len(input_tokens_tensor[mask_dropout == 0])])+1
-                    else:
-                        print("RAW BPE")
-                else:
-                    print("MASK BPE")
-                print("BPE NEW -->", input_tokens_tensor[mask_dropout == 0])
+
                 unmask_loss = portion_mask
 
-                print("WARNING : unmaskloss is {}  (0 means only optimizing on the MASK >0 means optimizes "
-                      "also on some other sampled based on dropout_adapted)".format(unmask_loss))
                 if unmask_loss:
+                    print("WARNING : unmaskloss is {}  (0 means only optimizing on the MASK >0 means optimizes "
+                          "also on some other sampled based on dropout_adapted)".format(unmask_loss))
                     power = 3
                     capped = 0.
                     dropout_adated = min(((epoch + 1) / n_epoch) ** power, capped)
