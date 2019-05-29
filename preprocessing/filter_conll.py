@@ -1,13 +1,13 @@
 from env.importing import pdb
 
-from env.project_variables import LIU_TRAIN, LEX_TRAIN_SPLIT, LIU_TRAIN_OWOPUTI, LIU_DEV, LEX_DEV_SPLIT, EN_LINES_EWT_TRAIN
+from env.project_variables import LIU_TRAIN, LEX_TRAIN_SPLIT, LIU_TRAIN_OWOPUTI, LIU_DEV, LEX_DEV_SPLIT, EN_LINES_EWT_TRAIN, TWEETS_GANESH, TWEETS_GANESH_1M
 from io_.data_iterator import readers_load, conllu_data, data_gen_multi_task_sampling_batch
 from io_.dat.normalized_writer import write_conll
 
 if __name__ == "__main__":
 
     tasks = ["normalize"]
-    train_path = [EN_LINES_EWT_TRAIN]
+    train_path = [TWEETS_GANESH]
     run_mode = "train"
     case = None
     word_normalization = False
@@ -56,11 +56,11 @@ if __name__ == "__main__":
 
     not_skiped = 0
     label = "dev"
-    extra = "norm+norm2norm+permute"
+    extra = "norm+permute"
     ind = 0
     write = True
     new_file = False
-    file_name = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/.././data/wnut-2015-ressources/lexnorm2015/lex_train+ewt_train+ewt_noisy"#train_path[0]
+    file_name = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/.././data/wnut-2015-ressources/pan_tweets-200k"#train_path[0]
     while True:
         try:
             batch = batchIter.__next__()
@@ -84,9 +84,9 @@ if __name__ == "__main__":
                             dir_original=file_name+"-src_token_only-{}.conll".format(extra),
                             src_text_ls=batch.raw_input,
                             text_decoded_ls=None, tasks=tasks,
-                            src_text_pos=None, pred_pos_ls=None, verbose="raw_data",
-                            new_file=new_file, cp_paste=False,
-                            permuting_mode="sample_mode",
+                            src_text_pos=None, pred_pos_ls=None, verbose=1,
+                            new_file=new_file, cp_paste=True,
+                            permuting_mode=None,
                             #"2_following_letters",
                             ind_batch=ind)
             new_file = False

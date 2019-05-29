@@ -31,7 +31,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         extra_label_for_prediction="",
         random_iterator_train=True, bucket_test=True, must_get_norm_test=True,
         aggregating_bert_layer_mode=None,
-        early_stoppin_metric=None,subsample_early_stoping_metric_val=None,
+        early_stoppin_metric=None, subsample_early_stoping_metric_val=None,
         compute_intersection_score_test=True,
         slang_dic_test=None, list_reference_heuristic_test=None,
         bert_module=None,
@@ -57,6 +57,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
             early_stoppin_metric = "f1-normalize"
             subsample_early_stoping_metric_val = "rates"
         printing("INFO : setting early_stoppin_metric to {}", var=[early_stoppin_metric], verbose=verbose, verbose_level=1)
+    else:
+        printing("INFO : found early_stoppin_metric {}", var=[early_stoppin_metric], verbose=verbose, verbose_level=1)
     assert len(tasks) == len(train_path), "ERROR tasks is {} bu train path are {}".format(tasks, train_path)
     assert len(dev_path) == len(train_path)
     #assert len(test_path_ls) == len(tasks), "{} tasks test_path_ls {}".format(test_path_ls, tasks)
@@ -490,7 +492,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                               n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                         print("LOSS TEST", loss_test)
                     except Exception as e:
-                        raise(e)
+                        #raise(e)
                         print("ERROR {} test_path {} , heuristic {} , gold error {} , norm2noise {} ".format(e,
                                                                                                              test,
                                                                                                              heuristic_test,

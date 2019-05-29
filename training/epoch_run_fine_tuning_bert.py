@@ -400,11 +400,12 @@ def epoch_run(batchIter, tokenizer,
                                                                                           sep_token_index=sep_token_index,
                                                                                           applied_dropout_rate=0.8,
                                                                                           dropout=dropout)
-
                 if not dropout_applied:
                     random_bpe_instead = np.random.random() < 0.5
                     if random_bpe_instead:
                         permute = (torch.randperm(torch.tensor(len(tokenizer.vocab)-2))[:len(input_tokens_tensor[mask_dropout == 0])]+1)
+                        permute[permute == sep_token_index] = sep_token_index+10
+                        permute[permute == mask_token_index] = mask_token_index + 10
                         if use_gpu:
                             permute = permute.cuda()
                         input_tokens_tensor[mask_dropout == 0] = permute
@@ -723,7 +724,7 @@ def epoch_run(batchIter, tokenizer,
                     # then we can compute all the confusion matrix rate
                     # TODO : factore with TASKS_2_METRICS_STR
 
-                    for metric_val in ["recall", "precision", "f1", "tnr", "npv", "accuracy"]:
+                    for metric_val in [ "precision", "f1", "recall","tnr", "npv", "accuracy"]:
                         metric_val += "-"+tasks[0]
                         score, n_rate_universe = get_perf_rate(metric=metric_val, n_tokens_dic=n_tokens_dic,
                                                                score_dic=score_dic, agg_func=agg_func)
@@ -740,8 +741,9 @@ def epoch_run(batchIter, tokenizer,
                                                  report_path_val=None,
                                                  data_val=data_label)
                         if early_stoppin_metric is not None:
-                            if metric_val == early_stoppin_metric and subsample_early_stoping_metric_val == "rates"+label_heuristic:
+                            if metric_val == early_stoppin_metric and subsample_early_stoping_metric_val == "rates"+label_heuristic and score is not None:
                                 early_stoppin_metric_val = -score
+
                         reports.append(report)
 
                         if writer is not None and log_perf:
