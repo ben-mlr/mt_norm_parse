@@ -142,7 +142,7 @@ class BertConfig(object):
                  attention_probs_dropout_prob=0.1,
                  max_position_embeddings=512,
                  type_vocab_size=2,
-                 initializer_range=0.02, normalization_module=False,
+                 initializer_range=0.02, normalization_module=False, mask_n_predictor=False,
                  layer_wise_attention=False):
         """Constructs BertConfig.
 
@@ -170,6 +170,8 @@ class BertConfig(object):
         """
         self.normalization_module = normalization_module
         self.layer_wise_attention = layer_wise_attention
+        self.mask_n_predictor = mask_n_predictor
+        self.dense_n_masks_size = None
         if isinstance(vocab_size_or_config_json_file, str) or (sys.version_info[0] == 2
                         and isinstance(vocab_size_or_config_json_file, unicode)):
             with open(vocab_size_or_config_json_file, "r", encoding='utf-8') as reader:
@@ -459,6 +461,22 @@ class BertLMPredictionHead(nn.Module):
         return hidden_states
 
 
+class BertMaskNPredictionHead(nn.Module):
+    def __init__(self, config):
+        super(BertMaskNPredictionHead, self).__init__()
+        if config.dense_n_masks_size is None:
+            config.dense_n_masks_size = 50
+            print("MODEL setting dense_n_masks_size  to default {}".format(config.dense_n_masks_size))
+        self.mask_predictor_dense = nn.Linear(config.hidden_size, config.dense_n_masks_size)
+        self.mask_predictor_proj = nn.Linear(config.dense_n_masks_size, 5)
+        self.activation = ACT2FN[config.hidden_act]
+
+    def forward(self, sequence_output):
+        mask_predictor_state = self.activation(self.mask_predictor_dense(sequence_output))
+        prediction_scores = self.mask_predictor_proj(mask_predictor_state)
+        return prediction_scores
+
+
 class BertOnlyMLMHead(nn.Module):
     def __init__(self, config, bert_model_embedding_weights):
         super(BertOnlyMLMHead, self).__init__()
@@ -522,6 +540,7 @@ class BertPreTrainedModel(nn.Module):
     @classmethod
     def from_pretrained(cls, pretrained_model_name_or_path, state_dict=None, cache_dir=None,
                         dropout_custom=0.,normalization_mode=True, layer_wise_attention=False,
+                        mask_n_predictor=False,
                         from_tf=False, *inputs, **kwargs):
         """
         Instantiate a BertPreTrainedModel from a pre-trained model file or a pytorch state dict.
@@ -640,6 +659,12 @@ class BertPreTrainedModel(nn.Module):
         if not hasattr(model, 'bert') and any(s.startswith('bert.') for s in state_dict.keys()):
             start_prefix = 'bert.'
         load(model, prefix=start_prefix)
+
+        if mask_n_predictor:
+            pdb.set_trace()
+            print("MODEL : adding extra post-loading for masks prediction")
+            model.mask_n_predictor = BertMaskNPredictionHead(config)
+
         if len(missing_keys) > 0:
             logger.info("Weights of {} not initialized from pretrained model: {}".format(
                 model.__class__.__name__, missing_keys))
@@ -855,8 +880,8 @@ class BertForMaskedLM(BertPreTrainedModel):
         self.cls = BertOnlyMLMHead(config, self.bert.embeddings.word_embeddings.weight)
         self.apply(self.init_bert_weights)
         layer_wise_attention = config.layer_wise_attention
-        self.layer_wise_attention = nn.Linear(768, 1) if layer_wise_attention else None
-        self.mask_predictor = None
+        self.layer_wise_attention = nn.Linear(config.hidden_size, 1) if layer_wise_attention else None
+        self.mask_n_predictor = BertMaskNPredictionHead(config) if config.mask_n_predictor else None
 
         print("WARNING : NB in forward(modelling) aggregating_bert_layer_mode is ignore in BertForMaskedLM")
 
@@ -865,8 +890,6 @@ class BertForMaskedLM(BertPreTrainedModel):
                 aggregating_bert_layer_mode=None, output_all_encoded_layers=False):
 
         assert labels_task_2 is None
-
-
 
         if masked_lm_labels is None:
             masked_lm_labels = labels
@@ -896,21 +919,24 @@ class BertForMaskedLM(BertPreTrainedModel):
         loss_dict = OrderedDict([("loss", None), ("loss_task_1", 0), ("loss_task_2", 0),  ("loss_n_masks", 0)])
         pred_dict = OrderedDict([("logits_task_1", None), ("logits_task_2", None), ("logits_n_masks", None)])
 
-        if self.mask_predictor is not None:
-            #assert self.num_labels_2 is not None, "num_labels_2 required"
-            logits_n_masks = self.mask_predictor(sequence_output)
-            pred_dict["logits_n_masks"] = logits_n_masks
+        if self.mask_n_predictor is not None:
+            mask_predictor_state = self.mask_n_predictor(sequence_output)
+            pred_dict["logits_n_masks"] = mask_predictor_state
+            if labels_n_masks is not None:
+                loss_mask_pred = CrossEntropyLoss(ignore_index=-1)
+                loss_dict["loss_n_masks"] = loss_mask_pred(mask_predictor_state)
             # TODO : add check for labels : if check return logits other wise return prediciton
 
         if masked_lm_labels is not None:
+            if self.mask_n_predictor is not None:
+                assert labels_n_masks is not None, "If have a n_masks predictor then we should give labels for it any time we do it for bpe prediction"
             loss_fct = CrossEntropyLoss(ignore_index=-1)
             num_labels = self.config.vocab_size
-
             if self.normalization_module:
                 num_labels += 1
             masked_lm_loss = loss_fct(prediction_scores.view(-1, num_labels), masked_lm_labels.view(-1))
             loss_dict["loss_task_1"] = masked_lm_loss
-            loss_dict["loss"] = loss_dict["loss_task_1"]
+            loss_dict["loss"] = loss_dict["loss_task_1"]+loss_dict["loss_n_masks"]
             return loss_dict, softmax_weight
         else:
             pred_dict["logits_task_1"] = prediction_scores
@@ -1176,7 +1202,8 @@ class BertForTokenClassification(BertPreTrainedModel):
         self.loss_weights_default = OrderedDict([("loss_task_1", 1), ("loss_task_2", 1)])
         self.apply(self.init_bert_weights)
 
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None, labels_task_2=None, loss_weights=None,
+    def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None,
+                labels_task_2=None, loss_weights=None,
                 aggregating_bert_layer_mode=None,
                 ):
         if aggregating_bert_layer_mode is not None:

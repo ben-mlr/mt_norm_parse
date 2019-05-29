@@ -7,7 +7,10 @@ from model.bert_tools_from_core_code.modeling import BertForTokenClassification,
 def get_bert_token_classification(vocab_size, voc_pos_size=None,
                                   pretrained_model_dir=None, checkpoint_dir=None,
                                   freeze_parameters=False, freeze_layer_prefix_ls=None, dropout_classifier=None,
-                                  dropout_bert=0.,tasks=None, bert_module="token_class", layer_wise_attention=False,
+                                  dropout_bert=0.,tasks=None,
+                                  bert_module="token_class",
+                                  layer_wise_attention=False,
+                                  mask_n_predictor=False,
                                   initialize_bpe_layer=None, verbose=1):
     """
     two use case :
@@ -30,7 +33,8 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
     assert pretrained_model_dir is None or checkpoint_dir is None, \
         "Only one of checkpoint_dir or pretrained_model_dir should be provided "
     config = BertConfig(vocab_size_or_config_json_file=vocab_size, hidden_size=768, num_hidden_layers=12,
-                        num_attention_heads=12, intermediate_size=3072, layer_wise_attention=layer_wise_attention)
+                        num_attention_heads=12, intermediate_size=3072, layer_wise_attention=layer_wise_attention,
+                        mask_n_predictor=False)
     # config.hidden_dropout_prob = 0.2
     # QUESTION : WHERE IS THE MODEL ACTUALLY BEING LOADED ???
     # this line is useless apparently as it does it load it again
@@ -55,7 +59,7 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
             model = model.from_pretrained(pretrained_model_dir, num_labels=num_labels, dropout_custom=dropout_bert)
         elif bert_module == "mlm":
             model = model.from_pretrained(pretrained_model_dir, normalization_mode=True,
-                                          layer_wise_attention=layer_wise_attention)
+                                          layer_wise_attention=layer_wise_attention, mask_n_predictor=mask_n_predictor)
             space_vector = torch.normal(torch.mean(model.bert.embeddings.word_embeddings.weight.data,dim=0), std=torch.std(model.bert.embeddings.word_embeddings.weight.data,dim=0)).unsqueeze(0)#torch.rand((1, 768)
 
             output_layer = torch.cat((model.bert.embeddings.word_embeddings.weight.data, space_vector), dim=0)

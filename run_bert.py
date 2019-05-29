@@ -46,6 +46,7 @@ if train:
     dev_path = [DEMO]#, DEMO]
     test_paths_ls = [[LEX_TEST]]#, [DEMO]]
     bert_module = "mlm"
+    mask_n_predictor = False
     voc_pos_size = 16
     #["bert"]
     model = get_bert_token_classification(pretrained_model_dir=model_dir,
@@ -53,10 +54,11 @@ if train:
                                           freeze_parameters=freeze_parameters,
                                           voc_pos_size=voc_pos_size, tasks=tasks,layer_wise_attention=layer_wise_attention,
                                           freeze_layer_prefix_ls=freeze_layer_prefix_ls, bert_module=bert_module,
+                                          mask_n_predictor=mask_n_predictor,
                                           dropout_bert=0.0, initialize_bpe_layer=initialize_bpe_layer)
     lr = 0.0001
 
-    batch_size = 1
+    batch_size = 2
     null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary
     description = "DEBUGGING_LEAK-AS_BEFORE"
     print("{} lr batch_size initialize_bpe_layer training_data".format(REPORT_FLAG_VARIABLES_ENRICH_STR))
@@ -74,13 +76,13 @@ if train:
                 auxilliary_task_norm_not_norm=True,
                 saving_every_epoch=10,
                 lr=0.00001, #lr=OrderedDict([("bert", 5e-5), ("classifier_task_1", 0.001), ("classifier_task_2", 0.001)]),
-                batch_size=batch_size, n_iter_max_per_epoch=10000,
-                n_epoch=10,
+                batch_size=batch_size, n_iter_max_per_epoch=100,
+                n_epoch=1,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
-                model_suffix="{}".format(description), debug=False, tokenize_and_bpe=True,
+                model_suffix="{}".format(description), debug=False, tokenize_and_bpe=False,
                 fine_tuning_strategy="standart",
-                masking_strategy="norm_mask_variable",
+                masking_strategy=["mlm","0"],
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                 initialize_bpe_layer=initialize_bpe_layer, args=None,
                 skip_1_t_n=False, dropout_input_bpe=0.0,
@@ -108,15 +110,15 @@ if playwith:
     #model_name = "9319649-B-14cf0-9319649-B-model_0-ep4-checkpoint.pt"
     #model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/checkpoints/bert/9320927-B-ed1e8-9320927-B-model_0"
     #model_name = "9320927-B-ed1e8-9320927-B-model_0-ep19-checkpoint.pt"
-    model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/checkpoints/bert/9355335-B-539c5-9355335-B-model_0/"
-    model_name = "9355335-B-539c5-9355335-B-model_0-epbest-checkpoint.pt"
+    model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/checkpoints/bert/9356861-B-36825-9356861-B-model_0/"
+    model_name = "9356861-B-36825-9356861-B-model_0-epbest-checkpoint.pt"
     checkpoint_dir = os.path.join(model_location, model_name)
     test_paths_ls = [[TEST]]
     # TODO : predict with a norm2noise model
     #  can use tasks trick ..
     voc_pos_size = 21
     tasks = ["normalize"]
-    layer_wise_attention = True
+    layer_wise_attention = False
     model = get_bert_token_classification(vocab_size=vocab_size, voc_pos_size=voc_pos_size,
                                           tasks=["normalize"],
                                           initialize_bpe_layer=None,

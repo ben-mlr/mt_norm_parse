@@ -41,8 +41,7 @@ def bert_predict(input_string, bert_token_classification, tokenizer, verbose, nu
                                                                      tasks=tasks,
                                                                      null_token_index=null_token_index, null_str=null_str)
     #get embedding
-
-    embedding,_ = bert_token_classification.bert(input_tokens_tensor, token_type_ids, input_mask, output_all_encoded_layers = False)
+    embedding, _ = bert_token_classification.bert(input_tokens_tensor, token_type_ids, input_mask, output_all_encoded_layers = False)
 
     return {"pred": {"bpe":sentence_pred, "word":sentence_pred_aligned},
             "src": {"bpe":inp_bpe_tokenized, "word":input_string},
@@ -66,13 +65,15 @@ def interact_bert(bert_token_classification,  tokenizer, null_token_index, null_
     token_type_ids = torch.zeros_like(input_tokens_tensor)
     if print_input:
         print("SRC : BPE ", inp_bpe_tokenized)
-    logits = bert_token_classification(input_tokens_tensor, token_type_ids, input_mask)[0]["logits_task_1"] if tasks[0] == "normalize" else None
+    logits = bert_token_classification(input_tokens_tensor, token_type_ids, input_mask)[0]["logits_task_1"] \
+        if tasks[0] == "normalize" else None
 
     predictions_topk = torch.argsort(logits, dim=-1, descending=True)[:, :, :topk]
 
     sentence_pred_aligned, sentence_pred = prediction_topk_to_string(predictions_topk, input_alignement_with_raw,
                                                                      topk, tokenizer, tasks=tasks,
-                                                                     null_token_index=null_token_index, null_str=null_str)
+                                                                     null_token_index=null_token_index,
+                                                                     null_str=null_str)
 
     return input_string, sentence_pred_aligned, sentence_pred
 

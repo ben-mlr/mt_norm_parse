@@ -144,6 +144,8 @@ MTNT_EN_TOK_DEV_DEMO_CONLL_LABEL, MTNT_EN_TOK_DEV_DEMO_CONLL = "mtnt_tok_dev_dem
                                                                os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/dev.tok.en.demo.conll")
 # tweets
 TWEETS_GANESH_LABEL, TWEETS_GANESH = "pan_tweets_200k", os.path.join(PROJECT_PATH, "data", "pan_tweets-200k.conll")
+TWEETS_GANESH_1M_LABEL, TWEETS_GANESH_1M = "pan_tweets_200k", os.path.join(PROJECT_PATH, "data", "pan_tweets-1000k.conll")
+TWEETS_GANESH_DEV_LABEL, TWEETS_GANESH_DEV = "pan_tweets_200k", os.path.join(PROJECT_PATH, "data", "pan_tweets-dev.conll")
 
 
 #PERMUTATION
@@ -227,6 +229,8 @@ EMNLP12_DIC_LABEL, EMNLP12_DIC = "emnlp-dic-wnut", os.path.join(PROJECT_PATH, "d
 REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO2: DEMO2_LABEL,
                 TEST: TEST_LABEL, LIU: LIU_LABEL,
                 TWEETS_GANESH: TWEETS_GANESH_LABEL,
+                TWEETS_GANESH_DEV: TWEETS_GANESH_DEV_LABEL,
+                TWEETS_GANESH_1M: TWEETS_GANESH_1M_LABEL,
                 LEX_TRAIN_SPACE_DEMO: LEX_TRAIN_SPACE_DEMO_LABEL,
                 LIU_TRAIN_OWOPUTI_LEX_TRAIN: LIU_TRAIN_OWOPUTI_LEX_TRAIN_LABEL,
                 LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED: LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED_LABEL,

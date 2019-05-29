@@ -1,6 +1,6 @@
 from env.importing import *
 from env.project_variables import *
-from io_.dat.constants import PAD_ID_BERT, MASK_BERT, CLS_BERT, SEP_BERT, SPECIAL_TOKEN_LS
+from io_.dat.constants import PAD_ID_BERT, MASK_BERT, CLS_BERT, SEP_BERT, SPECIAL_TOKEN_LS, NULL_STR
 from io_.info_print import printing
 from io_.dat.normalized_writer import write_conll
 from io_.bert_iterators_tools.string_processing import preprocess_batch_string_for_bert, from_bpe_token_to_str, get_indexes, get_indexes_src_gold
@@ -123,6 +123,8 @@ def epoch_run(batchIter, tokenizer,
     mask_token_index = tokenizer.convert_tokens_to_ids([MASK_BERT])[0]
     cls_token_index = tokenizer.convert_tokens_to_ids([CLS_BERT])[0]
     sep_token_index = tokenizer.convert_tokens_to_ids([SEP_BERT])[0]
+
+    space_token_index = tokenizer.convert_tokens_to_ids([null_str])[0]
     printing("WARNING : [MASK] set to {} [CLS] {} [SEP] {}", var=[mask_token_index,cls_token_index, sep_token_index],
              verbose=verbose, verbose_level=1)
 
@@ -143,6 +145,10 @@ def epoch_run(batchIter, tokenizer,
     score_dic = {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls }
     n_tokens_dic = {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls}
     n_sents_dic = {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls}
+
+    #vocab_index_except_pad_cls_sep = [i for i in range(1, len(tokenizer.vocab)) if i not in [mask_token_index, sep_token_index, cls_token_index]]
+    # pad is the first index
+
     skipping_evaluated_batch = 0
     mode = "?"
     new_file = True
@@ -203,8 +209,7 @@ def epoch_run(batchIter, tokenizer,
                 group_to_mask = np.array(batch.output_norm_not_norm.cpu()) if portion_mask >= rand else None
                 pdb.set_trace()
             if not tokenize_and_bpe:
-                input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = \
-                get_indexes(batch_raw_input, tokenizer, verbose, use_gpu, word_norm_not_norm=group_to_mask)
+                input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = get_indexes(batch_raw_input, tokenizer, verbose, use_gpu, word_norm_not_norm=group_to_mask)
             if masking_strategy == "start_stop":
                 input_mask[input_tokens_tensor == sep_token_index] = 0
                 input_mask[input_tokens_tensor == cls_token_index] = 0
@@ -220,10 +225,7 @@ def epoch_run(batchIter, tokenizer,
                 if tokenize_and_bpe:
                     try:
                         tokens_tensor_dic, segments_tensors_dic, tokenized_dic, aligned_index_padded_dic, mask_dic = \
-                            get_indexes_src_gold(list_pretokenized_str_source=batch_raw_input,
-                                             list_pretokenized_str_gold=batch_raw_output,
-                                             tokenizer=tokenizer,
-                                             verbose=verbose, use_gpu= use_gpu)
+                            get_indexes_src_gold(list_pretokenized_str_source=batch_raw_input,list_pretokenized_str_gold=batch_raw_output, tokenizer=tokenizer, verbose=verbose, use_gpu= use_gpu)
 
                         output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask = \
                             tokens_tensor_dic["gold"], segments_tensors_dic["gold"], tokenized_dic["gold"], \
@@ -347,10 +349,11 @@ def epoch_run(batchIter, tokenizer,
             # CHECKING ALIGNEMENT
             # PADDING TO HANDLE !!
             assert output_tokens_tensor_aligned.size(0) == input_tokens_tensor.size(0),\
-                "output_tokens_tensor_aligned.size(0) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(), input_tokens_tensor.size())
+                "output_tokens_tensor_aligned.size(0) {} input_tokens_tensor.size() {}"\
+                    .format(output_tokens_tensor_aligned.size(), input_tokens_tensor.size())
             assert output_tokens_tensor_aligned.size(1) == input_tokens_tensor.size(1), \
-                "output_tokens_tensor_aligned.size(1) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(1),
-                                                                                               input_tokens_tensor.size(1))
+                "output_tokens_tensor_aligned.size(1) {} input_tokens_tensor.size() {}"\
+                    .format(output_tokens_tensor_aligned.size(1), input_tokens_tensor.size(1))
             # we consider only 1 sentence case
             token_type_ids = torch.zeros_like(input_tokens_tensor)
             if use_gpu:
@@ -369,15 +372,50 @@ def epoch_run(batchIter, tokenizer,
             #pdb.set_trace()
             #mask_grouping = mask_group(bpe_aligned_index=output_alignement_with_raw, norm_not_norm=group_to_mask)
             #pdb.set_trace()
+            add_pred_n_mask=False
+            if add_pred_n_mask:
+                def pred_n_bpe(input_tokens_tensor, mask_token_index, space_token_index):
+                    labels_n_mask = torch.ones_like(input_tokens_tensor)
+                    mask_index = (input_tokens_tensor == mask_token_index)#.nonzero()#[:, 1]
+                    space_index = (input_tokens_tensor == space_token_index)#.nonzero()#[:, 1]
+                    labels_n_mask[space_index == 1] = 0
+                    labels_n_mask[mask_index == 1] = -1
+
+                    consecutive = [[(sent_mask_index[batch_ind,1][i] == sent_mask_index[i + 1]+1).data[0] for i in range(len(sent_mask_index) - 1)]
+                                   for sent_mask_index in (input_tokens_tensor == mask_token_index).nonzero()]
+                    if len(consecutive)>0:
+                        print((input_tokens_tensor == mask_token_index))
+                        print((input_tokens_tensor == mask_token_index).nonzero())
+                        print(consecutive)
+                        pdb.set_trace()
+                    # give a counter for each non consecutive mask
+                #pdb.set_trace()
+                pred_n_bpe(input_tokens_tensor, mask_token_index, space_token_index)
 
             if masking_strategy == "mlm" and optimizer is not None:
-                dropout = 0.15
+                dropout = 0.20
                 assert dropout_input_bpe == 0., "in masking_strategy mlm we hardcoded dropout to 0.2 {}".format(dropout)
+                apply_dropout = np.random.random() < 0.50
+
                 input_tokens_tensor, mask_dropout = dropout_input_tensor(input_tokens_tensor, mask_token_index,
                                                                          sep_token_index=sep_token_index,
-                                                                         apply_dropout=np.random.random() < 0.90,
+                                                                         apply_dropout=apply_dropout,
                                                                          dropout=dropout)
+                print("BPE OLD -->", input_tokens_tensor[mask_dropout == 0])
+                if not apply_dropout:
+                    random_bpe_instead = np.random.random() < 0.5
+                    if random_bpe_instead:
+                        print("checking input")
+                        pdb.set_trace()
+                        print("RANDOM BPE")
+                        input_tokens_tensor[mask_dropout == 0] = (torch.randperm(torch.tensor(len(tokenizer.vocab)-2))[:len(input_tokens_tensor[mask_dropout == 0])])+1
+                    else:
+                        print("RAW BPE")
+                else:
+                    print("MASK BPE")
+                print("BPE NEW -->", input_tokens_tensor[mask_dropout == 0])
                 unmask_loss = portion_mask
+
                 print("WARNING : unmaskloss is {}  (0 means only optimizing on the MASK >0 means optimizes "
                       "also on some other sampled based on dropout_adapted)".format(unmask_loss))
                 if unmask_loss:
@@ -393,9 +431,9 @@ def epoch_run(batchIter, tokenizer,
                     mask_loss = mask_dropout*mask_losses
                 else:
                     mask_loss = mask_dropout
+                pdb.set_trace()
                 feeding_the_model_with_label = output_tokens_tensor_aligned.clone()
                 feeding_the_model_with_label[mask_loss != 0] = -1
-                pdb.set_trace()
                 # hald the time we actually mask those tokens otherwise we predict
             elif masking_strategy in ["norm_mask", "norm_mask_variable"] and optimizer is not None:
                 if masking_strategy == "norm_mask_variable":
@@ -418,11 +456,10 @@ def epoch_run(batchIter, tokenizer,
                 #print("output_tokens_tensor_aligned", output_tokens_tensor_aligned)
                 #print("feeding_the_model_with_label", feeding_the_model_with_label)
                 #pdb.set_trace()
-                pdb.set_trace()
                 loss_dic, layer_wise_weights = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
-                                                labels=feeding_the_model_with_label if task_normalize_is else None, #tasks[0] == "normalize" else None,
-                                                labels_task_2=output_tokens_tensor_aligned if task_pos_is else None, #tasks[0] == "pos" else None
-                                                aggregating_bert_layer_mode=aggregating_bert_layer_mode)
+                                                                    labels=feeding_the_model_with_label if task_normalize_is else None, #tasks[0] == "normalize" else None,
+                                                                    labels_task_2=output_tokens_tensor_aligned if task_pos_is else None, #tasks[0] == "pos" else None
+                                                                    aggregating_bert_layer_mode=aggregating_bert_layer_mode)
             except Exception as e:
                 print(e)
                 print(" MAX ", torch.max(output_tokens_tensor_aligned), input_tokens_tensor, input_mask)
