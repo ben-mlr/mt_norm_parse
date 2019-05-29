@@ -25,8 +25,8 @@ train_path = [GENERATED_DIC[100]]
 dev_path = [GENERATED_DIC[100]]
 
 
-train = True
-playwith = False
+train = False
+playwith = True
 
 
 if train:
@@ -74,8 +74,8 @@ if train:
                 auxilliary_task_norm_not_norm=True,
                 saving_every_epoch=10,
                 lr=0.00001, #lr=OrderedDict([("bert", 5e-5), ("classifier_task_1", 0.001), ("classifier_task_2", 0.001)]),
-                batch_size=batch_size, n_iter_max_per_epoch=200,
-                n_epoch=1,
+                batch_size=batch_size, n_iter_max_per_epoch=10000,
+                n_epoch=10,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
                 model_suffix="{}".format(description), debug=False, tokenize_and_bpe=True,
@@ -108,18 +108,22 @@ if playwith:
     #model_name = "9319649-B-14cf0-9319649-B-model_0-ep4-checkpoint.pt"
     #model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/checkpoints/bert/9320927-B-ed1e8-9320927-B-model_0"
     #model_name = "9320927-B-ed1e8-9320927-B-model_0-ep19-checkpoint.pt"
-    model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/checkpoints/bert/9337555-B-57db3-9337555-B-model_2/"
-    model_name = "9337555-B-57db3-9337555-B-model_2-epbest-checkpoint.pt"
+    model_location = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/checkpoints/bert/9355335-B-539c5-9355335-B-model_0/"
+    model_name = "9355335-B-539c5-9355335-B-model_0-epbest-checkpoint.pt"
     checkpoint_dir = os.path.join(model_location, model_name)
     test_paths_ls = [[TEST]]
     # TODO : predict with a norm2noise model
     #  can use tasks trick ..
     voc_pos_size = 21
     tasks = ["normalize"]
+    layer_wise_attention = True
     model = get_bert_token_classification(vocab_size=vocab_size, voc_pos_size=voc_pos_size,
                                           tasks=["normalize"],
                                           initialize_bpe_layer=None,
+                                          bert_module="mlm", layer_wise_attention=layer_wise_attention,
                                           checkpoint_dir=checkpoint_dir)
+
+    model.normalization_module = True
     add_task_2 = False
     if add_task_2:
         model.classifier_task_2 = nn.Linear(model.bert.config.hidden_size, voc_pos_size)
@@ -130,9 +134,9 @@ if playwith:
     batch_size = 1
     lr = ""
 
-    evalu = True
+    evalu = False
 
-    list_reference_heuristic_test = json.load(open("./data/words_dictionary.json", "r"))
+    list_reference_heuristic_test = [] #json.load(open("./data/words_dictionary.json", "r")).keys()
     slang_dic = json.load(open("./data/urban_dic_abbreviations.json","r"))
     if evalu:
         model = run(bert_with_classifier=model,
@@ -143,11 +147,11 @@ if playwith:
                     end_predictions=os.path.join(model_location, "predictions"),
                     batch_size=batch_size, n_iter_max_per_epoch=n_sent, n_epoch=1,
                     test_path_ls=test_paths_ls, run_mode="test",
-                    args=None,
+                    args=None,bert_module="mlm",
                     description="", null_token_index=null_token_index, null_str=NULL_STR, model_location=model_location,
-                    model_id="9337555-B-57db3-9337555-B-model_2-epbest",
+                    model_id=model_name[:-2],
                     model_suffix="{}-{}batch-{}lr".format(pref_suffix, batch_size, lr),
-                    debug=True, report=True,
+                    debug=False, report=True,
                     remove_mask_str_prediction=True, inverse_writing=False,
                     extra_label_for_prediction="RE_PREDICT",
                     heuristic_test_ls=[None],
@@ -159,7 +163,8 @@ if playwith:
         if sentences:
             for n_sent in [50, 80, 120, 150, 250, 350]:
                 model = run(bert_with_classifier=model,
-                            voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
+                            voc_tokenizer=voc_tokenizer, tasks=tasks,
+                            train_path=train_path, dev_path=dev_path,
                             auxilliary_task_norm_not_norm=True,
                             saving_every_epoch=10, lr=lr,
                             dict_path=os.path.join(model_location, "dictionaries"),

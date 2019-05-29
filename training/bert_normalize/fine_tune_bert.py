@@ -35,7 +35,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         compute_intersection_score_test=True,
         slang_dic_test=None, list_reference_heuristic_test=None,
         bert_module=None,
-        case=None, threshold_edit=3,tokenize_and_bpe=False,layer_wise_attention=None,
+        case=None, threshold_edit=3,tokenize_and_bpe=False,
+        layer_wise_attention=None,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
@@ -100,9 +101,9 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                        ("checkpoint_dir", args.checkpoint_dir if args is not None else None),
                                        ("norm_2_noise_training", norm_2_noise_training),
                                        ("random_iterator_train",random_iterator_train),
-                                       ("aggregating_bert_layer_mode",aggregating_bert_layer_mode),
+                                       ("aggregating_bert_layer_mode",aggregating_bert_layer_mode), ("tokenize_and_bpe",tokenize_and_bpe),
                                        ("SEED", SEED_TORCH), ("case", case), ("bert_module", bert_module), ("freeze_layer_prefix_ls", freeze_layer_prefix_ls),
-                                       ("layer_wise_attention",layer_wise_attention)
+                                       ("layer_wise_attention", layer_wise_attention)
                                        ])
         printing("HYPERPARAMETERS {} ", var=[hyperparameters], verbose=verbose, verbose_level=1)
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
@@ -214,28 +215,31 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                              epoch=epoch, verbose=verbose)
                 print("RUNNING TRAIN on GET_BATCH_MODE ")
                 loss_train, iter_train, perf_report_train, _ = epoch_run(batchIter_train, tokenizer,
-                                                                      pos_dictionary=pos_dictionary,
-                                                                      n_epoch=n_epoch,
-                                                                      data_label=train_data_label,
-                                                                      bert_with_classifier=bert_with_classifier, writer=writer,
-                                                                      iter=iter_train, epoch=epoch,
-                                                                      tasks=tasks,
-                                                                      writing_pred=epoch == (n_epoch - 1), dir_end_pred=end_predictions,
-                                                                      optimizer=optimizer, use_gpu=use_gpu,
-                                                                      predict_mode=True,
-                                                                      skip_1_t_n=skip_1_t_n,
-                                                                      model_id=model_id,
-                                                                      heuristic_ls=heuristic_ls, gold_error_detection=gold_error_detection,
-                                                                      reference_word_dic={"InV": inv_word_dic},
-                                                                      dropout_input_bpe=dropout_input_bpe,
-                                                                      null_token_index=null_token_index, null_str=null_str,
-                                                                      masking_strategy=masking_strategy, portion_mask=portion_mask,
-                                                                      norm_2_noise_training=norm_2_noise_training,
-                                                                      norm_2_noise_eval=False,
-                                                                      aggregating_bert_layer_mode=aggregating_bert_layer_mode,
-                                                                      early_stoppin_metric=None,
-                                                                      case=case, tokenize_and_bpe=tokenize_and_bpe,
-                                                                      n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+                                                                         pos_dictionary=pos_dictionary,
+                                                                         n_epoch=n_epoch,
+                                                                         data_label=train_data_label,
+                                                                         bert_with_classifier=bert_with_classifier,
+                                                                         writer=writer,
+                                                                         iter=iter_train, epoch=epoch,
+                                                                         tasks=tasks,
+                                                                         writing_pred=epoch == (n_epoch - 1),
+                                                                         dir_end_pred=end_predictions,
+                                                                         optimizer=optimizer, use_gpu=use_gpu,
+                                                                         predict_mode=True,
+                                                                         skip_1_t_n=skip_1_t_n,
+                                                                         model_id=model_id,
+                                                                         heuristic_ls=heuristic_ls, gold_error_detection=gold_error_detection,
+                                                                         reference_word_dic={"InV": inv_word_dic},
+                                                                         dropout_input_bpe=dropout_input_bpe,
+                                                                         null_token_index=null_token_index, null_str=null_str,
+                                                                         masking_strategy=masking_strategy, portion_mask=portion_mask,
+                                                                         norm_2_noise_training=norm_2_noise_training,
+                                                                         norm_2_noise_eval=False,
+                                                                         aggregating_bert_layer_mode=aggregating_bert_layer_mode,
+                                                                         early_stoppin_metric=None,
+                                                                         case=case, tokenize_and_bpe=tokenize_and_bpe,
+                                                                         n_iter_max=n_iter_max_per_epoch,
+                                                                         verbose=verbose)
 
                 bert_with_classifier.eval()
 

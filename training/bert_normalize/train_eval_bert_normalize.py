@@ -39,16 +39,17 @@ def train_eval_bert_normalize(args, verbose=1):
                                               bert_module=args.bert_module,layer_wise_attention=args.layer_wise_attention,
                                               initialize_bpe_layer=initialize_bpe_layer)
     else:
-        printing("MODEL : reloading from checkpoint {}", var=[args.checkpoint_dir], verbose_level=1, verbose=verbose)
+        printing("MODEL : reloading from checkpoint {} all models parameters are ignored except task bert module and layer_wise_attention", var=[args.checkpoint_dir], verbose_level=1, verbose=verbose)
         # TODO args.original_task  , vocab_size is it necessary
         #assert args.original_task is not None
         original_task = ["normalize"]
         model = get_bert_token_classification(vocab_size=vocab_size, voc_pos_size=voc_pos_size,
                                               tasks=original_task,
                                               initialize_bpe_layer=None, bert_module=args.bert_module,
+                                              layer_wise_attention=args.layer_wise_attention,
                                               checkpoint_dir=args.checkpoint_dir)
 
-        add_task_2 = True
+        add_task_2 = False
         if add_task_2:
             printing("MODEL : adding extra classifer for task_2  with {} label", var=[voc_pos_size],
                      verbose=verbose, verbose_level=1)

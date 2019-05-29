@@ -66,8 +66,7 @@ def interact_bert(bert_token_classification,  tokenizer, null_token_index, null_
     token_type_ids = torch.zeros_like(input_tokens_tensor)
     if print_input:
         print("SRC : BPE ", inp_bpe_tokenized)
-    logits = bert_token_classification(input_tokens_tensor, token_type_ids, input_mask)["logits_task_1"] \
-        if tasks[0] == "normalize" else None
+    logits = bert_token_classification(input_tokens_tensor, token_type_ids, input_mask)[0]["logits_task_1"] if tasks[0] == "normalize" else None
 
     predictions_topk = torch.argsort(logits, dim=-1, descending=True)[:, :, :topk]
 

@@ -377,7 +377,9 @@ def epoch_run(batchIter, tokenizer,
                                                                          sep_token_index=sep_token_index,
                                                                          apply_dropout=np.random.random() < 0.90,
                                                                          dropout=dropout)
-                unmask_loss = False
+                unmask_loss = portion_mask
+                print("WARNING : unmaskloss is {}  (0 means only optimizing on the MASK >0 means optimizes "
+                      "also on some other sampled based on dropout_adapted)".format(unmask_loss))
                 if unmask_loss:
                     power = 3
                     capped = 0.
@@ -387,7 +389,7 @@ def epoch_run(batchIter, tokenizer,
                                                           sep_token_index=sep_token_index,
                                                           apply_dropout=False,
                                                           dropout=dropout_adated)
-                    # we backpropagate only on tokens that receive a mask (MLM objective)
+                    # we backpropagate only on tokens that receive a mask (MLM objective) + some extra ones tgat we control with dropout_adated
                     mask_loss = mask_dropout*mask_losses
                 else:
                     mask_loss = mask_dropout

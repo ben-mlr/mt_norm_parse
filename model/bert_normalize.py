@@ -6,9 +6,8 @@ from model.bert_tools_from_core_code.modeling import BertForTokenClassification,
 
 def get_bert_token_classification(vocab_size, voc_pos_size=None,
                                   pretrained_model_dir=None, checkpoint_dir=None,
-                                  freeze_parameters=False, freeze_layer_prefix_ls=None,
-                                  dropout_classifier=None,dropout_bert=0.,tasks=None,
-                                  bert_module="token_class",layer_wise_attention=False,
+                                  freeze_parameters=False, freeze_layer_prefix_ls=None, dropout_classifier=None,
+                                  dropout_bert=0.,tasks=None, bert_module="token_class", layer_wise_attention=False,
                                   initialize_bpe_layer=None, verbose=1):
     """
     two use case :
@@ -30,7 +29,8 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
         "Neither checkpoint_dir or pretrained_model_dir was provided"
     assert pretrained_model_dir is None or checkpoint_dir is None, \
         "Only one of checkpoint_dir or pretrained_model_dir should be provided "
-    config = BertConfig(vocab_size_or_config_json_file=vocab_size, hidden_size=768, num_hidden_layers=12, num_attention_heads=12, intermediate_size=3072)
+    config = BertConfig(vocab_size_or_config_json_file=vocab_size, hidden_size=768, num_hidden_layers=12,
+                        num_attention_heads=12, intermediate_size=3072, layer_wise_attention=layer_wise_attention)
     # config.hidden_dropout_prob = 0.2
     # QUESTION : WHERE IS THE MODEL ACTUALLY BEING LOADED ???
     # this line is useless apparently as it does it load it again
@@ -47,14 +47,16 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
                                            num_labels_2=voc_pos_size)
     elif bert_module == "mlm":
         model = BertForMaskedLM(config)
-    if pretrained_model_dir is not None:
+
+    if pretrained_model_dir is not None and checkpoint_dir is None:
         if bert_module == "token_class":
             assert initialize_bpe_layer is not None, "ERROR initialize_bpe_layer should not be None "
         if bert_module == "token_class":
             model = model.from_pretrained(pretrained_model_dir, num_labels=num_labels, dropout_custom=dropout_bert)
         elif bert_module == "mlm":
-            model = model.from_pretrained(pretrained_model_dir, normalization_mode=True, layer_wise_attention=layer_wise_attention)
-            space_vector = torch.normal(torch.mean(model.bert.embeddings.word_embeddings.weight.data,dim=0),std=torch.std(model.bert.embeddings.word_embeddings.weight.data,dim=0)).unsqueeze(0)#torch.rand((1, 768)
+            model = model.from_pretrained(pretrained_model_dir, normalization_mode=True,
+                                          layer_wise_attention=layer_wise_attention)
+            space_vector = torch.normal(torch.mean(model.bert.embeddings.word_embeddings.weight.data,dim=0), std=torch.std(model.bert.embeddings.word_embeddings.weight.data,dim=0)).unsqueeze(0)#torch.rand((1, 768)
 
             output_layer = torch.cat((model.bert.embeddings.word_embeddings.weight.data, space_vector), dim=0)
             model.cls.predictions.decoder = nn.Linear(model.bert.config.hidden_size, vocab_size + 1, bias=False)
@@ -90,11 +92,19 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
     elif checkpoint_dir is not None:
         assert initialize_bpe_layer is None, \
             "ERROR initialize_bpe_layer should b None as loading from existing checkpoint"
-        #model.load_state_dict(mode)
+
+        if bert_module == "mlm":
+            model.normalization_module = True
+            print("SETTING model.layer_wise_attention  to model.layer_wise_attention ", model.layer_wise_attention , layer_wise_attention)
+            model.cls.predictions.decoder = nn.Linear(model.bert.config.hidden_size, vocab_size + 1, bias=False)
+            model.cls.predictions.bias = nn.Parameter(torch.zeros(vocab_size + 1))
+
         model.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
         printing("MODEL : loading model BERT+token classification pretrained from checkpoint {}",
                  var=[checkpoint_dir],
                  verbose=verbose, verbose_level=1)
+    else:
+        raise(Exception("neither checkpoint dir nor pretrained_model_dir was provided"))
 
     return model
 
