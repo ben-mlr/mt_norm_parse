@@ -856,14 +856,18 @@ class BertForMaskedLM(BertPreTrainedModel):
         self.apply(self.init_bert_weights)
         layer_wise_attention = config.layer_wise_attention
         self.layer_wise_attention = nn.Linear(768, 1) if layer_wise_attention else None
+        self.mask_predictor = None
 
         print("WARNING : NB in forward(modelling) aggregating_bert_layer_mode is ignore in BertForMaskedLM")
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None,
-                masked_lm_labels=None, labels=None, labels_task_2=None,
+                masked_lm_labels=None, labels=None, labels_task_2=None, labels_n_masks=None,
                 aggregating_bert_layer_mode=None, output_all_encoded_layers=False):
 
         assert labels_task_2 is None
+
+
+
         if masked_lm_labels is None:
             masked_lm_labels = labels
         sequence_output, _ = self.bert(input_ids, token_type_ids, attention_mask,
@@ -888,12 +892,15 @@ class BertForMaskedLM(BertPreTrainedModel):
             softmax_weight = softmax_weight.view(batch_dim, len_seq, stacked_layers.size(2))
             sequence_output = new_sequence.view(batch_dim, len_seq, stacked_layers.size(1))
 
-
-
-
         prediction_scores = self.cls(sequence_output)
-        loss_dict = OrderedDict([("loss", None), ("loss_task_1", 0), ("loss_task_2", 0)])
-        pred_dict = OrderedDict([("logits_task_1", None), ("logits_task_2", None)])
+        loss_dict = OrderedDict([("loss", None), ("loss_task_1", 0), ("loss_task_2", 0),  ("loss_n_masks", 0)])
+        pred_dict = OrderedDict([("logits_task_1", None), ("logits_task_2", None), ("logits_n_masks", None)])
+
+        if self.mask_predictor is not None:
+            #assert self.num_labels_2 is not None, "num_labels_2 required"
+            logits_n_masks = self.mask_predictor(sequence_output)
+            pred_dict["logits_n_masks"] = logits_n_masks
+            # TODO : add check for labels : if check return logits other wise return prediciton
 
         if masked_lm_labels is not None:
             loss_fct = CrossEntropyLoss(ignore_index=-1)
@@ -1164,7 +1171,7 @@ class BertForTokenClassification(BertPreTrainedModel):
         print("{} : DROPOUT CLASSIFIER set to {} ".format(log, dropout_classifier))
         self.dropout = nn.Dropout(dropout_classifier)
         self.classifier_task_1 = nn.Linear(config.hidden_size, num_labels)
-        self.classifier_task_2 = None #nn.Linear(config.hidden_size, num_labels_2) if num_labels_2 is not None else None
+        self.classifier_task_2 = None  #nn.Linear(config.hidden_size, num_labels_2) if num_labels_2 is not None else None
         self.num_labels_2 = num_labels_2
         self.loss_weights_default = OrderedDict([("loss_task_1", 1), ("loss_task_2", 1)])
         self.apply(self.init_bert_weights)

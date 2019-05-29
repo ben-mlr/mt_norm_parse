@@ -25,8 +25,8 @@ train_path = [GENERATED_DIC[100]]
 dev_path = [GENERATED_DIC[100]]
 
 
-train = False
-playwith = True
+train = True
+playwith = False
 
 
 if train:
