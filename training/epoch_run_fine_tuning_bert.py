@@ -365,9 +365,9 @@ def epoch_run(batchIter, tokenizer,
             # we have to recompute the mask based on aligned input
             if dropout_input_bpe > 0:
 
-                input_tokens_tensor = dropout_input_tensor(input_tokens_tensor, mask_token_index,
+                input_tokens_tensor, mask_dropout, dropout_applied  = dropout_input_tensor(input_tokens_tensor, mask_token_index,
                                                            sep_token_index=sep_token_index,
-                                                           dropout=dropout_input_bpe)
+                                                           dropout=dropout_input_bpe, applied_dropout_rate=True)
             #from io_.bert_iterators_tools.string_processing import mask_group
             #pdb.set_trace()
             #mask_grouping = mask_group(bpe_aligned_index=output_alignement_with_raw, norm_not_norm=group_to_mask)
@@ -404,7 +404,7 @@ def epoch_run(batchIter, tokenizer,
                 if not dropout_applied:
                     random_bpe_instead = np.random.random() < 0.5
                     if random_bpe_instead:
-                        permute = (torch.randperm(torch.tensor(len(tokenizer.vocab)-2))[:len(input_tokens_tensor[mask_dropout == 0])])+1
+                        permute = (torch.randperm(torch.tensor(len(tokenizer.vocab)-2))[:len(input_tokens_tensor[mask_dropout == 0])]+1)
                         if use_gpu:
                             permute = permute.cuda()
                         input_tokens_tensor[mask_dropout == 0] = permute
@@ -452,6 +452,7 @@ def epoch_run(batchIter, tokenizer,
                 #print("output_tokens_tensor_aligned", output_tokens_tensor_aligned)
                 #print("feeding_the_model_with_label", feeding_the_model_with_label)
                 #pdb.set_trace()
+                pdb.set_trace()
                 loss_dic, layer_wise_weights = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
                                                                     labels=feeding_the_model_with_label if task_normalize_is else None, #tasks[0] == "normalize" else None,
                                                                     labels_task_2=output_tokens_tensor_aligned if task_pos_is else None, #tasks[0] == "pos" else None
