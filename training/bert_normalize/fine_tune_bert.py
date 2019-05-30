@@ -287,9 +287,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                 if checkpointing_model_data or early_stoping_val < early_stoping_val_former:
                     if early_stoping_val is not None:
                         _epoch = "best" if early_stoping_val < early_stoping_val_former else epoch
-                        print('WARNING metric is {} is '.format(early_stoping_val))
                     else:
-                        print('WARNING early_stoping_val is None so saving ')
+                        print('WARNING early_stoping_val is None so saving based on checkpointing_model_data only')
                         _epoch = epoch
                     checkpoint_dir = os.path.join(model_location, "{}-ep{}-checkpoint.pt".format(model_id, _epoch))
                     if _epoch == "best":

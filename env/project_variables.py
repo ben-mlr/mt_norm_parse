@@ -42,7 +42,7 @@ SCORE_AUX = ["norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recal
 AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm", "pos", "edit_prediction"]
 AVAILABLE_AGGREGATION_FUNC_AUX_TASKS = ["norm_not_norm", "edit_prediction"]
 AVAILABLE_BERT_FINE_TUNING_STRATEGY = ["bert_out_first", "standart", "flexible_lr", "only_first_and_last"]
-AVAILABLE_BERT_MASKING_STRATEGY = ["normed", "cls", "start_stop", "mlm", "norm_mask", "norm_mask_variable"]
+AVAILABLE_BERT_MASKING_STRATEGY = ["normed", "cls", "start_stop", "mlm", "norm_mask", "norm_mask_variable", "mlm_need_norm"]
 
 edit_rules = ["edit_check-"+ref_list_label+"-"+need_normed_rule for ref_list_label in ["data", "ref", "all"] for need_normed_rule in ["need_normed", "all"]]
 heuristics = ["gold_detection", "#", "@", "url", "slang_translate"]

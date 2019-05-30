@@ -83,7 +83,7 @@ if train:
                 model_suffix="{}".format(description), debug=False,
                 tokenize_and_bpe=False,
                 fine_tuning_strategy="standart",
-                masking_strategy=["mlm", "0"],
+                masking_strategy=["mlm_need_norm", "0.5"],
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                 initialize_bpe_layer=initialize_bpe_layer, args=None,
                 skip_1_t_n=False, dropout_input_bpe=0.0,
