@@ -382,7 +382,7 @@ if __name__ == "__main__":
 
           BERT_NORMALIZE = True
           if BERT_NORMALIZE:
-              epochs = 1
+              epochs = 2
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,  
                                                   grid_label=LABEL_GRID,
@@ -413,7 +413,7 @@ if __name__ == "__main__":
                                                   freeze_layer_prefix_ls_ls=[None],
                                                   #train_path=[[EN_LINES_EWT_TRAIN], [LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED, EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV], [LIU_DEV, EWT_DEV]],
                                                   #[LIU_TRAIN_OWOPUTI],
-                                                  train_path=[[TWEETS_GANESH_PERM_400]], #  [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_NOISY],[LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_2_NOISY], [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_1000]],
+                                                  train_path=[[TWEETS_GANESH]], #  [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_NOISY],[LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_2_NOISY], [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_1000]],
                                                   dev_path=[[TWEETS_GANESH_DEV]],
                                                   #train_path=[[LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED]], dev_path=[[LIU_DEV]],
                                                   #train_path=[[EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV]],

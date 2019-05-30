@@ -724,7 +724,7 @@ def epoch_run(batchIter, tokenizer,
                     # then we can compute all the confusion matrix rate
                     # TODO : factore with TASKS_2_METRICS_STR
 
-                    for metric_val in [ "precision", "f1", "recall","tnr", "npv", "accuracy"]:
+                    for metric_val in ["precision", "f1", "recall","tnr", "npv", "accuracy"]:
                         metric_val += "-"+tasks[0]
                         score, n_rate_universe = get_perf_rate(metric=metric_val, n_tokens_dic=n_tokens_dic,
                                                                score_dic=score_dic, agg_func=agg_func)
@@ -760,7 +760,10 @@ def epoch_run(batchIter, tokenizer,
         printing("DATA WRITTEN TO {} ", var=[dir_end_pred], verbose=verbose, verbose_level=1)
     printing("END EPOCH {} mode, iterated {} on pos {} on normalisation ",
              var=[mode, n_task_pos_sanity, n_task_normalize_sanity], verbose_level=1, verbose=verbose)
-    if early_stoppin_metric is not None:
-        assert early_stoppin_metric_val is not None, "ERROR : early_stoppin_metric_val should have been found " \
+    try:
+        if early_stoppin_metric is not None:
+            assert early_stoppin_metric_val is not None, "ERROR : early_stoppin_metric_val should have been found " \
                                                      "but was not {} sample metric {} not found in {}  ".format(early_stoppin_metric, subsample_early_stoping_metric_val, reports)
+    except Exception as e:
+        print(e)                                           
     return loss/batch_i, iter, reports, early_stoppin_metric_val

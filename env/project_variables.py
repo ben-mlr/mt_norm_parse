@@ -143,7 +143,7 @@ MTNT_EN_TOK_DEV_CONLL_LABEL, MTNT_EN_TOK_DEV_CONLL = "mtnt_tok_dev_conll", \
 MTNT_EN_TOK_DEV_DEMO_CONLL_LABEL, MTNT_EN_TOK_DEV_DEMO_CONLL = "mtnt_tok_dev_demo_conll", \
                                                                os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/dev.tok.en.demo.conll")
 # tweets
-TWEETS_GANESH_PERM_400_LABEL, TWEETS_GANESH_PERM_400 = "pan_tweets_200k", os.path.join(PROJECT_PATH, "data", "lexnorm2015", "pan_tweets-200k-norm+permute.conll")
+TWEETS_GANESH_PERM_400_LABEL, TWEETS_GANESH_PERM_400 = "pan_tweets_200k", os.path.join(PROJECT_PATH, "data", "pan_tweets-200k-norm+permute.conll")
 TWEETS_GANESH_LABEL, TWEETS_GANESH = "pan_tweets_200k", os.path.join(PROJECT_PATH, "data", "pan_tweets-200k.conll")
 TWEETS_GANESH_1M_LABEL, TWEETS_GANESH_1M = "pan_tweets_200k", os.path.join(PROJECT_PATH, "data", "pan_tweets-1000k.conll")
 TWEETS_GANESH_DEV_LABEL, TWEETS_GANESH_DEV = "pan_tweets_200k", os.path.join(PROJECT_PATH, "data", "pan_tweets-dev.conll")

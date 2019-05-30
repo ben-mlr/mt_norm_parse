@@ -60,8 +60,7 @@ def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_
                                 permuting_mode = np.random.choice(["permute", "double", "random_replace",
                                                                    "multiply_last", "double_last","remove",
                                                                    "remove_last", "z_replace_s"])
-                            print("PERMUTATION is ", permuting_mode, rand_word, APPLY_PERMUTE_WORD,
-                                  noise_level_sentence)
+                            #print("PERMUTATION is ", permuting_mode, rand_word, APPLY_PERMUTE_WORD,noise_level_sentence)
 
                         else:
                             rand_word = None
@@ -80,7 +79,7 @@ def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_
                                 if permuting_mode is not None:
                                     assert not cp_paste
                                     # rule one
-                                    print("ORIGINAL TOKEN", original_token)
+                                    #print("ORIGINAL TOKEN", original_token)
                                     if ( _original_token == _normalized_token or _original_token.lower() == _normalized_token.lower())\
                                         and not (original_token.startswith("#") or original_token.startswith("@")):
                                         # rule 1
@@ -136,7 +135,7 @@ def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_
 
 
 
-                                        print("NEW TOKEN", permuting_mode, _original_token)
+                                        #print("NEW TOKEN", permuting_mode, _original_token)
 
                                     #pdb.set_trace()
 

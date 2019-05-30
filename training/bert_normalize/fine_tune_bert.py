@@ -58,8 +58,10 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
             subsample_early_stoping_metric_val = "rates"
         printing("INFO : setting early_stoppin_metric to {}", var=[early_stoppin_metric], verbose=verbose, verbose_level=1)
     else:
+        if early_stoppin_metric == "accuracy-exact-normalize":
+            subsample_early_stoping_metric_val = "all"
         printing("INFO : found early_stoppin_metric {}", var=[early_stoppin_metric], verbose=verbose, verbose_level=1)
-    assert len(tasks) == len(train_path), "ERROR tasks is {} bu train path are {}".format(tasks, train_path)
+    assert len(tasks) == len(train_path), "ERROR tasks is {} but train path are {}".format(tasks, train_path)
     assert len(dev_path) == len(train_path)
     #assert len(test_path_ls) == len(tasks), "{} tasks test_path_ls {}".format(test_path_ls, tasks)
     if run_mode == "test":
@@ -283,7 +285,12 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                 printing("TRAINING : loss train:{} dev:{} for epoch {}  out of {}", var=[loss_train, loss_dev, epoch, n_epoch], verbose=1, verbose_level=1)
 
                 if checkpointing_model_data or early_stoping_val < early_stoping_val_former:
-                    _epoch = "best" if early_stoping_val < early_stoping_val_former else epoch
+                    if early_stoping_val is not None:
+                        _epoch = "best" if early_stoping_val < early_stoping_val_former else epoch
+                        print('WARNING metric is {} is '.format(early_stoping_val))
+                    else:
+                        print('WARNING early_stoping_val is None so saving ')
+                        _epoch = epoch
                     checkpoint_dir = os.path.join(model_location, "{}-ep{}-checkpoint.pt".format(model_id, _epoch))
                     if _epoch == "best":
                         print("SAVING BEST MODEL {} (epoch:{}) (new loss is {} former was {})".format(checkpoint_dir, epoch, early_stoping_val, early_stoping_val_former))

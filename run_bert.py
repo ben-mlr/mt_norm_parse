@@ -42,7 +42,7 @@ if train:
     freeze_layer_prefix_ls = ["cls", "bert.encoder", "bert.encoder.layer.1"]
     tasks = ["normalize"]
     layer_wise_attention = 0
-    train_path = [LEX_TRAIN_SPLIT_2]#, DEMO]
+    train_path = [DEMO]#, DEMO]
     dev_path = [DEMO]#, DEMO]
     test_paths_ls = [[LEX_TEST]]#, [DEMO]]
     bert_module = "mlm"
@@ -74,10 +74,10 @@ if train:
     model = run(bert_with_classifier=model,
                 voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
                 auxilliary_task_norm_not_norm=True,
-                saving_every_epoch=10,
+                saving_every_epoch=1,
                 lr=0.00001, #lr=OrderedDict([("bert", 5e-5), ("classifier_task_1", 0.001), ("classifier_task_2", 0.001)]),
-                batch_size=batch_size, n_iter_max_per_epoch=100,
-                n_epoch=1,
+                batch_size=batch_size, n_iter_max_per_epoch=10,
+                n_epoch=2,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
                 model_suffix="{}".format(description), debug=False,
@@ -90,7 +90,7 @@ if train:
                 heuristic_ls=None, gold_error_detection=False,
                 bucket_test=True, must_get_norm_test=True,
                 list_reference_heuristic_test=list_reference_heuristic_test,
-                slang_dic_test=slang_dic,bert_module=bert_module,
+                slang_dic_test=slang_dic,bert_module=bert_module, early_stoppin_metric="accuracy-exact-normalize",
                 norm_2_noise_eval=False, #norm_2_noise_training=,
                 aggregating_bert_layer_mode=5, case="lower", #threshold_edit=2.9,
                 report=True, verbose="alignement")
