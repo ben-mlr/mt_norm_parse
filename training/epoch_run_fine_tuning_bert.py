@@ -75,6 +75,7 @@ def epoch_run(batchIter, tokenizer,
         printing("WARNING : {} norm_2_noise_eval is on ", var=[norm_2_noise_eval],
                  verbose=verbose, verbose_level=1)
     assert len(tasks) <= 2
+    skip_score = 0
     label_heuristic = ""
     if gold_error_detection:
         label_heuristic += "-gold"
@@ -207,7 +208,6 @@ def epoch_run(batchIter, tokenizer,
             elif masking_strategy == "normed":
                 rand = np.random.uniform(low=0, high=1, size=1)[0]
                 group_to_mask = np.array(batch.output_norm_not_norm.cpu()) if portion_mask >= rand else None
-                pdb.set_trace()
             if not tokenize_and_bpe:
                 input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = get_indexes(batch_raw_input, tokenizer, verbose, use_gpu, word_norm_not_norm=group_to_mask)
             if masking_strategy == "start_stop":
@@ -387,7 +387,6 @@ def epoch_run(batchIter, tokenizer,
                         print((input_tokens_tensor == mask_token_index))
                         print((input_tokens_tensor == mask_token_index).nonzero())
                         print(consecutive)
-                        pdb.set_trace()
                     # give a counter for each non consecutive mask
                 #pdb.set_trace()
                 pred_n_bpe(input_tokens_tensor, mask_token_index, space_token_index)
@@ -459,10 +458,8 @@ def epoch_run(batchIter, tokenizer,
                     mask_loss = mask_dropout*mask_losses
                 else:
                     mask_loss = mask_dropout
-                pdb.set_trace()
                 feeding_the_model_with_label = output_tokens_tensor_aligned.clone()
                 feeding_the_model_with_label[mask_loss != 0] = -1
-                print("Loss", feeding_the_model_with_label)
                 # hald the time we actually mask those tokens otherwise we predict
             elif masking_strategy in ["norm_mask", "norm_mask_variable"] and optimizer is not None:
                 if masking_strategy == "norm_mask_variable":
@@ -486,7 +483,6 @@ def epoch_run(batchIter, tokenizer,
                 #print("output_tokens_tensor_aligned", output_tokens_tensor_aligned)
                 #print("feeding_the_model_with_label", feeding_the_model_with_label)
                 #pdb.set_trace()
-                pdb.set_trace()
                 loss_dic, layer_wise_weights = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
                                                                     labels=feeding_the_model_with_label if task_normalize_is else None, #tasks[0] == "normalize" else None,
                                                                     labels_task_2=output_tokens_tensor_aligned if task_pos_is else None, #tasks[0] == "pos" else None
@@ -507,6 +503,7 @@ def epoch_run(batchIter, tokenizer,
                 n_batch_pos += 1
             if predict_mode:
                 # if predict more : will evaluate the model and write its predictions
+
                 # TODO : add mapping_info between task_id to model and task name necessary to iterator
                 logits, layer_wise_weights = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
                                               aggregating_bert_layer_mode=aggregating_bert_layer_mode,
@@ -579,21 +576,25 @@ def epoch_run(batchIter, tokenizer,
                                 tasks=["pos" if task_pos_is else "normalize"],
                                 ind_batch=iter + batch_i, new_file=new_file, verbose=verbose)
                     new_file = False
-                perf_prediction, skipping, _samples = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk,
-                                                                                        topk,
-                                                                                        metric=metric,
-                                                                                        samples=samples,
-                                                                                        agg_func_ls=agg_func_ls,
-                                                                                        reference_word_dic=reference_word_dic,
-                                                                                        compute_intersection_score=compute_intersection_score,
-                                                                                        src_detokenized=src_detokenized)
+                try:
+                    perf_prediction, skipping, _samples = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk,
+                                                                                            topk,
+                                                                                            metric=metric,
+                                                                                            samples=samples,
+                                                                                            agg_func_ls=agg_func_ls,
+                                                                                            reference_word_dic=reference_word_dic,
+                                                                                            compute_intersection_score=compute_intersection_score,
+                                                                                            src_detokenized=src_detokenized)
 
-                score_dic, n_tokens_dic, n_sents_dic = accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
-                                                                                      sample_ls=_samples,
-                                                                                      dic_prediction_score=perf_prediction,
-                                                                                      score_dic=score_dic,
-                                                                                      n_tokens_dic=n_tokens_dic,
-                                                                                      n_sents_dic=n_sents_dic)
+                    score_dic, n_tokens_dic, n_sents_dic = accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
+                                                                                          sample_ls=_samples,
+                                                                                          dic_prediction_score=perf_prediction,
+                                                                                          score_dic=score_dic,
+                                                                                          n_tokens_dic=n_tokens_dic,
+                                                                                          n_sents_dic=n_sents_dic)
+                except Exception as e:
+                    skip_score+=1
+                    print("SKIPPNG score eval ", skip_score, e)
 
                 skipping_evaluated_batch += skipping
 

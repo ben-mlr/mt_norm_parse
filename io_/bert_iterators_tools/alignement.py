@@ -74,8 +74,12 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
                 # we assert we also reached padding in the output
                 # if we are in n_to_1_token it's different maybe not true
                 #  same if we reached the end we handle the case with end_output_with_padded_reach
+                print("alignement ", _output_alignement_with_raw, _input_alignement_with_raw)
                 if len(_output_alignement_with_raw) != _i_output:
-                    assert _output_alignement_with_raw[_i_output] == 1000
+                    try:
+                        assert _output_alignement_with_raw[_i_output] == 1000
+                    except:
+                        pdb.set_trace()
                 padded_reached_ind = 1
             if n_to_1_token:
                 appending = null_token_index

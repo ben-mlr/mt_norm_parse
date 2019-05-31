@@ -42,9 +42,9 @@ if train:
     freeze_layer_prefix_ls = ["cls", "bert.encoder", "bert.encoder.layer.1"]
     tasks = ["normalize"]
     layer_wise_attention = 0
-    train_path = [DEMO]#, DEMO]
+    train_path = [LEX_EWT_EWT_NOISY]#, DEMO]
     dev_path = [DEMO]#, DEMO]
-    test_paths_ls = [[LEX_TEST]]#, [DEMO]]
+    test_paths_ls = [[DEMO]]#, [DEMO]]
     bert_module = "mlm"
     mask_n_predictor = False
     voc_pos_size = 16
@@ -76,14 +76,14 @@ if train:
                 auxilliary_task_norm_not_norm=True,
                 saving_every_epoch=1,
                 lr=0.00001, #lr=OrderedDict([("bert", 5e-5), ("classifier_task_1", 0.001), ("classifier_task_2", 0.001)]),
-                batch_size=batch_size, n_iter_max_per_epoch=10,
-                n_epoch=2,
+                batch_size=batch_size, n_iter_max_per_epoch=1000,
+                n_epoch=1,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
-                model_suffix="{}".format(description), debug=False,
+                model_suffix="{}".format(description), debug=True,
                 tokenize_and_bpe=False,
                 fine_tuning_strategy="standart",
-                masking_strategy=["mlm_need_norm", "0.5"],
+                masking_strategy=["mlm", "0."],
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                 initialize_bpe_layer=initialize_bpe_layer, args=None,
                 skip_1_t_n=False, dropout_input_bpe=0.0,
@@ -93,7 +93,7 @@ if train:
                 slang_dic_test=slang_dic,bert_module=bert_module, early_stoppin_metric="accuracy-exact-normalize",
                 norm_2_noise_eval=False, #norm_2_noise_training=,
                 aggregating_bert_layer_mode=5, case="lower", #threshold_edit=2.9,
-                report=True, verbose="alignement")
+                report=True, verbose=1)
 
 
 null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary
