@@ -19,10 +19,14 @@ test_paths_ls = [[DEV], [LIU_DEV], [TEST], [LIU_TRAIN]]#, [LIU_TRAIN], [LIU_DEV]
 test_paths_ls = [[TEST],
                  [DEV],
                  [EWT_DEV]]
+
+
+train_path = [DEMO]
+dev_path = [DEMO]#[LIU_DEV]#[DEMO2]
 test_paths_ls = [[DEMO]]
 
-train_path = [GENERATED_DIC[100]]
-dev_path = [GENERATED_DIC[100]]
+#train_path = [GENERATED_DIC[100]]
+#dev_path = [GENERATED_DIC[100]]
 
 
 train = True
@@ -58,7 +62,7 @@ if train:
                                           dropout_bert=0.0, initialize_bpe_layer=initialize_bpe_layer)
     lr = 0.0001
 
-    batch_size = 2
+    batch_size = 1
     null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary
     description = "DEBUGGING_LEAK-AS_BEFORE"
     print("{} lr batch_size initialize_bpe_layer training_data".format(REPORT_FLAG_VARIABLES_ENRICH_STR))
@@ -74,16 +78,16 @@ if train:
     model = run(bert_with_classifier=model,
                 voc_tokenizer=voc_tokenizer, tasks=tasks, train_path=train_path, dev_path=dev_path,
                 auxilliary_task_norm_not_norm=True,
-                saving_every_epoch=1,
+                saving_every_epoch=10,
                 lr=0.00001, #lr=OrderedDict([("bert", 5e-5), ("classifier_task_1", 0.001), ("classifier_task_2", 0.001)]),
-                batch_size=batch_size, n_iter_max_per_epoch=1000,
+                batch_size=batch_size, n_iter_max_per_epoch=10,
                 n_epoch=1,
                 test_path_ls=test_paths_ls,
                 description=description, null_token_index=null_token_index, null_str=NULL_STR,
-                model_suffix="{}".format(description), debug=True,
-                tokenize_and_bpe=False,
+                model_suffix="{}".format(description), debug=False,
+                tokenize_and_bpe=True,
                 fine_tuning_strategy="standart",
-                masking_strategy=["mlm", "0."],
+                masking_strategy=None,#["mlm", "0."],
                 freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls,
                 initialize_bpe_layer=initialize_bpe_layer, args=None,
                 skip_1_t_n=False, dropout_input_bpe=0.0,
@@ -92,8 +96,9 @@ if train:
                 list_reference_heuristic_test=list_reference_heuristic_test,
                 slang_dic_test=slang_dic,bert_module=bert_module, early_stoppin_metric="accuracy-exact-normalize",
                 norm_2_noise_eval=False, #norm_2_noise_training=,
-                aggregating_bert_layer_mode=5, case="lower", #threshold_edit=2.9,
-                report=True, verbose="alignement")
+                aggregating_bert_layer_mode=5,
+                case="lower", #threshold_edit=2.9,
+                report=True, verbose=1)
 
 
 null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary
@@ -163,7 +168,7 @@ if playwith:
                     bucket_test=False, must_get_norm_test=False,
                     slang_dic_test=slang_dic, list_reference_heuristic_test=list_reference_heuristic_test,
                     layer_wise_attention=layer_wise_attention,
-                    verbose="raw_data")
+                    verbose=1)
         sentences = False
         if sentences:
             for n_sent in [50, 80, 120, 150, 250, 350]:

@@ -118,18 +118,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
             writer = SummaryWriter(log_dir=tensorboard_log)
             if writer is not None:
                 writer.add_text("INFO-ARGUMENT-MODEL-{}".format(model_id), str(hyperparameters), 0)
-        try:
-            if False:
-              description += ",data:{}".format(train_data_label)+ " {}".format(" ".join(["{},{}".format(key, value) for key, value in hyperparameters.items()]))
-              row, col = append_reporting_sheet(git_id=gr.get_commit_id(), tasks="BERT NORMALIZE",
-                                                rioc_job=os.environ.get("OAR_JOB_ID", "local"), description=description,
-                                                log_dir=tensorboard_log, target_dir=model_location,
-                                                env=os.environ.get("ENV", "local"), status="running",
-                                                verbose=1)
 
-        except Exception as e:
-            print("REPORTING TO GOOGLE SHEET FAILED")
-            print(e)
 
     else:
         assert dict_path is not None

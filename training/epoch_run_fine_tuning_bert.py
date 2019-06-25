@@ -101,11 +101,11 @@ def epoch_run(batchIter, tokenizer,
     if predict_mode:
         if topk is None:
             topk = 1
-            printing("PREDICITON MODE : setting topk to default 1 ", verbose_level=1, verbose=verbose)
+            printing("PREDICTION MODE : setting top-k to default 1 ", verbose_level=1, verbose=verbose)
         print_pred = False
         if metric is None:
             metric = "exact_match"
-            printing("PREDICITON MODE : setting metric to default 'exact_match' ", verbose_level=1, verbose=verbose)
+            printing("PREDICTION MODE : setting metric to default 'exact_match' ", verbose_level=1, verbose=verbose)
 
     if writing_pred:
         assert dir_end_pred is not None
@@ -209,14 +209,16 @@ def epoch_run(batchIter, tokenizer,
                 rand = np.random.uniform(low=0, high=1, size=1)[0]
                 group_to_mask = np.array(batch.output_norm_not_norm.cpu()) if portion_mask >= rand else None
             if not tokenize_and_bpe:
-                input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = get_indexes(batch_raw_input, tokenizer, verbose, use_gpu, word_norm_not_norm=group_to_mask)
+                input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, \
+                input_alignement_with_raw, input_mask = get_indexes(batch_raw_input, tokenizer, verbose, use_gpu,
+                                                                    word_norm_not_norm=group_to_mask)
             if masking_strategy == "start_stop":
                 input_mask[input_tokens_tensor == sep_token_index] = 0
                 input_mask[input_tokens_tensor == cls_token_index] = 0
-            #if "normalize" in tasks:
+
             if task_normalize_is:
                 if norm2noise_bool or norm_2_noise_eval:
-                    printing("WARNING : output is noisy innput", verbose_level=2, verbose=1)
+                    printing("WARNING : output is noisy input", verbose_level=2, verbose=1)
                     batch_raw_output = preprocess_batch_string_for_bert(batch.raw_input)
                 else:
                     printing("WARNING : output is output", verbose_level=2, verbose=1)
@@ -225,7 +227,9 @@ def epoch_run(batchIter, tokenizer,
                 if tokenize_and_bpe:
                     try:
                         tokens_tensor_dic, segments_tensors_dic, tokenized_dic, aligned_index_padded_dic, mask_dic = \
-                            get_indexes_src_gold(list_pretokenized_str_source=batch_raw_input,list_pretokenized_str_gold=batch_raw_output, tokenizer=tokenizer, verbose=verbose, use_gpu= use_gpu)
+                            get_indexes_src_gold(list_pretokenized_str_source=batch_raw_input,
+                                                 list_pretokenized_str_gold=batch_raw_output,
+                                                 tokenizer=tokenizer, verbose=verbose, use_gpu=use_gpu)
 
                         output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask = \
                             tokens_tensor_dic["gold"], segments_tensors_dic["gold"], tokenized_dic["gold"], \
@@ -234,9 +238,9 @@ def epoch_run(batchIter, tokenizer,
                         input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = \
                             tokens_tensor_dic["src"], segments_tensors_dic["src"], tokenized_dic["src"], \
                             aligned_index_padded_dic["src"], mask_dic["src"]
-
                     except Exception as e:
-                        print("FAILLING error {} TO ALIGN batch_raw_input {} with batch_raw_output {} so using the old method".format(e, batch_raw_input, batch_raw_output))
+                        print("FAILLING error {} TO ALIGN batch_raw_input {} with "
+                              "batch_raw_output {} so using the old method".format(e, batch_raw_input, batch_raw_output))
                         input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = \
                             get_indexes(batch_raw_input, tokenizer, verbose, use_gpu, word_norm_not_norm=None)
                         output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask = \
@@ -298,17 +302,12 @@ def epoch_run(batchIter, tokenizer,
             _verbose = verbose
 
             # logging
-            printing("DATA : pre-tokenized input {} ", var=[batch_raw_input], verbose_level="raw_data",
-                     verbose=_verbose)
-            printing("DATA : BPEtokenized input ids {}", var=[input_tokens_tensor], verbose_level=3,
-                     verbose=verbose)
+            verbose_level = _verbose if _verbose in ["raw_data", "alignement"] else "raw_data"
+            printing("DATA : pre-tokenized input {} ", var=[batch_raw_input], verbose_level=verbose_level, verbose=_verbose)
+            printing("DATA : BPEtokenized input ids {}", var=[input_tokens_tensor], verbose_level=3, verbose=verbose)
 
-            printing("DATA : pre-tokenized output {} ", var=[batch_raw_output],
-                     verbose_level="raw_data",
-                     verbose=_verbose)
-            printing("DATA : BPE tokenized output ids  {}", var=[output_tokens_tensor],
-                     verbose_level=4,
-                     verbose=verbose)
+            printing("DATA : pre-tokenized output {} ", var=[batch_raw_output],verbose_level=verbose_level, verbose=_verbose)
+            printing("DATA : BPE tokenized output ids  {}", var=[output_tokens_tensor], verbose_level=4, verbose=verbose)
             # BPE
             printing("DATA : BPE tokenized input  {}", var=[inp_bpe_tokenized], verbose_level=4,
                      verbose=_verbose)
@@ -359,20 +358,15 @@ def epoch_run(batchIter, tokenizer,
             if use_gpu:
                 token_type_ids = token_type_ids.cuda()
             printing("CUDA SANITY CHECK input_tokens:{}  type:{}input_mask:{}  label:{}",
-                     var=[input_tokens_tensor.is_cuda, token_type_ids.is_cuda, input_mask.is_cuda,
-                          output_tokens_tensor_aligned.is_cuda],
-                     verbose=verbose, verbose_level="cuda")
+                     var=[input_tokens_tensor.is_cuda, token_type_ids.is_cuda, input_mask.is_cuda, output_tokens_tensor_aligned.is_cuda], verbose=verbose, verbose_level="cuda")
             # we have to recompute the mask based on aligned input
             if dropout_input_bpe > 0:
 
-                input_tokens_tensor, mask_dropout, dropout_applied  = dropout_input_tensor(input_tokens_tensor, mask_token_index,
+                input_tokens_tensor, mask_dropout, dropout_applied = dropout_input_tensor(input_tokens_tensor, mask_token_index,
                                                            sep_token_index=sep_token_index,
                                                            dropout=dropout_input_bpe, applied_dropout_rate=True)
-            #from io_.bert_iterators_tools.string_processing import mask_group
-            #pdb.set_trace()
-            #mask_grouping = mask_group(bpe_aligned_index=output_alignement_with_raw, norm_not_norm=group_to_mask)
-            #pdb.set_trace()
-            add_pred_n_mask=False
+
+            add_pred_n_mask = False
             if add_pred_n_mask:
                 def pred_n_bpe(input_tokens_tensor, mask_token_index, space_token_index):
                     labels_n_mask = torch.ones_like(input_tokens_tensor)
@@ -381,17 +375,16 @@ def epoch_run(batchIter, tokenizer,
                     labels_n_mask[space_index == 1] = 0
                     labels_n_mask[mask_index == 1] = -1
 
-                    consecutive = [[(sent_mask_index[batch_ind,1][i] == sent_mask_index[i + 1]+1).data[0] for i in range(len(sent_mask_index) - 1)]
+                    consecutive = [[(sent_mask_index[batch_ind, 1][i] == sent_mask_index[i + 1]+1).data[0] for i in range(len(sent_mask_index) - 1)]
                                    for sent_mask_index in (input_tokens_tensor == mask_token_index).nonzero()]
-                    if len(consecutive)>0:
+                    if len(consecutive) > 0:
                         print((input_tokens_tensor == mask_token_index))
                         print((input_tokens_tensor == mask_token_index).nonzero())
                         print(consecutive)
                     # give a counter for each non consecutive mask
-                #pdb.set_trace()
                 pred_n_bpe(input_tokens_tensor, mask_token_index, space_token_index)
 
-            if masking_strategy in ["mlm","mlm_need_norm"] and optimizer is not None:
+            if masking_strategy in ["mlm", "mlm_need_norm"] and optimizer is not None:
                 dropout = 0.15
                 assert dropout_input_bpe == 0., "in masking_strategy mlm we hardcoded dropout to 0.2 {}".format(dropout)
                 standart_pred = True
@@ -404,13 +397,12 @@ def epoch_run(batchIter, tokenizer,
                     unmask_loss = portion_mask
                 if standart_pred:
                     input_tokens_tensor, mask_dropout, dropout_applied = dropout_input_tensor(input_tokens_tensor, mask_token_index,
-                                                                                          sep_token_index=sep_token_index,
-                                                                                          applied_dropout_rate=0.8,
-                                                                                          dropout=dropout)
+                                                                                              sep_token_index=sep_token_index,
+                                                                                              applied_dropout_rate=0.8,
+                                                                                              dropout=dropout)
 
                 elif masking_strategy == "mlm_need_norm" and not standart_pred:
                     feeding_the_model_with_label = output_tokens_tensor_aligned.clone()
-
                     # we only learn on tokens that are different from gold
                     feeding_the_model_with_label[input_tokens_tensor == output_tokens_tensor_aligned] = -1
                     if np.random.random() < 0.85:

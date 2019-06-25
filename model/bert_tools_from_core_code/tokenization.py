@@ -25,6 +25,7 @@ from io import open
 #from .file_utils import cached_path
 
 from model.bert_tools_from_core_code.tools import *
+from io_.info_print import printing
 
 import pdb
 
@@ -92,7 +93,6 @@ class BertTokenizer(object):
         self.wordpiece_tokenizer = WordpieceTokenizer(vocab=self.vocab)
         self.max_len = max_len if max_len is not None else int(1e12)
 
-
     def tokenize_origin(self, text, verbose=1):
         split_tokens = []
         alignement_index = []
@@ -103,7 +103,6 @@ class BertTokenizer(object):
                 split_tokens.append(sub_token)
             alignement_index.extend([index for _ in range(len(word_piece_token))])
         return split_tokens, alignement_index
-
 
     def tokenize(self, text, target=None, aligne=False, verbose=1):
 
@@ -141,7 +140,6 @@ class BertTokenizer(object):
                     #pdb.set_trace()
                 try:
 
-
                     if mask_input:
                         word_piece_token_gold = self.wordpiece_tokenizer.tokenize(basic_tokenization_target[bpe_reading_ind_gold])
                         word_piece_token = ["[MASK]"]
@@ -149,12 +147,12 @@ class BertTokenizer(object):
                         breakpoint = False
 
                     else:
-
                         word_piece_token, word_piece_token_gold, former_gold = \
                         self.wordpiece_tokenizer.tokenize_aligned(basic_tokenization[bpe_reading_ind],
                                                                   basic_tokenization_target[bpe_reading_ind_gold],
                                                                   former_src=word_piece_token,
-                                                                  former_gold=word_piece_token_gold)
+                                                                  former_gold=word_piece_token_gold, verbose=verbose)
+                        pdb.set_trace()
 
 
                 except Exception as e:
@@ -381,7 +379,7 @@ class BasicTokenizer(object):
         return "".join(output)
 
 
-def get_biggest_bpe_in(char_list, vocab, token_begining=True):
+def get_biggest_bpe_in(char_list, vocab, token_begining=True, verbose=1):
     ind_start = 0
     while ind_start < len(char_list):
         ind_end = len(char_list)
@@ -391,7 +389,8 @@ def get_biggest_bpe_in(char_list, vocab, token_begining=True):
                 substr = "##" + substr
             if substr in vocab:
                 cur_substr = substr
-                print("WARNING : LEAVING ABREVIATION MATCH (SHOULD ADD MASK)", char_list[ind_end:],char_list)
+                printing("WARNING : LEAVING ABREVIATION MATCH (SHOULD ADD MASK)", var=[char_list[ind_end:], char_list],
+                         verbose=verbose, verbose_level="raw_data")
                 return cur_substr, ind_end, char_list[ind_end:]
             ind_end -= 1
         # sub_tokens_gold_is_abbreviation.append(cur_substr)
@@ -407,7 +406,7 @@ class WordpieceTokenizer(object):
         self.unk_token = unk_token
         self.max_input_chars_per_word = max_input_chars_per_word
 
-    def tokenize_aligned(self, text, text_target, former_gold, former_src):
+    def tokenize_aligned(self, text, text_target, former_gold, former_src, verbose=1):
         """Tokenizes a piece of text into its word pieces.
 
         This uses a greedy longest-match-first algorithm to perform tokenization
@@ -454,15 +453,25 @@ class WordpieceTokenizer(object):
                 cur_substr_gold = None
                 while start < end:
                     substr = "".join(chars[start:end])
+                    pdb.set_trace()
+                    #print("SUBSTR", substr)
                     if start > 0:
                         substr = "##" + substr
                     if substr in self.vocab:
+                        #print("SUBSTR MATCH", substr)
                         cur_substr = substr
+                        # if we are not with a len 1 token and we get a match between gold substr and noisy
                         if not ((len(cur_substr) == 1 and start == 0) or (len(cur_substr) == 3 and start > 0)) and \
                                 (start == 0 and cur_substr == "".join(chars_gold[start:end])) or (start > 0 and cur_substr[2:] == "".join(chars_gold[start:end])):
                             # means we have BPE alignement between src ang gold
                             # exception : if it's only a 1 letter bpe where we want the possibility to find larger bpe
                             cur_substr_gold = cur_substr
+                            #print("SUBSTR_GOLD MATCH", cur_substr)
+                            if end == len(chars):
+                                # if we reached the end of the noisy token we handle the rest of the string of the gold
+                                left_out_gold = chars_gold[end:]
+                            pdb.set_trace()
+                        # otherwise : we split the gold
                         else:
                             # we look in the substrings of chars_gold[start_gold:end_gold] if there are bpe
                             # if we reached the end of the source sequence :
@@ -471,19 +480,20 @@ class WordpieceTokenizer(object):
                             _end_gold = end_gold
                             # we start at the same character as noisy
                             start_gold = start
-                            #if token_gold != "[SPACE]":
+                            #print("SUBSTR_GOLD NO MATCH", cur_substr)
+                            pdb.set_trace()
                             while start_gold < _end_gold:
                                 substr_gold = "".join(chars_gold[start_gold:_end_gold])
                                 if start_gold > 0:
                                     substr_gold = "##" + substr_gold
                                 if substr_gold in self.vocab:
+                                    #print("SUBSTR_GOLD MATCH", cur_substr)
                                     cur_substr_gold = substr_gold
                                     left_out_gold = chars_gold[_end_gold:end_gold]
                                     if break_ing:
                                         pdb.set_trace()
-                                    #print("FOUND gold substring of {} : src:{} of token ({}) --> {} LEAVING {}".format(chars_gold, cur_substr, chars, substr_gold, left_out_gold))
-
-
+                                    printing("FOUND gold substring of {} : src:{} of token ({}) --> {} LEAVING {}".format(chars_gold, cur_substr, chars, substr_gold, left_out_gold),
+                                             verbose_level="alignement", verbose=verbose)
                                     break
                                 _end_gold -= 1
                             if cur_substr_gold is None:
@@ -495,24 +505,23 @@ class WordpieceTokenizer(object):
                     is_bad = True
                     break
                 sub_tokens.append(cur_substr)
-                #if token_gold != "[SPACE]":
                 sub_tokens_gold.append(cur_substr_gold)
                 while len(left_out_gold) > 0:
                     _forgotten_list = left_out_gold
                     cur_substr_gold, ind_end, left_out_gold = get_biggest_bpe_in(char_list=left_out_gold,
-                                                                                 token_begining=False,
-                                                                                 vocab=self.vocab)
-                    print("FOUND {} in FORGOTTEN {}".format(cur_substr_gold, _forgotten_list))
-
+                                                                                 token_begining=False, vocab=self.vocab)
+                    printing("FOUND {} in FORGOTTEN {}".format(cur_substr_gold, _forgotten_list), verbose=verbose,
+                             verbose_level="raw_data")
                     sub_tokens_gold.append(cur_substr_gold)
                 #else:
                 #    sub_tokens_gold.append("[SPACE]")
                 start = end
 
             is_n_to_1 = len(left_out_gold) > 0
+
             if is_n_to_1:
-                print("HANDLING as is_n_to_1 src:{} gold:{}".format(sub_tokens, sub_tokens_gold))
-            if is_n_to_1:
+                printing("HANDLING as is_n_to_1 src:{} gold:{}".format(sub_tokens, sub_tokens_gold), verbose=verbose,
+                         verbose_level="raw_data")
                 end_gold_is_n_to_1 = len(chars_gold)
                 start_gold_is_n_to_1 = 0
                 _end_gold_is_1_to_n = end_gold_is_n_to_1
@@ -546,7 +555,6 @@ class WordpieceTokenizer(object):
                                     remember_index_char_gold_former[char_former] += 1
                                 else:
                                     occurence_former_char = 0
-
                                 if (ind_char == 0 or indices_char[occurence] > indices_char_former[occurence_former_char] or (len(indices_char) > occurence+1 and indices_char[occurence+1] > indices_char_former[occurence_former_char])):
                                         try:
                                             if indices_char[occurence+1] > indices_char_former[occurence_former_char] and not indices_char[occurence] > indices_char_former[occurence_former_char]:
@@ -627,7 +635,7 @@ class WordpieceTokenizer(object):
                                                                       token_begining=indices[occurence] == 0,
                                                                       vocab=self.vocab)
                         sub_tokens_gold_is_abbreviation.append(cur_substr_gold)
-                        print("FOUND cur_substr_gold ", cur_substr_gold)
+                        #print("FOUND cur_substr_gold ", cur_substr_gold)
                         while len(forgotten_list) > 0:
                             _forgotten_list = forgotten_list
                             cur_substr_gold, ind_end, forgotten_list = get_biggest_bpe_in(char_list=forgotten_list,
@@ -652,6 +660,7 @@ class WordpieceTokenizer(object):
                                                                                       self.vocab, False)
                         sub_tokens_gold.append(cur_substr_gold)
                         sub_tokens.append("[MASK]")
+                        print()
                         start += ind_end
                     print("ADDING MASK in sub_tokens {} to match {} ".format(sub_tokens, sub_tokens_gold))
 
@@ -670,9 +679,11 @@ class WordpieceTokenizer(object):
                 if former_gold is not None and former_gold[-1] == sub_tokens_gold[0]:
                     print("DOUBLONS")
                     #pdb.set_trace()
+
                 output_tokens_gold.extend(sub_tokens_gold)
 
-        #print("FINAL output_tokens {}  output_tokens_gold {} ".format(output_tokens, output_tokens_gold))
+        printing("FINAL output_tokens {}  output_tokens_gold {} ".format(output_tokens, output_tokens_gold),
+                 verbose_level="raw_data", verbose=verbose)
         return output_tokens, output_tokens_gold, former_gold
 
     def tokenize(self, text):

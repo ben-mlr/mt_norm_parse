@@ -26,19 +26,19 @@ def preprocess_batch_string_for_bert(batch,
         if rp_space:
             batch[i] = rp_space_func(batch[i])
         batch[i] = " ".join(batch[i])
-
     return batch
 
 
-def get_indexes_src_gold(list_pretokenized_str_source, list_pretokenized_str_gold, tokenizer, verbose, use_gpu,
-                         word_norm_not_norm=None):
+def get_indexes_src_gold(list_pretokenized_str_source, list_pretokenized_str_gold, tokenizer,
+                         verbose, use_gpu, word_norm_not_norm=None):
     " mostly a copy of get_indexes adapted to handle both src and gold sequence in parrallel"
     assert word_norm_not_norm is None, "ERROR not possible in tokenize_and_bpe mode"
 
     # final tensors
     segments_tensors_dic = {}
     tokens_tensor_dic = {}
-    print("SOURE", list_pretokenized_str_source)
+    printing("SOURCE {} TARGET {} ", var=[list_pretokenized_str_source, list_pretokenized_str_gold],
+             verbose=verbose, verbose_level="alignement")
 
     all_tokenized_ls = [tokenizer.tokenize(src, gold, aligne=True) for src, gold in zip(list_pretokenized_str_source, list_pretokenized_str_gold)]
 
@@ -67,11 +67,11 @@ def get_indexes_src_gold(list_pretokenized_str_source, list_pretokenized_str_gol
         ids_padded_dic[sequence] = [inp + [PAD_ID_BERT for _ in range(max_sent_len_dic[sequence] - len(inp))] for inp in ids_ls_dic[sequence]]
         aligned_index_padded_dic[sequence] = [[e for e in inp] + [1000 for _ in range(max_sent_len_dic[sequence] - len(inp))] for inp in aligned_index_dic[sequence]]
         segments_padded_dic[sequence] = [inp + [PAD_ID_BERT for _ in range(max_sent_len_dic[sequence] - len(inp))] for inp in segments_ids_dic[sequence]]
-        mask_dic[sequence] = [[1 for _ in inp] + [0 for _ in range(max_sent_len_dic[sequence]  - len(inp))] for inp in segments_ids_dic[sequence]]
+        mask_dic[sequence] = [[1 for _ in inp] + [0 for _ in range(max_sent_len_dic[sequence] - len(inp))] for inp in segments_ids_dic[sequence]]
 
         mask_dic[sequence] = torch.LongTensor(mask_dic[sequence])
         tokens_tensor_dic[sequence] = torch.LongTensor(ids_ls_dic[sequence])
-        segments_tensors_dic[sequence] = torch.LongTensor(segments_padded_dic[sequence] )
+        segments_tensors_dic[sequence] = torch.LongTensor(segments_padded_dic[sequence])
         if use_gpu:
             mask_dic[sequence] = mask_dic[sequence].cuda()
             tokens_tensor_dic[sequence] = tokens_tensor_dic[sequence].cuda()
@@ -121,6 +121,7 @@ def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu,
     segments_ids = [[0 for _ in range(len(tokenized))] for tokenized in tokenized_ls]
 
     printing("DATA : bpe tokenized {}", var=[tokenized_ls], verbose=verbose, verbose_level="raw_data")
+    printing("DATA : bpe tokenized {}", var=[tokenized_ls], verbose=verbose, verbose_level="alignement")
 
     ids_ls = [tokenizer.convert_tokens_to_ids(inp) for inp in tokenized_ls]
     max_sent_len = max([len(inp) for inp in tokenized_ls])
@@ -172,7 +173,6 @@ def from_bpe_token_to_str(
         printing("DATA : bpe string again {}",var=[sent_ls_top], verbose=verbose, verbose_level="raw_data")
     elif task == "pos":
         # NB +1 because index 0 is related to UNK
-        #print("DEBUG", predictions_topk_ls, len(pos_dictionary.instances))
         try:
             sent_ls_top = [[[pos_dictionary.instances[token_ind-1] if token_ind > 0 else "UNK"
                          for token_ind in sent_bpe] for sent_bpe in predictions_topk]
