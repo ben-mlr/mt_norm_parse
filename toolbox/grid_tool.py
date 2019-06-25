@@ -101,7 +101,9 @@ def grid_param_label_generate(param,
 
   assert len(train_ls) == len(dev_ls), "ERROR train_ls is {} dev_ls {} : they should be same length".format(train_ls, dev_ls)
   assert len(tasks_ls) == len(train_ls), "ERROR tasks_ls {} and train_ls {} should be same lenght ".format(tasks_ls, train_ls)
-  assert len(train_ls) == len(test_ls), "ERROR len train {} test {} train_ls is {} test_ls {} : they should be same length ".format(len(train_ls), len(test_ls),train_ls, test_ls)
+  assert len(train_ls) == len(test_ls), "ERROR len train {} test {} train_ls is {} test_ls {} :" \
+                                        " they should be same length ".format(len(train_ls), len(test_ls),
+                                                                              train_ls, test_ls)
 
   if batch_size_ls is None:
     batch_size_ls = [DEFAULT_BATCH_SIZE]
@@ -173,7 +175,9 @@ def grid_param_label_generate(param,
   if n_layers_word_encoder_ls is None:
     n_layers_word_encoder_ls = [DEFAULT_LAYER_WORD_ENCODER]
     default.append(("n_layers_word_encoder", n_layers_word_encoder_ls[0]))
-  assert len(n_layers_word_encoder_ls)==1, "ERROR n_layers_word_encoder_ls should be len 1 {}".format(n_layers_word_encoder_ls)
+
+  assert len(n_layers_word_encoder_ls) == 1, "ERROR n_layers_word_encoder_ls should be len 1 {}".format(n_layers_word_encoder_ls)
+
   if mode_word_encoding_ls is None:
     mode_word_encoding_ls = [DEFAULT_MODE_WORD_ENCODING] #"mode_word_encoding"
     default.append(("mode_word_encoding", mode_word_encoding_ls[0]))
@@ -232,7 +236,8 @@ def grid_param_label_generate(param,
       if _args != "tasks" and _args not in ["train_path", "dev_path", "test_path"]:
         dic_grid[_args] = args_avail[args+"_ls"]
       elif _args == "tasks":
-        assert len(list(set(eval(_args+"_ls")[0])&set(["normalize", "pos"]))) > 0 , "ERROR : only normalize, pos supported so far {}".format(eval(_args+"_ls"))
+        assert len(list(set(eval(_args+"_ls")[0]) & set(["normalize", "pos"]))) > 0, \
+          "ERROR : only normalize, pos supported so far {}".format(eval(_args+"_ls"))
         #dic_grid[_args] = args_avail[_args + "_ls"]
 
     def sanity_check_args(py_script, dic_grid, train_ls, dev_ls, test_ls, tasks_ls):

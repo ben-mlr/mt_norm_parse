@@ -93,7 +93,7 @@ if train:
                 slang_dic_test=slang_dic,bert_module=bert_module, early_stoppin_metric="accuracy-exact-normalize",
                 norm_2_noise_eval=False, #norm_2_noise_training=,
                 aggregating_bert_layer_mode=5, case="lower", #threshold_edit=2.9,
-                report=True, verbose=1)
+                report=True, verbose="alignement")
 
 
 null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary
@@ -120,6 +120,8 @@ if playwith:
     voc_pos_size = 21
     tasks = ["normalize"]
     layer_wise_attention = False
+    print("time", time.time())
+    start = time.time()
     model = get_bert_token_classification(vocab_size=vocab_size, voc_pos_size=voc_pos_size,
                                           tasks=["normalize"],
                                           initialize_bpe_layer=None,
@@ -187,7 +189,7 @@ if playwith:
 
     # TO SEE TOKENIZATION IMPACT : verbose='raw_data'
     interact_bert_wrap(tokenizer, model,
-                       tasks=tasks,
+                       tasks=tasks,time_=start,
                        null_str=NULL_STR, null_token_index=null_token_index,
                        topk=5, verbose=3)
 

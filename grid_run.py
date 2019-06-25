@@ -84,7 +84,7 @@ if __name__ == "__main__":
         assert os.environ.get("MODE_RUN") in ["DISTRIBUTED", "SINGLE"]
         run_standart = os.environ.get("MODE_RUN") != "DISTRIBUTED"
       else:
-          run_standart = False
+          run_standart = True
           print("LOCAL")
 
       params = []
@@ -152,7 +152,8 @@ if __name__ == "__main__":
                                                                                    stable_decoding_state_ls=[0],
                                                                                    word_decoding_ls=[0],
                                                                                    batch_size_ls=[2], word_embed_ls=[0],
-                                                                                   dir_sent_encoder_ls=[2], dir_word_encoder_ls=[2],
+                                                                                   dir_sent_encoder_ls=[2],
+                                                                                   dir_word_encoder_ls=[2],
                                                                                    lr_ls=[0.0005],
                                                                                    word_embed_init_ls=[None],
                                                                                    #, DIR_FASTEXT_WIKI_NEWS_W2V, DIR_TWEET_W2V],
@@ -238,7 +239,7 @@ if __name__ == "__main__":
                    label_grid=LABEL_GRID,
                    epochs=30,
                    test_before_run=test_before_run,
-                   debug=True, print_raw=True,
+                   debug=False, print_raw=True,
                    scoring_func_sequence_pred="exact_match",
                    warmup=warmup)
           if row is not None:

@@ -112,9 +112,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
         row = None
 
     for ind, (param, model_id_pref) in enumerate(zip(params, labels)):
-        script = "CUDA_VISIBLE_DEVICES={} {} {}".format(ind % len(gpus_ls),
-                                                        os.environ.get("PYTHON_CONDA", "python"),
-                                                        os.path.join(PROJECT_PATH, "{}.py".format(py_script)))
+        script = "CUDA_VISIBLE_DEVICES={} {} {}".format(ind % len(gpus_ls), os.environ.get("PYTHON_CONDA", "python"), os.path.join(PROJECT_PATH, "{}.py".format(py_script)))
         for arg, val in param.items():
             # args in NONE ARGS ARE NOT ADDED TO THE SCRIPT MAKER (they will be handle by default behavior later in the code)
             if not is_arg_available(script=py_script, arg=arg):
