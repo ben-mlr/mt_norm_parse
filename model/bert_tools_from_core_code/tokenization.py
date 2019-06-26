@@ -153,8 +153,6 @@ class BertTokenizer(object):
                                                                   former_src=word_piece_token,
                                                                   former_gold=word_piece_token_gold, verbose=verbose)
                         pdb.set_trace()
-
-
                 except Exception as e:
                     raise(e)
             else:

@@ -10,11 +10,16 @@ LM_PROJECT = os.path.join(PROJECT_PATH, "..", "representation", "lm")
 
 # MODELS
 # checkpoint dir if not checkpoint_dir as defined in args.json not found
-CHECKPOINT_DIR = os.path.join(PROJECT_PATH, "checkpoints")
+NEW_SAVING_DIRECTORY_NEFF = True
+if os.environ.get("ENV") == "neff" and NEW_SAVING_DIRECTORY_NEFF:
+    CHECKPOINT_DIR = os.path.join("/data/almanach/user/bemuller/projects/mt_norm_parse", "checkpoints")
+else:
+    CHECKPOINT_DIR = os.path.join(PROJECT_PATH, "checkpoints")
+#CHECKPOINT_DIR = os.path.join(PROJECT_PATH, "checkpoints")
 # SPECIFIC LCATION FOR BERT CHECKPOINT
 CHECKPOINT_BERT_DIR = os.path.join(PROJECT_PATH, "checkpoints", "bert")
 
-assert os.path.isdir(CHECKPOINT_BERT_DIR ), "ERROR : {} CHECKPOINT_BERT_DIR  does not exist  ".format(CHECKPOINT_BERT_DIR)
+assert os.path.isdir(CHECKPOINT_BERT_DIR), "ERROR : {} CHECKPOINT_BERT_DIR  does not exist  ".format(CHECKPOINT_BERT_DIR)
 
 CLIENT_GOOGLE_CLOUD = os.path.join(PROJECT_PATH, "tracking/google_api")
 SHEET_NAME_DEFAULT, TAB_NAME_DEFAULT = "model_evaluation", "experiments_tracking"

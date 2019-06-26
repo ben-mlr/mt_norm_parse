@@ -383,7 +383,7 @@ if __name__ == "__main__":
 
           BERT_NORMALIZE = True
           if BERT_NORMALIZE:
-              epochs = 1
+              epochs = 20
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,  
                                                   grid_label=LABEL_GRID,
@@ -400,7 +400,7 @@ if __name__ == "__main__":
                                                   #       OrderedDict([("bert", 1e-5), ("classifier", 0.001)]),
                                                   #       OrderedDict([("bert", 1e-5), ("classifier", 1e-5)])],
                                                   #masking_strategy_ls=[None, ["mlm", "0"], ["mlm", "1"], ["norm_mask_variable", "0"]],
-                                                  masking_strategy_ls=[["mlm","0"]],#[["mlm_need_norm", "0.5"], ["mlm", "0"],],# ["norm_mask", "0.5"],["norm_mask", "0.25"], ["norm_mask_variable", "0"]],#, ["mlm", "1"], ["mlm", "0"]],
+                                                  masking_strategy_ls=[["mlm", "0"], None],#[["mlm_need_norm", "0.5"], ["mlm", "0"],],# ["norm_mask", "0.5"],["norm_mask", "0.25"], ["norm_mask_variable", "0"]],#, ["mlm", "1"], ["mlm", "0"]],
                                                   #                     ["normed", "0.75"],["normed", "1."]],#[None,,
                                                   #lr_ls=[OrderedDict([("bert", "0.00001"), ("classifier", "0.0001")]),
                                                   #       OrderedDict([("bert", "0.00001"), ("classifier", "0.00001")])],
@@ -409,15 +409,15 @@ if __name__ == "__main__":
                                                   dropout_classifier_ls=[0.1],
                                                   dropout_input_bpe_ls=[0.0], layer_wise_attention_ls=[0],
                                                   aggregating_bert_layer_mode_ls=["last"],
-                                                  dropout_bert_ls=[0.3], tokenize_and_bpe_ls=[0],
+                                                  dropout_bert_ls=[0.3], tokenize_and_bpe_ls=[0, 1],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   freeze_parameters_ls=[1],
                                                   freeze_layer_prefix_ls_ls=[None],
                                                   #train_path=[[EN_LINES_EWT_TRAIN], [LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED, EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV], [LIU_DEV, EWT_DEV]],
                                                   #[LIU_TRAIN_OWOPUTI],
-                                                  train_path=[[TWEETS_GANESH_PERM_400]], #  [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_NOISY],[LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_2_NOISY], [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_1000]],
-                                                  dev_path=[[TWEETS_GANESH_DEV]],
-                                                  #train_path=[[LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED]], dev_path=[[LIU_DEV]],
+                                                  #train_path=[[TWEETS_GANESH_PERM_400]], #  [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_NOISY],[LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_2_NOISY], [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_1000]],
+                                                  #dev_path=[[TWEETS_GANESH_DEV]],
+                                                  train_path=[[LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED]], dev_path=[[LIU_DEV]],
                                                   #train_path=[[EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV]],
                                                   #train_path=[[AUGMENTED_LEX_DIC[n_sent]] for n_sent in [80, 100, 120, 150, 250, 350]],
                                                   #dev_path=[[LIU_DEV] for n_sent in [80, 100, 120,150,250,350]],
