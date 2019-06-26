@@ -8,6 +8,7 @@ from toolbox.directories_handling import setup_repoting_location
 from toolbox.optim.freezing_policy import apply_fine_tuning_strategy
 from tracking.reporting_google_sheet import append_reporting_sheet, update_status
 from io_.data_iterator import readers_load, conllu_data, data_gen_multi_task_sampling_batch
+#import model.bert_tools_from_core_code.tokenization as bert_tok
 from model.bert_tools_from_core_code.tokenization import BertTokenizer
 from training.epoch_run_fine_tuning_bert import epoch_run
 from toolbox.report_tools import write_args

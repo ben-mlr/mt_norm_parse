@@ -5,7 +5,6 @@ from model.bert_normalize import get_bert_token_classification
 from io_.dat.constants import TOKEN_BPE_BERT_START, TOKEN_BPE_BERT_SEP, NULL_STR, PAD_BERT, PAD_ID_BERT, SPECIAL_TOKEN_LS
 from env.models_dir import BERT_MODEL_DIC
 from io_.info_print import printing
-
 from toolbox.bert_tools.get_bert_info import get_bert_name
 
 
@@ -63,8 +62,8 @@ def train_eval_bert_normalize(args, verbose=1):
     dir_grid = args.overall_report_dir
 
     #list_reference_heuristic_test = list(json.load(open(os.path.join(PROJECT_PATH, "./data/words_dictionary.json"),"r"),object_pairs_hook=OrderedDict).keys())
-    list_reference_heuristic_test = pickle.load(open(os.path.join(PROJECT_PATH, "./data/wiki-news-FAIR-SG-top50000.pkl"), "rb"))
-    slang_dic = json.load(open(os.path.join(PROJECT_PATH, "./data/urban_dic_abbreviations.json"), "r"))
+    list_reference_heuristic_test = pickle.load(open(os.path.join(PROJECT_PATH, "data/wiki-news-FAIR-SG-top50000.pkl"), "rb"))
+    slang_dic = json.load(open(os.path.join(PROJECT_PATH, "data/urban_dic_abbreviations.json"), "r"))
 
     run(bert_with_classifier=model, 
         voc_tokenizer=voc_tokenizer, tasks=args.tasks, train_path=args.train_path, dev_path=args.dev_path,

@@ -75,7 +75,6 @@ def run_grid(parameters, labels, dir_grid, label_grid,
             # breaking after testing first modl
             break
 
-
 if __name__ == "__main__":
 
       if platform != "darwin":
@@ -84,7 +83,7 @@ if __name__ == "__main__":
         assert os.environ.get("MODE_RUN") in ["DISTRIBUTED", "SINGLE"]
         run_standart = os.environ.get("MODE_RUN") != "DISTRIBUTED"
       else:
-          run_standart = True
+          run_standart = False
           print("LOCAL")
 
       params = []
@@ -213,6 +212,7 @@ if __name__ == "__main__":
       GRID_FOLDER_NAME = LABEL_GRID if len(LABEL_GRID) > 0 else RUN_ID
       GRID_FOLDER_NAME += "-summary"
       dir_grid = os.path.join(CHECKPOINT_DIR, GRID_FOLDER_NAME)
+      printing("GRID RUN : CREATING : {} made".format(dir_grid), verbose=0, verbose_level=0)
       os.mkdir(dir_grid)
       printing("GRID RUN : Grid directory : dir_grid {} made".format(dir_grid), verbose=0, verbose_level=0)
 

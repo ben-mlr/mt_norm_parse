@@ -13,6 +13,7 @@ LM_PROJECT = os.path.join(PROJECT_PATH, "..", "representation", "lm")
 NEW_SAVING_DIRECTORY_NEFF = True
 if os.environ.get("ENV") == "neff" and NEW_SAVING_DIRECTORY_NEFF:
     CHECKPOINT_DIR = os.path.join("/data/almanach/user/bemuller/projects/mt_norm_parse", "checkpoints")
+    print("INFO : Project_variables : CHECKPOINT_DIR set to {}".format(CHECKPOINT_DIR))
 else:
     CHECKPOINT_DIR = os.path.join(PROJECT_PATH, "checkpoints")
 #CHECKPOINT_DIR = os.path.join(PROJECT_PATH, "checkpoints")

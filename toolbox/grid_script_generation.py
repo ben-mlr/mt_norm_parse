@@ -108,6 +108,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                                           env=environment, status="running {}".format(warmup_desc),
                                           verbose=1)
     except Exception as e:
+        raise(e)
         printing("GOOGLE SHEET CONNECTION FAILED {}", var=[e], verbose=1, verbose_level=1)
         row = None
 

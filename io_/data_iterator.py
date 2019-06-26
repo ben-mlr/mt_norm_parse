@@ -9,9 +9,9 @@ from io_.dat import conllu_data
 from io_.info_print import printing, print_char_seq, disable_tqdm_level
 from io_.printout_iterator_as_raw import outputing_raw_data_from_iterator
 from toolbox.sanity_check import get_timing
-from io_.bert_iterators_tools.alignement import aligned_output, realigne
-
-from io_.bert_iterators_tools.string_processing import preprocess_batch_string_for_bert, from_bpe_token_to_str, get_indexes
+#from io_.bert_iterators_tools.alignement import realigne
+#from io_.bert_iterators_tools.alignement import aligned_output
+#from io_.bert_iterators_tools.string_processing import preprocess_batch_string_for_bert, from_bpe_token_to_str, get_indexes
 NORM2NOISY = False
 
 

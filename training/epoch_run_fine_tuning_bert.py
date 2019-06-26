@@ -4,7 +4,8 @@ from io_.dat.constants import PAD_ID_BERT, MASK_BERT, CLS_BERT, SEP_BERT, SPECIA
 from io_.info_print import printing
 from io_.dat.normalized_writer import write_conll
 from io_.bert_iterators_tools.string_processing import preprocess_batch_string_for_bert, from_bpe_token_to_str, get_indexes, get_indexes_src_gold
-from io_.bert_iterators_tools.alignement import aligned_output, realigne
+#from io_.bert_iterators_tools.alignement import aligned_output, realigne
+import io_.bert_iterators_tools.alignement  as alignement
 
 from evaluate.scoring.report import overall_word_level_metric_measure
 from evaluate.scoring.confusion_matrix_rates import get_perf_rate
@@ -320,7 +321,7 @@ def epoch_run(batchIter, tokenizer,
                 # (that we don't want to handle
 
                 output_tokens_tensor_aligned, input_tokens_tensor_aligned, input_alignement_with_raw, input_mask, _1_to_n_token = \
-                    aligned_output(input_tokens_tensor, output_tokens_tensor,
+                    alignement.aligned_output(input_tokens_tensor, output_tokens_tensor,
                                    input_alignement_with_raw,
                                    output_alignement_with_raw, mask_token_index=mask_token_index,
                                    input_mask=input_mask, use_gpu=use_gpu,
@@ -516,10 +517,10 @@ def epoch_run(batchIter, tokenizer,
                                                             null_str=null_str, verbose=verbose)
 
                 # de-BPE-tokenize
-                src_detokenized = realigne(source_preprocessed, input_alignement_with_raw, null_str=null_str,
+                src_detokenized = alignement.realigne(source_preprocessed, input_alignement_with_raw, null_str=null_str,
                                            tasks=["normalize"],# normalize means we deal wiht bpe input not pos
                                            mask_str=MASK_BERT, remove_mask_str=remove_mask_str_prediction)
-                gold_detokenized = realigne(gold, input_alignement_with_raw, remove_null_str=True, null_str=null_str,
+                gold_detokenized = alignement.realigne(gold, input_alignement_with_raw, remove_null_str=True, null_str=null_str,
                                             tasks=tasks,
                                             mask_str=MASK_BERT)
                 if task_pos_is:
@@ -527,7 +528,7 @@ def epoch_run(batchIter, tokenizer,
                     gold_detokenized = [gold_sent[:len(src_sent)] for gold_sent, src_sent in zip(gold_detokenized, src_detokenized)]
                 pred_detokenized_topk = []
                 for sent_ls in sent_ls_top:
-                    pred_detokenized_topk.append(realigne(sent_ls, input_alignement_with_raw, remove_null_str=True,
+                    pred_detokenized_topk.append(alignement.realigne(sent_ls, input_alignement_with_raw, remove_null_str=True,
                                                           tasks=tasks, remove_extra_predicted_token=True,
                                                           null_str=null_str, mask_str=MASK_BERT))
                     # NB : applying those successively might overlay heuristic
