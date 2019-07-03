@@ -52,7 +52,7 @@ def append_reporting_sheet(git_id, tasks, rioc_job, description, log_dir, target
 
 
 def update_status(row, value, col_number=8, sheet=None, verbose=1):
-    if sheet is not None:
+    if sheet is None:
         sheet, sheet_name, tab_name = open_client()
     if value is not None:
         sheet.update_cell(row, col_number, value)

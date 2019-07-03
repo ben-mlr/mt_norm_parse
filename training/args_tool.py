@@ -185,6 +185,5 @@ def args_train(mode="command_line", script="train_evaluate_run"):
     if args.test_paths is not None:
         args.test_paths = [test_path_task.split(",") for test_path_task in args.test_paths]
 
-
     return args
 

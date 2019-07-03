@@ -48,7 +48,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
     hidden_size_encoder = args.get("hidden_size_encoder", 10)
     word_embed = args.get("word_embed", False)
     word_embedding_projected_dim = args.get("word_embedding_projected_dim", None)
-    word_embedding_dim  = args.get("word_embedding_dim", 0)
+    word_embedding_dim = args.get("word_embedding_dim", 0)
     mode_word_encoding = args.get("mode_word_encoding", "cat")
     char_level_embedding_projection_dim = args.get("char_level_embedding_projection_dim", 0)
 
@@ -134,7 +134,7 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                             expand_vocab_dev_test=expand_vocab_dev_test if word_embed_init is not None else False,
                             dense_dim_auxilliary=dense_dim_auxilliary, dense_dim_auxilliary_2=dense_dim_auxilliary_2,
                             lr=lr, extend_n_batch=extend_n_batch,
-                            n_epochs=n_epochs, normalization=normalization,get_batch_mode_all=get_batch_mode_all,
+                            n_epochs=n_epochs, normalization=normalization, get_batch_mode_all=get_batch_mode_all,
                             batch_size=batch_size, model_specific_dictionary=True, freq_writer=freq_writer,
                             dict_path=None, model_dir=None, add_start_char=1,
                             freq_scoring=freq_scoring,
@@ -146,10 +146,14 @@ def train_eval(train_path, dev_path, model_id_pref, pos_specific_path=None,
                             dir_word_encoder=dir_word_encoder, compute_mean_score_per_sent=compute_mean_score_per_sent,
                             overall_label=overall_label, overall_report_dir=overall_report_dir,
                             label_train=get_data_set_label(train_path), label_dev=get_data_set_label(dev_path),
-                            word_recurrent_cell_encoder=word_recurrent_cell_encoder, word_recurrent_cell_decoder=word_recurrent_cell_decoder,
-                            drop_out_sent_encoder_out=drop_out_sent_encoder_out, drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
-                            word_embedding_dim=word_embedding_dim, word_embed=word_embed, word_embedding_projected_dim=word_embedding_projected_dim,
-                            mode_word_encoding=mode_word_encoding, char_level_embedding_projection_dim=char_level_embedding_projection_dim,
+                            word_recurrent_cell_encoder=word_recurrent_cell_encoder,
+                            word_recurrent_cell_decoder=word_recurrent_cell_decoder,
+                            drop_out_sent_encoder_out=drop_out_sent_encoder_out,
+                            drop_out_char_embedding_decoder=drop_out_char_embedding_decoder,
+                            word_embedding_dim=word_embedding_dim, word_embed=word_embed,
+                            word_embedding_projected_dim=word_embedding_projected_dim,
+                            mode_word_encoding=mode_word_encoding,
+                            char_level_embedding_projection_dim=char_level_embedding_projection_dim,
                             drop_out_word_encoder_out=drop_out_word_encoder_out, dropout_bridge=dropout_bridge,
                             freq_checkpointing=freq_checkpointing, reload=False, model_id_pref=model_id_pref,
                             score_to_compute_ls=score_to_compute_ls, mode_norm_ls=["all", "NEED_NORM", "NORMED"],

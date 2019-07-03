@@ -38,14 +38,22 @@ from model.bert_tools_from_core_code.tools import *
 logger = logging.getLogger(__name__)
 
 PRETRAINED_MODEL_ARCHIVE_MAP = {
-    'bert-base-uncased': "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased.tar.gz",
-    'bert-large-uncased': "https://s3.amazonaws.com/models.huggingface.co/bert/bert-large-uncased.tar.gz",
-    'bert-base-cased': "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-cased.tar.gz",
-    'bert-large-cased': "https://s3.amazonaws.com/models.huggingface.co/bert/bert-large-cased.tar.gz",
-    'bert-base-multilingual-uncased': "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-multilingual-uncased.tar.gz",
-    'bert-base-multilingual-cased': "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-multilingual-cased.tar.gz",
-    'bert-base-chinese': "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-chinese.tar.gz",
+    'bert-base-uncased':
+        "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased.tar.gz",
+    'bert-large-uncased':
+        "https://s3.amazonaws.com/models.huggingface.co/bert/bert-large-uncased.tar.gz",
+    'bert-base-cased':
+        "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-cased.tar.gz",
+    'bert-large-cased':
+        "https://s3.amazonaws.com/models.huggingface.co/bert/bert-large-cased.tar.gz",
+    'bert-base-multilingual-uncased':
+        "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-multilingual-uncased.tar.gz",
+    'bert-base-multilingual-cased':
+        "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-multilingual-cased.tar.gz",
+    'bert-base-chinese':
+        "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-chinese.tar.gz",
 }
+
 CONFIG_NAME = 'bert_config.json'
 WEIGHTS_NAME = 'pytorch_model.bin'
 TF_WEIGHTS_NAME = 'model.ckpt'
@@ -1265,9 +1273,9 @@ class BertForTokenClassification(BertPreTrainedModel):
         if labels is not None or labels_task_2 is not None:
             loss_dict["loss"] = loss_weights["loss_task_1"]*loss_dict["loss_task_1"] + \
                                 loss_weights["loss_task_2"]*loss_dict["loss_task_2"]
-            return loss_dict
+            return loss_dict, None
         else:
-            return pred_dict
+            return pred_dict, None
 
 
 class BertForQuestionAnswering(BertPreTrainedModel):

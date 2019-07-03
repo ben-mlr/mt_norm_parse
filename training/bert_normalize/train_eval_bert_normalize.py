@@ -22,7 +22,7 @@ def train_eval_bert_normalize(args, verbose=1):
     freeze_parameters = args.freeze_parameters
     freeze_layer_prefix_ls = args.freeze_layer_prefix_ls
     # ["bert"]
-    voc_pos_size = 21
+    voc_pos_size = 19 #18+1 for alg_arabizi # 53+1 for ARABIZI 1# 21 is for ENGLISH
     printing("MODEL : voc_pos_size hardcoded to {}", var=voc_pos_size, verbose_level=1, verbose=verbose)
 
     if args.checkpoint_dir is None:
@@ -65,14 +65,24 @@ def train_eval_bert_normalize(args, verbose=1):
     list_reference_heuristic_test = pickle.load(open(os.path.join(PROJECT_PATH, "data/wiki-news-FAIR-SG-top50000.pkl"), "rb"))
     slang_dic = json.load(open(os.path.join(PROJECT_PATH, "data/urban_dic_abbreviations.json"), "r"))
 
+    if "normalize" in args.tasks:
+        early_stoppin_metric = "accuracy-exact-normalize"
+    elif "pos" in args.tasks:
+        early_stoppin_metric = "accuracy-exact-pos"
+    else:
+        raise(Exception("Neither normalize nor pos is in {} (cant define early_stoppin_metric)".format(args.tasks)))
+    printing("INFO : tasks is {} so setting early_stoppin_metric to {} ", var=[args.tasks, early_stoppin_metric], verbose=verbose,
+             verbose_level=1)
+    debug = os.environ.get("ENV") not in ["rioc", "neff"]
+    printing("INFO : environ is {} so debug set to {}", var=[os.environ.get("ENV", "Unkwnown"),debug], verbose_level=1, verbose=verbose)
     run(bert_with_classifier=model, 
         voc_tokenizer=voc_tokenizer, tasks=args.tasks, train_path=args.train_path, dev_path=args.dev_path,
         auxilliary_task_norm_not_norm=True,
-        saving_every_epoch=1, lr=lr,
-        batch_size=batch_size, n_iter_max_per_epoch=5000, n_epoch=args.epochs,
+        saving_every_epoch=20, lr=lr,
+        batch_size=batch_size, n_iter_max_per_epoch=10000, n_epoch=args.epochs,
         test_path_ls=args.test_paths,
         description=description, null_token_index=null_token_index, null_str=NULL_STR,
-        model_suffix="{}".format(args.model_id_pref), debug=False,
+        model_suffix="{}".format(args.model_id_pref), debug=debug,
         freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls, bert_model=args.bert_model,
         initialize_bpe_layer=initialize_bpe_layer, report_full_path_shared=dir_grid, shared_id=args.overall_label,
         fine_tuning_strategy=args.fine_tuning_strategy,
@@ -86,7 +96,7 @@ def train_eval_bert_normalize(args, verbose=1):
         bert_module=args.bert_module, tokenize_and_bpe=args.tokenize_and_bpe,
         list_reference_heuristic_test=list_reference_heuristic_test, case="lower",
         layer_wise_attention=args.layer_wise_attention,
-        slang_dic_test=slang_dic, early_stoppin_metric="accuracy-exact-normalize",
+        slang_dic_test=slang_dic, early_stoppin_metric=early_stoppin_metric,
         report=True, verbose=1)
 
     printing("MODEL {} trained and evaluated", var=[args.model_id_pref], verbose_level=1, verbose=verbose)

@@ -4,6 +4,7 @@ from io_.info_print import printing
 from io_.dat.conllu_get_normalization import get_normalized_token
 from env.project_variables import AVAILABLE_TASKS, TASKS_PARAMETER
 from env.importing import *
+from env.project_variables import PROJECT_PATH
 
 
 class CoNLLReader(object):
@@ -54,7 +55,7 @@ class CoNLLReader(object):
     raw_text = []
 
     while len(line) > 0 and (len(line.strip()) == 0 or line.strip()[0] == '#'):
-      if line.strip()[0] == '#':
+      if not len(line.strip()) == 0 and line.strip()[0] == '#':
         raw_text.append(line)
       line = self.__source_file.readline()
     
@@ -121,9 +122,10 @@ class CoNLLReader(object):
       if '-' in tokens[0] or '.' in tokens[0]:
         continue
       if len(tokens)<10:
-        sys.stderr.write("Sentence broken for unkwown reasons \n".format(lines))
-        open("/scratch/bemuller/parsing/sosweet/processing/logs/catching_errors.txt", "a").write("Line broken {} because of tokens "
-                                                                                              "{} from {} file \n ".format(lines, tokens,self.__file_path))
+        sys.stderr.write("Sentence broken for unkwown reasons {} \n {} ".format(tokens, lines))
+        if os.environ.get("EXPERIENCE") is not None:
+          print("WARNING : WRITING corrupted gold data in {} ".format(os.path.join(os.environ["EXPERIENCE"], "logs/catching_errors.txt")))
+          open(os.path.join(os.environ["EXPERIENCE"], "logs/catching_errors.txt"), "a").write("Line broken {} because of tokens {} from {} file \n ".format(lines, tokens,self.__file_path))
         continue
 
       n_exception = 0

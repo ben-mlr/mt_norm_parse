@@ -104,7 +104,6 @@ def grid_param_label_generate(param,
   assert len(train_ls) == len(test_ls), "ERROR len train {} test {} train_ls is {} test_ls {} :" \
                                         " they should be same length ".format(len(train_ls), len(test_ls),
                                                                               train_ls, test_ls)
-
   if batch_size_ls is None:
     batch_size_ls = [DEFAULT_BATCH_SIZE]
     default.append(("batch_size", batch_size_ls[0]))

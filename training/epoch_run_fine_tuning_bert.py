@@ -42,7 +42,7 @@ def epoch_run(batchIter, tokenizer,
               inverse_writing=False,
               norm_2_noise_eval=False, norm_2_noise_training=None, aggregating_bert_layer_mode="sum",
               compute_intersection_score = False,
-              subsample_early_stoping_metric_val="all",
+              subsample_early_stoping_metric_val=None,
               slang_dic=None, list_reference_heuristic=None,list_candidates=None, index_alphabetical_order=None,
               case=None, threshold_edit=None, edit_module_pred_need_norm_only=True, low_memory_foot_print_batch_mode=False,
               batch_size_real=0, tokenize_and_bpe=False, n_epoch=None,
@@ -55,6 +55,8 @@ def epoch_run(batchIter, tokenizer,
             Can also have different aggregation function
             TODO : TEST those scoring fucntions
     """
+    if subsample_early_stoping_metric_val is None:
+        subsample_early_stoping_metric_val = "all"
     if low_memory_foot_print_batch_mode:
         assert batch_size_real > 0, "ERROR have to define batch_size_real in low_memory_foot_print_batch_mode"
 
@@ -121,7 +123,6 @@ def epoch_run(batchIter, tokenizer,
                                                                           extra_label_for_prediction))
         dir_gold_original_only = os.path.join(dir_end_pred, "{}_ep-gold_src{}.conll".format(epoch,
                                                                                             extra_label_for_prediction))
-
     mask_token_index = tokenizer.convert_tokens_to_ids([MASK_BERT])[0]
     cls_token_index = tokenizer.convert_tokens_to_ids([CLS_BERT])[0]
     sep_token_index = tokenizer.convert_tokens_to_ids([SEP_BERT])[0]
@@ -326,6 +327,7 @@ def epoch_run(batchIter, tokenizer,
                                    output_alignement_with_raw, mask_token_index=mask_token_index,
                                    input_mask=input_mask, use_gpu=use_gpu,
                                    null_token_index=null_token_index, verbose=verbose)
+                pdb.set_trace()
                 input_tokens_tensor = input_tokens_tensor_aligned
                 #
                 #TODO : creaate a tensor same dim as output_tokens_tensor based on output_alignement_with_raw
@@ -367,21 +369,24 @@ def epoch_run(batchIter, tokenizer,
                                                            sep_token_index=sep_token_index,
                                                            dropout=dropout_input_bpe, applied_dropout_rate=True)
 
-            add_pred_n_mask = False
+            add_pred_n_mask = True
             if add_pred_n_mask:
+                pdb.set_trace()
                 def pred_n_bpe(input_tokens_tensor, mask_token_index, space_token_index):
                     labels_n_mask = torch.ones_like(input_tokens_tensor)
                     mask_index = (input_tokens_tensor == mask_token_index)#.nonzero()#[:, 1]
                     space_index = (input_tokens_tensor == space_token_index)#.nonzero()#[:, 1]
                     labels_n_mask[space_index == 1] = 0
                     labels_n_mask[mask_index == 1] = -1
-
-                    consecutive = [[(sent_mask_index[batch_ind, 1][i] == sent_mask_index[i + 1]+1).data[0] for i in range(len(sent_mask_index) - 1)]
-                                   for sent_mask_index in (input_tokens_tensor == mask_token_index).nonzero()]
-                    if len(consecutive) > 0:
+                    pdb.set_trace()
+                    #consecutive = [[(sent_mask_index[batch_ind, 1][i] == sent_mask_index[i + 1]+1).data[0]
+                    #                for i in range(len(sent_mask_index) - 1)] for sent_mask_index in (input_tokens_tensor == mask_token_index).nonzero()]
+                    consecutive = [[input_tokens_tensor[ind_sent, ind_word] == input_tokens_tensor[ind_sent, ind_word]
+                                    for ind_word in range(input_tokens_tensor.size(1))] for ind_sent in range(input_tokens_tensor.size(0))]
+                    if len([]) > 0:
                         print((input_tokens_tensor == mask_token_index))
                         print((input_tokens_tensor == mask_token_index).nonzero())
-                        print(consecutive)
+                        #print(consecutive)
                     # give a counter for each non consecutive mask
                 pred_n_bpe(input_tokens_tensor, mask_token_index, space_token_index)
 
@@ -739,7 +744,7 @@ def epoch_run(batchIter, tokenizer,
                 if writer is not None and log_perf:
                     writer.add_scalars("perf-{}-{}".format(tasks[0], mode),
                                        {"{}-{}-{}-{}".format(metric_val, mode, model_id, sample):
-                                            score/n_tokens if n_tokens>0 and score is not None else 0
+                                        score/n_tokens if n_tokens>0 and score is not None else 0
                                         }, epoch)
                 reports.append(report)
             # class negative 0 , class positive 1
@@ -790,7 +795,10 @@ def epoch_run(batchIter, tokenizer,
     try:
         if early_stoppin_metric is not None:
             assert early_stoppin_metric_val is not None, "ERROR : early_stoppin_metric_val should have been found " \
-                                                     "but was not {} sample metric {} not found in {}  ".format(early_stoppin_metric, subsample_early_stoping_metric_val, reports)
+                                                     "but was not {} sample metric {} not found in {}  " \
+                                                         "(NB : MIGHT ALSO BECAUSE THE PERF DID NOT DECREASED AT ALL ) ".format(early_stoppin_metric, subsample_early_stoping_metric_val, reports)
     except Exception as e:
-        print(e)                                           
+        print(e)
+    if early_stoppin_metric_val is None:
+        print("WARNING : early_stoppin_metric_val is None, score {} n_tokens {}".format(score, n_tokens))
     return loss/batch_i, iter, reports, early_stoppin_metric_val

@@ -89,7 +89,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                                                                             dropout_input_bpe_ls=dropout_input_bpe_ls, dropout_bert_ls=dropout_bert_ls,
                                                                             masking_strategy_ls=masking_strategy_ls, checkpoint_dir_ls=checkpoint_dir_ls,
                                                                             norm_2_noise_training_ls=norm_2_noise_training_ls, aggregating_bert_layer_mode_ls=aggregating_bert_layer_mode_ls,
-                                                                            bert_module_ls=bert_module_ls,layer_wise_attention_ls=layer_wise_attention_ls,tokenize_and_bpe_ls=tokenize_and_bpe_ls,
+                                                                            bert_module_ls=bert_module_ls, layer_wise_attention_ls=layer_wise_attention_ls,tokenize_and_bpe_ls=tokenize_and_bpe_ls,
                                                                             )
     if gpu_mode == "random":
         if gpus_ls is None:
@@ -108,7 +108,6 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                                           env=environment, status="running {}".format(warmup_desc),
                                           verbose=1)
     except Exception as e:
-        raise(e)
         printing("GOOGLE SHEET CONNECTION FAILED {}", var=[e], verbose=1, verbose_level=1)
         row = None
 
@@ -168,7 +167,7 @@ if __name__ == "__main__":
 
     from uuid import uuid4
 
-    test_before_run=False
+    test_before_run = False
     epochs = 1
     LABEL_GRID = str(uuid4())[0:5]
 

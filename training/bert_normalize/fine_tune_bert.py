@@ -36,7 +36,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         compute_intersection_score_test=True,
         slang_dic_test=None, list_reference_heuristic_test=None,
         bert_module=None,
-        case=None, threshold_edit=3,tokenize_and_bpe=False,
+        case=None, threshold_edit=3, tokenize_and_bpe=False,
         layer_wise_attention=None,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
@@ -61,7 +61,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
     else:
         if early_stoppin_metric == "accuracy-exact-normalize":
             subsample_early_stoping_metric_val = "all"
-        printing("INFO : found early_stoppin_metric {}", var=[early_stoppin_metric], verbose=verbose, verbose_level=1)
+        printing("INFO : early_stoppin_metric passed is {}", var=[early_stoppin_metric], verbose=verbose, verbose_level=1)
     assert len(tasks) == len(train_path), "ERROR tasks is {} but train path are {}".format(tasks, train_path)
     assert len(dev_path) == len(train_path)
     #assert len(test_path_ls) == len(tasks), "{} tasks test_path_ls {}".format(test_path_ls, tasks)
@@ -105,9 +105,11 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                        ("masking_strategy", masking_strategy), ("portion_mask", portion_mask),
                                        ("checkpoint_dir", args.checkpoint_dir if args is not None else None),
                                        ("norm_2_noise_training", norm_2_noise_training),
-                                       ("random_iterator_train",random_iterator_train),
-                                       ("aggregating_bert_layer_mode",aggregating_bert_layer_mode), ("tokenize_and_bpe",tokenize_and_bpe),
-                                       ("SEED", SEED_TORCH), ("case", case), ("bert_module", bert_module), ("freeze_layer_prefix_ls", freeze_layer_prefix_ls),
+                                       ("random_iterator_train", random_iterator_train),
+                                       ("aggregating_bert_layer_mode", aggregating_bert_layer_mode),
+                                       ("tokenize_and_bpe", tokenize_and_bpe),
+                                       ("SEED", SEED_TORCH), ("case", case), ("bert_module", bert_module),
+                                       ("freeze_layer_prefix_ls", freeze_layer_prefix_ls),
                                        ("layer_wise_attention", layer_wise_attention)
                                        ])
         printing("HYPERPARAMETERS {} ", var=[hyperparameters], verbose=verbose, verbose_level=1)
@@ -119,8 +121,6 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
             writer = SummaryWriter(log_dir=tensorboard_log)
             if writer is not None:
                 writer.add_text("INFO-ARGUMENT-MODEL-{}".format(model_id), str(hyperparameters), 0)
-
-
     else:
         assert dict_path is not None
         assert end_predictions is not None
@@ -153,6 +153,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
     inv_word_dic = word_dictionary.instance2index
     # load , mask, bucket and index data
     tokenizer = BertTokenizer.from_pretrained(voc_tokenizer)
+    assert tokenizer is not None, "ERROR : tokenizer is None , voc_tokenizer failed to be loaded {}".format(voc_tokenizer)
     if run_mode == "train":
         readers_train = readers_load(datasets=train_path, tasks=tasks, word_dictionary=word_dictionary,
                                      word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,

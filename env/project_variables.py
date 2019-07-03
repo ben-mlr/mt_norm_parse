@@ -11,21 +11,25 @@ LM_PROJECT = os.path.join(PROJECT_PATH, "..", "representation", "lm")
 # MODELS
 # checkpoint dir if not checkpoint_dir as defined in args.json not found
 NEW_SAVING_DIRECTORY_NEFF = True
+
 if os.environ.get("ENV") == "neff" and NEW_SAVING_DIRECTORY_NEFF:
     CHECKPOINT_DIR = os.path.join("/data/almanach/user/bemuller/projects/mt_norm_parse", "checkpoints")
     print("INFO : Project_variables : CHECKPOINT_DIR set to {}".format(CHECKPOINT_DIR))
 else:
     CHECKPOINT_DIR = os.path.join(PROJECT_PATH, "checkpoints")
-#CHECKPOINT_DIR = os.path.join(PROJECT_PATH, "checkpoints")
+
+# CHECKPOINT_DIR = os.path.join(PROJECT_PATH, "checkpoints")
 # SPECIFIC LCATION FOR BERT CHECKPOINT
-CHECKPOINT_BERT_DIR = os.path.join(PROJECT_PATH, "checkpoints", "bert")
+
+CHECKPOINT_BERT_DIR = os.path.join(CHECKPOINT_DIR, "bert")
 
 assert os.path.isdir(CHECKPOINT_BERT_DIR), "ERROR : {} CHECKPOINT_BERT_DIR  does not exist  ".format(CHECKPOINT_BERT_DIR)
 
 CLIENT_GOOGLE_CLOUD = os.path.join(PROJECT_PATH, "tracking/google_api")
 SHEET_NAME_DEFAULT, TAB_NAME_DEFAULT = "model_evaluation", "experiments_tracking"
 
-LIST_ARGS = ["tasks", "train_path", "dev_path", "test_path", "heuristic_ls", "masking_strategy", "freeze_layer_prefix_ls"]
+LIST_ARGS = ["tasks", "train_path", "dev_path", "test_path", "heuristic_ls",
+             "masking_strategy", "freeze_layer_prefix_ls"]
 NONE_ARGS = ["gpu"]
 BOOL_ARGS = ["word_embed", "teacher_force", "char_decoding", "unrolling_word", "init_context_decoder",
              "word_decoding", "stable_decoding_state", "char_src_attention"]
@@ -48,7 +52,8 @@ SCORE_AUX = ["norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recal
 AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm", "pos", "edit_prediction"]
 AVAILABLE_AGGREGATION_FUNC_AUX_TASKS = ["norm_not_norm", "edit_prediction"]
 AVAILABLE_BERT_FINE_TUNING_STRATEGY = ["bert_out_first", "standart", "flexible_lr", "only_first_and_last"]
-AVAILABLE_BERT_MASKING_STRATEGY = ["normed", "cls", "start_stop", "mlm", "norm_mask", "norm_mask_variable", "mlm_need_norm"]
+AVAILABLE_BERT_MASKING_STRATEGY = ["normed", "cls", "start_stop", "mlm", "norm_mask",
+                                   "norm_mask_variable", "mlm_need_norm"]
 
 edit_rules = ["edit_check-"+ref_list_label+"-"+need_normed_rule for ref_list_label in ["data", "ref", "all"] for need_normed_rule in ["need_normed", "all"]]
 heuristics = ["gold_detection", "#", "@", "url", "slang_translate"]
@@ -119,7 +124,18 @@ CP_PASTE_WR_TEST_LABEL, CP_WR_PASTE_TEST = "copy_paste_real_word-test", os.path.
 
 CP_PASTE_WR_TEST_269_LABEL, CP_WR_PASTE_TEST_269 = "copy_paste_real_word_test-first269", os.path.join(PROJECT_PATH, "./data/copy_paste_real_word_test-first269.conll")
 
-# AUGME
+# code mixed tagging
+ARABIZI_POS_1_LABEL, ARABIZI_1_POS = "arabizi-pos",  os.path.join(PROJECT_PATH, "./data/pos/arabizi.gold.1-911.conllu")
+ARABIZI_POS_1_TRAIN_LABEL, ARABIZI_1_TRAIN_POS = "arabizi_train-pos",  os.path.join(PROJECT_PATH, "./data/pos/arabizi.gold.1-800-train.conllu")
+ARABIZI_POS_1_TEST_LABEL, ARABIZI_1_TEST_POS = "arabizi_test-pos",  os.path.join(PROJECT_PATH, "./data/pos/arabizi.gold.1-100-test.conllu")
+
+ARABIZI_POS_TRAIN_LABEL, ARABIZI_TRAIN_POS = "arabizi_train-pos",  os.path.join(PROJECT_PATH, "./data/pos/alg_arabizi-ud_train.conllu")
+ARABIZI_POS_DEV_LABEL, ARABIZI_DEV_POS = "arabizi_dev-pos",  os.path.join(PROJECT_PATH, "./data/pos/alg_arabizi-ud_dev.conllu")
+ARABIZI_POS_TEST_LABEL, ARABIZI_TEST_POS = "arabizi_test-pos",  os.path.join(PROJECT_PATH, "./data/pos/alg_arabizi-ud_test.conllu")
+
+
+
+# AUGMENT
 
 DIR_TWEET_W2V = os.path.join(PROJECT_PATH, "w2v", "tweets.en.w2v.txt")
 DIR_FASTEXT_WIKI_NEWS_W2V = os.path.join(PROJECT_PATH, "w2v", "wiki-news-300d-1M.vec")
@@ -281,6 +297,12 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 EMOJIS_LS: EMOJI_LS_LABEL,
                 PERMUTATION_TRAIN: PERMUTATION_TRAIN_LABEL, PERMUTATION_TEST: PERMUTATION_TEST_LABEL,
                 ERIC_ORIGINAL: ERIC_ORIGINAL_LABEL,
+                ARABIZI_1_POS: ARABIZI_POS_1_LABEL,
+
+                ARABIZI_TRAIN_POS: ARABIZI_POS_TRAIN_LABEL,
+                ARABIZI_DEV_POS: ARABIZI_POS_DEV_LABEL,
+                ARABIZI_TEST_POS: ARABIZI_POS_TEST_LABEL,
+
                 EMNLP12_DIC: EMNLP12_DIC_LABEL
                 }
 

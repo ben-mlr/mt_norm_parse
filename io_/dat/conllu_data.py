@@ -547,7 +547,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
         try:
             hid_inputs[i, :inst_size] = hids
         except:
-            print("ASSIGNING 1 to head id cause hids is {} ".format(hids))
+            printing("WARNING : ASSIGNING 1 to head id cause hids is {} ".format(hids), verbose_level=2, verbose=verbose)
             hid_inputs[i, :inst_size] = 1
         hid_inputs[i, inst_size:] = PAD_ID_TAG
       #  hid_inputs[i, :0] = None

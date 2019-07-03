@@ -11,6 +11,12 @@ BERT_MODEL_DIC = {"bert-cased": {"vocab": os.path.join(LM_PROJECT, "bert_models/
                       "model": None,
                       "vocab_size": 28996,
                               },
+                  "bert_base_multilingual_cased": {
+                      "vocab": os.path.join(LM_PROJECT, "bert_models/bert-base-multilingual-cased-vocab.txt"),
+                      "model": os.path.join(LM_PROJECT, "bert_models/bert-base-multilingual-cased.tar.gz"),
+                      "vocab_size": 119547
+                  }
+
                   }
 
 
