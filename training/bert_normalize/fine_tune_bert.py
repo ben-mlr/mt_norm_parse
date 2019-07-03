@@ -38,6 +38,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         bert_module=None,
         case=None, threshold_edit=3, tokenize_and_bpe=False,
         layer_wise_attention=None,
+        append_n_mask=False,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
@@ -48,7 +49,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
     printing("MODEL : RUNNING IN {} mode", var=[run_mode], verbose=verbose, verbose_level=1)
     printing("WARNING : casing was set to {} (this should be consistent at train and test)", var=[case], verbose=verbose, verbose_level=1)
     use_gpu_hardcoded_readers = False
-    printing("WARNING use_gpu_hardcoded_readers hardcoded for readers set to {}",var=[use_gpu_hardcoded_readers],
+    printing("WARNING use_gpu_hardcoded_readers hardcoded for readers set to {}", var=[use_gpu_hardcoded_readers],
              verbose=verbose, verbose_level=1)
     if early_stoppin_metric is None:
         if "pos" in tasks:
@@ -110,7 +111,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                        ("tokenize_and_bpe", tokenize_and_bpe),
                                        ("SEED", SEED_TORCH), ("case", case), ("bert_module", bert_module),
                                        ("freeze_layer_prefix_ls", freeze_layer_prefix_ls),
-                                       ("layer_wise_attention", layer_wise_attention)
+                                       ("layer_wise_attention", layer_wise_attention),
+                                       ("append_n_mask", append_n_mask)
                                        ])
         printing("HYPERPARAMETERS {} ", var=[hyperparameters], verbose=verbose, verbose_level=1)
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
@@ -234,6 +236,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                          early_stoppin_metric=None,
                                                                          case=case, tokenize_and_bpe=tokenize_and_bpe,
                                                                          n_iter_max=n_iter_max_per_epoch,
+                                                                         append_n_mask=append_n_mask,
                                                                          verbose=verbose)
 
                 bert_with_classifier.eval()
@@ -265,6 +268,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                                        subsample_early_stoping_metric_val=subsample_early_stoping_metric_val,
                                                                                        aggregating_bert_layer_mode=aggregating_bert_layer_mode,
                                                                                        case=case,
+                                                                                       append_n_mask=append_n_mask,
                                                                                        n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                 else:
                     loss_dev, iter_dev, perf_report_dev = None, 0, None

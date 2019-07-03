@@ -45,7 +45,7 @@ def epoch_run(batchIter, tokenizer,
               subsample_early_stoping_metric_val=None,
               slang_dic=None, list_reference_heuristic=None,list_candidates=None, index_alphabetical_order=None,
               case=None, threshold_edit=None, edit_module_pred_need_norm_only=True, low_memory_foot_print_batch_mode=False,
-              batch_size_real=0, tokenize_and_bpe=False, n_epoch=None,
+              batch_size_real=0, tokenize_and_bpe=False, n_epoch=None, append_n_mask=True,
               verbose=0):
     """
     About Evaluation :
@@ -158,6 +158,7 @@ def epoch_run(batchIter, tokenizer,
 
     loss_norm = 0
     loss_pos = 0
+    loss_n_mask_prediction = 0
     n_batch_pos = 0
     n_batch_norm = 0
     n_task_pos_sanity = 0
@@ -327,7 +328,6 @@ def epoch_run(batchIter, tokenizer,
                                    output_alignement_with_raw, mask_token_index=mask_token_index,
                                    input_mask=input_mask, use_gpu=use_gpu,
                                    null_token_index=null_token_index, verbose=verbose)
-                pdb.set_trace()
                 input_tokens_tensor = input_tokens_tensor_aligned
                 #
                 #TODO : creaate a tensor same dim as output_tokens_tensor based on output_alignement_with_raw
@@ -365,54 +365,34 @@ def epoch_run(batchIter, tokenizer,
             # we have to recompute the mask based on aligned input
             if dropout_input_bpe > 0:
 
-                input_tokens_tensor, mask_dropout, dropout_applied = dropout_input_tensor(input_tokens_tensor, mask_token_index,
-                                                           sep_token_index=sep_token_index,
-                                                           dropout=dropout_input_bpe, applied_dropout_rate=True)
+                input_tokens_tensor, mask_dropout, dropout_applied = \
+                    dropout_input_tensor(input_tokens_tensor, mask_token_index, sep_token_index=sep_token_index, dropout=dropout_input_bpe, applied_dropout_rate=True)
 
-            add_pred_n_mask = True
-            if add_pred_n_mask:
-                #pdb.set_trace()
-                def pred_n_bpe(input_tokens_tensor, mask_token_index, space_token_index):
-                    labels_n_mask = torch.ones_like(input_tokens_tensor)
-                    mask_index = (input_tokens_tensor == mask_token_index)#.nonzero()#[:, 1]
-                    space_index = (input_tokens_tensor == space_token_index)#.nonzero()#[:, 1]
-                    labels_n_mask[space_index == 1] = 0
-                    labels_n_mask[mask_index == 1] = -1
-                    #pdb.set_trace()
-
-                    def sum_consecutive_one(input):
-                        output = torch.empty_like(input).long()
-                        pdb.set_trace()
-                        for ind_sent in range(input.size(0)):
-                            count_1 = 1
-                            for ind_word in range(input.size(1)):
-                                if input[ind_sent, ind_word] == 1:
-                                    output[ind_sent, ind_word] = -1
-                                    if count_1 == 1:
-                                        ind_multi_bpe = ind_word-1
-                                    count_1 += 1
-                                elif input[ind_sent, ind_word] == 0:
-                                    # reached the end of the multi-bpe
-                                    if ind_word >= 0 and input[ind_sent, ind_word-1] == 1:
-                                        output[ind_sent, ind_multi_bpe] = count_1
-                                        count_1 = 1
-                                    output[ind_sent, ind_word] = 1
-                                else:
-                                    raise(Exception("input[ind_sent, ind_word] is neither 0 nor 1 but {}".format(input[ind_sent, ind_word])))
-                                print("count ", count_1)
-                        return output
-                    output = sum_consecutive_one(input_tokens_tensor == mask_token_index)
-                    (input_tokens_tensor == mask_token_index).nonzero()
-                    # sanity test : are mask correectly encoded as -1
-                    assert (((input_tokens_tensor == mask_token_index).nonzero() == (output == -1).nonzero())).all()
-                    # should test non mask as n_masks
-
-                    #consecutive = [[(sent_mask_index[batch_ind, 1][i] == sent_mask_index[i + 1]+1).data[0]
-                    #                for i in range(len(sent_mask_index) - 1)] for sent_mask_index in (input_tokens_tensor == mask_token_index).nonzero()]
-                    #consecutive = [[input_tokens_tensor[ind_sent, ind_word] == input_tokens_tensor[ind_sent, ind_word]
-                    #                for ind_word in range(input_tokens_tensor.size(1))] for ind_sent in range(input_tokens_tensor.size(0))]
-                    
-                pred_n_bpe(input_tokens_tensor, mask_token_index, space_token_index)
+            if append_n_mask:
+                def pred_n_bpe(input):
+                    output = torch.empty_like(input).long()
+                    for ind_sent in range(input.size(0)):
+                        count_1 = 1
+                        for ind_word in range(input.size(1)):
+                            if input[ind_sent, ind_word] == 1:
+                                output[ind_sent, ind_word] = -1
+                                if count_1 == 1:
+                                    ind_multi_bpe = ind_word-1
+                                count_1 += 1
+                            elif input[ind_sent, ind_word] == 0:
+                                # reached the end of the multi-bpe
+                                if ind_word >= 0 and input[ind_sent, ind_word-1] == 1:
+                                    output[ind_sent, ind_multi_bpe] = count_1
+                                    count_1 = 1
+                                output[ind_sent, ind_word] = 1
+                            else:
+                                raise(Exception("input[ind_sent, ind_word] is neither 0 nor 1 but {}".format(input[ind_sent, ind_word])))
+                    return output
+                labels_n_mask_prediction = pred_n_bpe(input_tokens_tensor == mask_token_index)
+                # sanity test : are mask correectly encoded as -1
+                assert (((input_tokens_tensor == mask_token_index).nonzero() == (labels_n_mask_prediction == -1).nonzero())).all()
+            else:
+                labels_n_mask_prediction = None
 
             if masking_strategy in ["mlm", "mlm_need_norm"] and optimizer is not None:
                 dropout = 0.15
@@ -501,25 +481,25 @@ def epoch_run(batchIter, tokenizer,
             try:
                 printing("MASK mask:{}\nMASK input:{}\nMASK output:{}", var=[input_mask, input_tokens_tensor, output_tokens_tensor_aligned],
                          verbose_level="raw_data", verbose=verbose)
-                #print("input_mask", input_mask)
-                #print("output_tokens_tensor_aligned", output_tokens_tensor_aligned)
-                #print("feeding_the_model_with_label", feeding_the_model_with_label)
-                #pdb.set_trace()
                 loss_dic, layer_wise_weights = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
                                                                     labels=feeding_the_model_with_label if task_normalize_is else None, #tasks[0] == "normalize" else None,
+                                                                    labels_n_masks=labels_n_mask_prediction,
                                                                     labels_task_2=output_tokens_tensor_aligned if task_pos_is else None, #tasks[0] == "pos" else None
                                                                     aggregating_bert_layer_mode=aggregating_bert_layer_mode)
             except Exception as e:
-                print(e)
+                raise(e)
                 print(" MAX ", torch.max(output_tokens_tensor_aligned), input_tokens_tensor, input_mask)
                 loss_dic, _ = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
-                                                aggregating_bert_layer_mode=aggregating_bert_layer_mode,
-                                                labels=feeding_the_model_with_label if task_normalize_is else None,#if tasks[0] == "normalize" else None,
-                                                labels_task_2=output_tokens_tensor_aligned if task_pos_is else None)#if tasks[0] == "pos" else None)
+                                                   aggregating_bert_layer_mode=aggregating_bert_layer_mode,
+                                                   labels=feeding_the_model_with_label if task_normalize_is else None0,#if tasks[0] == "normalize" else None,
+                                                   labels_task_2=output_tokens_tensor_aligned if task_pos_is else None)#if tasks[0] == "pos" else None)
             _loss = loss_dic["loss"]
             if task_normalize_is:
                 loss_norm += loss_dic["loss_task_1"].detach()
                 n_batch_norm += 1
+                if append_n_mask:
+                    if not isinstance(loss_dic["loss_task_n_mask_prediction"], int):
+                        loss_n_mask_prediction += loss_dic["loss_task_n_mask_prediction"].detach()
             if task_pos_is:
                 loss_pos += loss_dic["loss_task_2"].detach()
                 n_batch_pos += 1
@@ -528,8 +508,7 @@ def epoch_run(batchIter, tokenizer,
 
                 # TODO : add mapping_info between task_id to model and task name necessary to iterator
                 logits, layer_wise_weights = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
-                                              aggregating_bert_layer_mode=aggregating_bert_layer_mode,
-                                              )
+                                                                  aggregating_bert_layer_mode=aggregating_bert_layer_mode)
                 logits = logits["logits_task_2" if task_pos_is else "logits_task_1"]
                 predictions_topk = torch.argsort(logits, dim=-1, descending=True)[:, :, :topk]
                 # from bpe index to string
@@ -615,7 +594,7 @@ def epoch_run(batchIter, tokenizer,
                                                                                           n_tokens_dic=n_tokens_dic,
                                                                                           n_sents_dic=n_sents_dic)
                 except Exception as e:
-                    skip_score+=1
+                    skip_score += 1
                     print("SKIPPNG score eval ", skip_score, e)
 
                 skipping_evaluated_batch += skipping
@@ -693,6 +672,12 @@ def epoch_run(batchIter, tokenizer,
                     writer.add_scalars("loss-norm",
                                        {"loss-{}-{}-bpe".format(mode, model_id): loss_dic["loss_task_1"].detach().clone().cpu().data.numpy()},
                                        iter + batch_i)
+                    if append_n_mask:
+                        writer.add_scalars("loss-norm-pred_n_mask",
+                                           {
+                                               "loss-{}-{}-pred_n_mask".format(mode, model_id): loss_dic["loss_task_n_mask_prediction"].detach().clone().cpu().data.numpy()
+                                            },
+                                           iter + batch_i)
         except StopIteration:
             break
     printing("WARNING {} aignement failure caused by parallel ", var=[counting_failure_parralel_bpe_batch], verbose=verbose, verbose_level=1)
@@ -722,6 +707,11 @@ def epoch_run(batchIter, tokenizer,
                                epoch)
                 except Exception as e:
                     print("ERROR {} loss_pos is , n_batch_pos is {} coud not log ".format(e, loss_norm, n_batch_norm))
+                if append_n_mask:
+                    writer.add_scalars("loss-n_mask_prediction ",
+                                       {"loss-{}-{}-n_mask_prediction ".format(mode,
+                                        model_id): loss_n_mask_prediction.clone().cpu().data.numpy()/n_batch_norm},
+                                       epoch)
             if "pos" in tasks:
                 try:
                     writer.add_scalars("loss-pos",
@@ -780,7 +770,7 @@ def epoch_run(batchIter, tokenizer,
                     # then we can compute all the confusion matrix rate
                     # TODO : factore with TASKS_2_METRICS_STR
 
-                    for metric_val in ["precision", "f1", "recall","tnr", "npv", "accuracy"]:
+                    for metric_val in ["precision", "f1", "recall", "tnr", "npv", "accuracy"]:
                         metric_val += "-"+tasks[0]
                         score, n_rate_universe = get_perf_rate(metric=metric_val, n_tokens_dic=n_tokens_dic,
                                                                score_dic=score_dic, agg_func=agg_func)

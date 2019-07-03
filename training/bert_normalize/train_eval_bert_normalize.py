@@ -25,6 +25,9 @@ def train_eval_bert_normalize(args, verbose=1):
     voc_pos_size = 19 #18+1 for alg_arabizi # 53+1 for ARABIZI 1# 21 is for ENGLISH
     printing("MODEL : voc_pos_size hardcoded to {}", var=voc_pos_size, verbose_level=1, verbose=verbose)
 
+    debug = False
+    if os.environ.get("ENV") in ["rioc", "neff"]:
+        debug = False
     if args.checkpoint_dir is None:
         # TODO vocab_size should be loaded from args.json
         model = get_bert_token_classification(pretrained_model_dir=model_dir,
@@ -35,8 +38,10 @@ def train_eval_bert_normalize(args, verbose=1):
                                               dropout_bert=args.dropout_bert,
                                               tasks=args.tasks,
                                               voc_pos_size=voc_pos_size,
-                                              bert_module=args.bert_module,layer_wise_attention=args.layer_wise_attention,
-                                              initialize_bpe_layer=initialize_bpe_layer)
+                                              bert_module=args.bert_module,
+                                              layer_wise_attention=args.layer_wise_attention,
+                                              mask_n_predictor=args.append_n_mask,
+                                              initialize_bpe_layer=initialize_bpe_layer, debug=debug)
     else:
         printing("MODEL : reloading from checkpoint {} all models parameters are ignored except task bert module and layer_wise_attention", var=[args.checkpoint_dir], verbose_level=1, verbose=verbose)
         # TODO args.original_task  , vocab_size is it necessary
@@ -46,7 +51,8 @@ def train_eval_bert_normalize(args, verbose=1):
                                               tasks=original_task,
                                               initialize_bpe_layer=None, bert_module=args.bert_module,
                                               layer_wise_attention=args.layer_wise_attention,
-                                              checkpoint_dir=args.checkpoint_dir)
+                                              mask_n_predictor=args.append_n_mask,
+                                              checkpoint_dir=args.checkpoint_dir, debug=debug)
 
         add_task_2 = False
         if add_task_2:
@@ -74,15 +80,13 @@ def train_eval_bert_normalize(args, verbose=1):
     printing("INFO : tasks is {} so setting early_stoppin_metric to {} ", var=[args.tasks, early_stoppin_metric], verbose=verbose,
              verbose_level=1)
 
-    debug = True
-    if os.environ.get("ENV") in ["rioc", "neff"]:
-        debug = False
     printing("INFO : environ is {} so debug set to {}", var=[os.environ.get("ENV", "Unkwnown"),debug], verbose_level=1, verbose=verbose)
     run(bert_with_classifier=model, 
         voc_tokenizer=voc_tokenizer, tasks=args.tasks, train_path=args.train_path, dev_path=args.dev_path,
+        append_n_mask=args.append_n_mask,
         auxilliary_task_norm_not_norm=True,
         saving_every_epoch=20, lr=lr,
-        batch_size=batch_size, n_iter_max_per_epoch=10000, n_epoch=args.epochs,
+        batch_size=batch_size, n_iter_max_per_epoch=10, n_epoch=args.epochs,
         test_path_ls=args.test_paths,
         description=description, null_token_index=null_token_index, null_str=NULL_STR,
         model_suffix="{}".format(args.model_id_pref), debug=debug,

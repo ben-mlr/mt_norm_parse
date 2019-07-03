@@ -11,7 +11,7 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
                                   bert_module="token_class",
                                   layer_wise_attention=False,
                                   mask_n_predictor=False,
-                                  initialize_bpe_layer=None, verbose=1):
+                                  initialize_bpe_layer=None, debug=False, verbose=1):
     """
     two use case :
     - initialize bert based on pretrained_model_dir and add a token prediction module based or not on initialize_bpe_layer
@@ -23,6 +23,8 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
     :param verbose:
     :return:
     """
+    if not debug:
+        pdb.set_trace = lambda: None
     if tasks is None:
         tasks = ["normalize"]
     AVAILABLE_BERT_MODE = ["mlm", "token_class"]
@@ -58,6 +60,7 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
         if bert_module == "token_class":
             model = model.from_pretrained(pretrained_model_dir, num_labels=num_labels, dropout_custom=dropout_bert)
         elif bert_module == "mlm":
+            pdb.set_trace()
             model = model.from_pretrained(pretrained_model_dir, normalization_mode=True,
                                           layer_wise_attention=layer_wise_attention, mask_n_predictor=mask_n_predictor)
             space_vector = torch.normal(torch.mean(model.bert.embeddings.word_embeddings.weight.data,dim=0), std=torch.std(model.bert.embeddings.word_embeddings.weight.data,dim=0)).unsqueeze(0)#torch.rand((1, 768)
