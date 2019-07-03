@@ -73,7 +73,10 @@ def train_eval_bert_normalize(args, verbose=1):
         raise(Exception("Neither normalize nor pos is in {} (cant define early_stoppin_metric)".format(args.tasks)))
     printing("INFO : tasks is {} so setting early_stoppin_metric to {} ", var=[args.tasks, early_stoppin_metric], verbose=verbose,
              verbose_level=1)
-    debug = os.environ.get("ENV") not in ["rioc", "neff"]
+
+    debug = True
+    if os.environ.get("ENV") in ["rioc", "neff"]:
+        debug = False
     printing("INFO : environ is {} so debug set to {}", var=[os.environ.get("ENV", "Unkwnown"),debug], verbose_level=1, verbose=verbose)
     run(bert_with_classifier=model, 
         voc_tokenizer=voc_tokenizer, tasks=args.tasks, train_path=args.train_path, dev_path=args.dev_path,

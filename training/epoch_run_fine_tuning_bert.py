@@ -371,23 +371,47 @@ def epoch_run(batchIter, tokenizer,
 
             add_pred_n_mask = True
             if add_pred_n_mask:
-                pdb.set_trace()
+                #pdb.set_trace()
                 def pred_n_bpe(input_tokens_tensor, mask_token_index, space_token_index):
                     labels_n_mask = torch.ones_like(input_tokens_tensor)
                     mask_index = (input_tokens_tensor == mask_token_index)#.nonzero()#[:, 1]
                     space_index = (input_tokens_tensor == space_token_index)#.nonzero()#[:, 1]
                     labels_n_mask[space_index == 1] = 0
                     labels_n_mask[mask_index == 1] = -1
-                    pdb.set_trace()
+                    #pdb.set_trace()
+
+                    def sum_consecutive_one(input):
+                        output = torch.empty_like(input).long()
+                        pdb.set_trace()
+                        for ind_sent in range(input.size(0)):
+                            count_1 = 1
+                            for ind_word in range(input.size(1)):
+                                if input[ind_sent, ind_word] == 1:
+                                    output[ind_sent, ind_word] = -1
+                                    if count_1 == 1:
+                                        ind_multi_bpe = ind_word-1
+                                    count_1 += 1
+                                elif input[ind_sent, ind_word] == 0:
+                                    # reached the end of the multi-bpe
+                                    if ind_word >= 0 and input[ind_sent, ind_word-1] == 1:
+                                        output[ind_sent, ind_multi_bpe] = count_1
+                                        count_1 = 1
+                                    output[ind_sent, ind_word] = 1
+                                else:
+                                    raise(Exception("input[ind_sent, ind_word] is neither 0 nor 1 but {}".format(input[ind_sent, ind_word])))
+                                print("count ", count_1)
+                        return output
+                    output = sum_consecutive_one(input_tokens_tensor == mask_token_index)
+                    (input_tokens_tensor == mask_token_index).nonzero()
+                    # sanity test : are mask correectly encoded as -1
+                    assert (((input_tokens_tensor == mask_token_index).nonzero() == (output == -1).nonzero())).all()
+                    # should test non mask as n_masks
+
                     #consecutive = [[(sent_mask_index[batch_ind, 1][i] == sent_mask_index[i + 1]+1).data[0]
                     #                for i in range(len(sent_mask_index) - 1)] for sent_mask_index in (input_tokens_tensor == mask_token_index).nonzero()]
-                    consecutive = [[input_tokens_tensor[ind_sent, ind_word] == input_tokens_tensor[ind_sent, ind_word]
-                                    for ind_word in range(input_tokens_tensor.size(1))] for ind_sent in range(input_tokens_tensor.size(0))]
-                    if len([]) > 0:
-                        print((input_tokens_tensor == mask_token_index))
-                        print((input_tokens_tensor == mask_token_index).nonzero())
-                        #print(consecutive)
-                    # give a counter for each non consecutive mask
+                    #consecutive = [[input_tokens_tensor[ind_sent, ind_word] == input_tokens_tensor[ind_sent, ind_word]
+                    #                for ind_word in range(input_tokens_tensor.size(1))] for ind_sent in range(input_tokens_tensor.size(0))]
+                    
                 pred_n_bpe(input_tokens_tensor, mask_token_index, space_token_index)
 
             if masking_strategy in ["mlm", "mlm_need_norm"] and optimizer is not None:
