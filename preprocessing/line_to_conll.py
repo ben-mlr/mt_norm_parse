@@ -35,5 +35,6 @@ def line_to_conll(dir_src, dir_target, starting_index=0, n_sents=1000000):
 
 if __name__ == "__main__":
 
-    line_to_conll(os.path.join(PROJECT_PATH, "data", "pan_ben_conll.tok"), os.path.join(PROJECT_PATH, "data",
-                                                                                        "pan_tweets-dev"), starting_index=1000000, n_sents=30000)
+    #line_to_conll(os.path.join(PROJECT_PATH, "data", "pan_ben_conll.tok"), os.path.join(PROJECT_PATH, "data","pan_tweets-dev"), starting_index=1000000, n_sents=30000)
+    line_to_conll(os.path.join(PROJECT_PATH, "data", "code_mixed", "code-mixed_code-mixed1.txt.txt"),
+                  os.path.join(PROJECT_PATH, "data", "code_mixed", "code-mixed_code-mixed1-test.conll"), starting_index=150000, n_sents=175000)

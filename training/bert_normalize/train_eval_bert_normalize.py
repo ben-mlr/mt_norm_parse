@@ -85,8 +85,8 @@ def train_eval_bert_normalize(args, verbose=1):
         voc_tokenizer=voc_tokenizer, tasks=args.tasks, train_path=args.train_path, dev_path=args.dev_path,
         append_n_mask=args.append_n_mask,
         auxilliary_task_norm_not_norm=True,
-        saving_every_epoch=20, lr=lr,
-        batch_size=batch_size, n_iter_max_per_epoch=10, n_epoch=args.epochs,
+        saving_every_epoch=1, lr=lr,
+        batch_size=batch_size, n_iter_max_per_epoch=200000, n_epoch=args.epochs,
         test_path_ls=args.test_paths,
         description=description, null_token_index=null_token_index, null_str=NULL_STR,
         model_suffix="{}".format(args.model_id_pref), debug=debug,
@@ -104,6 +104,6 @@ def train_eval_bert_normalize(args, verbose=1):
         list_reference_heuristic_test=list_reference_heuristic_test, case="lower",
         layer_wise_attention=args.layer_wise_attention,
         slang_dic_test=slang_dic, early_stoppin_metric=early_stoppin_metric,
-        report=True, verbose=1)
+        report=True, verbose="alignement")
 
     printing("MODEL {} trained and evaluated", var=[args.model_id_pref], verbose_level=1, verbose=verbose)

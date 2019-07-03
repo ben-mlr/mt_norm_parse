@@ -98,7 +98,7 @@ def epoch_run(batchIter, tokenizer,
                 masking_strategy = masking_strategy[0]
             else:
                 masking_strategy = masking_strategy[0]
-        assert masking_strategy in AVAILABLE_BERT_MASKING_STRATEGY, "masking_strategy {} should be in {}".format(masking_strategy,AVAILABLE_BERT_MASKING_STRATEGY)
+        assert masking_strategy in AVAILABLE_BERT_MASKING_STRATEGY, "masking_strategy {} should be in {}".format(masking_strategy, AVAILABLE_BERT_MASKING_STRATEGY)
         if masking_strategy == "normed":
             printing("INFO : Portion mask was found to {}", var=[portion_mask], verbose=verbose, verbose_level=1)
     if predict_mode:
@@ -382,7 +382,7 @@ def epoch_run(batchIter, tokenizer,
                             elif input[ind_sent, ind_word] == 0:
                                 # reached the end of the multi-bpe
                                 if ind_word >= 0 and input[ind_sent, ind_word-1] == 1:
-                                    output[ind_sent, ind_multi_bpe] = count_1
+                                    output[ind_sent, ind_multi_bpe] = min(count_1, 5)
                                     count_1 = 1
                                 output[ind_sent, ind_word] = 1
                             else:
@@ -487,11 +487,11 @@ def epoch_run(batchIter, tokenizer,
                                                                     labels_task_2=output_tokens_tensor_aligned if task_pos_is else None, #tasks[0] == "pos" else None
                                                                     aggregating_bert_layer_mode=aggregating_bert_layer_mode)
             except Exception as e:
-                raise(e)
-                print(" MAX ", torch.max(output_tokens_tensor_aligned), input_tokens_tensor, input_mask)
+                print(" WARNING : MAX ", torch.max(output_tokens_tensor_aligned), input_tokens_tensor, input_mask, labels_n_mask_prediction)
+                print(e)
                 loss_dic, _ = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
                                                    aggregating_bert_layer_mode=aggregating_bert_layer_mode,
-                                                   labels=feeding_the_model_with_label if task_normalize_is else None0,#if tasks[0] == "normalize" else None,
+                                                   labels=feeding_the_model_with_label if task_normalize_is else None,#if tasks[0] == "normalize" else None,
                                                    labels_task_2=output_tokens_tensor_aligned if task_pos_is else None)#if tasks[0] == "pos" else None)
             _loss = loss_dic["loss"]
             if task_normalize_is:
