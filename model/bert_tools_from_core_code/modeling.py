@@ -928,7 +928,7 @@ class BertForMaskedLM(BertPreTrainedModel):
         prediction_scores = self.cls(sequence_output)
         loss_dict = OrderedDict([("loss", None), ("loss_task_1", 0), ("loss_task_2", 0),
                                  ("loss_task_n_mask_prediction", 0)])
-        pred_dict = OrderedDict([("logits_task_1", None), ("logits_task_2", None), ("logits_n_masks", None)])
+        pred_dict = OrderedDict([("logits_task_1", None), ("logits_task_2", None), ("logits_n_mask_prediction", None)])
 
         DEPRECIATED = True
         if not DEPRECIATED and self.mask_n_predictor is not None:
@@ -944,7 +944,6 @@ class BertForMaskedLM(BertPreTrainedModel):
             logits_n_mask_prediction = self.mask_n_predictor(sequence_output)
             pred_dict["logits_n_mask_prediction"] = logits_n_mask_prediction
         if labels is not None and self.mask_n_predictor is not None:
-            pdb.set_trace()
             assert labels_n_masks is not None, "ERROR : you provided labels for normalization and self.mask_n_predictor : so you should provide labels_n_mask_prediction"
             loss_fct_masks_pred = CrossEntropyLoss(ignore_index=-1)
             loss_dict["loss_task_n_mask_prediction"] = loss_fct_masks_pred(logits_n_mask_prediction.view(-1, self.num_labels_n_mask),
@@ -974,7 +973,6 @@ class BertForMaskedLM(BertPreTrainedModel):
             num_labels = self.config.vocab_size
             if self.normalization_module:
                 num_labels += 1
-            pdb.set_trace()
             masked_lm_loss = loss_fct(prediction_scores.view(-1, num_labels), masked_lm_labels.view(-1))
             loss_dict["loss_task_1"] = masked_lm_loss
             loss_dict["loss"] = loss_dict["loss_task_1"]+loss_dict["loss_task_n_mask_prediction"]

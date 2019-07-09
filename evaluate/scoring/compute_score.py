@@ -24,7 +24,8 @@ def word_level_scoring(metric, gold, topk_pred, topk):
         return 0
 
 
-def word_level_filter(gold, topk_pred, topk, src, sample="all", sample_2=None, word_reference_dic_ls=None):
+def word_level_filter(gold, topk_pred, topk, src, sample="all",
+                      sample_2=None, word_reference_dic_ls=None):
     """
     compare a gold string and a list of candidate
     return a score based on it

@@ -41,7 +41,8 @@ def train_eval_bert_normalize(args, verbose=1):
                                               bert_module=args.bert_module,
                                               layer_wise_attention=args.layer_wise_attention,
                                               mask_n_predictor=args.append_n_mask,
-                                              initialize_bpe_layer=initialize_bpe_layer, debug=debug)
+                                              initialize_bpe_layer=initialize_bpe_layer,
+                                              debug=debug)
     else:
         printing("MODEL : reloading from checkpoint {} all models parameters are ignored except task bert module and layer_wise_attention", var=[args.checkpoint_dir], verbose_level=1, verbose=verbose)
         # TODO args.original_task  , vocab_size is it necessary
@@ -91,7 +92,7 @@ def train_eval_bert_normalize(args, verbose=1):
         auxilliary_task_norm_not_norm=True,
         saving_every_epoch=1, lr=lr,
         batch_size=batch_size,
-        n_iter_max_per_epoch=200000, n_epoch=args.epochs,
+        n_iter_max_per_epoch=2, n_epoch=args.epochs,
         test_path_ls=args.test_paths,
         description=description, null_token_index=null_token_index, null_str=NULL_STR,
         model_suffix="{}".format(args.model_id_pref), debug=debug,

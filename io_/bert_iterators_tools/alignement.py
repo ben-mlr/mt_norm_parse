@@ -211,3 +211,27 @@ def realigne(ls_sent_str, input_alignement_with_raw, null_str, mask_str, tasks,
 
         new_sent_ls.append(new_sent[1:])
     return new_sent_ls
+
+
+def remove_masks(labels_n_mask_prediction, prediction_n_mask, ignore_token=-1):
+    n_sent = labels_n_mask_prediction.size(0)
+    len_sent = labels_n_mask_prediction.size(1)
+    assert n_sent == prediction_n_mask.size(0)
+    assert len_sent == prediction_n_mask.size(1)
+
+    labels_ls = []
+    predictions_ls= []
+
+    for sent_ind in range(n_sent):
+        label_sent_ls = []
+        pred_send_ls = []
+        for token_ind in range(len_sent):
+            labels = labels_n_mask_prediction[sent_ind, token_ind].data
+            pred = prediction_n_mask[sent_ind, token_ind].data
+            if labels != ignore_token:
+                label_sent_ls.append(labels)
+                pred_send_ls.append(pred)
+        labels_ls.append(label_sent_ls)
+        predictions_ls.append(pred_send_ls)
+
+    return labels_ls, predictions_ls

@@ -11,6 +11,7 @@ def agg_func_batch_score(overall_ls_sent_score, overall_filter, agg_func):
             assert len(overall_ls_sent_score[ind]) == len(overall_filter[ind]), "ERROR : filter uncorrect " \
                                                                                 "len sent score={} filter={} ".format(overall_ls_sent_score, overall_filter[ind])
     except AssertionError as e:
+
         print(e)
         pdb.set_trace()
         print("WARNING : evaluate/scoring/agg_func_batch_score : SKIPED,batch+1 : score:{} filter:{}".format(overall_ls_sent_score, overall_filter))

@@ -48,6 +48,7 @@ def overall_word_level_metric_measure(gold_sent_ls,
         try:
             assert len(gold_sent) == len(pred_sent_ls_topk[0][gold_ind_sent])
             # WARNING : this might not be true in POS mode for some cases (when mask bpe is used)
+
         except Exception as e:
             print(e)
             if len(gold_sent) > len(pred_sent_ls_topk[0][gold_ind_sent]):
@@ -64,7 +65,6 @@ def overall_word_level_metric_measure(gold_sent_ls,
                     # NB : this should be handle properly :
                     #   the detokenization has a problem when dropout_bpe_mask is not null
                 else:
-                    pdb.set_trace()
                     print(Exception("ERROR {} : could not handled mismatch between pred {} len/src {} "
                                     "and gold len by cutting "
                                     "it based on GOLD padding "
@@ -77,7 +77,8 @@ def overall_word_level_metric_measure(gold_sent_ls,
                 skipping_sent += len(gold_sent_ls)
                 overall_score_ls_sent = [[0]]
                 break
-        if src_detokenized is not None:
+        if src_detokenized is not None and samples[0] != "all" and samples>1:
+            # otherise we don't need src_detokenized
             assert len(gold_sent) == len(src_detokenized[gold_ind_sent]), "ERROR src_detokenized {} and gold_sent_ls for sent {} have different length ".format(gold_sent, src_detokenized[gold_ind_sent])
 
         score_sent = []
@@ -87,21 +88,22 @@ def overall_word_level_metric_measure(gold_sent_ls,
             topk_word_pred = [pred_sent_ls_topk[top][gold_ind_sent][ind_word] for top in range(topk)]
             score_sent.append(word_level_scoring(metric=metric, gold=gold_token, topk_pred=topk_word_pred, topk=topk))
             for ind_sample, _sample in enumerate(samples):
+                src = src_detokenized[gold_ind_sent][ind_word] if _sample != "all" else None
                 filter_sent[_sample].append(word_level_filter(sample=_sample, gold=gold_token, topk_pred=topk_word_pred,
-                                                              topk=topk, src=src_detokenized[gold_ind_sent][ind_word],
-                                                              word_reference_dic_ls=reference_word_dic))
+                                                              topk=topk, src=src, word_reference_dic_ls=reference_word_dic))
+
             if compute_intersection_score:
                 for ind_sample, _sample in enumerate(sample_to_intersesct):
                     for ind_sample_2 in range(ind_sample):
                         inter = _sample+"-n-"+sample_to_intersesct[ind_sample_2]
-                        #intersected_samples.append(inter)
                         if filter_sent.get(inter, None) is None:
                             filter_sent[inter] = []
-                        filter_sent[inter].append(word_level_filter(sample=_sample, sample_2=sample_to_intersesct[ind_sample_2],
-                                                                    gold=gold_token, topk_pred=topk_word_pred,
-                                                  topk=topk, src=src_detokenized[gold_ind_sent][ind_word],
-                                                  word_reference_dic_ls=reference_word_dic))
-
+                        filter_sent[inter].append(word_level_filter(sample=_sample,
+                                                                    sample_2=sample_to_intersesct[ind_sample_2],
+                                                                    gold=gold_token,
+                                                                    topk_pred=topk_word_pred, topk=topk,
+                                                                    src=src_detokenized[gold_ind_sent][ind_word],
+                                                                    word_reference_dic_ls=reference_word_dic))
         if compute_intersection_score:
             for _sample in samples+intersected_samples:
                 overall_filter_ls[_sample].append(filter_sent[_sample])
@@ -114,15 +116,14 @@ def overall_word_level_metric_measure(gold_sent_ls,
 
     for agg_func in agg_func_ls:
         for sample in samples+intersected_samples:
-            result[agg_func][sample] = {"score": agg_func_batch_score(overall_ls_sent_score=overall_score_ls_sent,
-                                                                      agg_func=agg_func,
-                                                                      overall_filter=overall_filter_ls[sample]),
-                                        "agg_func": agg_func,
-                                        "metric": "exact_match",
+            result[agg_func][sample] = {"score": agg_func_batch_score(overall_ls_sent_score=overall_score_ls_sent, agg_func=agg_func, overall_filter=overall_filter_ls[sample]),
+                                        "agg_func": agg_func, "metric": "exact_match",
                                         "n_tokens": agg_func_batch_score(overall_ls_sent_score=overall_score_ls_sent,
                                                                          overall_filter=overall_filter_ls[sample],
                                                                          agg_func="n_tokens"),
                                         "n_sents": agg_func_batch_score(overall_ls_sent_score=overall_score_ls_sent,
                                                                         overall_filter=overall_filter_ls[sample],
-                                                                        agg_func="n_sents")}
+                                                                        agg_func="n_sents")
+                                        }
+
     return result, skipping_sent, samples+intersected_samples
