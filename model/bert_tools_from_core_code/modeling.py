@@ -30,7 +30,7 @@ import sys
 from io import open
 
 from env.importing import torch, nn, CrossEntropyLoss, F, np, pdb
-
+from io_.dat.constants import NUM_LABELS_N_MASKS
 #from .file_utils import cached_path
 from model.bert_tools_from_core_code.tools import *
 
@@ -475,7 +475,7 @@ class BertMaskNPredictionHead(nn.Module):
             config.dense_n_masks_size = 50
             print("MODEL setting dense_n_masks_size  to default {}".format(config.dense_n_masks_size))
         self.mask_predictor_dense = nn.Linear(config.hidden_size, config.dense_n_masks_size)
-        self.mask_predictor_proj = nn.Linear(config.dense_n_masks_size, 5)
+        self.mask_predictor_proj = nn.Linear(config.dense_n_masks_size, NUM_LABELS_N_MASKS)
         self.activation = ACT2FN[config.hidden_act]
 
     def forward(self, sequence_output):
@@ -891,7 +891,7 @@ class BertForMaskedLM(BertPreTrainedModel):
         self.classifier_task_2 = None
         self.layer_wise_attention = nn.Linear(config.hidden_size, 1) if layer_wise_attention else None
         self.mask_n_predictor = BertMaskNPredictionHead(config) if config.mask_n_predictor else None
-        self.num_labels_n_mask = 5
+        self.num_labels_n_mask = NUM_LABELS_N_MASKS
         self.num_labels_2 = num_labels_2
         print("WARNING : NB in forward(modelling) aggregating_bert_layer_mode is ignore in BertForMaskedLM")
 
@@ -946,8 +946,10 @@ class BertForMaskedLM(BertPreTrainedModel):
         if labels is not None and self.mask_n_predictor is not None:
             assert labels_n_masks is not None, "ERROR : you provided labels for normalization and self.mask_n_predictor : so you should provide labels_n_mask_prediction"
             loss_fct_masks_pred = CrossEntropyLoss(ignore_index=-1)
-            loss_dict["loss_task_n_mask_prediction"] = loss_fct_masks_pred(logits_n_mask_prediction.view(-1, self.num_labels_n_mask),
-                                                                           labels_n_masks.view(-1))
+            try:
+                loss_dict["loss_task_n_mask_prediction"] = loss_fct_masks_pred(logits_n_mask_prediction.view(-1, self.num_labels_n_mask), labels_n_masks.view(-1))
+            except:
+                pdb.set_trace()
         if self.classifier_task_2 is not None:
             assert self.num_labels_2 is not None, "num_labels_2 required"
             logits_task_2 = self.classifier_task_2(sequence_output)

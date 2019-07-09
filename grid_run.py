@@ -566,7 +566,7 @@ if __name__ == "__main__":
                                                   gpus_ls=gpu_ls,
                                                   write_to_dir=RUN_SCRIPTS_DIR,
                                                   description_comment=description_comment,
-                                                  bert_model_ls=["bert_base_multilingual_cased"],
+                                                  bert_model_ls=["cased"],
                                                   initialize_bpe_layer_ls=[1],
                                                   word_recurrent_cell_encoder_ls=None, dropout_word_encoder_cell_ls=None,
                                                   stable_decoding_state_ls=None, word_decoding_ls=None, word_embed_ls=None,

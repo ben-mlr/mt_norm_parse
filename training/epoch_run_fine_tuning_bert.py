@@ -588,7 +588,7 @@ def epoch_run(batchIter, tokenizer,
         reports = []
         printing("TRAINING : evaluating on {} tasks ", var=[evaluated_task], verbose_level=1, verbose=verbose)
 
-        reports, early_stoppin_metric_val, score, n_tokens = report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, score_dic, n_tokens_dic, n_sents_dic, model_id, tasks, args_dir, data_label, reports,  writer, log_perf, early_stoppin_metric_val)
+        reports, early_stoppin_metric_val, score, n_tokens = report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, score_dic, n_tokens_dic, n_sents_dic, model_id, tasks, args_dir, data_label, reports,  writer, log_perf, early_stoppin_metric_val, early_stoppin_metric,mode, subsample_early_stoping_metric_val, epoch)
 
     else:
         reports = None

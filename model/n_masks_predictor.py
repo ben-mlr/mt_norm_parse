@@ -1,5 +1,5 @@
 from env.importing import torch
-
+from io_.dat.constants import NUM_LABELS_N_MASKS
 
 def pred_n_bpe(input):
     output = torch.empty_like(input).long()
@@ -14,7 +14,7 @@ def pred_n_bpe(input):
             elif input[ind_sent, ind_word] == 0:
                 # reached the end of the multi-bpe
                 if ind_word >= 0 and input[ind_sent, ind_word -1] == 1:
-                    output[ind_sent, ind_multi_bpe] = min(count_1, 5)
+                    output[ind_sent, ind_multi_bpe] = min(count_1, NUM_LABELS_N_MASKS)
                     count_1 = 1
                 output[ind_sent, ind_word] = 1
             else:

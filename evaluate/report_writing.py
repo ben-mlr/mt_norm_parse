@@ -9,8 +9,6 @@ sys.path.insert(0, os.path.join(os.environ.get("EXPERIENCE","../"), "experimenta
 from reporting.write_to_performance_repo import report_template, write_dic
 
 
-
-
 def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, score_dic, n_tokens_dic, n_sents_dic, model_id, tasks, args_dir, data_label, reports, writer, log_perf,
                      early_stoppin_metric_val, early_stoppin_metric,mode, subsample_early_stoping_metric_val, epoch):
     for task in list(set(evaluated_task)):
@@ -64,7 +62,7 @@ def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, scor
                 # then we can compute all the confusion matrix rate
                 # TODO : factorize with TASKS_2_METRICS_STR
                 for metric_val in ["precision", "f1", "recall", "tnr", "npv", "accuracy"]:
-                    metric_val += "- " +tasks[0]
+                    metric_val += "-" +tasks[0]
                     score, n_rate_universe = get_perf_rate(metric=metric_val, n_tokens_dic=n_tokens_dic["normalize"],
                                                            score_dic=score_dic["normalize"],
                                                            agg_func=agg_func)
