@@ -11,7 +11,7 @@ from evaluate.scoring.report import overall_word_level_metric_measure
 from evaluate.scoring.confusion_matrix_rates import get_perf_rate
 from model.n_masks_predictor import pred_n_bpe
 from toolbox.pred_tools.heuristics import predict_with_heuristic
-
+from training.epoch_run_fine_tuning_tools import get_casing, logging_processing_data, logging_scores, log_warning, print_align_bpe, tensorboard_loss_writer_batch_level, tensorboard_loss_writer_epoch_level
 from toolbox.deep_learning_toolbox import dropout_input_tensor
 sys.path.insert(0, os.path.join(PROJECT_PATH, "..", "experimental_pipe"))
 from reporting.write_to_performance_repo import report_template, write_dic
@@ -156,6 +156,7 @@ def epoch_run(batchIter, tokenizer,
     mode = "?"
     new_file = True
 
+    labels_n_mask_prediction = None
     loss_norm = 0
     loss_pos = 0
     loss_n_mask_prediction = 0
@@ -172,12 +173,10 @@ def epoch_run(batchIter, tokenizer,
             batch = batchIter.__next__()
             # if no normalization found : should have pos
             task_pos_is = len(batch.raw_output[0]) == 0
+            # only one task supported at a time so far based on the input batch
             task_normalize_is = not task_pos_is
-            if case is not None:
-                if case == "lower":
-                    batch.raw_input = [[word.lower() if word not in SPECIAL_TOKEN_LS else word for word in sent] for sent in batch.raw_input]
-                    if task_normalize_is:
-                        batch.raw_output = [[word.lower() if word not in SPECIAL_TOKEN_LS else word for word in sent] for sent in batch.raw_output]
+            # case the batches if case is 'lower'
+            batch = get_casing(case, batch, task_normalize_is)
             #print("ITERATING on {} task".format("pos" if task_pos_is else "normalize"))
             n_task_pos_sanity += int(task_pos_is)
             n_task_normalize_sanity += int(task_normalize_is)
@@ -305,16 +304,8 @@ def epoch_run(batchIter, tokenizer,
 
             # logging
             verbose_level = _verbose if _verbose in ["raw_data", "alignement"] else "raw_data"
-            printing("DATA : pre-tokenized input {} ", var=[batch_raw_input], verbose_level=verbose_level, verbose=_verbose)
-            printing("DATA : BPEtokenized input ids {}", var=[input_tokens_tensor], verbose_level=3, verbose=verbose)
-
-            printing("DATA : pre-tokenized output {} ", var=[batch_raw_output],verbose_level=verbose_level, verbose=_verbose)
-            printing("DATA : BPE tokenized output ids  {}", var=[output_tokens_tensor], verbose_level=4, verbose=verbose)
-            # BPE
-            printing("DATA : BPE tokenized input  {}", var=[inp_bpe_tokenized], verbose_level=4,
-                     verbose=_verbose)
-            printing("DATA : BPE tokenized output  {}", var=[out_bpe_tokenized], verbose_level=4,
-                     verbose=_verbose)
+            logging_processing_data(_verbose, verbose, verbose_level, batch_raw_input,input_tokens_tensor,
+                                    batch_raw_output, output_tokens_tensor, inp_bpe_tokenized, out_bpe_tokenized)
             _1_to_n_token = 0
             #if "normalize" in tasks:
             if task_normalize_is:
@@ -322,11 +313,10 @@ def epoch_run(batchIter, tokenizer,
                 # (that we don't want to handle
                 try:
                     output_tokens_tensor_aligned, input_tokens_tensor_aligned, input_alignement_with_raw, input_mask, _1_to_n_token = \
-                    alignement.aligned_output(input_tokens_tensor, output_tokens_tensor,
-                                   input_alignement_with_raw,
-                                   output_alignement_with_raw, mask_token_index=mask_token_index,
-                                   input_mask=input_mask, use_gpu=use_gpu,
-                                   null_token_index=null_token_index, verbose=verbose)
+                    alignement.aligned_output(input_tokens_tensor, output_tokens_tensor, input_alignement_with_raw,
+                                              output_alignement_with_raw, mask_token_index=mask_token_index,
+                                              input_mask=input_mask, use_gpu=use_gpu,
+                                              null_token_index=null_token_index, verbose=verbose)
                 except:
                     pdb.set_trace()
                 input_tokens_tensor = input_tokens_tensor_aligned
@@ -343,7 +333,6 @@ def epoch_run(batchIter, tokenizer,
                     output_tokens_tensor_aligned = output_tokens_tensor_aligned.cuda()
                     #segments_ids = [[0 for _ in range(len(tokenized))] for tokenized in tokenized_ls]
             #mask = [[1 for _ in inp] + [0 for _ in range(max_sent_len - len(inp))] for inp in segments_ids]
-
             if batch_i == n_iter_max:
                 break
             if batch_i % 1000 == 0:
@@ -353,18 +342,13 @@ def epoch_run(batchIter, tokenizer,
                 #continue
             # CHECKING ALIGNEMENT
             # PADDING TO HANDLE !!
-            assert output_tokens_tensor_aligned.size(0) == input_tokens_tensor.size(0),\
-                "output_tokens_tensor_aligned.size(0) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(), input_tokens_tensor.size())
-            assert output_tokens_tensor_aligned.size(1) == input_tokens_tensor.size(1), \
-                "output_tokens_tensor_aligned.size(1) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(1), input_tokens_tensor.size(1))
+            assert output_tokens_tensor_aligned.size(0) == input_tokens_tensor.size(0), "output_tokens_tensor_aligned.size(0) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(), input_tokens_tensor.size())
+            assert output_tokens_tensor_aligned.size(1) == input_tokens_tensor.size(1), "output_tokens_tensor_aligned.size(1) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(1), input_tokens_tensor.size(1))
             # we consider only 1 sentence case
             token_type_ids = torch.zeros_like(input_tokens_tensor)
             if use_gpu:
                 token_type_ids = token_type_ids.cuda()
-            printing("CUDA SANITY CHECK input_tokens:{}  type:{}input_mask:{}  label:{}",
-                     var=[input_tokens_tensor.is_cuda, token_type_ids.is_cuda,
-                          input_mask.is_cuda, output_tokens_tensor_aligned.is_cuda],
-                     verbose=verbose, verbose_level="cuda")
+            printing("CUDA SANITY CHECK input_tokens:{}  type:{}input_mask:{}  label:{}", var=[input_tokens_tensor.is_cuda, token_type_ids.is_cuda, input_mask.is_cuda, output_tokens_tensor_aligned.is_cuda], verbose=verbose, verbose_level="cuda")
             # we have to recompute the mask based on aligned input
             if dropout_input_bpe > 0:
                 input_tokens_tensor, mask_dropout, dropout_applied = dropout_input_tensor(input_tokens_tensor, mask_token_index, sep_token_index=sep_token_index, dropout=dropout_input_bpe, applied_dropout_rate=True)
@@ -375,9 +359,8 @@ def epoch_run(batchIter, tokenizer,
                 assert (((input_tokens_tensor == mask_token_index).nonzero() == (labels_n_mask_prediction == -1).nonzero())).all()
                 # Assigning padded input to label -1 for loss ignore
                 labels_n_mask_prediction[input_tokens_tensor == 0] = -1
-            else:
-                labels_n_mask_prediction = None
 
+            # TODO : to factorize
             if masking_strategy in ["mlm", "mlm_need_norm"] and optimizer is not None:
                 dropout = 0.15
                 assert dropout_input_bpe == 0., "in masking_strategy mlm we hardcoded dropout to 0.2 {}".format(dropout)
@@ -390,10 +373,7 @@ def epoch_run(batchIter, tokenizer,
                 else:
                     unmask_loss = portion_mask
                 if standart_pred:
-                    input_tokens_tensor, mask_dropout, dropout_applied = dropout_input_tensor(input_tokens_tensor, mask_token_index,
-                                                                                              sep_token_index=sep_token_index,
-                                                                                              applied_dropout_rate=0.8,
-                                                                                              dropout=dropout)
+                    input_tokens_tensor, mask_dropout, dropout_applied = dropout_input_tensor(input_tokens_tensor, mask_token_index, sep_token_index=sep_token_index, applied_dropout_rate=0.8, dropout=dropout)
                 elif masking_strategy == "mlm_need_norm" and not standart_pred:
                     feeding_the_model_with_label = output_tokens_tensor_aligned.clone()
                     # we only learn on tokens that are different from gold
@@ -461,26 +441,19 @@ def epoch_run(batchIter, tokenizer,
             else:
                 feeding_the_model_with_label = output_tokens_tensor_aligned.clone()
 
-            try:
-                printing("MASK mask:{} \nMASK input:{} \nMASK output:{}", var=[input_mask, input_tokens_tensor, output_tokens_tensor_aligned],
-                         verbose_level="raw_data", verbose=verbose)
-                feeding_the_model_with_label[feeding_the_model_with_label == 0] = -1
-                loss_dic, layer_wise_weights = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
-                                                                    labels=feeding_the_model_with_label if task_normalize_is else None, #tasks[0] == "normalize" else None,
-                                                                    labels_n_masks=labels_n_mask_prediction,
-                                                                    labels_task_2=output_tokens_tensor_aligned if task_pos_is else None, #tasks[0] == "pos" else None
-                                                                    aggregating_bert_layer_mode=aggregating_bert_layer_mode)
-            except Exception as e:
-                print("WARNING : ERROR ", input_tokens_tensor, token_type_ids, input_mask, feeding_the_model_with_label,
-                      labels_n_mask_prediction, output_tokens_tensor_aligned)
-                #      labels_n_mask_prediction)
-                #loss_dic, _ = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
-                #                                   aggregating_bert_layer_mode=aggregating_bert_layer_mode,
-                #                                   labels=feeding_the_model_with_label if task_normalize_is else None,#if tasks[0] == "normalize" else None,
-                #                                   labels_task_2=output_tokens_tensor_aligned if task_pos_is else None)#if tasks[0] == "pos" else None)
-                raise(e)
+
+            printing("MASK mask:{} \nMASK input:{} \nMASK output:{}", var=[input_mask, input_tokens_tensor, output_tokens_tensor_aligned],
+                     verbose_level="raw_data", verbose=verbose)
+            feeding_the_model_with_label[feeding_the_model_with_label == 0] = -1
+            loss_dic, layer_wise_weights = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
+                                                                labels=feeding_the_model_with_label if task_normalize_is else None, #tasks[0] == "normalize" else None,
+                                                                labels_n_masks=labels_n_mask_prediction,
+                                                                labels_task_2=output_tokens_tensor_aligned if task_pos_is else None, #tasks[0] == "pos" else None
+                                                                aggregating_bert_layer_mode=aggregating_bert_layer_mode)
 
             _loss = loss_dic["loss"]
+
+            # report the loss per tasks
             if task_normalize_is:
                 loss_norm += loss_dic["loss_task_1"].detach()
                 n_batch_norm += 1
@@ -492,31 +465,20 @@ def epoch_run(batchIter, tokenizer,
                 n_batch_pos += 1
             if predict_mode:
                 # if predict more : will evaluate the model and write its predictions
-
                 # TODO : add mapping_info between task_id to model and task name necessary to iterator
-                try:
-                    logits, layer_wise_weights = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
-                                                                      aggregating_bert_layer_mode=aggregating_bert_layer_mode)
-                except Exception as e:
-                    print(e)
-                    print("INPUT ", input_tokens_tensor)
-                    print("TOKEN TYPE", token_type_ids)
-                    print("INPUT MASK", input_mask)
-                    raise(e)
+                logits, layer_wise_weights = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask, aggregating_bert_layer_mode=aggregating_bert_layer_mode)
+
                 logits = logits["logits_task_2" if task_pos_is else "logits_task_1"]
                 predictions_topk = torch.argsort(logits, dim=-1, descending=True)[:, :, :topk]
+
                 # from bpe index to string
                 sent_ls_top = from_bpe_token_to_str(predictions_topk, topk, tokenizer=tokenizer, pred_mode=True,
                                                     pos_dictionary=pos_dictionary, task=tasks[0],
                                                     null_token_index=null_token_index, null_str=null_str)
-                try:
-                    gold = from_bpe_token_to_str(output_tokens_tensor_aligned, topk, tokenizer=tokenizer,
-                                                 pos_dictionary=pos_dictionary,
-                                                 task=tasks[0], pred_mode=False, null_token_index=null_token_index,
-                                                 null_str=null_str)
-                except Exception as e:
-                    print("ERROR null_token_index is ", null_token_index)
-                    raise(e)
+                gold = from_bpe_token_to_str(output_tokens_tensor_aligned, topk, tokenizer=tokenizer,
+                                             pos_dictionary=pos_dictionary,
+                                             task=tasks[0], pred_mode=False, null_token_index=null_token_index,
+                                             null_str=null_str)
 
                 source_preprocessed = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer,
                                                             pos_dictionary=pos_dictionary,
@@ -528,12 +490,9 @@ def epoch_run(batchIter, tokenizer,
                                                       tasks=["normalize"],
                                                       # normalize means we deal wiht bpe input not pos
                                                       mask_str=MASK_BERT, remove_mask_str=remove_mask_str_prediction)
-                try:
-                    gold_detokenized = alignement.realigne(gold, input_alignement_with_raw, remove_null_str=True, null_str=null_str,
-                                            tasks=tasks,
-                                            mask_str=MASK_BERT)
-                except Exception as e:
-                    raise(e)
+
+                gold_detokenized = alignement.realigne(gold, input_alignement_with_raw, remove_null_str=True,
+                                                       null_str=null_str, tasks=tasks, mask_str=MASK_BERT)
 
                 if task_pos_is:
                     # we remove padding here based on src that is corectly padded
@@ -599,51 +558,12 @@ def epoch_run(batchIter, tokenizer,
                                                                                           n_sents_dic=n_sents_dic)
                 except Exception as e:
                     skip_score += 1
-                    print("SKIPPNG score eval ", skip_score, e)
+                    print("SKIPPING score eval ", skip_score, e)
 
                 skipping_evaluated_batch += skipping
 
                 if print_pred:
-                    printing("TRAINING : Score : {} / {} tokens / {} sentences", var=[
-                                                                                      perf_prediction["sum"]["all"]["score"],
-                                                                                      perf_prediction["sum"]["all"]["n_tokens"],
-                                                                                      perf_prediction["sum"]["all"]["n_sents"]
-                                                                                      ],
-                             verbose=verbose, verbose_level=1)
-                    printing("TRAINING : eval gold {}-{} {}", var=[iter, batch_i, gold_detokenized],
-                             verbose=verbose,
-                             verbose_level=2)
-                    printing("TRAINING : eval pred {}-{} {}", var=[iter, batch_i, pred_detokenized_topk],
-                             verbose=verbose,
-                             verbose_level=2)
-                    printing("TRAINING : eval src {}-{} {}", var=[iter, batch_i, src_detokenized],
-                             verbose=verbose, verbose_level=1)
-                    printing("TRAINING : BPE eval gold {}-{} {}", var=[iter, batch_i, gold],
-                             verbose=verbose,
-                             verbose_level=2)
-                    printing("TRAINING : BPE eval pred {}-{} {}", var=[iter, batch_i, sent_ls_top],
-                             verbose=verbose,
-                             verbose_level=2)
-                    printing("TRAINING : BPE eval src {}-{} {}", var=[iter, batch_i, source_preprocessed],
-                             verbose=verbose, verbose_level=2)
-                    printing("TRAINING : BPE eval src {}-{} {}", var=[iter, batch_i, input_alignement_with_raw],
-                             verbose=verbose, verbose_level=2)
-
-                def print_align_bpe(source_preprocessed, gold, input_alignement_with_raw, labels_n_mask_prediction, verbose, verbose_level):
-                    if labels_n_mask_prediction is None:
-                        labels_n_mask_prediction = [[None for _ in range(len(sent))] for sent in input_alignement_with_raw]
-                    if isinstance(verbose, int) or verbose == "alignement":
-                        if verbose == "alignement" or verbose >= verbose_level:
-                            assert len(source_preprocessed) == len(gold), ""
-                            assert len(input_alignement_with_raw) == len(gold), ""
-                            for sent_src, sent_gold, index_match_with_src, append_masks in zip(source_preprocessed, gold, input_alignement_with_raw, labels_n_mask_prediction):
-                                assert len(sent_src) == len(sent_gold)
-                                assert len(sent_src) == len(sent_gold)
-                                for src, gold_tok, index, masks in zip(sent_src, sent_gold, index_match_with_src, append_masks):
-                                    printing("{}:{} --> {} (n_masks {})", var=[index, src, gold_tok, masks],
-                                             verbose=1, verbose_level=1)
-                                    #printing("{}:{} --> {} ", var=[index, src, gold_tok],
-                                    #         verbose=verbose, verbose_level=verbose_level)
+                    logging_scores(perf_prediction,iter, batch_i, pred_detokenized_topk, verbose)
 
                 print_align_bpe(source_preprocessed, gold, input_alignement_with_raw, labels_n_mask_prediction, verbose=verbose, verbose_level=4)
 
@@ -652,8 +572,7 @@ def epoch_run(batchIter, tokenizer,
                 _loss.backward()
                 if (low_memory_foot_print_batch_mode and batch_i % batch_size_real == 0) or not low_memory_foot_print_batch_mode:
                     if low_memory_foot_print_batch_mode:
-                        printing("OPTIMIZING in low_memory_foot_print_batch_mode cause batch index {} is batch_size_real",
-                                 var=[batch_i, batch_size_real], verbose=verbose, verbose_level=1)
+                        printing("OPTIMIZING in low_memory_foot_print_batch_mode cause batch index {} is batch_size_real", var=[batch_i, batch_size_real], verbose=verbose, verbose_level=1)
                     for opti in optimizer:
                         opti.step()
                         opti.zero_grad()
@@ -664,66 +583,18 @@ def epoch_run(batchIter, tokenizer,
                 printing("MODE data {} not optimizing".format(data_label), verbose=verbose, verbose_level=4)
 
             if writer is not None:
-                writer.add_scalars("loss-alteranate",
-                                   {"loss-{}-{}-bpe".format(mode, model_id): _loss.clone().cpu().data.numpy()
-                                   if not isinstance(_loss, int) else 0},
-                                   iter+batch_i)
-                if task_pos_is:
-                    writer.add_scalars("loss-pos",
-                                       {"loss-{}-{}-bpe".format(mode, model_id): loss_dic["loss_task_2"].detach().clone().cpu().data.numpy()
-                                    },
-                                       iter + batch_i)
-                if task_normalize_is:
-                    writer.add_scalars("loss-norm",
-                                       {"loss-{}-{}-bpe".format(mode, model_id): loss_dic["loss_task_1"].detach().clone().cpu().data.numpy()},
-                                       iter + batch_i)
-                    if append_n_mask:
-                        writer.add_scalars("loss-norm-pred_n_mask",
-                                           {
-                                               "loss-{}-{}-pred_n_mask".format(mode, model_id): loss_dic["loss_task_n_mask_prediction"].detach().clone().cpu().data.numpy()
-                                            },
-                                           iter + batch_i)
+                tensorboard_loss_writer_batch_level(writer, mode, model_id, _loss, batch_i, iter, loss_dic, task_normalize_is,  append_n_mask, task_pos_is)
         except StopIteration:
             break
-    printing("WARNING {} aignement failure caused by parallel ", var=[counting_failure_parralel_bpe_batch], verbose=verbose, verbose_level=1)
-    printing("WARNING on {} : Out of {} batch of {} sentences each {} skipped ({} batch aligned ; "
-             "{} with at least 1 sentence "
-             "noisy MORE SPLITTED "
-             "; {} with  LESS SPLITTED {} + SENT with skipped_1_to_n : {}) ",
-             var=[data_label, batch_i, batch.input_seq.size(0), noisy_under_splitted+skipping_batch_n_to_1, aligned,
-                  noisy_over_splitted, noisy_under_splitted,
-                  "SKIPPED" if skip_1_t_n else "",
-                  skipping_batch_n_to_1],
-             verbose=verbose, verbose_level=0)
-    printing("WARNING on {} ON THE EVALUATION SIDE we skipped extra {} batch ", var=[data_label, skipping_evaluated_batch], verbose_level=1, verbose=1)
+
+    log_warning(counting_failure_parralel_bpe_batch, data_label, batch_i, batch,noisy_under_splitted,skipping_batch_n_to_1, aligned, noisy_over_splitted, skip_1_t_n, skipping_evaluated_batch, verbose)
 
     early_stoppin_metric_val = None
     samples = _samples
     print("CHECKING SAMPLES", _samples)
     if predict_mode:
         if writer is not None:
-            writer.add_scalars("loss-overall-mean-{}-{}".format(tasks[0], mode),
-                           {"{}-{}-{}".format("loss", mode, model_id): loss/batch_i
-                            }, epoch)
-            if "normalize" in tasks:
-                try:
-                    writer.add_scalars("loss-norm",
-                               {"loss-{}-{}-bpe".format(mode, model_id): loss_norm.clone().cpu().data.numpy()/n_batch_norm},
-                               epoch)
-                except Exception as e:
-                    print("ERROR {} loss_pos is , n_batch_pos is {} coud not log ".format(e, loss_norm, n_batch_norm))
-                if append_n_mask:
-                    writer.add_scalars("loss-n_mask_prediction ",
-                                       {"loss-{}-{}-n_mask_prediction ".format(mode,
-                                        model_id): loss_n_mask_prediction.clone().cpu().data.numpy()/n_batch_norm},
-                                       epoch)
-            if "pos" in tasks:
-                try:
-                    writer.add_scalars("loss-pos",
-                               {"loss-{}-{}-bpe".format(mode, model_id): loss_pos.clone().cpu().data.numpy()/n_batch_pos},
-                               epoch)
-                except Exception as e:
-                    print("ERROR {} loss_pos is , n_batch_pos is {} coud not log ".format(e, loss_pos, n_batch_pos))
+            tensorboard_loss_writer_epoch_level(writer, tasks, mode, model_id, epoch, n_batch_norm, n_batch_pos, append_n_mask, loss, loss_norm, loss_pos, loss_n_mask_prediction)
 
         reports = []
         for agg_func in agg_func_ls:
@@ -794,28 +665,22 @@ def epoch_run(batchIter, tokenizer,
                         if early_stoppin_metric is not None:
                             if metric_val == early_stoppin_metric and subsample_early_stoping_metric_val == "rates"+label_heuristic and score is not None:
                                 early_stoppin_metric_val = -score
-
                         reports.append(report)
 
                         if writer is not None and log_perf:
-                            writer.add_scalars("perf-{}-{}".format(tasks[0], mode),
-                                               {"{}-{}-{}-bpe".format(metric_val, mode, model_id):
-                                                    score if score is not None else 0
-                                                }, epoch)
-
+                            writer.add_scalars("perf-{}-{}".format(tasks[0], mode), {"{}-{}-{}-bpe".format(metric_val, mode, model_id): score if score is not None else 0}, epoch)
     else:
         reports = None
     iter += batch_i
-
     if writing_pred:
         printing("DATA WRITTEN TO {} ", var=[dir_end_pred], verbose=verbose, verbose_level=1)
     printing("END EPOCH {} mode, iterated {} on pos {} on normalisation ",
              var=[mode, n_task_pos_sanity, n_task_normalize_sanity], verbose_level=1, verbose=verbose)
     try:
         if early_stoppin_metric is not None:
-            assert early_stoppin_metric_val is not None, "ERROR : early_stoppin_metric_val should have been found " \
-                                                     "but was not {} sample metric {} not found in {}  " \
-                                                         "(NB : MIGHT ALSO BECAUSE THE PERF DID NOT DECREASED AT ALL ) ".format(early_stoppin_metric, subsample_early_stoping_metric_val, reports)
+            assert early_stoppin_metric_val is not None, \
+                "ERROR : early_stoppin_metric_val should have been found but was not {} sample metric {} not found in {}" \
+                " (NB : MIGHT ALSO BECAUSE THE PERF DID NOT DECREASED AT ALL ) ".format(early_stoppin_metric, subsample_early_stoping_metric_val, reports)
     except Exception as e:
         print(e)
     if early_stoppin_metric_val is None:
