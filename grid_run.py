@@ -534,18 +534,18 @@ if __name__ == "__main__":
                                                   mode_word_encoding_ls=None,
                                                   dropout_input_ls=None, multi_task_loss_ponderation_ls=None,
                                                   scale_ls=[1])
-
           BERT_NORMALIZATION = True
+
           if BERT_NORMALIZATION:
               epochs = 1
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
-                                                  batch_size_ls=[1],
+                                                  batch_size_ls=[2],
                                                   #checkpoint_dir_ls=["'" + os.path.join(CHECKPOINT_BERT_DIR,"9535768-B-45690-9535768-B-model_0/9535768-B-45690-9535768-B-model_0-epbest-checkpoint.pt") + "'"],
                                                   gpu_mode="random",
                                                   bert_module_ls=["mlm"],  # ["mlm"],
-                                                  append_n_mask_ls=[0],
+                                                  append_n_mask_ls=[1],
                                                   # norm_2_noise_training_ls=[0., 1.],
                                                   lr_ls=[0.00001],
                                                   masking_strategy_ls=[None],
@@ -554,7 +554,7 @@ if __name__ == "__main__":
                                                   dropout_classifier_ls=[0.1],
                                                   dropout_input_bpe_ls=[0.0], layer_wise_attention_ls=[0],
                                                   aggregating_bert_layer_mode_ls=["last"],
-                                                  dropout_bert_ls=[0.1], tokenize_and_bpe_ls=[1],
+                                                  dropout_bert_ls=[0.1], tokenize_and_bpe_ls=[0],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   freeze_parameters_ls=[0],
                                                   freeze_layer_prefix_ls_ls=[None],
@@ -562,14 +562,18 @@ if __name__ == "__main__":
                                                   test_paths=[[[LEX_TEST]]], # [[LEX_TRAIN_SPLIT_2], [LEX_DEV_SPLIT_2], [LEX_TEST]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
-                                                  epochs=epochs if not ( test_before_run or warmup) else WARMUP_N_EPOCHS,
+                                                  epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
                                                   gpus_ls=gpu_ls,
                                                   write_to_dir=RUN_SCRIPTS_DIR,
                                                   description_comment=description_comment,
                                                   bert_model_ls=["bert_base_multilingual_cased"],
                                                   initialize_bpe_layer_ls=[1],
-                                                  word_recurrent_cell_encoder_ls=None, dropout_word_encoder_cell_ls=None, stable_decoding_state_ls=None, word_decoding_ls=None, word_embed_ls=None, dir_sent_encoder_ls=None, dir_word_encoder_ls=None, word_embed_init_ls=None, attention_tagging_ls=None, char_src_attention_ls=None, teacher_force_ls=None,
-                                                  proportion_pred_train_ls=None, shared_context_ls=None, word_embedding_projected_dim_ls=None, char_level_embedding_projection_dim_ls=None, n_layers_sent_cell_ls=None, n_layers_word_encoder_ls=None, unrolling_word_ls=None, scoring_func=None,
+                                                  word_recurrent_cell_encoder_ls=None, dropout_word_encoder_cell_ls=None,
+                                                  stable_decoding_state_ls=None, word_decoding_ls=None, word_embed_ls=None,
+                                                  dir_sent_encoder_ls=None, dir_word_encoder_ls=None, word_embed_init_ls=None,
+                                                  attention_tagging_ls=None, char_src_attention_ls=None, teacher_force_ls=None,
+                                                  proportion_pred_train_ls=None, shared_context_ls=None, word_embedding_projected_dim_ls=None,
+                                                  char_level_embedding_projection_dim_ls=None, n_layers_sent_cell_ls=None, n_layers_word_encoder_ls=None, unrolling_word_ls=None, scoring_func=None,
                                                   mode_word_encoding_ls=None, dropout_input_ls=None, multi_task_loss_ponderation_ls=None, scale_ls=[1])
           print("row:{}".format(row))
           print("dir_script:{}".format(dir_script))

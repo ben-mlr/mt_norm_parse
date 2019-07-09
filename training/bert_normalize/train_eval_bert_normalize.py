@@ -25,7 +25,7 @@ def train_eval_bert_normalize(args, verbose=1):
     voc_pos_size = 19 #18+1 for alg_arabizi # 53+1 for ARABIZI 1# 21 is for ENGLISH
     printing("MODEL : voc_pos_size hardcoded to {}", var=voc_pos_size, verbose_level=1, verbose=verbose)
 
-    debug = True
+    debug = False
     if os.environ.get("ENV") in ["rioc", "neff"]:
         debug = False
     if args.checkpoint_dir is None:
@@ -109,6 +109,6 @@ def train_eval_bert_normalize(args, verbose=1):
         list_reference_heuristic_test=list_reference_heuristic_test, case="lower",
         layer_wise_attention=args.layer_wise_attention,
         slang_dic_test=slang_dic, early_stoppin_metric=early_stoppin_metric,
-        report=True, verbose=1)
+        report=True, verbose="alignement")
 
     printing("MODEL {} trained and evaluated", var=[args.model_id_pref], verbose_level=1, verbose=verbose)

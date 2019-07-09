@@ -904,8 +904,7 @@ class BertForMaskedLM(BertPreTrainedModel):
         # masked_lm_labels  : what is it ??
         self.loss_weights_default = OrderedDict([("loss_task_1", 1), ("loss_task_2", 1), ("loss_task_n_mask_prediction", 1)])
 
-        sequence_output, _ = self.bert(input_ids, token_type_ids, attention_mask,
-                                       output_all_encoded_layers=self.layer_wise_attention is not None)
+        sequence_output, _ = self.bert(input_ids, token_type_ids, attention_mask, output_all_encoded_layers=self.layer_wise_attention is not None)
         softmax_weight = None
         if self.layer_wise_attention is not None:
             stacked_layers = torch.stack(sequence_output, dim=-1).transpose(3, 2).squeeze(-1)
@@ -975,6 +974,7 @@ class BertForMaskedLM(BertPreTrainedModel):
             num_labels = self.config.vocab_size
             if self.normalization_module:
                 num_labels += 1
+            pdb.set_trace()
             masked_lm_loss = loss_fct(prediction_scores.view(-1, num_labels), masked_lm_labels.view(-1))
             loss_dict["loss_task_1"] = masked_lm_loss
             loss_dict["loss"] = loss_dict["loss_task_1"]+loss_dict["loss_task_n_mask_prediction"]

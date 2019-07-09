@@ -9,7 +9,7 @@ import io_.bert_iterators_tools.alignement  as alignement
 
 from evaluate.scoring.report import overall_word_level_metric_measure
 from evaluate.scoring.confusion_matrix_rates import get_perf_rate
-
+from model.n_masks_predictor import pred_n_bpe
 from toolbox.pred_tools.heuristics import predict_with_heuristic
 
 from toolbox.deep_learning_toolbox import dropout_input_tensor
@@ -320,13 +320,15 @@ def epoch_run(batchIter, tokenizer,
             if task_normalize_is:
                 # aligning output BPE with input (we are rejecting batch with at least one 1 to n case
                 # (that we don't want to handle
-
-                output_tokens_tensor_aligned, input_tokens_tensor_aligned, input_alignement_with_raw, input_mask, _1_to_n_token = \
+                try:
+                    output_tokens_tensor_aligned, input_tokens_tensor_aligned, input_alignement_with_raw, input_mask, _1_to_n_token = \
                     alignement.aligned_output(input_tokens_tensor, output_tokens_tensor,
                                    input_alignement_with_raw,
                                    output_alignement_with_raw, mask_token_index=mask_token_index,
                                    input_mask=input_mask, use_gpu=use_gpu,
                                    null_token_index=null_token_index, verbose=verbose)
+                except:
+                    pdb.set_trace()
                 input_tokens_tensor = input_tokens_tensor_aligned
                 #
                 #TODO : creaate a tensor same dim as output_tokens_tensor based on output_alignement_with_raw
@@ -352,46 +354,27 @@ def epoch_run(batchIter, tokenizer,
             # CHECKING ALIGNEMENT
             # PADDING TO HANDLE !!
             assert output_tokens_tensor_aligned.size(0) == input_tokens_tensor.size(0),\
-                "output_tokens_tensor_aligned.size(0) {} input_tokens_tensor.size() {}"\
-                    .format(output_tokens_tensor_aligned.size(), input_tokens_tensor.size())
+                "output_tokens_tensor_aligned.size(0) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(), input_tokens_tensor.size())
             assert output_tokens_tensor_aligned.size(1) == input_tokens_tensor.size(1), \
-                "output_tokens_tensor_aligned.size(1) {} input_tokens_tensor.size() {}"\
-                    .format(output_tokens_tensor_aligned.size(1), input_tokens_tensor.size(1))
+                "output_tokens_tensor_aligned.size(1) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(1), input_tokens_tensor.size(1))
             # we consider only 1 sentence case
             token_type_ids = torch.zeros_like(input_tokens_tensor)
             if use_gpu:
                 token_type_ids = token_type_ids.cuda()
             printing("CUDA SANITY CHECK input_tokens:{}  type:{}input_mask:{}  label:{}",
-                     var=[input_tokens_tensor.is_cuda, token_type_ids.is_cuda, input_mask.is_cuda, output_tokens_tensor_aligned.is_cuda], verbose=verbose, verbose_level="cuda")
+                     var=[input_tokens_tensor.is_cuda, token_type_ids.is_cuda,
+                          input_mask.is_cuda, output_tokens_tensor_aligned.is_cuda],
+                     verbose=verbose, verbose_level="cuda")
             # we have to recompute the mask based on aligned input
             if dropout_input_bpe > 0:
-
-                input_tokens_tensor, mask_dropout, dropout_applied = \
-                    dropout_input_tensor(input_tokens_tensor, mask_token_index, sep_token_index=sep_token_index, dropout=dropout_input_bpe, applied_dropout_rate=True)
+                input_tokens_tensor, mask_dropout, dropout_applied = dropout_input_tensor(input_tokens_tensor, mask_token_index, sep_token_index=sep_token_index, dropout=dropout_input_bpe, applied_dropout_rate=True)
 
             if append_n_mask:
-                def pred_n_bpe(input):
-                    output = torch.empty_like(input).long()
-                    for ind_sent in range(input.size(0)):
-                        count_1 = 1
-                        for ind_word in range(input.size(1)):
-                            if input[ind_sent, ind_word] == 1:
-                                output[ind_sent, ind_word] = -1
-                                if count_1 == 1:
-                                    ind_multi_bpe = ind_word-1
-                                count_1 += 1
-                            elif input[ind_sent, ind_word] == 0:
-                                # reached the end of the multi-bpe
-                                if ind_word >= 0 and input[ind_sent, ind_word-1] == 1:
-                                    output[ind_sent, ind_multi_bpe] = min(count_1, 5)
-                                    count_1 = 1
-                                output[ind_sent, ind_word] = 1
-                            else:
-                                raise(Exception("input[ind_sent, ind_word] is neither 0 nor 1 but {}".format(input[ind_sent, ind_word])))
-                    return output
                 labels_n_mask_prediction = pred_n_bpe(input_tokens_tensor == mask_token_index)
                 # sanity test : are mask correectly encoded as -1
                 assert (((input_tokens_tensor == mask_token_index).nonzero() == (labels_n_mask_prediction == -1).nonzero())).all()
+                # Assigning padded input to label -1 for loss ignore
+                labels_n_mask_prediction[input_tokens_tensor == 0] = -1
             else:
                 labels_n_mask_prediction = None
 
@@ -476,11 +459,12 @@ def epoch_run(batchIter, tokenizer,
                         # half the time we mask not to make the model only normalizing
                         input_tokens_tensor[input_tokens_tensor != output_tokens_tensor_aligned] = mask_token_index
             else:
-                feeding_the_model_with_label = output_tokens_tensor_aligned
+                feeding_the_model_with_label = output_tokens_tensor_aligned.clone()
 
             try:
-                printing("MASK mask:{}\nMASK input:{}\nMASK output:{}", var=[input_mask, input_tokens_tensor, output_tokens_tensor_aligned],
+                printing("MASK mask:{} \nMASK input:{} \nMASK output:{}", var=[input_mask, input_tokens_tensor, output_tokens_tensor_aligned],
                          verbose_level="raw_data", verbose=verbose)
+                feeding_the_model_with_label[feeding_the_model_with_label == 0] = -1
                 loss_dic, layer_wise_weights = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
                                                                     labels=feeding_the_model_with_label if task_normalize_is else None, #tasks[0] == "normalize" else None,
                                                                     labels_n_masks=labels_n_mask_prediction,
@@ -530,8 +514,9 @@ def epoch_run(batchIter, tokenizer,
                                                  pos_dictionary=pos_dictionary,
                                                  task=tasks[0], pred_mode=False, null_token_index=null_token_index,
                                                  null_str=null_str)
-                except:
-                    pdb.set_trace()
+                except Exception as e:
+                    print("ERROR null_token_index is ", null_token_index)
+                    raise(e)
 
                 source_preprocessed = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer,
                                                             pos_dictionary=pos_dictionary,
@@ -547,8 +532,9 @@ def epoch_run(batchIter, tokenizer,
                     gold_detokenized = alignement.realigne(gold, input_alignement_with_raw, remove_null_str=True, null_str=null_str,
                                             tasks=tasks,
                                             mask_str=MASK_BERT)
-                except:
-                    pdb.set_trace()
+                except Exception as e:
+                    raise(e)
+
                 if task_pos_is:
                     # we remove padding here based on src that is corectly padded
                     gold_detokenized = [gold_sent[:len(src_sent)] for gold_sent, src_sent in zip(gold_detokenized, src_detokenized)]
@@ -643,27 +629,28 @@ def epoch_run(batchIter, tokenizer,
                     printing("TRAINING : BPE eval src {}-{} {}", var=[iter, batch_i, input_alignement_with_raw],
                              verbose=verbose, verbose_level=2)
 
-                def print_align_bpe(source_preprocessed, gold, input_alignement_with_raw, verbose,verbose_level):
+                def print_align_bpe(source_preprocessed, gold, input_alignement_with_raw, labels_n_mask_prediction, verbose, verbose_level):
+                    if labels_n_mask_prediction is None:
+                        labels_n_mask_prediction = [[None for _ in range(len(sent))] for sent in input_alignement_with_raw]
                     if isinstance(verbose, int) or verbose == "alignement":
                         if verbose == "alignement" or verbose >= verbose_level:
                             assert len(source_preprocessed) == len(gold), ""
                             assert len(input_alignement_with_raw) == len(gold), ""
-                            for sent_src, sent_gold, index_match_with_src in zip(source_preprocessed, gold, input_alignement_with_raw):
+                            for sent_src, sent_gold, index_match_with_src, append_masks in zip(source_preprocessed, gold, input_alignement_with_raw, labels_n_mask_prediction):
                                 assert len(sent_src) == len(sent_gold)
                                 assert len(sent_src) == len(sent_gold)
-                                for src, gold_tok, index in zip(sent_src, sent_gold, index_match_with_src):
-                                    printing("{}:{} --> {} ", var=[index, src, gold_tok],
+                                for src, gold_tok, index, masks in zip(sent_src, sent_gold, index_match_with_src, append_masks):
+                                    printing("{}:{} --> {} (n_masks {})", var=[index, src, gold_tok, masks],
                                              verbose=1, verbose_level=1)
                                     #printing("{}:{} --> {} ", var=[index, src, gold_tok],
                                     #         verbose=verbose, verbose_level=verbose_level)
 
-                print_align_bpe(source_preprocessed, gold, input_alignement_with_raw, verbose=verbose, verbose_level=4)
+                print_align_bpe(source_preprocessed, gold, input_alignement_with_raw, labels_n_mask_prediction, verbose=verbose, verbose_level=4)
 
             loss += _loss.detach()
-
             if optimizer is not None:
                 _loss.backward()
-                if (low_memory_foot_print_batch_mode and batch_i % batch_size_real==0) or not low_memory_foot_print_batch_mode:
+                if (low_memory_foot_print_batch_mode and batch_i % batch_size_real == 0) or not low_memory_foot_print_batch_mode:
                     if low_memory_foot_print_batch_mode:
                         printing("OPTIMIZING in low_memory_foot_print_batch_mode cause batch index {} is batch_size_real",
                                  var=[batch_i, batch_size_real], verbose=verbose, verbose_level=1)

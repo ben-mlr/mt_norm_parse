@@ -120,8 +120,8 @@ def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu,
     aligned_index = [tup[1] for tup in all_tokenized_ls]
     segments_ids = [[0 for _ in range(len(tokenized))] for tokenized in tokenized_ls]
 
-    printing("DATA : bpe tokenized {}", var=[tokenized_ls], verbose=verbose, verbose_level="raw_data")
-    printing("DATA : bpe tokenized {}", var=[tokenized_ls], verbose=verbose, verbose_level="alignement")
+    printing("DATA : bpe tokenized {} , {} {} ", var=[tokenized_ls, len(tokenized_ls),len(tokenized_ls[0])], verbose=verbose, verbose_level="raw_data")
+    printing("DATA : bpe tokenized {} , {} {} ", var=[tokenized_ls, len(tokenized_ls),len(tokenized_ls[0])], verbose=verbose, verbose_level="alignement")
 
     ids_ls = [tokenizer.convert_tokens_to_ids(inp) for inp in tokenized_ls]
     max_sent_len = max([len(inp) for inp in tokenized_ls])
