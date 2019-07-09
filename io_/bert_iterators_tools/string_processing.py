@@ -148,11 +148,7 @@ def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu,
     return tokens_tensor, segments_tensors, tokenized_ls, aligned_index_padded, mask
 
 
-def from_bpe_token_to_str(
-                          bpe_tensor, topk, pred_mode,
-                          null_token_index, null_str,
-                          tokenizer=None, pos_dictionary=None,
-                          task="normalize", verbose=1
+def from_bpe_token_to_str(bpe_tensor, topk, pred_mode, null_token_index, null_str, tokenizer=None, pos_dictionary=None, task="normalize", verbose=1
                           ):
     """
     it actually supports not only bpe token but also pos-token

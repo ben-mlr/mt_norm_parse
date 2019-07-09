@@ -10,7 +10,7 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
                                   dropout_bert=0.,tasks=None,
                                   bert_module="token_class",
                                   layer_wise_attention=False,
-                                  mask_n_predictor=False,
+                                  mask_n_predictor=False, add_task_2_for_downstream=False,
                                   initialize_bpe_layer=None, debug=False, verbose=1):
     """
     two use case :
@@ -60,10 +60,9 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
         if bert_module == "token_class":
             model = model.from_pretrained(pretrained_model_dir, num_labels=num_labels, dropout_custom=dropout_bert)
         elif bert_module == "mlm":
-            pdb.set_trace()
             model = model.from_pretrained(pretrained_model_dir, normalization_mode=True,
                                           layer_wise_attention=layer_wise_attention, mask_n_predictor=mask_n_predictor)
-            space_vector = torch.normal(torch.mean(model.bert.embeddings.word_embeddings.weight.data,dim=0), std=torch.std(model.bert.embeddings.word_embeddings.weight.data,dim=0)).unsqueeze(0)#torch.rand((1, 768)
+            space_vector = torch.normal(torch.mean(model.bert.embeddings.word_embeddings.weight.data, dim=0), std=torch.std(model.bert.embeddings.word_embeddings.weight.data,dim=0)).unsqueeze(0)#torch.rand((1, 768)
 
             output_layer = torch.cat((model.bert.embeddings.word_embeddings.weight.data, space_vector), dim=0)
             model.cls.predictions.decoder = nn.Linear(model.bert.config.hidden_size, vocab_size + 1, bias=False)
@@ -79,7 +78,7 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
             printing("MODEL : SETTING DROPOUT CLASSIFIER TO {}".format(dropout_classifier), verbose=verbose, verbose_level=1)
 
         #if (len(tasks) > 1 and "normalize" in tasks:
-        if "pos" in tasks and bert_module == "token_class":
+        if "pos" in tasks and bert_module in ["token_class", "mlm"]:
             #assert tasks[1] == "pos", "ONLY  POS and normalize supported so far"
             model.classifier_task_2 = nn.Linear(model.bert.config.hidden_size, voc_pos_size)
             model.num_labels_2 = voc_pos_size
@@ -102,13 +101,18 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
 
         if bert_module == "mlm":
             model.normalization_module = True
-            print("SETTING model.layer_wise_attention  to model.layer_wise_attention ", model.layer_wise_attention , layer_wise_attention)
+            print("SETTING model.layer_wise_attention  to model.layer_wise_attention ", model.layer_wise_attention,
+                  layer_wise_attention)
             model.cls.predictions.decoder = nn.Linear(model.bert.config.hidden_size, vocab_size + 1, bias=False)
             model.cls.predictions.bias = nn.Parameter(torch.zeros(vocab_size + 1))
 
         model.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
-        printing("MODEL : loading model BERT+token classification pretrained from checkpoint {}",
-                 var=[checkpoint_dir],
+        if add_task_2_for_downstream:
+            model.classifier_task_2 = nn.Linear(model.bert.config.hidden_size, voc_pos_size)
+            model.num_labels_2 = voc_pos_size
+            print("MODEL : adding module task 2")
+        printing("MODEL : loading model BERT+token classification pretrained from checkpoint {} on tasks {}",
+                 var=[checkpoint_dir, tasks],
                  verbose=verbose, verbose_level=1)
     else:
         raise(Exception("neither checkpoint dir nor pretrained_model_dir was provided"))

@@ -348,9 +348,10 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
   """
 
   if bucket:
-    _buckets = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, -1]
+    _buckets = [5, 10, 15, 20, 25, 30, 40]#, 50, 60, 70, 80, 90, 100]
+    printing("WARNING : bucket limited to 40", verbose=verbose, verbose_level=1)
   else:
-    _buckets = [-1]
+    _buckets = [40]
     printing("WARNING : for validation we don't bucket the data : bucket len is {} (-1 means will be based "
              "on max sent length lenght) ", var=_buckets[0], verbose=verbose, verbose_level=1)
   last_bucket_id = len(_buckets) - 1
@@ -405,7 +406,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
                           type_dictionary, max_size=None, normalize_digits=True, symbolic_root=False,word_norm_dictionary=None,
                           symbolic_end=False, use_gpu=False, volatile=False, dry_run=False, lattice=None,
                           verbose=0, normalization=False, bucket=True, word_decoder=False,
-                          tasks=None, max_char_len=MAX_CHAR_LENGTH, must_get_norm=True,
+                          tasks=None, max_char_len=None, must_get_norm=True,
                           add_end_char=0, add_start_char=0):
   """
   Given data ovject form read_variable creates array-like  variables for character, word, pos, relation, heads ready to be fed to a network

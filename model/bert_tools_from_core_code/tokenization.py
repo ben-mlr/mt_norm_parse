@@ -152,7 +152,6 @@ class BertTokenizer(object):
                                                                   basic_tokenization_target[bpe_reading_ind_gold],
                                                                   former_src=word_piece_token,
                                                                   former_gold=word_piece_token_gold, verbose=verbose)
-                        pdb.set_trace()
                 except Exception as e:
                     raise(e)
             else:
@@ -451,7 +450,6 @@ class WordpieceTokenizer(object):
                 cur_substr_gold = None
                 while start < end:
                     substr = "".join(chars[start:end])
-                    pdb.set_trace()
                     #print("SUBSTR", substr)
                     if start > 0:
                         substr = "##" + substr
@@ -468,7 +466,7 @@ class WordpieceTokenizer(object):
                             if end == len(chars):
                                 # if we reached the end of the noisy token we handle the rest of the string of the gold
                                 left_out_gold = chars_gold[end:]
-                            pdb.set_trace()
+
                         # otherwise : we split the gold
                         else:
                             # we look in the substrings of chars_gold[start_gold:end_gold] if there are bpe
@@ -479,7 +477,6 @@ class WordpieceTokenizer(object):
                             # we start at the same character as noisy
                             start_gold = start
                             #print("SUBSTR_GOLD NO MATCH", cur_substr)
-                            pdb.set_trace()
                             while start_gold < _end_gold:
                                 substr_gold = "".join(chars_gold[start_gold:_end_gold])
                                 if start_gold > 0:
@@ -489,7 +486,7 @@ class WordpieceTokenizer(object):
                                     cur_substr_gold = substr_gold
                                     left_out_gold = chars_gold[_end_gold:end_gold]
                                     if break_ing:
-                                        pdb.set_trace()
+                                        pass#pdb.set_trace()
                                     printing("FOUND gold substring of {} : src:{} of token ({}) --> {} LEAVING {}".format(chars_gold, cur_substr, chars, substr_gold, left_out_gold),
                                              verbose_level="alignement", verbose=verbose)
                                     break

@@ -839,8 +839,6 @@ class BertForPreTraining(BertPreTrainedModel):
 
 #class BertForMultiTask(BertPreTrainedModel):
 
-
-
 class BertForMaskedLM(BertPreTrainedModel):
     """BERT model with the masked language modeling head.
     This module comprises the BERT model followed by the masked language modeling head.
@@ -883,28 +881,29 @@ class BertForMaskedLM(BertPreTrainedModel):
     masked_lm_logits_scores = model(input_ids, token_type_ids, input_mask)
     ```
     """
-    def __init__(self, config):
+    def __init__(self, config, num_labels_2=None):
         super(BertForMaskedLM, self).__init__(config)
         self.bert = BertModel(config)
         self.normalization_module = config.normalization_module
         self.cls = BertOnlyMLMHead(config, self.bert.embeddings.word_embeddings.weight)
         self.apply(self.init_bert_weights)
         layer_wise_attention = config.layer_wise_attention
+        self.classifier_task_2 = None
         self.layer_wise_attention = nn.Linear(config.hidden_size, 1) if layer_wise_attention else None
         self.mask_n_predictor = BertMaskNPredictionHead(config) if config.mask_n_predictor else None
         self.num_labels_n_mask = 5
-
+        self.num_labels_2 = num_labels_2
         print("WARNING : NB in forward(modelling) aggregating_bert_layer_mode is ignore in BertForMaskedLM")
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None,
                 masked_lm_labels=None, labels=None, labels_task_2=None, labels_n_masks=None,
                 aggregating_bert_layer_mode=None, output_all_encoded_layers=False):
 
-        assert labels_task_2 is None
-
         if masked_lm_labels is None:
             masked_lm_labels = labels
         # masked_lm_labels  : what is it ??
+        self.loss_weights_default = OrderedDict([("loss_task_1", 1), ("loss_task_2", 1), ("loss_task_n_mask_prediction", 1)])
+
         sequence_output, _ = self.bert(input_ids, token_type_ids, attention_mask,
                                        output_all_encoded_layers=self.layer_wise_attention is not None)
         softmax_weight = None
@@ -951,6 +950,24 @@ class BertForMaskedLM(BertPreTrainedModel):
             loss_fct_masks_pred = CrossEntropyLoss(ignore_index=-1)
             loss_dict["loss_task_n_mask_prediction"] = loss_fct_masks_pred(logits_n_mask_prediction.view(-1, self.num_labels_n_mask),
                                                                            labels_n_masks.view(-1))
+        if self.classifier_task_2 is not None:
+            assert self.num_labels_2 is not None, "num_labels_2 required"
+            logits_task_2 = self.classifier_task_2(sequence_output)
+            pred_dict["logits_task_2"] = logits_task_2
+        if labels_task_2 is not None:
+            loss_fct_task_2 = CrossEntropyLoss(ignore_index=-1)
+            assert self.classifier_task_2 is not None, \
+                "labels_task_2 was provided but self.classifier_task_2 has not been defined"
+            if attention_mask is not None:
+                active_loss = attention_mask.view(-1) == 1
+                active_logits = logits_task_2.view(-1, self.num_labels_2)[active_loss]
+
+                active_labels = labels_task_2.view(-1)[active_loss]
+                loss_task_2 = loss_fct_task_2(active_logits, active_labels)
+            else:
+                loss_task_2 = loss_fct_task_2(logits_task_2.view(-1, self.num_labels_2), labels_task_2.view(-1))
+            loss_dict["loss_task_2"] = loss_task_2
+
         if masked_lm_labels is not None:
             if self.mask_n_predictor is not None:
                 assert labels_n_masks is not None, "If have a n_masks predictor then we should give labels for it any time we do it for bpe prediction"
@@ -962,6 +979,10 @@ class BertForMaskedLM(BertPreTrainedModel):
             loss_dict["loss_task_1"] = masked_lm_loss
             loss_dict["loss"] = loss_dict["loss_task_1"]+loss_dict["loss_task_n_mask_prediction"]
             # TODO : add weights for the loss
+        if labels is not None or labels_task_2 is not None:
+            loss_dict["loss"] = self.loss_weights_default["loss_task_1"] * loss_dict["loss_task_1"] + \
+                                self.loss_weights_default["loss_task_2"] * loss_dict["loss_task_2"] + \
+                                self.loss_weights_default["loss_task_n_mask_prediction"] * loss_dict["loss_task_n_mask_prediction"]
 
             return loss_dict, softmax_weight
         else:

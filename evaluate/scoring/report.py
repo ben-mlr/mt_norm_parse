@@ -97,7 +97,8 @@ def overall_word_level_metric_measure(gold_sent_ls,
                         #intersected_samples.append(inter)
                         if filter_sent.get(inter, None) is None:
                             filter_sent[inter] = []
-                        filter_sent[inter].append(word_level_filter(sample=_sample, sample_2=sample_to_intersesct[ind_sample_2], gold=gold_token, topk_pred=topk_word_pred,
+                        filter_sent[inter].append(word_level_filter(sample=_sample, sample_2=sample_to_intersesct[ind_sample_2],
+                                                                    gold=gold_token, topk_pred=topk_word_pred,
                                                   topk=topk, src=src_detokenized[gold_ind_sent][ind_word],
                                                   word_reference_dic_ls=reference_word_dic))
 

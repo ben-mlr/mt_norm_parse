@@ -1,4 +1,4 @@
-from env.importing import os, nn, json, OrderedDict, pickle
+from env.importing import os, nn, json, OrderedDict, pickle, pdb
 from training.bert_normalize.fine_tune_bert import run
 from env.project_variables import PROJECT_PATH
 from model.bert_normalize import get_bert_token_classification
@@ -25,7 +25,7 @@ def train_eval_bert_normalize(args, verbose=1):
     voc_pos_size = 19 #18+1 for alg_arabizi # 53+1 for ARABIZI 1# 21 is for ENGLISH
     printing("MODEL : voc_pos_size hardcoded to {}", var=voc_pos_size, verbose_level=1, verbose=verbose)
 
-    debug = False
+    debug = True
     if os.environ.get("ENV") in ["rioc", "neff"]:
         debug = False
     if args.checkpoint_dir is None:
@@ -47,11 +47,13 @@ def train_eval_bert_normalize(args, verbose=1):
         # TODO args.original_task  , vocab_size is it necessary
         #assert args.original_task is not None
         original_task = ["normalize"]
+        print("WARNING : HARDCODED add_task_2_for_downstream : True ")
         model = get_bert_token_classification(vocab_size=vocab_size, voc_pos_size=voc_pos_size,
                                               tasks=original_task,
                                               initialize_bpe_layer=None, bert_module=args.bert_module,
                                               layer_wise_attention=args.layer_wise_attention,
                                               mask_n_predictor=args.append_n_mask,
+                                              add_task_2_for_downstream=True,
                                               checkpoint_dir=args.checkpoint_dir, debug=debug)
 
         add_task_2 = False
@@ -63,12 +65,14 @@ def train_eval_bert_normalize(args, verbose=1):
 
     lr = args.lr
     batch_size = args.batch_size
-    null_token_index = BERT_MODEL_DIC["bert-cased"]["vocab_size"]  # based on bert cased vocabulary
+    null_token_index = BERT_MODEL_DIC[args.bert_model]["vocab_size"]  # based on bert cased vocabulary
     description = "grid"
     dir_grid = args.overall_report_dir
-
     #list_reference_heuristic_test = list(json.load(open(os.path.join(PROJECT_PATH, "./data/words_dictionary.json"),"r"),object_pairs_hook=OrderedDict).keys())
-    list_reference_heuristic_test = pickle.load(open(os.path.join(PROJECT_PATH, "data/wiki-news-FAIR-SG-top50000.pkl"), "rb"))
+    list_reference_heuristic_test = pickle.load(
+        open(os.path.join(PROJECT_PATH,
+                          "data/wiki-news-FAIR-SG-top50000.pkl"),
+             "rb"))
     slang_dic = json.load(open(os.path.join(PROJECT_PATH, "data/urban_dic_abbreviations.json"), "r"))
 
     if "normalize" in args.tasks:
@@ -86,7 +90,8 @@ def train_eval_bert_normalize(args, verbose=1):
         append_n_mask=args.append_n_mask,
         auxilliary_task_norm_not_norm=True,
         saving_every_epoch=1, lr=lr,
-        batch_size=batch_size, n_iter_max_per_epoch=200000, n_epoch=args.epochs,
+        batch_size=batch_size,
+        n_iter_max_per_epoch=200000, n_epoch=args.epochs,
         test_path_ls=args.test_paths,
         description=description, null_token_index=null_token_index, null_str=NULL_STR,
         model_suffix="{}".format(args.model_id_pref), debug=debug,
@@ -104,6 +109,6 @@ def train_eval_bert_normalize(args, verbose=1):
         list_reference_heuristic_test=list_reference_heuristic_test, case="lower",
         layer_wise_attention=args.layer_wise_attention,
         slang_dic_test=slang_dic, early_stoppin_metric=early_stoppin_metric,
-        report=True, verbose="alignement")
+        report=True, verbose=1)
 
     printing("MODEL {} trained and evaluated", var=[args.model_id_pref], verbose_level=1, verbose=verbose)

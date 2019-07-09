@@ -38,6 +38,7 @@ class CoNLLReader(object):
   def getNext(self, tasks, normalize_digits=True,
               symbolic_root=False, symbolic_end=False,
               word_decoder=False, must_get_norm=True,
+              load_everything=False,
               verbose=0):
     line = self.__source_file.readline()
     if tasks is None:
@@ -51,7 +52,7 @@ class CoNLLReader(object):
       if TASKS_PARAMETER[task]["normalization"]:
         normalization = True
         break
-    # skip multiple blank lines.
+    # skip multiple blank lines.could not handled mismatch
     raw_text = []
 
     while len(line) > 0 and (len(line.strip()) == 0 or line.strip()[0] == '#'):

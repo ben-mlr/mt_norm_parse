@@ -51,6 +51,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
     use_gpu_hardcoded_readers = False
     printing("WARNING use_gpu_hardcoded_readers hardcoded for readers set to {}", var=[use_gpu_hardcoded_readers],
              verbose=verbose, verbose_level=1)
+
     if early_stoppin_metric is None:
         if "pos" in tasks:
             early_stoppin_metric = "accuracy-exact-pos"

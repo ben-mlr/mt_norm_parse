@@ -8,7 +8,7 @@ APPLY_PERMUTE_WORD = 0.8
 
 def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_ls,
                 src_text_pos, pred_pos_ls, tasks, inverse=False,permuting_mode=None,cp_paste=False,
-                ind_batch=0, new_file=False, verbose=0):
+                ind_batch=0, new_file=False, cut_sent=False, verbose=0):
     assert format in ["conll"]
     #assert len(tasks) == 1, "ERROR : only supported so far 1 task at a time"
 
@@ -27,6 +27,7 @@ def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_
             print("CREATING NEW FILE", dir_normalized)
         with open(dir_normalized, mode_write) as norm_file:
             with open(dir_original, mode_write) as original:
+                len_original = 0
                 for ind_sent, (original_sent, normalized_sent) in enumerate(zip(src_ls, pred_ls)):
                     try:
                         assert len(original_sent) == len(normalized_sent), "ERROR (writer) original_sent len {} {} \n  " \
@@ -47,7 +48,7 @@ def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_
                                                                                  normalized_sent)):
                         # WE REMOVE SPECIAL TOKENS ONLY IF THEY APPEAR AT THE BEGINING OR AT THE END
                         # on the source token !! (it tells us when we stop) (we nevern want to use gold information)
-
+                        max_len_word = max(len(original_token),len_original)
                         if original_token in SPECIAL_TOKEN_LS and (ind+1 == len(original_sent) or ind == 0):
                             ind_adjust = 1
                             continue
@@ -155,6 +156,11 @@ def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_
                         original.write("{}\t{}\t_\t_\t_\t_\t_\t_\t{}\t_\n".format(ind+1,
                                                                                   original_token,
                                                                                   ind - ind_adjust if ind - ind_adjust > 0 else 0))
+
+                        if cut_sent:
+                            if ind>50:
+                                break
                     norm_file.write("\n")
                     original.write("\n")
             printing("WRITING predicted batch of {} original and {} normalized", var=[dir_original, dir_normalized], verbose=verbose, verbose_level="raw_data")
+    return max_len_word

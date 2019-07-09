@@ -13,7 +13,7 @@ def agg_func_batch_score(overall_ls_sent_score, overall_filter, agg_func):
     except AssertionError as e:
         print(e)
         pdb.set_trace()
-        print("SKIPED,batch+1 : score:{} filter:{}".format(overall_ls_sent_score, overall_filter))
+        print("WARNING : evaluate/scoring/agg_func_batch_score : SKIPED,batch+1 : score:{} filter:{}".format(overall_ls_sent_score, overall_filter))
         return 0
     # if filter 1 we keep otherise we ignore the token (and its score) in evaluation
     sum_ = sum([score for score_ls, filter_ls in zip(overall_ls_sent_score, overall_filter) for score, filter in zip(score_ls, filter_ls) if filter])

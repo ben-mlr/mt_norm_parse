@@ -169,7 +169,6 @@ def epoch_run(batchIter, tokenizer,
 
         try:
             batch_i += 1
-
             batch = batchIter.__next__()
             # if no normalization found : should have pos
             task_pos_is = len(batch.raw_output[0]) == 0
@@ -345,6 +344,8 @@ def epoch_run(batchIter, tokenizer,
 
             if batch_i == n_iter_max:
                 break
+            if batch_i % 1000 == 0:
+                printing("TRAINING : iteration finishing {}/{} batch", var=[batch_i, n_iter_max], verbose=verbose, verbose_level=1)
             if _1_to_n_token:
                 skipping_batch_n_to_1 += _1_to_n_token
                 #continue
@@ -410,7 +411,6 @@ def epoch_run(batchIter, tokenizer,
                                                                                               sep_token_index=sep_token_index,
                                                                                               applied_dropout_rate=0.8,
                                                                                               dropout=dropout)
-
                 elif masking_strategy == "mlm_need_norm" and not standart_pred:
                     feeding_the_model_with_label = output_tokens_tensor_aligned.clone()
                     # we only learn on tokens that are different from gold
@@ -487,12 +487,15 @@ def epoch_run(batchIter, tokenizer,
                                                                     labels_task_2=output_tokens_tensor_aligned if task_pos_is else None, #tasks[0] == "pos" else None
                                                                     aggregating_bert_layer_mode=aggregating_bert_layer_mode)
             except Exception as e:
-                print(" WARNING : MAX ", torch.max(output_tokens_tensor_aligned), input_tokens_tensor, input_mask, labels_n_mask_prediction)
-                print(e)
-                loss_dic, _ = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
-                                                   aggregating_bert_layer_mode=aggregating_bert_layer_mode,
-                                                   labels=feeding_the_model_with_label if task_normalize_is else None,#if tasks[0] == "normalize" else None,
-                                                   labels_task_2=output_tokens_tensor_aligned if task_pos_is else None)#if tasks[0] == "pos" else None)
+                print("WARNING : ERROR ", input_tokens_tensor, token_type_ids, input_mask, feeding_the_model_with_label,
+                      labels_n_mask_prediction, output_tokens_tensor_aligned)
+                #      labels_n_mask_prediction)
+                #loss_dic, _ = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
+                #                                   aggregating_bert_layer_mode=aggregating_bert_layer_mode,
+                #                                   labels=feeding_the_model_with_label if task_normalize_is else None,#if tasks[0] == "normalize" else None,
+                #                                   labels_task_2=output_tokens_tensor_aligned if task_pos_is else None)#if tasks[0] == "pos" else None)
+                raise(e)
+
             _loss = loss_dic["loss"]
             if task_normalize_is:
                 loss_norm += loss_dic["loss_task_1"].detach()
@@ -507,17 +510,28 @@ def epoch_run(batchIter, tokenizer,
                 # if predict more : will evaluate the model and write its predictions
 
                 # TODO : add mapping_info between task_id to model and task name necessary to iterator
-                logits, layer_wise_weights = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
-                                                                  aggregating_bert_layer_mode=aggregating_bert_layer_mode)
+                try:
+                    logits, layer_wise_weights = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
+                                                                      aggregating_bert_layer_mode=aggregating_bert_layer_mode)
+                except Exception as e:
+                    print(e)
+                    print("INPUT ", input_tokens_tensor)
+                    print("TOKEN TYPE", token_type_ids)
+                    print("INPUT MASK", input_mask)
+                    raise(e)
                 logits = logits["logits_task_2" if task_pos_is else "logits_task_1"]
                 predictions_topk = torch.argsort(logits, dim=-1, descending=True)[:, :, :topk]
                 # from bpe index to string
                 sent_ls_top = from_bpe_token_to_str(predictions_topk, topk, tokenizer=tokenizer, pred_mode=True,
                                                     pos_dictionary=pos_dictionary, task=tasks[0],
                                                     null_token_index=null_token_index, null_str=null_str)
-                gold = from_bpe_token_to_str(output_tokens_tensor_aligned, topk, tokenizer=tokenizer,
-                                             pos_dictionary=pos_dictionary, task=tasks[0],
-                                             pred_mode=False, null_token_index=null_token_index, null_str=null_str)
+                try:
+                    gold = from_bpe_token_to_str(output_tokens_tensor_aligned, topk, tokenizer=tokenizer,
+                                                 pos_dictionary=pos_dictionary,
+                                                 task=tasks[0], pred_mode=False, null_token_index=null_token_index,
+                                                 null_str=null_str)
+                except:
+                    pdb.set_trace()
 
                 source_preprocessed = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer,
                                                             pos_dictionary=pos_dictionary,
@@ -526,11 +540,15 @@ def epoch_run(batchIter, tokenizer,
 
                 # de-BPE-tokenize
                 src_detokenized = alignement.realigne(source_preprocessed, input_alignement_with_raw, null_str=null_str,
-                                           tasks=["normalize"],# normalize means we deal wiht bpe input not pos
-                                           mask_str=MASK_BERT, remove_mask_str=remove_mask_str_prediction)
-                gold_detokenized = alignement.realigne(gold, input_alignement_with_raw, remove_null_str=True, null_str=null_str,
+                                                      tasks=["normalize"],
+                                                      # normalize means we deal wiht bpe input not pos
+                                                      mask_str=MASK_BERT, remove_mask_str=remove_mask_str_prediction)
+                try:
+                    gold_detokenized = alignement.realigne(gold, input_alignement_with_raw, remove_null_str=True, null_str=null_str,
                                             tasks=tasks,
                                             mask_str=MASK_BERT)
+                except:
+                    pdb.set_trace()
                 if task_pos_is:
                     # we remove padding here based on src that is corectly padded
                     gold_detokenized = [gold_sent[:len(src_sent)] for gold_sent, src_sent in zip(gold_detokenized, src_detokenized)]

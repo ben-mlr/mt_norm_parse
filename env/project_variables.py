@@ -133,10 +133,19 @@ ARABIZI_POS_TRAIN_LABEL, ARABIZI_TRAIN_POS = "arabizi_train-pos",  os.path.join(
 ARABIZI_POS_DEV_LABEL, ARABIZI_DEV_POS = "arabizi_dev-pos",  os.path.join(PROJECT_PATH, "./data/pos/alg_arabizi-ud_dev.conllu")
 ARABIZI_POS_TEST_LABEL, ARABIZI_TEST_POS = "arabizi_test-pos",  os.path.join(PROJECT_PATH, "./data/pos/alg_arabizi-ud_test.conllu")
 
+
+
 CODE_MIXED_RAW_LABEL, CODE_MIXED_RAW = "raw_code_mixed", os.path.join(PROJECT_PATH, "./data/code_mixed/code-mixed_code-mixed1.conll")
+
 CODE_MIXED_RAW_TRAIN_LABEL, CODE_MIXED_RAW_TRAIN = "raw_code_mixed-train", os.path.join(PROJECT_PATH, "./data/code_mixed/code-mixed_code-mixed1-train.conll.conll")
+CODE_MIXED_RAW_TRAIN_SMALL_LABEL, CODE_MIXED_RAW_TRAIN_SMALL = "raw_code_mixed-train_small", os.path.join(PROJECT_PATH, "./data/code_mixed/code-mixed_code-mixed1-train_small.conll.conll")
+
+
 CODE_MIXED_RAW_DEV_LABEL, CODE_MIXED_RAW_DEV = "raw_code_mixed-dev", os.path.join(PROJECT_PATH, "./data/code_mixed/code-mixed_code-mixed1-dev.conll.conll")
+CODE_MIXED_RAW_CUT_DEV_LABEL, CODE_MIXED_RAW_CUT_DEV = "raw_code_mixed-dev", os.path.join(PROJECT_PATH, "./data/code_mixed/code-mixed_code-mixed1-dev_cut.conll.conll")
+
 CODE_MIXED_RAW_TEST_LABEL, CODE_MIXED_RAW_TEST = "raw_code_mixed-test", os.path.join(PROJECT_PATH, "./data/code_mixed/code-mixed_code-mixed1-test.conll.conll")
+CODE_MIXED_RAW_TEST_CUT_LABEL, CODE_MIXED_RAW_CUT_TEST = "raw_code_mixed-test_cut", os.path.join(PROJECT_PATH, "./data/code_mixed/code-mixed_code-mixed1-test_cut.conll.conll")
 
 # AUGMENT
 
@@ -305,10 +314,14 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 ARABIZI_TRAIN_POS: ARABIZI_POS_TRAIN_LABEL,
                 ARABIZI_DEV_POS: ARABIZI_POS_DEV_LABEL,
                 ARABIZI_TEST_POS: ARABIZI_POS_TEST_LABEL,
+
+                CODE_MIXED_RAW_TRAIN_SMALL: CODE_MIXED_RAW_TRAIN_SMALL_LABEL,
                 CODE_MIXED_RAW: CODE_MIXED_RAW_LABEL,
                 CODE_MIXED_RAW_TRAIN: CODE_MIXED_RAW_TRAIN_LABEL,
                 CODE_MIXED_RAW_DEV: CODE_MIXED_RAW_DEV_LABEL,
                 CODE_MIXED_RAW_TEST: CODE_MIXED_RAW_TEST_LABEL,
+                CODE_MIXED_RAW_CUT_TEST: CODE_MIXED_RAW_TEST_CUT_LABEL,
+                CODE_MIXED_RAW_CUT_DEV: CODE_MIXED_RAW_CUT_DEV_LABEL,
 
                 EMNLP12_DIC: EMNLP12_DIC_LABEL
                 }

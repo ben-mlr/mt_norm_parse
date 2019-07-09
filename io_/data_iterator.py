@@ -190,6 +190,7 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
             tasks = ["normalize", "norm_not_norm"]
         else:
             tasks = [task]
+        print("WARNING : data_iterator : None hardcdoed for max_char_len")
         readers[task] = conllu_data.read_data_to_variable(data, word_dictionary, char_dictionary,
                                                           pos_dictionary,
                                                           xpos_dictionary, type_dictionary,
@@ -201,7 +202,7 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
                                                           bucket=bucket,
                                                           add_start_char=add_start_char,
                                                           add_end_char=add_end_char, tasks=tasks,
-                                                          max_char_len=max_char_len,
+                                                          max_char_len=None,
                                                           must_get_norm=must_get_norm,
                                                           word_norm_dictionary=word_dictionary_norm, verbose=verbose)
 
