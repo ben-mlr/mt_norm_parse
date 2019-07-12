@@ -11,8 +11,6 @@ from model.n_masks_predictor import pred_n_bpe
 from toolbox.pred_tools.heuristics import predict_with_heuristic
 from training.epoch_run_fine_tuning_tools import get_casing, logging_processing_data, logging_scores, log_warning, print_align_bpe, tensorboard_loss_writer_batch_level, tensorboard_loss_writer_epoch_level, writing_predictions_conll
 from toolbox.deep_learning_toolbox import dropout_input_tensor
-sys.path.insert(0, os.path.join(PROJECT_PATH, "..", "experimental_pipe"))
-from reporting.write_to_performance_repo import report_template, write_dic
 
 
 def accumulate_scores_across_sents(agg_func_ls, sample_ls, dic_prediction_score, score_dic, n_tokens_dic, n_sents_dic):
@@ -526,8 +524,8 @@ def epoch_run(batchIter, tokenizer,
                     new_file = writing_predictions_conll(dir_normalized, dir_normalized_original_only, dir_gold,
                                                          dir_gold_original_only,
                                                          src_detokenized, inverse_writing, pred_detokenized_topk,
-                                                         task_pos_is,
-                                                         iter, batch_i, new_file,  gold_detokenized, verbose)
+                                                         task_pos_is, iter, batch_i, new_file,  gold_detokenized,
+                                                         verbose)
                 try:
                     if task_normalize_is and append_n_mask:
                         perf_prediction_n_mask, skipping_n_mask, _ = overall_word_level_metric_measure(labels_n_mask_prediction.tolist(), [prediction_n_mask.tolist()], 1, metric=metric, samples=None, agg_func_ls=agg_func_ls, reference_word_dic=reference_word_dic, compute_intersection_score=False, src_detokenized=src_detokenized)
@@ -577,10 +575,11 @@ def epoch_run(batchIter, tokenizer,
         except StopIteration:
             break
 
-    log_warning(counting_failure_parralel_bpe_batch, data_label, batch_i, batch,noisy_under_splitted,skipping_batch_n_to_1, aligned, noisy_over_splitted, skip_1_t_n, skipping_evaluated_batch, verbose)
+    log_warning(counting_failure_parralel_bpe_batch, data_label, batch_i, batch, noisy_under_splitted,skipping_batch_n_to_1, aligned, noisy_over_splitted, skip_1_t_n, skipping_evaluated_batch, verbose)
 
     early_stoppin_metric_val = None
     samples = _samples
+    evaluated_task = list(set(evaluated_task))
     if predict_mode:
         if writer is not None:
             tensorboard_loss_writer_epoch_level(writer, tasks, mode, model_id, epoch, n_batch_norm, n_batch_pos, append_n_mask, loss, loss_norm, loss_pos, loss_n_mask_prediction, batch_i)
@@ -589,14 +588,12 @@ def epoch_run(batchIter, tokenizer,
         printing("TRAINING : evaluating on {} tasks ", var=[evaluated_task], verbose_level=1, verbose=verbose)
 
         reports, early_stoppin_metric_val, score, n_tokens = report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, score_dic, n_tokens_dic, n_sents_dic, model_id, tasks, args_dir, data_label, reports,  writer, log_perf, early_stoppin_metric_val, early_stoppin_metric,mode, subsample_early_stoping_metric_val, epoch)
-
     else:
         reports = None
     iter += batch_i
     if writing_pred:
         printing("DATA WRITTEN TO {} ", var=[dir_end_pred], verbose=verbose, verbose_level=1)
-    printing("END EPOCH {} mode, iterated {} on pos {} on normalisation ",
-             var=[mode, n_task_pos_sanity, n_task_normalize_sanity], verbose_level=1, verbose=verbose)
+    printing("END EPOCH {} mode, iterated {} on pos {} on normalisation ", var=[mode, n_task_pos_sanity, n_task_normalize_sanity], verbose_level=1, verbose=verbose)
     try:
         if early_stoppin_metric is not None:
             assert early_stoppin_metric_val is not None, "ERROR : early_stoppin_metric_val should have been found but was not {} sample metric {} not found in {} (NB : MIGHT ALSO BECAUSE THE PERF DID NOT DECREASED AT ALL ) ".format(early_stoppin_metric, subsample_early_stoping_metric_val, reports)

@@ -6,14 +6,15 @@ def agg_func_batch_score(overall_ls_sent_score, overall_filter, agg_func):
     # sanity check
     try:
         assert len(overall_ls_sent_score) == len(overall_filter), "ERROR (scoring/agg_func_batch_score) : " \
-                                                                  "filter uncorrect score:{} filter:{}".format(overall_ls_sent_score, overall_filter)
+                                                                  "filter uncorrect score:{} filter:{} one of " \
+                                                                  "those had been miscomputed ".format(overall_ls_sent_score, overall_filter)
         for ind in range(len(overall_ls_sent_score)):
-            assert len(overall_ls_sent_score[ind]) == len(overall_filter[ind]), "ERROR : filter uncorrect " \
-                                                                                "len sent score={} filter={} ".format(overall_ls_sent_score, overall_filter[ind])
+            assert len(overall_ls_sent_score[ind]) == len(overall_filter[ind]), "ERROR (scoring/agg_func_batch_score) : filter uncorrect " \
+                                                                                "len sent score={} filter={} " \
+                                                                                "(one of those has been miscomputed) ".format(overall_ls_sent_score, overall_filter[ind])
     except AssertionError as e:
-
         print(e)
-        pdb.set_trace()
+        raise(e)
         print("WARNING : evaluate/scoring/agg_func_batch_score : SKIPED,batch+1 : score:{} filter:{}".format(overall_ls_sent_score, overall_filter))
         return 0
     # if filter 1 we keep otherise we ignore the token (and its score) in evaluation

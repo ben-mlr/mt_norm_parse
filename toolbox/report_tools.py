@@ -1,6 +1,7 @@
 from env.importing import *
 from io_.info_print import printing
 
+
 def get_score(scores, metric, info_score, task, data):
     for report in scores:
         if report["metric"] == metric and report["info_score"] == info_score and report["task"] == task and report[
@@ -9,6 +10,7 @@ def get_score(scores, metric, info_score, task, data):
     raise (Exception(
         "REPORT with {} metric {} info_score {} task and {} data not found in {} ".format(metric, info_score, task, data,
                                                                                          scores)))
+
 
 def checkout_layer_name(name_param, model_parameters, info_epoch=""):
     for name, param in model_parameters:

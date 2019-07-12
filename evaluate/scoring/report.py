@@ -65,19 +65,23 @@ def overall_word_level_metric_measure(gold_sent_ls,
                     # NB : this should be handle properly :
                     #   the detokenization has a problem when dropout_bpe_mask is not null
                 else:
-                    print(Exception("ERROR {} : could not handled mismatch between pred {} len/src {} "
-                                    "and gold len by cutting "
-                                    "it based on GOLD padding "
-                                    "(SHOULD BE RAISED IN TASK POS)".format(e, gold_sent,
-                                                                            pred_sent_ls_topk[0][gold_ind_sent])))
-                    skipping_sent += len(gold_sent_ls)
-                    overall_score_ls_sent = [[0]]
-                    break
+                    if pred_sent_ls_topk[0][gold_ind_sent][-1] == "[SEP]":
+                        pred_sent_ls_topk[0][gold_ind_sent] = pred_sent_ls_topk[0][gold_ind_sent]+["[SEP]" for _ in range(len(gold_sent) - len(pred_sent_ls_topk[0][gold_ind_sent]))]
+                        print("APPENDING pred_sent_ls_topk[0] {} with {} ".format(len(gold_sent) - len(pred_sent_ls_topk[0][gold_ind_sent]), pred_sent_ls_topk[0][gold_ind_sent]))
+                        assert len(gold_sent) == len(pred_sent_ls_topk[0][gold_ind_sent])
+                        pdb.set_trace()
+                    else:
+                        print(Exception("ERROR {} : could not handled mismatch between pred {} len/src {} "
+                                        "and gold len by cutting it based on GOLD padding (SHOULD BE RAISED IN TASK POS)".format(e, gold_sent, pred_sent_ls_topk[0][gold_ind_sent])))
+                        skipping_sent += len(gold_sent_ls)
+                        overall_score_ls_sent = [[0]]
+                        break
             else:
                 skipping_sent += len(gold_sent_ls)
                 overall_score_ls_sent = [[0]]
+                pdb.set_trace()
                 break
-        if src_detokenized is not None and samples[0] != "all" and samples>1:
+        if src_detokenized is not None and samples[0] != "all" and samples > 1:
             # otherise we don't need src_detokenized
             assert len(gold_sent) == len(src_detokenized[gold_ind_sent]), "ERROR src_detokenized {} and gold_sent_ls for sent {} have different length ".format(gold_sent, src_detokenized[gold_ind_sent])
 
@@ -116,14 +120,18 @@ def overall_word_level_metric_measure(gold_sent_ls,
 
     for agg_func in agg_func_ls:
         for sample in samples+intersected_samples:
-            result[agg_func][sample] = {"score": agg_func_batch_score(overall_ls_sent_score=overall_score_ls_sent, agg_func=agg_func, overall_filter=overall_filter_ls[sample]),
-                                        "agg_func": agg_func, "metric": "exact_match",
-                                        "n_tokens": agg_func_batch_score(overall_ls_sent_score=overall_score_ls_sent,
-                                                                         overall_filter=overall_filter_ls[sample],
-                                                                         agg_func="n_tokens"),
-                                        "n_sents": agg_func_batch_score(overall_ls_sent_score=overall_score_ls_sent,
-                                                                        overall_filter=overall_filter_ls[sample],
-                                                                        agg_func="n_sents")
-                                        }
+            try:
+                result[agg_func][sample] = {
+                    "score": agg_func_batch_score(overall_ls_sent_score=overall_score_ls_sent,
+                                                  agg_func=agg_func, overall_filter=overall_filter_ls[sample]),
+                    "agg_func": agg_func, "metric": "exact_match",
+                    "n_tokens": agg_func_batch_score(overall_ls_sent_score=overall_score_ls_sent,
+                                                     overall_filter=overall_filter_ls[sample],
+                                                     agg_func="n_tokens"),
+                    "n_sents": agg_func_batch_score(overall_ls_sent_score=overall_score_ls_sent,
+                                                    overall_filter=overall_filter_ls[sample],
+                                                    agg_func="n_sents")}
+            except:
+                pdb.set_trace()
 
     return result, skipping_sent, samples+intersected_samples

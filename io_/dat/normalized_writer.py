@@ -24,17 +24,22 @@ def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_
     if format == "conll":
         mode_write = "w" if new_file else "a"
         if new_file:
-            print("CREATING NEW FILE", dir_normalized)
+            printing("CREATING NEW FILE (io_/dat/normalized_writer) : {} ", var=[dir_normalized], verbose=verbose, verbose_level=1)
         with open(dir_normalized, mode_write) as norm_file:
             with open(dir_original, mode_write) as original:
                 len_original = 0
                 for ind_sent, (original_sent, normalized_sent) in enumerate(zip(src_ls, pred_ls)):
                     try:
-                        assert len(original_sent) == len(normalized_sent), "ERROR (writer) original_sent len {} {} \n  " \
+                        assert len(original_sent) == len(normalized_sent), "WARNING : (writer) original_sent len {} {} \n  " \
                                                                      "normalized_sent len {} {} " \
                                                                      "".format(len(original_sent), original_sent, len(normalized_sent),normalized_sent)
                     except AssertionError as e:
                         print(e)
+                        if len(original_sent) > len(normalized_sent):
+                            normalized_sent.extend(["UNK" for _ in range(len(original_sent)-len(normalized_sent))])
+                        else:
+                            print("WARNING (writer) : original smaller than prediction ! ")
+
                     norm_file.write("#\n")
                     original.write("#\n")
                     norm_file.write("#sent_id = {} \n".format(ind_sent+ind_batch+1))

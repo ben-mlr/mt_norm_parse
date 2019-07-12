@@ -27,7 +27,7 @@ def train_eval_bert_normalize(args, verbose=1):
 
     debug = True
     if os.environ.get("ENV") in ["rioc", "neff"]:
-        debug = False
+        debug = True
     if args.checkpoint_dir is None:
         # TODO vocab_size should be loaded from args.json
         model = get_bert_token_classification(pretrained_model_dir=model_dir,
@@ -82,7 +82,8 @@ def train_eval_bert_normalize(args, verbose=1):
         early_stoppin_metric = "accuracy-exact-pos"
     else:
         raise(Exception("Neither normalize nor pos is in {} (cant define early_stoppin_metric)".format(args.tasks)))
-    printing("INFO : tasks is {} so setting early_stoppin_metric to {} ", var=[args.tasks, early_stoppin_metric], verbose=verbose,
+    printing("INFO : tasks is {} so setting early_stoppin_metric to {} ", var=[args.tasks, early_stoppin_metric],
+             verbose=verbose,
              verbose_level=1)
 
     printing("INFO : environ is {} so debug set to {}", var=[os.environ.get("ENV", "Unkwnown"),debug], verbose_level=1, verbose=verbose)
@@ -90,9 +91,9 @@ def train_eval_bert_normalize(args, verbose=1):
         voc_tokenizer=voc_tokenizer, tasks=args.tasks, train_path=args.train_path, dev_path=args.dev_path,
         append_n_mask=args.append_n_mask,
         auxilliary_task_norm_not_norm=True,
-        saving_every_epoch=1, lr=lr,
+        saving_every_epoch=15, lr=lr,
         batch_size=batch_size,
-        n_iter_max_per_epoch=20, n_epoch=args.epochs,
+        n_iter_max_per_epoch=200000, n_epoch=args.epochs,
         test_path_ls=args.test_paths,
         description=description, null_token_index=null_token_index, null_str=NULL_STR,
         model_suffix="{}".format(args.model_id_pref), debug=debug,
@@ -110,6 +111,6 @@ def train_eval_bert_normalize(args, verbose=1):
         list_reference_heuristic_test=list_reference_heuristic_test, case="lower",
         layer_wise_attention=args.layer_wise_attention,
         slang_dic_test=slang_dic, early_stoppin_metric=early_stoppin_metric,
-        report=True, verbose="alignement")
+        report=True, verbose=1)
 
     printing("MODEL {} trained and evaluated", var=[args.model_id_pref], verbose_level=1, verbose=verbose)
