@@ -490,6 +490,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                               reference_word_dic={"InV": inv_word_dic},
                                                                               case=case, threshold_edit=threshold_edit,
                                                                               tokenize_and_bpe=tokenize_and_bpe,
+                                                                              append_n_mask=append_n_mask,
                                                                               edit_module_pred_need_norm_only=mode_need_norm_heuristic == "need_normed",
                                                                               n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                         print("LOSS TEST", loss_test)

@@ -44,7 +44,7 @@ def predict_with_heuristic(src_detokenized, pred_detokenized_topk, heuristic_ls,
     :return:
     """
 
-    printing("TRAINING : postprocessing predictions with extra heuristics {} ", var=[heuristic_ls], verbose=verbose, verbose_level=1)
+    printing("TRAINING : postprocessing predictions with extra heuristics {} ", var=[heuristic_ls], verbose=verbose, verbose_level=2)
     assert len(list(set(heuristic_ls))) == len(heuristic_ls), "ERROR redudancies in {}".format(heuristic_ls)
     assert len(list(set(heuristic_ls) & set(HEURISTICS)) ) == len(heuristic_ls), \
         "ERROR heuristic {} does not match {}".format(HEURISTICS, heuristic_ls)

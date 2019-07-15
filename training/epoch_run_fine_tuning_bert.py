@@ -536,7 +536,24 @@ def epoch_run(batchIter, tokenizer,
                                                            score_dic=score_dic["n_masks_pred"],
                                                            n_tokens_dic=n_tokens_dic["n_masks_pred"],
                                                            n_sents_dic=n_sents_dic["n_masks_pred"])
-                        evaluated_task.append("n_masks_pred")
+                    else:
+                        # we fill it with an empty report for simplifying reporting
+                        accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
+                                                       sample_ls=["all"],
+                                                       dic_prediction_score={agg_func_ls[0]:
+                                                                                 {"all": {
+                                                                                     "agg_func": agg_func_ls[0],
+                                                                                     "metric": "exact_match",
+                                                                                     "score": 0,
+                                                                                     "n_sents": 0,
+                                                                                     "n_tokens": 0}
+                                                                                 }},
+                                                       score_dic=score_dic["n_masks_pred"],
+                                                       n_tokens_dic=n_tokens_dic["n_masks_pred"],
+
+                                                       n_sents_dic=n_sents_dic["n_masks_pred"])
+                    evaluated_task.append("n_masks_pred")
+
                     evaluated_task.append(predicted_task)
                     perf_prediction, skipping, _samples = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk, topk, metric=metric, samples=samples, agg_func_ls=agg_func_ls, reference_word_dic=reference_word_dic, compute_intersection_score=compute_intersection_score, src_detokenized=src_detokenized)
                     score_dic[predicted_task], n_tokens_dic[predicted_task], n_sents_dic[predicted_task] = \
@@ -574,9 +591,11 @@ def epoch_run(batchIter, tokenizer,
             if writer is not None:
                 tensorboard_loss_writer_batch_level(writer, mode, model_id, _loss, batch_i, iter, loss_dic, task_normalize_is,  append_n_mask, task_pos_is)
         except StopIteration:
+            printing("BREAKING ITERATION", verbose_level=1, verbose=1)
             break
 
-    log_warning(counting_failure_parralel_bpe_batch, data_label, batch_i, batch, noisy_under_splitted,skipping_batch_n_to_1, aligned, noisy_over_splitted, skip_1_t_n, skipping_evaluated_batch, verbose)
+    log_warning(counting_failure_parralel_bpe_batch, data_label, batch_i, batch, noisy_under_splitted,
+                skipping_batch_n_to_1, aligned, noisy_over_splitted, skip_1_t_n, skipping_evaluated_batch, verbose)
 
     early_stoppin_metric_val = None
     samples = _samples
@@ -584,11 +603,15 @@ def epoch_run(batchIter, tokenizer,
     if predict_mode:
         if writer is not None:
             tensorboard_loss_writer_epoch_level(writer, tasks, mode, model_id, epoch, n_batch_norm, n_batch_pos, append_n_mask, loss, loss_norm, loss_pos, loss_n_mask_prediction, batch_i)
-
         reports = []
         printing("TRAINING : evaluating on {} tasks ", var=[evaluated_task], verbose_level=1, verbose=verbose)
-
-        reports, early_stoppin_metric_val, score, n_tokens = report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, score_dic, n_tokens_dic, n_sents_dic, model_id, tasks, args_dir, data_label, reports,  writer, log_perf, early_stoppin_metric_val, early_stoppin_metric,mode, subsample_early_stoping_metric_val, epoch)
+        reports, early_stoppin_metric_val, score, n_tokens = report_score_all(evaluated_task, agg_func_ls, samples,
+                                                                              label_heuristic, score_dic, n_tokens_dic,
+                                                                              n_sents_dic, model_id, tasks, args_dir,
+                                                                              data_label, reports,  writer, log_perf,
+                                                                              early_stoppin_metric_val, early_stoppin_metric,
+                                                                              mode, subsample_early_stoping_metric_val,
+                                                                              epoch)
     else:
         reports = None
     iter += batch_i
