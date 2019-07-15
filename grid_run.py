@@ -537,7 +537,7 @@ if __name__ == "__main__":
           BERT_NORMALIZATION = True
 
           if BERT_NORMALIZATION:
-              epochs = 1
+              epochs = 15
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
@@ -545,7 +545,7 @@ if __name__ == "__main__":
                                                   #checkpoint_dir_ls=["'" + os.path.join(CHECKPOINT_BERT_DIR,"9535768-B-45690-9535768-B-model_0/9535768-B-45690-9535768-B-model_0-epbest-checkpoint.pt") + "'"],
                                                   gpu_mode="random",
                                                   bert_module_ls=["mlm"],  # ["mlm"],
-                                                  append_n_mask_ls=[0],
+                                                  append_n_mask_ls=[0, 1],
                                                   # norm_2_noise_training_ls=[0., 1.],
                                                   lr_ls=[0.00001],
                                                   masking_strategy_ls=[None],

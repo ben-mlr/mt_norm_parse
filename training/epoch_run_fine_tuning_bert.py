@@ -550,7 +550,6 @@ def epoch_run(batchIter, tokenizer,
                                                                                  }},
                                                        score_dic=score_dic["n_masks_pred"],
                                                        n_tokens_dic=n_tokens_dic["n_masks_pred"],
-
                                                        n_sents_dic=n_sents_dic["n_masks_pred"])
                     evaluated_task.append("n_masks_pred")
 

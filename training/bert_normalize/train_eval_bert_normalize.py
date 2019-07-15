@@ -93,7 +93,7 @@ def train_eval_bert_normalize(args, verbose=1):
         auxilliary_task_norm_not_norm=True,
         saving_every_epoch=15, lr=lr,
         batch_size=batch_size,
-        n_iter_max_per_epoch=10, n_epoch=args.epochs,
+        n_iter_max_per_epoch=100000, n_epoch=args.epochs,
         test_path_ls=args.test_paths,
         description=description, null_token_index=null_token_index, null_str=NULL_STR,
         model_suffix="{}".format(args.model_id_pref), debug=debug,
