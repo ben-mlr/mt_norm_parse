@@ -261,7 +261,8 @@ def train(train_path, dev_path, n_epochs, normalization, dict_path=None, pos_spe
 
     dir_writer = os.path.join(overall_report_dir, "runs", "{}-model".format(model.model_full_name))
     writer = SummaryWriter(log_dir=dir_writer)
-    printing("REPORT : run \ntensorboard --logdir={} --host=localhost --port=9101 ", var=[dir_writer], verbose=verbose,
+    printing("REPORT : run \ntensorboard --logdir={} --host=localhost --port=9101 "
+             "(run tensorboard remotely : sh $EXPERIENCE/track/run_tensorboard_serveo.sh $log_dir $port )  ", var=[dir_writer], verbose=verbose,
              verbose_level=1)
     printing("REPORT : summary writer will be located {}", var=[dir_writer], verbose_level=1, verbose=verbose)
     step_train = 0

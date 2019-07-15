@@ -1,3 +1,4 @@
+from env.importing import pdb
 from io_.dat.constants import SPECIAL_TOKEN_LS
 from io_.printout_iterator_as_raw import printing
 from io_.dat.normalized_writer import write_conll
@@ -85,41 +86,47 @@ def log_warning(counting_failure_parralel_bpe_batch, data_label, batch_i, batch,
 
 
 def tensorboard_loss_writer_batch_level(writer, mode, model_id, _loss, batch_i, iter, loss_dic,task_normalize_is,  append_n_mask, task_pos_is):
-    writer.add_scalars("loss-alteranate",
+    writer.add_scalars("loss-batch-sum",
                        {"loss-{}-{}-bpe".format(mode, model_id): _loss.clone().cpu().data.numpy()
                        if not isinstance(_loss, int) else 0},
                        iter+batch_i)
     if task_pos_is:
-        writer.add_scalars("loss-pos",
+        writer.add_scalars("loss-batch-pos",
                            {"loss-{}-{}-bpe".format(mode, model_id): loss_dic["loss_task_2"].detach().clone().cpu().data.numpy()
-                        },
+                           },
                            iter + batch_i)
     if task_normalize_is:
-        writer.add_scalars("loss-norm",
-                           {"loss-{}-{}-bpe".format(mode, model_id): loss_dic["loss_task_1"].detach().clone().cpu().data.numpy()},
+        writer.add_scalars("loss-batch-norm",
+                           {"loss-{}-{}-bpe".format(mode, model_id):
+                                loss_dic["loss_task_1"].detach().clone().cpu().data.numpy()
+                            },
                            iter + batch_i)
         if append_n_mask:
-            writer.add_scalars("loss-norm-pred_n_mask", {"loss-{}-{}-pred_n_mask".format(mode, model_id): loss_dic["loss_task_n_mask_prediction"].detach().clone().cpu().data.numpy()},
+            writer.add_scalars("loss-batch-norm-pred_n_mask",
+                               {"loss-{}-{}-pred_n_mask".format(mode, model_id):
+                                    loss_dic["loss_task_n_mask_prediction"].detach().clone().cpu().data.numpy()
+                                },
                                iter + batch_i)
 
 
 def tensorboard_loss_writer_epoch_level(writer, tasks, mode, model_id, epoch, n_batch_norm, n_batch_pos, append_n_mask, loss, loss_norm, loss_pos, loss_n_mask_prediction, batch_i):
-    writer.add_scalars("loss-overall-mean-{}-{}".format(tasks[0], mode), {"{}-{}-{}".format("loss", mode, model_id): loss/batch_i}, epoch)
+    writer.add_scalars("loss-overall-epoch-{}-{}".format(tasks[0], mode),
+                       {"{}-{}-{}".format("loss", mode, model_id): loss/batch_i}, epoch)
     if "normalize" in tasks:
         try:
-            writer.add_scalars("loss-norm",
+            writer.add_scalars("loss-norm-epoch",
                        {"loss-{}-{}-bpe".format(mode, model_id): loss_norm.clone().cpu().data.numpy()/n_batch_norm},
                        epoch)
         except Exception as e:
             print("ERROR {} loss_pos is , n_batch_pos is {} coud not log ".format(e, loss_norm, n_batch_norm))
         if append_n_mask:
-            writer.add_scalars("loss-n_mask_prediction ",
-                               {"loss-{}-{}-n_mask_prediction ".format(mode,
+            writer.add_scalars("loss-n_mask_prediction-epoch",
+                               {"loss-{}-{}-n_mask_prediction".format(mode,
                                 model_id): loss_n_mask_prediction.clone().cpu().data.numpy()/n_batch_norm},
                                epoch)
     if "pos" in tasks:
         try:
-            writer.add_scalars("loss-pos",
+            writer.add_scalars("loss-pos-epoch",
                        {"loss-{}-{}-bpe".format(mode, model_id): loss_pos.clone().cpu().data.numpy()/n_batch_pos},
                        epoch)
         except Exception as e:
@@ -129,6 +136,7 @@ def tensorboard_loss_writer_epoch_level(writer, tasks, mode, model_id, epoch, n_
 def writing_predictions_conll(dir_normalized, dir_normalized_original_only, dir_gold, dir_gold_original_only,
                               src_detokenized, inverse_writing, pred_detokenized_topk, task_pos_is, iter, batch_i,
                               new_file, gold_detokenized, verbose):
+
     write_conll(format="conll", dir_normalized=dir_normalized,
                 dir_original=dir_normalized_original_only,
                 src_text_ls=src_detokenized, inverse=inverse_writing,
@@ -142,5 +150,5 @@ def writing_predictions_conll(dir_normalized, dir_normalized_original_only, dir_
                 text_decoded_ls=gold_detokenized,  # pred_pos_ls=None, src_text_pos=None,
                 tasks=["pos" if task_pos_is else "normalize"],
                 ind_batch=iter + batch_i, new_file=new_file, verbose=verbose)
-
+    new_file = False
     return new_file

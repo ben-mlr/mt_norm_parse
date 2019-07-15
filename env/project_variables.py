@@ -59,8 +59,11 @@ edit_rules = ["edit_check-"+ref_list_label+"-"+need_normed_rule for ref_list_lab
 heuristics = ["gold_detection", "#", "@", "url", "slang_translate"]
 HEURISTICS = heuristics+edit_rules
 
-TASKS_2_METRICS_STR = {"all": ["accuracy-exact-normalize", "accuracy-normalize","InV-accuracy-normalize","OOV-accuracy-normalize","npv-normalize", "recall-normalize","precision-normalize","tnr-normalize", "accuracy-exact-pos", "f1-normalize"],
-                       "normalize": ["accuracy-exact-normalize", "accuracy-normalize", "npv-normalize", "recall-normalize", "precision-normalize", "tnr-normalize", "f1-normalize"],
+TASKS_2_METRICS_STR = {"all": ["accuracy-exact-normalize", "accuracy-normalize","InV-accuracy-normalize","OOV-accuracy-normalize",
+                               "npv-normalize", "recall-normalize", "precision-normalize","tnr-normalize", "accuracy-exact-pos",
+                               "f1-normalize", "accuracy-exact-n_masks_pred"],
+                       "normalize": ["accuracy-exact-normalize", "accuracy-normalize", "npv-normalize", "recall-normalize", "precision-normalize",
+                                     "tnr-normalize", "f1-normalize", "accuracy-exact-n_masks_pred"],
                        "pos": ["accuracy-exact-pos"],
                        "edit_prediction": [""],
                        "norm_not_norm": ["IoU-pred-normed","recall-norm_not_norm","accuracy-norm_not_norm","IoU-pred-need_norm","precision-norm_not_norm"]}

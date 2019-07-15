@@ -468,7 +468,7 @@ def epoch_run(batchIter, tokenizer,
                     # TODO : --> should add a : simultaneous task module !
                     assert logits["logits_n_mask_prediction"] is not None, \
                         "ERROR : append_n_mask is {} while logits['logits_n_mask_prediction'] is None".format(append_n_mask)
-                    prediction_n_mask = torch.argsort(logits["logits_n_mask_prediction"], dim=-1,descending=True)[:, :, 0]
+                    prediction_n_mask = torch.argsort(logits["logits_n_mask_prediction"], dim=-1, descending=True)[:, :, 0]
 
                 predictions_topk[logits_task_label] = torch.argsort(logits[logits_task_label], dim=-1, descending=True)[:, :, :topk]
 
@@ -529,12 +529,13 @@ def epoch_run(batchIter, tokenizer,
                 try:
                     if task_normalize_is and append_n_mask:
                         perf_prediction_n_mask, skipping_n_mask, _ = overall_word_level_metric_measure(labels_n_mask_prediction.tolist(), [prediction_n_mask.tolist()], 1, metric=metric, samples=None, agg_func_ls=agg_func_ls, reference_word_dic=reference_word_dic, compute_intersection_score=False, src_detokenized=src_detokenized)
-                        score_dic["n_masks_pred"], n_tokens_dic["n_masks_pred"], n_sents_dic["n_masks_pred"] = accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
-                                                                                              sample_ls=["all"],
-                                                                                              dic_prediction_score=perf_prediction_n_mask,
-                                                                                              score_dic=score_dic["n_masks_pred"],
-                                                                                              n_tokens_dic=n_tokens_dic["n_masks_pred"],
-                                                                                              n_sents_dic=n_sents_dic["n_masks_pred"])
+                        score_dic["n_masks_pred"], n_tokens_dic["n_masks_pred"], n_sents_dic["n_masks_pred"] = \
+                            accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
+                                                           sample_ls=["all"],
+                                                           dic_prediction_score=perf_prediction_n_mask,
+                                                           score_dic=score_dic["n_masks_pred"],
+                                                           n_tokens_dic=n_tokens_dic["n_masks_pred"],
+                                                           n_sents_dic=n_sents_dic["n_masks_pred"])
                         evaluated_task.append("n_masks_pred")
                     evaluated_task.append(predicted_task)
                     perf_prediction, skipping, _samples = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk, topk, metric=metric, samples=samples, agg_func_ls=agg_func_ls, reference_word_dic=reference_word_dic, compute_intersection_score=compute_intersection_score, src_detokenized=src_detokenized)

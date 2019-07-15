@@ -37,6 +37,7 @@ def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_
                         print(e)
                         if len(original_sent) > len(normalized_sent):
                             normalized_sent.extend(["UNK" for _ in range(len(original_sent)-len(normalized_sent))])
+                            print("WARNING (writer) : original larger than prediction : so appending UNK token for writing")
                         else:
                             print("WARNING (writer) : original smaller than prediction ! ")
 

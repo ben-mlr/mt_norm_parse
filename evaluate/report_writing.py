@@ -67,7 +67,7 @@ def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, scor
                     score, n_rate_universe = get_perf_rate(metric=metric_val, n_tokens_dic=n_tokens_dic["normalize"],
                                                            score_dic=score_dic["normalize"],
                                                            agg_func=agg_func)
-                    report = report_template(metric_val=metric_val, subsample="rates " +label_heuristic,
+                    report = report_template(metric_val=metric_val, subsample="rates" +label_heuristic,
                                              info_score_val=None,
                                              score_val=score, n_sents=n_sents_dic["normalize"][agg_func]["all"],
                                              avg_per_sent=0,
@@ -75,7 +75,7 @@ def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, scor
                                              evaluation_script_val="exact_match", model_args_dir=args_dir,
                                              token_type="word", report_path_val=None, data_val=data_label)
                     if early_stoppin_metric is not None:
-                        if metric_val == early_stoppin_metric and subsample_early_stoping_metric_val == "rates " +label_heuristic and score is not None:
+                        if metric_val == early_stoppin_metric and subsample_early_stoping_metric_val == "rates" +label_heuristic and score is not None:
                             early_stoppin_metric_val = -score
                     reports.append(report)
 

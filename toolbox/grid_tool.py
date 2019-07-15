@@ -5,6 +5,8 @@ from io_.info_print import printing
 from env.project_variables import TASKS_2_METRICS_STR, GPU_AVAILABLE_DEFAULT_LS, REPO_W2V, AVAILABLE_BERT_FINE_TUNING_STRATEGY, REPO_DATASET
 from env.default_hyperparameters import *
 
+sys.path.insert(0, os.environ.get("EXPERIENCE", ".."))
+from meta_code.reporting_shared_variables import REPORT_FLAG_VARIABLES_EXPAND_STR, REPORT_FLAG_VARIABLES_ENRICH_STR, REPORT_FLAG_VARIABLES_ANALYSED_STR, REPORT_FLAG_VARIABLES_FIXED_STR
 
 DEFAULT_BATCH_SIZE = 25
 DEFAULT_SCALE = 2
@@ -417,7 +419,7 @@ def grid_param_label_generate(param,
   if len(train_ls) > 1:
     studied_vars += ["train_path", "tasks"]
   to_analysed = " ".join(studied_vars)
-  to_keep_only = " ".join([a + "," + str(b) for a, b in fixed_vars if a not in ["train_path","dev_path"]])
+  to_keep_only = " ".join([a + "," + str(b) for a, b in fixed_vars if a not in ["train_path", "dev_path"]])
 
   try:
     # TODO : this should be factorized with what is in args.json
@@ -435,8 +437,9 @@ def grid_param_label_generate(param,
       for task in tasks:
         metric_add_ls.extend(TASKS_2_METRICS_STR[task])
     metric_add = " ".join(list(set(metric_add_ls)))
-    print("GRID_INFO metric    =  ", metric_add)
-    print("GRID_INFO enrch vars=  SEED ", to_enrich)
-    print("GRID_INFO analy vars=  SEED ", to_analysed)
-    print("GRID_INFO fixed vals=   ", to_keep_only)
+    print("{} {}".format(REPORT_FLAG_VARIABLES_EXPAND_STR, metric_add))
+    print("{} {} SEED".format(REPORT_FLAG_VARIABLES_ENRICH_STR, to_enrich))
+    print("{} {} SEED".format(REPORT_FLAG_VARIABLES_ANALYSED_STR, to_analysed))
+    print("{} {} ".format(REPORT_FLAG_VARIABLES_FIXED_STR, to_keep_only))
+
   return params, labels, info_default, studied_vars, fixed_vars

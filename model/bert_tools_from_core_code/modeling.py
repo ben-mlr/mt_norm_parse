@@ -983,12 +983,11 @@ class BertForMaskedLM(BertPreTrainedModel):
             loss_dict["loss"] = self.loss_weights_default["loss_task_1"] * loss_dict["loss_task_1"] + \
                                 self.loss_weights_default["loss_task_2"] * loss_dict["loss_task_2"] + \
                                 self.loss_weights_default["loss_task_n_mask_prediction"] * loss_dict["loss_task_n_mask_prediction"]
-
             return loss_dict, softmax_weight
         else:
             pred_dict["logits_task_1"] = prediction_scores
-
             return pred_dict, softmax_weight
+
 
 class BertForNextSentencePrediction(BertPreTrainedModel):
     """BERT model with next sentence prediction head.
