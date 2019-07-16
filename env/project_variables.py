@@ -49,11 +49,17 @@ LOSS_DETAIL_TEMPLATE_LS = {"loss_overall": [], "loss_seq_prediction": [],
                            "other": {}}
 SCORE_AUX = ["norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recall", "norm_not_norm-accuracy"]
 
-AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm", "pos", "edit_prediction"]
+AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm", "append_masks", "pos", "edit_prediction"]
 AVAILABLE_AGGREGATION_FUNC_AUX_TASKS = ["norm_not_norm", "edit_prediction"]
 AVAILABLE_BERT_FINE_TUNING_STRATEGY = ["bert_out_first", "standart", "flexible_lr", "only_first_and_last"]
 AVAILABLE_BERT_MASKING_STRATEGY = ["normed", "cls", "start_stop", "mlm", "norm_mask",
                                    "norm_mask_variable", "mlm_need_norm"]
+
+MULTITASK_BERT_LABELS_MLM_HEAD = {"pos": "logits_task_2", "normalize": "logits_task_1",
+                                  "append_masks": "logits_n_masks"}
+
+MULTITASK_BERT_LABELS_MLM_HEAD_LOSS = {"pos": "loss_task_2", "normalize": "loss_task_1",
+                                       "append_masks": "loss_task_n_mask_prediction"}
 
 edit_rules = ["edit_check-"+ref_list_label+"-"+need_normed_rule for ref_list_label in ["data", "ref", "all"] for need_normed_rule in ["need_normed", "all"]]
 heuristics = ["gold_detection", "#", "@", "url", "slang_translate"]
@@ -69,7 +75,7 @@ TASKS_2_METRICS_STR = {"all": ["accuracy-exact-normalize", "accuracy-normalize",
                        "norm_not_norm": ["IoU-pred-normed","recall-norm_not_norm","accuracy-norm_not_norm","IoU-pred-need_norm","precision-norm_not_norm"]}
 # "InV-accuracy-normalize", "OOV-accuracy-normalize"
 AVAILABLE_OPTIMIZER = ["adam", "bahdanu-adadelta", "SGD"]
-MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE = ["uniform", "normalization_100", "pos_100","all","pos", "normalize","norm_not_norm"]
+MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE = ["uniform", "normalization_100", "pos_100","all","pos", "normalize", "norm_not_norm"]
 DEFAULT_SCORING_FUNCTION = "exact_match"
 AVAILABLE_WORD_LEVEL_LABELLING_MODE = ["word", "pos", "norm_not_norm"]
 

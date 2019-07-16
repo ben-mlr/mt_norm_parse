@@ -42,6 +42,7 @@ def epoch_run(batchIter, tokenizer,
               slang_dic=None, list_reference_heuristic=None,list_candidates=None, index_alphabetical_order=None,
               case=None, threshold_edit=None, edit_module_pred_need_norm_only=True, low_memory_foot_print_batch_mode=False,
               batch_size_real=0, tokenize_and_bpe=False, n_epoch=None, append_n_mask=True,
+               ponderation_loss_policy="static", multi_task_loss_ponderation=None,
               verbose=0):
     """
     About Evaluation :
@@ -51,6 +52,14 @@ def epoch_run(batchIter, tokenizer,
             Can also have different aggregation function
             TODO : TEST those scoring fucntions
     """
+
+    if ponderation_loss_policy == "static":
+        if multi_task_loss_ponderation is None:
+            multi_task_loss_ponderation = OrderedDict([("loss_task_1", 1), ("loss_task_2", 1), ("loss_task_n_mask_prediction", 1)])
+            printing("TRAINING : setting default multi_task_loss_ponderation {} ",var=[multi_task_loss_ponderation], verbose=verbose, verbose_level=1)
+    else:
+        raise(Exception("Only static strategy supported so far"))
+
     if subsample_early_stoping_metric_val is None:
         subsample_early_stoping_metric_val = "all"
     if low_memory_foot_print_batch_mode:
@@ -431,6 +440,7 @@ def epoch_run(batchIter, tokenizer,
                      var=[input_mask, input_tokens_tensor, output_tokens_tensor_aligned],
                      verbose_level="raw_data", verbose=verbose)
             feeding_the_model_with_label[feeding_the_model_with_label == 0] = -1
+            #TODO : should not be hardcoded : should have static mode --> provide loss, dynamic --> preset strategies
 
             # TODO : multi task : handle two cases -- input labels based on provided tasks , handle sum ---> and reporting of the loss in this new case
             loss_dic, layer_wise_weights = model(input_tokens_tensor, token_type_ids, input_mask,
@@ -439,7 +449,8 @@ def epoch_run(batchIter, tokenizer,
                                                  labels_n_masks=labels_n_mask_prediction,
                                                  labels_task_2=output_tokens_tensor_aligned
                                                  if task_pos_is else None,
-                                                 aggregating_bert_layer_mode=aggregating_bert_layer_mode)
+                                                 aggregating_bert_layer_mode=aggregating_bert_layer_mode,
+                                                 multi_task_loss_ponderation=multi_task_loss_ponderation)
 
             _loss = loss_dic["loss"]
 
@@ -458,12 +469,12 @@ def epoch_run(batchIter, tokenizer,
                 # if predict more : will evaluate the model and write its predictions
                 # TODO : add mapping_info between task_id to model and task name necessary to iterator
                 logits, layer_wise_weights = model(input_tokens_tensor, token_type_ids, input_mask,
-                                                                  aggregating_bert_layer_mode=aggregating_bert_layer_mode)
+                                                   aggregating_bert_layer_mode=aggregating_bert_layer_mode,
+                                                   multi_task_loss_ponderation=multi_task_loss_ponderation)
 
-                MULTITASK_BERT_LABELS = {"pos": "logits_task_2", "normalize": "logits_task_1", "append_masks": "logits_n_masks"}
 
                 predicted_task = "pos" if task_pos_is else "normalize"
-                logits_task_label = MULTITASK_BERT_LABELS[predicted_task]
+                logits_task_label = MULTITASK_BERT_LABELS_MLM_HEAD[predicted_task]
 
                 # add prediction n_masks -->
                 if append_n_mask and task_normalize_is:

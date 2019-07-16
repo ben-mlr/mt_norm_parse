@@ -37,7 +37,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         slang_dic_test=None, list_reference_heuristic_test=None,
         bert_module=None,
         case=None, threshold_edit=3, tokenize_and_bpe=False,
-        layer_wise_attention=None,
+        layer_wise_attention=None, multi_task_loss_ponderation=None,
         append_n_mask=False,
         debug=False,  batch_size=2, n_epoch=1, verbose=1):
     """
@@ -113,7 +113,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                        ("SEED", SEED_TORCH), ("case", case), ("bert_module", bert_module),
                                        ("freeze_layer_prefix_ls", freeze_layer_prefix_ls),
                                        ("layer_wise_attention", layer_wise_attention),
-                                       ("append_n_mask", append_n_mask)
+                                       ("append_n_mask", append_n_mask),
+                                       ("multi_task_loss_ponderation", multi_task_loss_ponderation)
                                        ])
         printing("HYPERPARAMETERS {} ", var=[hyperparameters], verbose=verbose, verbose_level=1)
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
@@ -238,9 +239,11 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                          case=case, tokenize_and_bpe=tokenize_and_bpe,
                                                                          n_iter_max=n_iter_max_per_epoch,
                                                                          append_n_mask=append_n_mask,
+                                                                         multi_task_loss_ponderation=multi_task_loss_ponderation,
                                                                          verbose=verbose)
 
-                bert_with_classifier.eval()
+
+                model.eval()
 
                 if dev_path is not None:
                     print("RUNNING DEV on ITERATION MODE")
@@ -270,6 +273,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                                        aggregating_bert_layer_mode=aggregating_bert_layer_mode,
                                                                                        case=case,
                                                                                        append_n_mask=append_n_mask,
+                                                                                       multi_task_loss_ponderation=multi_task_loss_ponderation,
                                                                                        n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                 else:
                     loss_dev, iter_dev, perf_report_dev = None, 0, None
@@ -491,6 +495,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                               case=case, threshold_edit=threshold_edit,
                                                                               tokenize_and_bpe=tokenize_and_bpe,
                                                                               append_n_mask=append_n_mask,
+                                                                              multi_task_loss_ponderation=multi_task_loss_ponderation,
                                                                               edit_module_pred_need_norm_only=mode_need_norm_heuristic == "need_normed",
                                                                               n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                         print("LOSS TEST", loss_test)

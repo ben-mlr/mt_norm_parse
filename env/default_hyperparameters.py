@@ -8,7 +8,8 @@ ARGUMENT_AVAILABLE_BERT = ["batch_size", "lr", "initialize_bpe_layer", "freeze_p
                            "bert_model", "dropout_classifier", "fine_tuning_strategy", "dropout_input_bpe",
                            "checkpoint_dir", "norm_2_noise_training", "bert_module","append_n_mask",
                            "tasks", "masking_strategy",# "portion_mask",
-                           "heuristic_ls", "gold_error_detection", "dropout_bert", "aggregating_bert_layer_mode", "layer_wise_attention", "tokenize_and_bpe"]
+                           "heuristic_ls", "gold_error_detection", "dropout_bert", "aggregating_bert_layer_mode",
+                           "layer_wise_attention", "tokenize_and_bpe", "multi_task_loss_ponderation"]
 ARGUMENT_AVAILABLE_BERT.extend(ARGUMENT_AVAILABLE_ALL)
 
 ARGUMENT_AVAIALBLE_SEQ2SEQ = [1]

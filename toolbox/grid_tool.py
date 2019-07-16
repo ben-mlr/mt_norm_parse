@@ -298,7 +298,6 @@ def grid_param_label_generate(param,
               scaled_output_dim = max(int(scale/2), 1) if max(int(scale/2), 1) < 10 else 10
               scale = 1
             #for dir_word_encoder in dir_word_encoder_ls:
-
               printing("GRID : generating arg specific to {}", var=["train_evaluate_run"], verbose=1, verbose_level=1)
               for char_src_attention in char_src_attention_ls:
                 #for dir_sent_encoder in dir_sent_encoder_ls:

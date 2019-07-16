@@ -6,6 +6,7 @@ from io_.dat.constants import TOKEN_BPE_BERT_START, TOKEN_BPE_BERT_SEP, NULL_STR
 from env.models_dir import BERT_MODEL_DIC
 from io_.info_print import printing
 from toolbox.bert_tools.get_bert_info import get_bert_name
+from env.project_variables import MULTITASK_BERT_LABELS_MLM_HEAD, MULTITASK_BERT_LABELS_MLM_HEAD_LOSS
 
 
 def train_eval_bert_normalize(args, verbose=1):
@@ -87,6 +88,18 @@ def train_eval_bert_normalize(args, verbose=1):
     printing("INFO : tasks is {} so setting early_stoppin_metric to {} ", var=[args.tasks, early_stoppin_metric], verbose=verbose, verbose_level=1)
     printing("INFO : environ is {} so debug set to {}", var=[os.environ.get("ENV", "Unkwnown"),debug], verbose_level=1, verbose=verbose)
 
+
+    # MLM in multitas mode is temporary and require task_i indexing : that's why we need to rename ponderation dictionary
+
+    def update_multitask_loss(multi_task_loss_ponderation):
+        multi_task_loss_ponderation_new = {}
+        for task, weight in multi_task_loss_ponderation.items():
+            if task in MULTITASK_BERT_LABELS_MLM_HEAD:
+                multi_task_loss_ponderation_new[MULTITASK_BERT_LABELS_MLM_HEAD_LOSS[task]] = weight
+        return multi_task_loss_ponderation_new
+
+    args.multi_task_loss_ponderation = update_multitask_loss(args.multi_task_loss_ponderation)
+    pdb.set_trace()
     run(model=model,
         voc_tokenizer=voc_tokenizer, tasks=args.tasks, train_path=args.train_path, dev_path=args.dev_path,
         append_n_mask=args.append_n_mask,
@@ -110,6 +123,7 @@ def train_eval_bert_normalize(args, verbose=1):
         list_reference_heuristic_test=list_reference_heuristic_test, case="lower",
         layer_wise_attention=args.layer_wise_attention,
         slang_dic_test=slang_dic, early_stoppin_metric=early_stoppin_metric,
+        multi_task_loss_ponderation=args.multi_task_loss_ponderation,
         report=True, verbose=1)
 
     printing("MODEL {} trained and evaluated", var=[args.model_id_pref], verbose_level=1, verbose=verbose)

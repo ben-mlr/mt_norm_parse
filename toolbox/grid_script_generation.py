@@ -29,7 +29,8 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                       word_embedding_projected_dim_ls,
                       word_recurrent_cell_encoder_ls, dropout_word_encoder_cell_ls,
                       tasks_ls, char_src_attention_ls, mode_word_encoding_ls, char_level_embedding_projection_dim_ls,
-                      n_layers_sent_cell_ls, unrolling_word_ls,attention_tagging_ls, n_layers_word_encoder_ls, multi_task_loss_ponderation_ls,dir_word_encoder_ls,
+                      n_layers_sent_cell_ls, unrolling_word_ls,attention_tagging_ls, n_layers_word_encoder_ls,
+                      multi_task_loss_ponderation_ls, dir_word_encoder_ls,
                       dropout_input_ls,
                       scale_ls, checkpointing_metric_ls=None, pos_specific_path=None, gpu_mode="random", description_comment="",
                       gpus_ls=None, write_to_dir=None,test_before_run=False, scoring_func=None,
@@ -128,7 +129,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
             if arg in DIC_ARGS and not isinstance(val, str) and not isinstance(val, float):
                 to_write = ""
                 for key, value_arg in val.items():
-                    to_write+="{}={},".format(key, value_arg)
+                    to_write +="{}={},".format(key, value_arg)
                 script += " --{} {}".format(arg, to_write)
             elif arg in DIC_ARGS:# in the case of mulitask there is this case also
                 script += " --{} {}".format(arg, val)

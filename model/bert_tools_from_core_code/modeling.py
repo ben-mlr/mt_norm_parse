@@ -1042,17 +1042,20 @@ class BertForMaskedLM(BertPreTrainedModel):
         self.mask_n_predictor = BertMaskNPredictionHead(config) if config.mask_n_predictor else None
         self.num_labels_n_mask = NUM_LABELS_N_MASKS
         self.num_labels_2 = num_labels_2
+        self.loss_weights_default = OrderedDict([("loss_task_1", 1), ("loss_task_2", 1), ("loss_task_n_mask_prediction", 1)])
+
         print("WARNING : NB in forward(modelling) aggregating_bert_layer_mode is ignore in BertForMaskedLM")
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None,
                 masked_lm_labels=None, labels=None, labels_task_2=None, labels_n_masks=None,
+                multi_task_loss_ponderation=None,
                 aggregating_bert_layer_mode=None, output_all_encoded_layers=False):
 
         if masked_lm_labels is None:
             masked_lm_labels = labels
         # masked_lm_labels  : what is it ??
-        self.loss_weights_default = OrderedDict([("loss_task_1", 1), ("loss_task_2", 1), ("loss_task_n_mask_prediction", 1)])
-
+        if multi_task_loss_ponderation is None:
+            multi_task_loss_ponderation = self.loss_weights_default
         sequence_output, _ = self.bert(input_ids, token_type_ids, attention_mask, output_all_encoded_layers=self.layer_wise_attention is not None)
         softmax_weight = None
         if self.layer_wise_attention is not None:
@@ -1129,9 +1132,9 @@ class BertForMaskedLM(BertPreTrainedModel):
             loss_dict["loss"] = loss_dict["loss_task_1"]+loss_dict["loss_task_n_mask_prediction"]
             # TODO : add weights for the loss
         if labels is not None or labels_task_2 is not None:
-            loss_dict["loss"] = self.loss_weights_default["loss_task_1"] * loss_dict["loss_task_1"] + \
-                                self.loss_weights_default["loss_task_2"] * loss_dict["loss_task_2"] + \
-                                self.loss_weights_default["loss_task_n_mask_prediction"] * loss_dict["loss_task_n_mask_prediction"]
+            loss_dict["loss"] = multi_task_loss_ponderation["loss_task_1"] * loss_dict["loss_task_1"] + \
+                                multi_task_loss_ponderation["loss_task_2"] * loss_dict["loss_task_2"] + \
+                                multi_task_loss_ponderation["loss_task_n_mask_prediction"] * loss_dict["loss_task_n_mask_prediction"]
             return loss_dict, softmax_weight
         else:
             pred_dict["logits_task_1"] = prediction_scores

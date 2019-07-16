@@ -10,7 +10,7 @@ def parse_argument_dictionary(argument_as_string, hyperparameter="multi_task_los
         return argument_as_string
     else:
         dic = OrderedDict()
-        if hyperparameter=="multi_task_loss_ponderation":
+        if hyperparameter == "multi_task_loss_ponderation":
             for task in AVAILABLE_TASKS:
                 if task != "all":
                     pattern = "{}=([^=]*),".format(task)
@@ -66,7 +66,7 @@ def args_train(mode="command_line", script="train_evaluate_run"):
     parser.add_argument('--test_paths', nargs='+', help='<Required> Set flag', default=None,
                         required=(script == "train_evaluate_bert_normalizer"))
 
-    parser.add_argument('--multitask',type=int, default=None)
+    parser.add_argument('--multitask', type=int, default=None)
 
     parser.add_argument('--tasks', nargs='+', help='<Required> Set flag', default=DEFAULT_TASKS)
 
@@ -176,7 +176,11 @@ def args_train(mode="command_line", script="train_evaluate_run"):
         parser.add_argument('--tokenize_and_bpe', type=int, default=0)
         parser.add_argument('--append_n_mask', type=int, default=0)
 
+        parser.add_argument('--multi_task_loss_ponderation', type=str, default=None)
+
+
         args = parser.parse_args()
+
         if args.aggregating_bert_layer_mode is not None:
             try:
                 assert isinstance(eval(args.aggregating_bert_layer_mode),int)
