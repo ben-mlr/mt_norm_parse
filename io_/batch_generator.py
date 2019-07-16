@@ -15,7 +15,7 @@ def subsequent_mask(size):
 
 class MaskBatch(object):
     def __init__(self, input_seq, output_seq,
-                 raw_input=None, raw_output=None,
+                 raw_input=None, raw_output=None, types=None, heads=None,
                  output_word=None, pos=None, input_word=None, edit=None,
                  output_norm_not_norm=None, pad=PAD_ID_CHAR, verbose=0, timing=False, dropout_input=0.):
 
@@ -23,8 +23,12 @@ class MaskBatch(object):
         self.raw_output = raw_output
 
         self.input_seq = input_seq
-        self.pos = pos
         self.input_word = input_word
+
+
+        self.pos = pos
+        self.types = types
+        self.heads = heads
         if dropout_input > 0:
             # we put it jere so that input_seq_mask computed based on droped input_seq # migh cause trouble for input_seq_len
             droping_multiplier_word = torch.zeros_like(input_word).bernoulli_(1-dropout_input)

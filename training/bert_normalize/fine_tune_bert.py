@@ -16,7 +16,7 @@ from toolbox.pred_tools.heuristics import get_letter_indexes
 
 
 def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
-        voc_tokenizer, auxilliary_task_norm_not_norm, bert_with_classifier,
+        voc_tokenizer, auxilliary_task_norm_not_norm, model,
         null_token_index, null_str, initialize_bpe_layer=None,
         run_mode="train", test_path_ls=None, dict_path=None, end_predictions=None,
         report=True, model_suffix="", description="",
@@ -79,7 +79,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
     train_data_label = "|".join([REPO_DATASET[_train_path] for _train_path in train_path])
     dev_data_label = "|".join([REPO_DATASET[_dev_path] for _dev_path in dev_path]) if dev_path is not None else None
     if use_gpu:
-        bert_with_classifier.to("cuda")
+        model.to("cuda")
 
     if not debug:
         pdb.set_trace = lambda: None
@@ -205,9 +205,9 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                    dropout_input=0.0,
                                                                    verbose=verbose) if dev_path is not None else None
                 # TODO add optimizer (if not : dev loss)
-                bert_with_classifier.train()
+                model.train()
 
-                bert_with_classifier, optimizer = apply_fine_tuning_strategy(model=bert_with_classifier,
+                model, optimizer = apply_fine_tuning_strategy(model=model,
                                                                              fine_tuning_strategy=fine_tuning_strategy,
                                                                              lr_init=lr, betas=(0.9, 0.99),
                                                                              epoch=epoch, verbose=verbose)
@@ -216,7 +216,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                          pos_dictionary=pos_dictionary,
                                                                          n_epoch=n_epoch,
                                                                          data_label=train_data_label,
-                                                                         bert_with_classifier=bert_with_classifier,
+                                                                         model=model,
                                                                          writer=writer,
                                                                          iter=iter_train, epoch=epoch,
                                                                          tasks=tasks,
@@ -247,7 +247,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                     loss_dev, iter_dev, perf_report_dev, early_stoping_val = epoch_run(batchIter_dev, tokenizer,
                                                                                        pos_dictionary=pos_dictionary,
                                                                                        iter=iter_dev, use_gpu=use_gpu,
-                                                                                       bert_with_classifier=bert_with_classifier,
+                                                                                       model=model,
                                                                                        writer=writer,
                                                                                        writing_pred=epoch == (n_epoch - 1),
                                                                                        dir_end_pred=end_predictions,
@@ -300,7 +300,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                         last_model = "last"
                     printing("CHECKPOINT : saving {} model {} ", var=[last_model, checkpoint_dir], verbose=verbose,
                              verbose_level=1)
-                    torch.save(bert_with_classifier.state_dict(), checkpoint_dir)
+                    torch.save(model.state_dict(), checkpoint_dir)
                     args_dir = write_args(dir=model_location, checkpoint_dir=checkpoint_dir,
                                           model_id=model_id,
                                           info_checkpoint=OrderedDict([("n_epochs", epoch+1), ("batch_size", batch_size),
@@ -322,17 +322,17 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         report_all = []
         if run_mode == "train":
             if use_gpu:
-                bert_with_classifier.load_state_dict(torch.load(last_checkpoint_dir_best))
-                bert_with_classifier = bert_with_classifier.cuda()
+                model.load_state_dict(torch.load(last_checkpoint_dir_best))
+                model = model.cuda()
             else:
-                bert_with_classifier.load_state_dict(torch.load(last_checkpoint_dir_best, map_location=lambda storage, loc: storage))
+                model.load_state_dict(torch.load(last_checkpoint_dir_best, map_location=lambda storage, loc: storage))
             printing("MODEL : RELOADING best model of epoch {} with loss {} based on {}({}) metric (from checkpoint {})",
                      var=[best_epoch, best_loss, early_stoppin_metric,
                           subsample_early_stoping_metric_val,
                           last_checkpoint_dir_best],
                      verbose=verbose, verbose_level=1)
 
-        bert_with_classifier.eval()
+        model.eval()
         list_reference_heuristic_test = list_reference_heuristic_test + word_norm_dictionary.instances
         list_reference_heuristic_test.sort()
         alphabet_index = get_letter_indexes(list_reference_heuristic_test)
@@ -457,7 +457,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                         loss_test, iter_test, perf_report_test, _ = epoch_run(batchIter_test, tokenizer,
                                                                               pos_dictionary=pos_dictionary,
                                                                               iter=iter_dev, use_gpu=use_gpu,
-                                                                              bert_with_classifier=bert_with_classifier,
+                                                                              model=model,
                                                                               writer=None,
                                                                               writing_pred=True,
                                                                               optimizer=None, tasks=[task_to_eval],
@@ -541,4 +541,4 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
     if report_full_path_shared is None:
         printing("{} {} ", var=[REPORT_FLAG_DIR_STR, report_dir], verbose=verbose, verbose_level=0)
 
-    return bert_with_classifier
+    return model

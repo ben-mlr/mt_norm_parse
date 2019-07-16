@@ -1,7 +1,19 @@
 from env.models_dir import *
 from io_.info_print import printing
 from toolbox.deep_learning_toolbox import freeze_param
-from model.bert_tools_from_core_code.modeling import BertForTokenClassification, BertConfig, BertForMaskedLM
+from model.bert_tools_from_core_code.modeling import BertForTokenClassification, BertConfig, BertForMaskedLM, BertMultiTask
+
+
+def make_bert_multitask(pretrained_model_dir, tasks):
+
+    assert isinstance(tasks, list) and len(tasks)>=1, "ERROR tasks {} should be a list of len >=1".format(tasks)
+
+    if pretrained_model_dir is not None:
+        model = BertMultiTask.from_pretrained(pretrained_model_dir, tasks=tasks)
+    else:
+        raise(Exception("not supported yet"))
+
+    return model
 
 
 def get_bert_token_classification(vocab_size, voc_pos_size=None,
@@ -29,9 +41,7 @@ def get_bert_token_classification(vocab_size, voc_pos_size=None,
         tasks = ["normalize"]
     AVAILABLE_BERT_MODE = ["mlm", "token_class"]
     assert bert_module in AVAILABLE_BERT_MODE, "ERROR bert_module should be in {} ".format(AVAILABLE_BERT_MODE)
-
-    assert checkpoint_dir is not None or True, \
-        "Neither checkpoint_dir or pretrained_model_dir was provided"
+    assert checkpoint_dir is not None or True, "Neither checkpoint_dir or pretrained_model_dir was provided"
     assert pretrained_model_dir is None or checkpoint_dir is None, \
         "Only one of checkpoint_dir or pretrained_model_dir should be provided "
     config = BertConfig(vocab_size_or_config_json_file=vocab_size, hidden_size=768, num_hidden_layers=12,

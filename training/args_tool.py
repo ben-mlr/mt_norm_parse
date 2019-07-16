@@ -65,6 +65,9 @@ def args_train(mode="command_line", script="train_evaluate_run"):
     parser.add_argument("--dev_path", required=mode == "command_line", nargs='+', help='<Required> Set flag')
     parser.add_argument('--test_paths', nargs='+', help='<Required> Set flag', default=None,
                         required=(script == "train_evaluate_bert_normalizer"))
+
+    parser.add_argument('--multitask',type=int, default=None)
+
     parser.add_argument('--tasks', nargs='+', help='<Required> Set flag', default=DEFAULT_TASKS)
 
     if script == "train_evaluate_run":

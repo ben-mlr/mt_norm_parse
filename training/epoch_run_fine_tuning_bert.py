@@ -23,7 +23,7 @@ def accumulate_scores_across_sents(agg_func_ls, sample_ls, dic_prediction_score,
 
 
 def epoch_run(batchIter, tokenizer,
-              iter, n_iter_max, bert_with_classifier, epoch,
+              iter, n_iter_max, model, epoch,
               use_gpu, data_label, null_token_index, null_str,
               model_id, tasks, early_stoppin_metric=None,
               pos_dictionary=None,
@@ -73,6 +73,7 @@ def epoch_run(batchIter, tokenizer,
     assert len(tasks) <= 2
     evaluated_task = []
     skip_score = 0
+    skipping = 0
     label_heuristic = ""
     if gold_error_detection:
         label_heuristic += "-gold"
@@ -144,9 +145,8 @@ def epoch_run(batchIter, tokenizer,
     n_tokens_dic = {task: {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls} for task in _tasks}
     n_sents_dic = {task: {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls} for task in _tasks}
 
-    #vocab_index_except_pad_cls_sep = [i for i in range(1, len(tokenizer.vocab)) if i not in [mask_token_index, sep_token_index, cls_token_index]]
+    # vocab_index_except_pad_cls_sep = [i for i in range(1, len(tokenizer.vocab)) if i not in [mask_token_index, sep_token_index, cls_token_index]]
     # pad is the first index
-
     skipping_evaluated_batch = 0
     mode = "?"
     new_file = True
@@ -431,13 +431,15 @@ def epoch_run(batchIter, tokenizer,
                      var=[input_mask, input_tokens_tensor, output_tokens_tensor_aligned],
                      verbose_level="raw_data", verbose=verbose)
             feeding_the_model_with_label[feeding_the_model_with_label == 0] = -1
-            loss_dic, layer_wise_weights = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
-                                                                labels=feeding_the_model_with_label
-                                                                if task_normalize_is else None,
-                                                                labels_n_masks=labels_n_mask_prediction,
-                                                                labels_task_2=output_tokens_tensor_aligned
-                                                                if task_pos_is else None,
-                                                                aggregating_bert_layer_mode=aggregating_bert_layer_mode)
+
+            # TODO : multi task : handle two cases -- input labels based on provided tasks , handle sum ---> and reporting of the loss in this new case
+            loss_dic, layer_wise_weights = model(input_tokens_tensor, token_type_ids, input_mask,
+                                                 labels=feeding_the_model_with_label
+                                                 if task_normalize_is else None,
+                                                 labels_n_masks=labels_n_mask_prediction,
+                                                 labels_task_2=output_tokens_tensor_aligned
+                                                 if task_pos_is else None,
+                                                 aggregating_bert_layer_mode=aggregating_bert_layer_mode)
 
             _loss = loss_dic["loss"]
 
@@ -455,7 +457,7 @@ def epoch_run(batchIter, tokenizer,
                 predictions_topk = {}
                 # if predict more : will evaluate the model and write its predictions
                 # TODO : add mapping_info between task_id to model and task name necessary to iterator
-                logits, layer_wise_weights = bert_with_classifier(input_tokens_tensor, token_type_ids, input_mask,
+                logits, layer_wise_weights = model(input_tokens_tensor, token_type_ids, input_mask,
                                                                   aggregating_bert_layer_mode=aggregating_bert_layer_mode)
 
                 MULTITASK_BERT_LABELS = {"pos": "logits_task_2", "normalize": "logits_task_1", "append_masks": "logits_n_masks"}
@@ -536,7 +538,7 @@ def epoch_run(batchIter, tokenizer,
                                                            score_dic=score_dic["n_masks_pred"],
                                                            n_tokens_dic=n_tokens_dic["n_masks_pred"],
                                                            n_sents_dic=n_sents_dic["n_masks_pred"])
-                    else:
+                    elif task_normalize_is:
                         # we fill it with an empty report for simplifying reporting
                         accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
                                                        sample_ls=["all"],
@@ -563,7 +565,7 @@ def epoch_run(batchIter, tokenizer,
                                                        n_sents_dic=n_sents_dic[predicted_task])
                 except Exception as e:
                     skip_score += 1
-                    print("SKIPPING score eval ", skip_score, e)
+                    print("SKIPPED {} evaluation current error : {} ".format(skip_score, e))
                 skipping_evaluated_batch += skipping
 
                 if print_pred:

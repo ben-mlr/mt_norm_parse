@@ -1,7 +1,7 @@
 from env.importing import os, nn, json, OrderedDict, pickle, pdb
 from training.bert_normalize.fine_tune_bert import run
 from env.project_variables import PROJECT_PATH
-from model.bert_normalize import get_bert_token_classification
+from model.bert_normalize import get_bert_token_classification, make_bert_multitask
 from io_.dat.constants import TOKEN_BPE_BERT_START, TOKEN_BPE_BERT_SEP, NULL_STR, PAD_BERT, PAD_ID_BERT, SPECIAL_TOKEN_LS
 from env.models_dir import BERT_MODEL_DIC
 from io_.info_print import printing
@@ -27,10 +27,14 @@ def train_eval_bert_normalize(args, verbose=1):
 
     debug = True
     if os.environ.get("ENV") in ["rioc", "neff"]:
-        debug = True
+        debug = False
     if args.checkpoint_dir is None:
         # TODO vocab_size should be loaded from args.json
-        model = get_bert_token_classification(pretrained_model_dir=model_dir,
+        # TEMPORARY : should eventually keep only : model = make_bert_multitask()
+        if args.multitask:
+            model = make_bert_multitask(pretrained_model_dir=model_dir, tasks=["parsing"])
+        else:
+            model = get_bert_token_classification(pretrained_model_dir=model_dir,
                                               vocab_size=vocab_size,
                                               freeze_parameters=freeze_parameters,
                                               freeze_layer_prefix_ls=freeze_layer_prefix_ls,
@@ -69,11 +73,8 @@ def train_eval_bert_normalize(args, verbose=1):
     null_token_index = BERT_MODEL_DIC[args.bert_model]["vocab_size"]  # based on bert cased vocabulary
     description = "grid"
     dir_grid = args.overall_report_dir
-    #list_reference_heuristic_test = list(json.load(open(os.path.join(PROJECT_PATH, "./data/words_dictionary.json"),"r"),object_pairs_hook=OrderedDict).keys())
-    list_reference_heuristic_test = pickle.load(
-        open(os.path.join(PROJECT_PATH,
-                          "data/wiki-news-FAIR-SG-top50000.pkl"),
-             "rb"))
+
+    list_reference_heuristic_test = pickle.load(open(os.path.join(PROJECT_PATH,"data/wiki-news-FAIR-SG-top50000.pkl"), "rb"))
     slang_dic = json.load(open(os.path.join(PROJECT_PATH, "data/urban_dic_abbreviations.json"), "r"))
 
     if "normalize" in args.tasks:
@@ -82,17 +83,15 @@ def train_eval_bert_normalize(args, verbose=1):
         early_stoppin_metric = "accuracy-exact-pos"
     else:
         raise(Exception("Neither normalize nor pos is in {} (cant define early_stoppin_metric)".format(args.tasks)))
-    printing("INFO : tasks is {} so setting early_stoppin_metric to {} ", var=[args.tasks, early_stoppin_metric],
-             verbose=verbose,
-             verbose_level=1)
 
+    printing("INFO : tasks is {} so setting early_stoppin_metric to {} ", var=[args.tasks, early_stoppin_metric], verbose=verbose, verbose_level=1)
     printing("INFO : environ is {} so debug set to {}", var=[os.environ.get("ENV", "Unkwnown"),debug], verbose_level=1, verbose=verbose)
-    run(bert_with_classifier=model, 
+
+    run(model=model,
         voc_tokenizer=voc_tokenizer, tasks=args.tasks, train_path=args.train_path, dev_path=args.dev_path,
         append_n_mask=args.append_n_mask,
         auxilliary_task_norm_not_norm=True,
-        saving_every_epoch=15, lr=lr,
-        batch_size=batch_size,
+        saving_every_epoch=15, lr=lr, batch_size=batch_size,
         n_iter_max_per_epoch=100000, n_epoch=args.epochs,
         test_path_ls=args.test_paths,
         description=description, null_token_index=null_token_index, null_str=NULL_STR,

@@ -23,6 +23,7 @@ import logging
 import math
 import os
 from collections import OrderedDict
+import re
 import shutil
 import tarfile
 import tempfile
@@ -608,8 +609,14 @@ class BertPreTrainedModel(nn.Module):
                 archive.extractall(tempdir)
             serialization_dir = tempdir
         # Load config
-        config_file = os.path.join(serialization_dir, CONFIG_NAME)
 
+        config_file = os.path.join(serialization_dir, CONFIG_NAME)
+        if not os.path.isfile(config_file):
+            folder_name = re.match(".*\/(.*).tar.gz", resolved_archive_file).group(1)
+            serialization_dir = os.path.join(serialization_dir, folder_name)
+            print("Appending {} to {}".format(folder_name, serialization_dir))
+            config_file = os.path.join(serialization_dir, CONFIG_NAME)
+        assert os.path.isfile(config_file), "ERROR : {} not found".format(config_file)
         config = BertConfig.from_json_file(config_file)
         logger.info("Model config {}".format(config))
         if normalization_mode:
@@ -624,7 +631,8 @@ class BertPreTrainedModel(nn.Module):
         model = cls(config, *inputs, **kwargs)
         if state_dict is None and not from_tf:
             weights_path = os.path.join(serialization_dir, WEIGHTS_NAME)
-            state_dict = torch.load(weights_path, map_location='cpu' if not torch.cuda.is_available() else None)
+            state_dict = torch.load(weights_path,
+                                    map_location='cpu' if not torch.cuda.is_available() else None)
         if tempdir:
             # Clean up temp dir
             shutil.rmtree(tempdir)
@@ -837,7 +845,148 @@ class BertForPreTraining(BertPreTrainedModel):
             return prediction_scores, seq_relationship_score
 
 
-#class BertForMultiTask(BertPreTrainedModel):
+
+from model.parser_modules import (CHAR_LSTM, MLP, Biaffine, BiLSTM, IndependentDropout, SharedDropout)
+
+
+class BertGraphHead(nn.Module):
+    # the MLP layers
+    def __init__(self, config):
+        super(BertGraphHead, self).__init__()
+
+        n_mlp_arc = 100
+        n_mlp_rel = 100
+
+        n_rels = 20
+        mlp_dropout = 0.1
+
+        pad_index = 1
+        unk_index = 0
+
+        self.mlp_arc_h = MLP(n_in=config.hidden_size,
+                             n_hidden=n_mlp_arc,
+                             dropout=mlp_dropout)
+        self.mlp_arc_d = MLP(n_in=config.hidden_size,
+                             n_hidden=n_mlp_arc,
+                             dropout=mlp_dropout)
+        self.mlp_rel_h = MLP(n_in=config.hidden_size,
+                             n_hidden=n_mlp_rel,
+                             dropout=mlp_dropout)
+        self.mlp_rel_d = MLP(n_in=config.hidden_size,
+                             n_hidden=n_mlp_rel,
+                             dropout=mlp_dropout)
+
+        # the Biaffine layers
+        self.arc_attn = Biaffine(n_in=n_mlp_arc,
+                                 bias_x=True,
+                                 bias_y=False)
+        self.rel_attn = Biaffine(n_in=n_mlp_rel,
+                                 n_out=n_rels,
+                                 bias_x=True,
+                                 bias_y=True)
+
+        self.pad_index = pad_index
+        self.unk_index = unk_index
+
+    def forward(self, x, mask):
+        # apply MLPs to the BiLSTM output states
+        arc_h = self.mlp_arc_h(x)
+        arc_d = self.mlp_arc_d(x)
+        rel_h = self.mlp_rel_h(x)
+        rel_d = self.mlp_rel_d(x)
+        # get arc and rel scores from the bilinear attention
+        # [batch_size, seq_len, seq_len]
+        s_arc = self.arc_attn(arc_d, arc_h)
+        # [batch_size, seq_len, seq_len, n_rels]
+        s_rel = self.rel_attn(rel_d, rel_h).permute(0, 2, 3, 1)
+
+        if mask is not None:
+            pdb.set_trace()
+            # set the scores that exceed the length of each sentence to -inf
+            s_arc.masked_fill_(~mask.unsqueeze(1), float('-inf'))
+        else:
+            print("IGNORING MASK ")
+        return s_arc, s_rel
+
+
+TASKS_PARAMETERS = {"pos": {"head": None, "label": "pos_label", "loss": CrossEntropyLoss(ignore_index=-1)},
+                    "parsing": {"head": BertGraphHead, "label": "parsing_label", "loss": CrossEntropyLoss()}}
+
+
+class BertMultiTask(BertPreTrainedModel):
+    """
+    BERT model which can call any other modules
+    """
+    def __init__(self, config, tasks):
+        super(BertMultiTask, self).__init__(config)
+        self.bert = BertModel(config)
+        assert isinstance(tasks, list) and len(tasks) >= 1, "config.tasks should be a list of len >=1"
+        self.head = nn.ModuleDict()
+        self.tasks = tasks
+        self.task_parameters = TASKS_PARAMETERS
+        self.layer_wise_attention = None
+        self.labels_supported = [self.task_parameters[task]["label"] for task in tasks]
+        for i, task in enumerate(tasks):
+            assert task in TASKS_PARAMETERS, "ERROR : task {} is not in {}".format(task, TASKS_PARAMETERS)
+            self.head[task] = TASKS_PARAMETERS[task]["head"](config)
+
+    def forward(self, input_ids, token_type_ids=None, attention_mask=None, **labels):
+
+        logits_dict = OrderedDict()
+        loss_dict = OrderedDict()
+
+        for label, value in labels.items():
+            assert labels in self.labels_supported, "label {} in {} not supported".format(label, labels)
+
+        # task_wise layer attention
+
+        sequence_output, _ = self.bert(input_ids, token_type_ids=None, attention_mask=None, output_all_encoded_layers=self.layer_wise_attention is not None)
+        pdb.set_trace()
+        for task in self.tasks:
+            # --> make sur
+            print("MASK IGNORED")
+            logits_dict[task] = self.head[task](sequence_output, mask=None)
+            if self.task_parameters[task]["label"] in labels:
+                # compute loss
+                # append it to dictionary
+                loss_dict[task] = self.task_parameters[task]["loss"](logits_dict[task], labels[self.task_parameters[task]["label"]])
+
+        return logits_dict, loss_dict
+
+
+class BertForTreePrediction(BertPreTrainedModel):
+    """
+    BERT model with the masked language modeling head.
+    This module comprises the BERT model followed by the the Dozat Biaffine parsing module
+    """
+    def __init__(self, config):
+        super(BertForTreePrediction, self).__init__(config)
+        self.bert = BertModel(config)
+        self.cls = BertGraphHead()
+        self.layer_wise_attention = None
+        # ?
+        self.apply(self.init_bert_weights)
+
+    def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None):
+        sequence_output, _ = self.bert(input_ids, token_type_ids=None, attention_mask=None, output_all_encoded_layers=self.layer_wise_attention is not None)
+        # from bpe : extract only first bpe of each word
+        # feed it to BERT
+        # then --> x
+        s_arc, s_rel = self.cls(sequence_output)
+
+        #pred_arcs, pred_rels = self.decode(s_arc, s_rel)
+
+        if labels is not None:
+            # output loss Cross entropy ?
+            pass
+        return s_arc, s_rel
+
+    def decode(self, s_arc, s_rel):
+        pred_arcs = s_arc.argmax(dim=-1)
+        pred_rels = s_rel[torch.arange(len(s_rel)), pred_arcs].argmax(dim=-1)
+
+        return pred_arcs, pred_rels
+
 
 class BertForMaskedLM(BertPreTrainedModel):
     """BERT model with the masked language modeling head.
@@ -1229,6 +1378,7 @@ class BertForTokenClassification(BertPreTrainedModel):
 
     model = BertForTokenClassification(config, num_labels)
     logits = model(input_ids, token_type_ids, input_mask)
+
     ```
     """
     def __init__(self, config, num_labels, dropout_classifier=None, num_labels_2=None):
@@ -1252,8 +1402,7 @@ class BertForTokenClassification(BertPreTrainedModel):
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None,
                 labels_task_2=None, loss_weights=None, labels_n_mask_prediction=None,
-                aggregating_bert_layer_mode=None,
-                ):
+                aggregating_bert_layer_mode=None):
         if aggregating_bert_layer_mode is not None:
             AVAILABLE_BERT_AGGREGATION_MODE = ["sum", "last"]
             assert aggregating_bert_layer_mode in AVAILABLE_BERT_AGGREGATION_MODE or (isinstance(aggregating_bert_layer_mode, int) and aggregating_bert_layer_mode<=11), \

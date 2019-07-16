@@ -79,16 +79,16 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
     elif get_batch_mode:
         for ibatch in tqdm(range(1, nbatch+1), disable=disable_tqdm_level(verbose, verbose_level=2)):
             # word, char, pos, xpos, heads, types, masks, lengths, morph
-            printing("Data : getting {} out of {} batches", var=(ibatch, nbatch+1), verbose= verbose, verbose_level=2)
+            printing("Data : getting {} out of {} batches", var=(ibatch, nbatch+1), verbose=verbose, verbose_level=2)
 
-            word, word_norm, char, chars_norm, word_norm_not_norm, edit, pos, _, _, _, \
-            _, lenght, order_ids, raw_word_inputs, normalized_str, _ = conllu_data.get_batch_variable(data,
+            word, word_norm, char, chars_norm, word_norm_not_norm, edit, pos, _, heads, types, _, \
+            lenght, order_ids, raw_word_inputs, normalized_str, _ = conllu_data.get_batch_variable(data,
                                                                                                       batch_size=batch_size,
                                                                                                       normalization=normalization,
                                                                                                       unk_replace=0)
             if char.size(0) <= 1:
-                printing("WARNING : NOT Skip character ", verbose_level=2, verbose=verbose)
-                #continue
+                printing("WARNING :  batch is 1 ", verbose_level=2, verbose=verbose)
+
             printing("TYPE {} word, char {} , chars_norm {} length {} ", var=(word.is_cuda, char.is_cuda,
                                                                               #chars_norm.is_cuda, lenght.is_cuda
                                                                               ),
@@ -116,11 +116,11 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
 
             if NORM2NOISY:
                 print("WARNING !! NORM2NOISY ON ")
-                yield MaskBatch(chars_norm, char, output_word=word_norm, edit=edit,
+                yield MaskBatch(chars_norm, char, output_word=word_norm, edit=edit, types=types, heads=heads,
                                 output_norm_not_norm=word_norm_not_norm, dropout_input=dropout_input,
                                 pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose), order_ids
             else:
-                yield MaskBatch(char, chars_norm, output_word=word_norm, edit=edit,
+                yield MaskBatch(char, chars_norm, output_word=word_norm, edit=edit, types=types, heads=heads,
                                 output_norm_not_norm=word_norm_not_norm, dropout_input=dropout_input,
                                 pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose,
                                 raw_input=raw_word_inputs, raw_output=normalized_str), order_ids
