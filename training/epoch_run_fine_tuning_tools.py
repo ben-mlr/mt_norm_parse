@@ -152,3 +152,25 @@ def writing_predictions_conll(dir_normalized, dir_normalized_original_only, dir_
                 ind_batch=iter + batch_i, new_file=new_file, verbose=verbose)
     new_file = False
     return new_file
+
+
+def init_score_token_sent_dict(samples_per_task_reporting, tasks, agg_func_ls, compute_intersection_score):
+
+    # TODO : make it more systematic (should not hardcode 'normalize' "
+
+    samples = samples_per_task_reporting["normalize"] #["all", "NEED_NORM", "NORMED", "PRED_NEED_NORM", "PRED_NORMED", "InV", "OOV"]
+    init_samples = samples.copy()
+    if compute_intersection_score:
+        for ind, sam in enumerate(samples[1:]):
+            for ind_2 in range(ind):
+                init_samples.append(sam+"-n-"+samples[ind_2+1])
+    _tasks = tasks
+    score_dic = {task: {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls} for task in _tasks}
+    n_tokens_dic = {task: {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls} for task in _tasks}
+    n_sents_dic = {task: {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls} for task in _tasks}
+    if "normalize" in tasks:
+        score_dic["n_masks_pred"] = {"sum": {sample: 0 for sample in samples_per_task_reporting["samples_n_masks"]}}
+        n_tokens_dic["n_masks_pred"] = {"sum": {sample: 0 for sample in samples_per_task_reporting["samples_n_masks"]}}
+        n_sents_dic["n_masks_pred"] = {"sum": {sample: 0 for sample in samples_per_task_reporting["samples_n_masks"]}}
+
+    return score_dic, n_tokens_dic, n_sents_dic

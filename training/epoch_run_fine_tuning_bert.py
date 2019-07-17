@@ -9,7 +9,7 @@ from evaluate.report_writing import report_score_all
 from evaluate.scoring.report import overall_word_level_metric_measure
 from model.n_masks_predictor import pred_n_bpe
 from toolbox.pred_tools.heuristics import predict_with_heuristic
-from training.epoch_run_fine_tuning_tools import get_casing, logging_processing_data, logging_scores, log_warning, print_align_bpe, tensorboard_loss_writer_batch_level, tensorboard_loss_writer_epoch_level, writing_predictions_conll
+from training.epoch_run_fine_tuning_tools import get_casing, logging_processing_data, logging_scores, log_warning, print_align_bpe, tensorboard_loss_writer_batch_level, tensorboard_loss_writer_epoch_level, writing_predictions_conll, init_score_token_sent_dict
 from toolbox.deep_learning_toolbox import dropout_input_tensor
 
 
@@ -20,7 +20,6 @@ def accumulate_scores_across_sents(agg_func_ls, sample_ls, dic_prediction_score,
             n_tokens_dic[agg_func][sample] += dic_prediction_score[agg_func][sample]["n_tokens"]
             n_sents_dic[agg_func][sample] += dic_prediction_score[agg_func][sample]["n_sents"]
     return score_dic, n_tokens_dic, n_sents_dic
-
 
 def epoch_run(batchIter, tokenizer,
               iter, n_iter_max, model, epoch,
@@ -42,7 +41,8 @@ def epoch_run(batchIter, tokenizer,
               slang_dic=None, list_reference_heuristic=None,list_candidates=None, index_alphabetical_order=None,
               case=None, threshold_edit=None, edit_module_pred_need_norm_only=True, low_memory_foot_print_batch_mode=False,
               batch_size_real=0, tokenize_and_bpe=False, n_epoch=None, append_n_mask=True,
-               ponderation_loss_policy="static", multi_task_loss_ponderation=None,
+              ponderation_loss_policy="static", multi_task_loss_ponderation=None,
+              samples_per_task_reporting=None,
               verbose=0):
     """
     About Evaluation :
@@ -52,6 +52,8 @@ def epoch_run(batchIter, tokenizer,
             Can also have different aggregation function
             TODO : TEST those scoring fucntions
     """
+    if samples_per_task_reporting is None:
+        samples_per_task_reporting = SAMPLES_PER_TASK_TO_REPORT
 
     if ponderation_loss_policy == "static":
         if multi_task_loss_ponderation is None:
@@ -132,7 +134,7 @@ def epoch_run(batchIter, tokenizer,
     sep_token_index = tokenizer.convert_tokens_to_ids([SEP_BERT])[0]
 
     space_token_index = tokenizer.convert_tokens_to_ids([null_str])[0]
-    printing("WARNING : [MASK] set to {} [CLS] {} [SEP] {}", var=[mask_token_index,cls_token_index, sep_token_index],
+    printing("WARNING : [MASK] set to {} [CLS] {} [SEP] {}", var=[mask_token_index, cls_token_index, sep_token_index],
              verbose=verbose, verbose_level=1)
 
     batch_i = 0
@@ -142,18 +144,9 @@ def epoch_run(batchIter, tokenizer,
     skipping_batch_n_to_1 = 0
 
     loss = 0
-    samples = ["all", "NEED_NORM", "NORMED", "PRED_NEED_NORM", "PRED_NORMED", "InV", "OOV"]
-    init_samples = samples.copy()
-    if compute_intersection_score:
-        for ind,sam in enumerate(samples[1:]):
-            for ind_2 in range(ind):
-                init_samples.append(sam+"-n-"+samples[ind_2+1])
-    agg_func_ls = ["sum"]
-    _tasks = tasks+["n_masks_pred"] if "normalize" in tasks else tasks
-    score_dic = {task: {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls} for task in _tasks}
-    n_tokens_dic = {task: {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls} for task in _tasks}
-    n_sents_dic = {task: {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls} for task in _tasks}
 
+    agg_func_ls = ["sum"]
+    score_dic, n_tokens_dic, n_sents_dic = init_score_token_sent_dict(samples_per_task_reporting, tasks, agg_func_ls, compute_intersection_score)
     # vocab_index_except_pad_cls_sep = [i for i in range(1, len(tokenizer.vocab)) if i not in [mask_token_index, sep_token_index, cls_token_index]]
     # pad is the first index
     skipping_evaluated_batch = 0
@@ -541,15 +534,16 @@ def epoch_run(batchIter, tokenizer,
                                                          verbose)
                 try:
                     if task_normalize_is and append_n_mask:
-                        samples_n_masks = ["n_masks_1", "n_masks_2", "n_masks_3", "n_masks_4", "n_masks_5", "all"]
-                        perf_prediction_n_mask, skipping_n_mask, _ = overall_word_level_metric_measure(labels_n_mask_prediction.tolist(), [prediction_n_mask.tolist()], topk=1,
-                                                                                                       metric=metric, samples=samples_n_masks, agg_func_ls=agg_func_ls,
-                                                                                                       reference_word_dic=reference_word_dic, compute_intersection_score=False,
-                                                                                                       src_detokenized=None)
+                        perf_prediction_n_mask, skipping_n_mask, _ = \
+                            overall_word_level_metric_measure(labels_n_mask_prediction.tolist(), [prediction_n_mask.tolist()], topk=1,
+                                                              metric=metric, samples=samples_per_task_reporting["n_masks_pred"], agg_func_ls=agg_func_ls,
+                                                              reference_word_dic=reference_word_dic,
+                                                              compute_intersection_score=False,
+                                                              src_detokenized=None)
 
                         score_dic["n_masks_pred"], n_tokens_dic["n_masks_pred"], n_sents_dic["n_masks_pred"] = \
                             accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
-                                                           sample_ls=["all"],
+                                                           sample_ls=samples_per_task_reporting["n_masks_pred"],
                                                            dic_prediction_score=perf_prediction_n_mask,
                                                            score_dic=score_dic["n_masks_pred"],
                                                            n_tokens_dic=n_tokens_dic["n_masks_pred"],
@@ -623,7 +617,8 @@ def epoch_run(batchIter, tokenizer,
             tensorboard_loss_writer_epoch_level(writer, tasks, mode, model_id, epoch, n_batch_norm, n_batch_pos, append_n_mask, loss, loss_norm, loss_pos, loss_n_mask_prediction, batch_i)
         reports = []
         printing("TRAINING : evaluating on {} tasks ", var=[evaluated_task], verbose_level=1, verbose=verbose)
-        reports, early_stoppin_metric_val, score, n_tokens = report_score_all(evaluated_task, agg_func_ls, samples,
+        # TODO -- ??
+        reports, early_stoppin_metric_val, score, n_tokens = report_score_all(evaluated_task, agg_func_ls, samples_per_task_reporting,
                                                                               label_heuristic, score_dic, n_tokens_dic,
                                                                               n_sents_dic, model_id, tasks, args_dir,
                                                                               data_label, reports,  writer, log_perf,

@@ -61,6 +61,12 @@ MULTITASK_BERT_LABELS_MLM_HEAD = {"pos": "logits_task_2", "normalize": "logits_t
 MULTITASK_BERT_LABELS_MLM_HEAD_LOSS = {"pos": "loss_task_2", "normalize": "loss_task_1",
                                        "append_masks": "loss_task_n_mask_prediction"}
 
+
+SAMPLES_PER_TASK_TO_REPORT = {
+            "pos": ["all", "NEED_NORM", "NORMED", "PRED_NEED_NORM", "PRED_NORMED", "InV", "OOV"],
+            "normalize": ["all", "NEED_NORM", "NORMED", "PRED_NEED_NORM", "PRED_NORMED", "InV", "OOV"],
+            "n_masks_pred": ["all", "n_masks_1", "n_masks_2", "n_masks_3", "n_masks_4", "n_masks_5"]}
+
 edit_rules = ["edit_check-"+ref_list_label+"-"+need_normed_rule for ref_list_label in ["data", "ref", "all"] for need_normed_rule in ["need_normed", "all"]]
 heuristics = ["gold_detection", "#", "@", "url", "slang_translate"]
 HEURISTICS = heuristics+edit_rules

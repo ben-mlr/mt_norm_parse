@@ -11,10 +11,13 @@ from reporting.write_to_performance_repo import report_template, write_dic
 
 
 def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, score_dic, n_tokens_dic, n_sents_dic, model_id, tasks, args_dir, data_label, reports, writer, log_perf,
-                     early_stoppin_metric_val, early_stoppin_metric,mode, subsample_early_stoping_metric_val, epoch):
+                     early_stoppin_metric_val, early_stoppin_metric, mode, subsample_early_stoping_metric_val, epoch):
+    assert isinstance(samples, dict), "ERROR samples : {}".format(samples)
     for task in list(set(evaluated_task)):
+        assert task in samples, "ERROR : task {} was not found in samples dictionary {}".format(task, samples)
+        _samples = samples[task]
         for agg_func in agg_func_ls:
-            for sample in samples:
+            for sample in _samples:
                 print("sample", sample)
                 # for binary classification : having 3 samples define [class Positive, class Negative, All]
                 #  e.g [NORMED, NEED_NORM , all] for a given agg_func
@@ -58,12 +61,12 @@ def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, scor
         # class negative 0 , class positive 1
         # TODO : make that more consistent with user needs !
         if "normalize" in tasks:
-            if "all" in samples and TASKS_PARAMETER["normalize"]["predicted_classes"][0] in samples \
-                    and TASKS_PARAMETER["normalize"]["predicted_classes"][1] in samples:
+            if "all" in _samples and TASKS_PARAMETER["normalize"]["predicted_classes"][0] in _samples \
+                    and TASKS_PARAMETER["normalize"]["predicted_classes"][1] in _samples:
                 # then we can compute all the confusion matrix rate
                 # TODO : factorize with TASKS_2_METRICS_STR
                 for metric_val in ["precision", "f1", "recall", "tnr", "npv", "accuracy"]:
-                    metric_val += "-" +tasks[0]
+                    metric_val += "-" + tasks[0]
                     score, n_rate_universe = get_perf_rate(metric=metric_val, n_tokens_dic=n_tokens_dic["normalize"],
                                                            score_dic=score_dic["normalize"],
                                                            agg_func=agg_func)
