@@ -97,3 +97,33 @@ def write_args(dir, model_id, checkpoint_dir=None,
     printing("MODEL args.json {} written {} ".format(info, args_dir), verbose_level=1, verbose=verbose)
     return args_dir
 
+
+
+def get_hyperparameters_dict(args, case, random_iterator_train, seed, verbose):
+
+    hyperparameters = OrderedDict([("bert_model", args.bert_model), ("lr", args.lr),
+                                   ("n_epochs", args.epochs),
+                                   ("initialize_bpe_layer", args.initialize_bpe_layer),
+                                   ("fine_tuning_strategy", args.fine_tuning_strategy),
+                                   ("dropout_input_bpe", args.dropout_input_bpe),
+                                   ("heuristic_ls", args.heuristic_ls),
+                                   ("gold_error_detection", args.gold_error_detection),
+                                   ("dropout_classifier",
+                                    args.dropout_classifier if args.dropout_classifier is not None else "UNK"),
+                                   ("dropout_bert", args.dropout_bert if args.dropout_bert is not None else "UNK"),
+                                   ("tasks", args.tasks),
+                                   ("masking_strategy", args.masking_strategy),
+                                   ("portion_mask", args.portion_mask),
+                                   ("checkpoint_dir", args.checkpoint_dir if args.checkpoint_dir is not None else None),
+                                   ("norm_2_noise_training", args.norm_2_noise_training),
+                                   ("random_iterator_train", random_iterator_train),
+                                   ("aggregating_bert_layer_mode", args.aggregating_bert_layer_mode),
+                                   ("tokenize_and_bpe", args.tokenize_and_bpe),
+                                   ("SEED", seed), ("case", case), ("bert_module", args.bert_module),
+                                   ("freeze_layer_prefix_ls", args.freeze_parameters),
+                                   ("layer_wise_attention", args.layer_wise_attention),
+                                   ("append_n_mask", args.append_n_mask),
+                                   ("multi_task_loss_ponderation", args.multi_task_loss_ponderation)
+                                   ])
+    printing("HYPERPARAMETERS {} ", var=[hyperparameters], verbose=verbose, verbose_level=1)
+    return hyperparameters

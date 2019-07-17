@@ -11,7 +11,7 @@ from io_.data_iterator import readers_load, conllu_data, data_gen_multi_task_sam
 #import model.bert_tools_from_core_code.tokenization as bert_tok
 from model.bert_tools_from_core_code.tokenization import BertTokenizer
 from training.epoch_run_fine_tuning_bert import epoch_run
-from toolbox.report_tools import write_args
+from toolbox.report_tools import write_args, get_hyperparameters_dict
 from toolbox.pred_tools.heuristics import get_letter_indexes
 
 
@@ -61,12 +61,11 @@ def run(args,
         printing("INFO : early_stoppin_metric passed is {}", var=[early_stoppin_metric], verbose=verbose, verbose_level=1)
     assert len(args.tasks) == len(args.train_path), "ERROR args.tasks is {} but train path are {}".format(args.tasks, args.train_path)
     assert len(args.dev_path) == len(args.train_path)
-    #assert len(test_path_ls) == len(args.tasks), "{} args.tasks test_path_ls {}".format(test_path_ls, args.tasks)
+
     if run_mode == "test":
         assert args.test_paths is not None and isinstance(args.test_paths, list)
     if args.test_paths is not None:
-        assert isinstance(args.test_paths, list) and isinstance(args.test_paths[0], list), \
-            "ERROR args.test_paths should be a list"
+        assert isinstance(args.test_paths, list) and isinstance(args.test_paths[0], list), "ERROR args.test_paths should be a list"
 
     if run_mode == "train":
         printing("CHECKPOINTING info : saving model every {}", var=saving_every_epoch, verbose=verbose, verbose_level=1)
@@ -83,37 +82,13 @@ def run(args,
     iter_dev = 0
     row = None
     writer = None
+
     if run_mode == "train":
         assert model_location is None and model_id is None, "ERROR we are creating a new one "
-        model_id, model_location, dict_path, tensorboard_log, end_predictions = \
-            setup_repoting_location(model_suffix=model_suffix, root_dir_checkpoints=CHECKPOINT_BERT_DIR,
-                                    shared_id=args.overall_label,
-                                    verbose=verbose)
-
-        hyperparameters = OrderedDict([("bert_model", args.bert_model), ("lr", args.lr),
-                                       ("n_epochs", args.epochs),
-                                       ("initialize_bpe_layer", args.initialize_bpe_layer),
-                                       ("fine_tuning_strategy", args.fine_tuning_strategy),
-                                       ("dropout_input_bpe", args.dropout_input_bpe),
-                                       ("heuristic_ls", args.heuristic_ls),
-                                       ("gold_error_detection", args.gold_error_detection),
-                                       ("dropout_classifier", args.dropout_classifier if args is not None else "UNK"),
-                                       ("dropout_bert", args.dropout_bert if args is not None else "UNK"),
-                                       ("tasks", args.tasks),
-                                       ("masking_strategy", args.masking_strategy), ("portion_mask", args.portion_mask),
-                                       ("checkpoint_dir", args.checkpoint_dir if args is not None else None),
-                                       ("norm_2_noise_training", args.norm_2_noise_training),
-                                       ("random_iterator_train", random_iterator_train),
-                                       ("aggregating_bert_layer_mode", args.aggregating_bert_layer_mode),
-                                       ("tokenize_and_bpe", args.tokenize_and_bpe),
-                                       ("SEED", SEED_TORCH), ("case", case), ("bert_module", bert_module),
-                                       ("freeze_layer_prefix_ls", args.freeze_parameters),
-                                       ("layer_wise_attention", args.layer_wise_attention),
-                                       ("append_n_mask", args.append_n_mask),
-                                       ("multi_task_loss_ponderation", args.multi_task_loss_ponderation)
-                                       ])
-        printing("HYPERPARAMETERS {} ", var=[hyperparameters], verbose=verbose, verbose_level=1)
+        model_id, model_location, dict_path, tensorboard_log, end_predictions = setup_repoting_location(model_suffix=model_suffix, root_dir_checkpoints=CHECKPOINT_BERT_DIR, shared_id=args.overall_label, verbose=verbose)
+        hyperparameters = get_hyperparameters_dict(args, case, random_iterator_train, seed=SEED_TORCH, verbose=verbose)
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
+
         if report:
             if report_full_path_shared is not None:
                 tensorboard_log = os.path.join(report_full_path_shared, "tensorboard")
@@ -210,32 +185,37 @@ def run(args,
                                                               epoch=epoch, verbose=verbose)
                 print("RUNNING TRAIN on GET_BATCH_MODE ")
                 loss_train, iter_train, perf_report_train, _ = epoch_run(batchIter_train, tokenizer,
-                                                                         pos_dictionary=pos_dictionary,
+
+                                                                         tasks=args.tasks,
                                                                          n_epoch=args.epochs,
+                                                                         heuristic_ls=args.heuristic_ls,
+                                                                         gold_error_detection=args.gold_error_detection,
+                                                                         dropout_input_bpe=args.dropout_input_bpe,
+                                                                         masking_strategy=args.masking_strategy,
+                                                                         portion_mask=args.portion_mask,
+                                                                         tokenize_and_bpe=args.tokenize_and_bpe,
+                                                                         norm_2_noise_training=args.norm_2_noise_training,
+                                                                         aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
+                                                                         append_n_mask=args.append_n_mask,
+                                                                         multi_task_loss_ponderation=args.multi_task_loss_ponderation,
+
+                                                                         pos_dictionary=pos_dictionary,
                                                                          data_label=train_data_label,
                                                                          model=model,
                                                                          writer=writer,
                                                                          iter=iter_train, epoch=epoch,
-                                                                         tasks=args.tasks,
                                                                          writing_pred=epoch == (args.epochs - 1),
                                                                          dir_end_pred=end_predictions,
                                                                          optimizer=optimizer, use_gpu=use_gpu,
                                                                          predict_mode=True,
                                                                          skip_1_t_n=skip_1_t_n,
                                                                          model_id=model_id,
-                                                                         heuristic_ls=args.heuristic_ls, gold_error_detection=args.gold_error_detection,
                                                                          reference_word_dic={"InV": inv_word_dic},
-                                                                         dropout_input_bpe=args.dropout_input_bpe,
                                                                          null_token_index=null_token_index, null_str=null_str,
-                                                                         masking_strategy=args.masking_strategy, portion_mask=args.portion_mask,
-                                                                         norm_2_noise_training=args.norm_2_noise_training,
                                                                          norm_2_noise_eval=False,
-                                                                         aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
                                                                          early_stoppin_metric=None,
-                                                                         case=case, tokenize_and_bpe=args.tokenize_and_bpe,
+                                                                         case=case,
                                                                          n_iter_max=n_iter_max_per_epoch,
-                                                                         append_n_mask=args.append_n_mask,
-                                                                         multi_task_loss_ponderation=args.multi_task_loss_ponderation,
                                                                          verbose=verbose)
 
 
@@ -244,6 +224,18 @@ def run(args,
                 if args.dev_path is not None:
                     print("RUNNING DEV on ITERATION MODE")
                     loss_dev, iter_dev, perf_report_dev, early_stoping_val = epoch_run(batchIter_dev, tokenizer,
+                                                                                       masking_strategy=args.masking_strategy,
+                                                                                       portion_mask=args.portion_mask,
+                                                                                       heuristic_ls=args.heuristic_ls,
+                                                                                       gold_error_detection=args.gold_error_detection,
+                                                                                       norm_2_noise_training=args.norm_2_noise_training,
+                                                                                       # as training otherwise loss dev not more meaning
+                                                                                       tokenize_and_bpe=args.tokenize_and_bpe,
+                                                                                       aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
+                                                                                       append_n_mask=args.append_n_mask,
+                                                                                       multi_task_loss_ponderation=args.multi_task_loss_ponderation,
+                                                                                       epoch=epoch, tasks=args.tasks,
+
                                                                                        pos_dictionary=pos_dictionary,
                                                                                        iter=iter_dev, use_gpu=use_gpu,
                                                                                        model=model,
@@ -251,25 +243,15 @@ def run(args,
                                                                                        writing_pred=epoch == (args.epochs - 1),
                                                                                        dir_end_pred=end_predictions,
                                                                                        predict_mode=True, data_label=dev_data_label,
-                                                                                       epoch=epoch, tasks=args.tasks,
                                                                                        null_token_index=null_token_index, null_str=null_str,
                                                                                        model_id=model_id,
                                                                                        skip_1_t_n=skip_1_t_n,
                                                                                        dropout_input_bpe=0,
-                                                                                       masking_strategy=args.masking_strategy,
-                                                                                       portion_mask=args.portion_mask,
-                                                                                       heuristic_ls=args.heuristic_ls,
-                                                                                       gold_error_detection=args.gold_error_detection,
                                                                                        reference_word_dic={"InV": inv_word_dic},
-                                                                                       norm_2_noise_training=args.norm_2_noise_training,# as training otherwise loss dev not more meaning
                                                                                        norm_2_noise_eval=False,
                                                                                        early_stoppin_metric=early_stoppin_metric,
-                                                                                       tokenize_and_bpe=args.tokenize_and_bpe,
                                                                                        subsample_early_stoping_metric_val=subsample_early_stoping_metric_val,
-                                                                                       aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
                                                                                        case=case,
-                                                                                       append_n_mask=args.append_n_mask,
-                                                                                       multi_task_loss_ponderation=args.multi_task_loss_ponderation,
                                                                                        n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                 else:
                     loss_dev, iter_dev, perf_report_dev = None, 0, None
@@ -455,6 +437,14 @@ def run(args,
                     try:
 
                         loss_test, iter_test, perf_report_test, _ = epoch_run(batchIter_test, tokenizer,
+
+                                                                              masking_strategy=args.masking_strategy,
+                                                                              portion_mask=args.portion_mask,
+                                                                              aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
+                                                                              tokenize_and_bpe=args.tokenize_and_bpe,
+                                                                              append_n_mask=args.append_n_mask,
+                                                                              multi_task_loss_ponderation=args.multi_task_loss_ponderation,
+
                                                                               pos_dictionary=pos_dictionary,
                                                                               iter=iter_dev, use_gpu=use_gpu,
                                                                               model=model,
@@ -470,8 +460,6 @@ def run(args,
                                                                               null_str=null_str,
                                                                               log_perf=False,
                                                                               dropout_input_bpe=0,
-                                                                              masking_strategy=args.masking_strategy,
-                                                                              portion_mask=args.portion_mask,
                                                                               heuristic_ls=heuristic_test,
                                                                               gold_error_detection=gold_error,
                                                                               slang_dic=slang_dic_test,
@@ -486,12 +474,9 @@ def run(args,
                                                                               compute_intersection_score=compute_intersection_score_test,
                                                                               remove_mask_str_prediction=remove_mask_str_prediction,
                                                                               inverse_writing=inverse_writing,
-                                                                              aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
                                                                               reference_word_dic={"InV": inv_word_dic},
                                                                               case=case, threshold_edit=threshold_edit,
-                                                                              tokenize_and_bpe=args.tokenize_and_bpe,
-                                                                              append_n_mask=args.append_n_mask,
-                                                                              multi_task_loss_ponderation=args.multi_task_loss_ponderation,
+
                                                                               edit_module_pred_need_norm_only=mode_need_norm_heuristic == "need_normed",
                                                                               n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                         print("LOSS TEST", loss_test)
