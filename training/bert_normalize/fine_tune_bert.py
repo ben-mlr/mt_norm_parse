@@ -15,31 +15,26 @@ from toolbox.report_tools import write_args
 from toolbox.pred_tools.heuristics import get_letter_indexes
 
 
-def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
+def run(args,
+        n_iter_max_per_epoch,
         voc_tokenizer, auxilliary_task_norm_not_norm, model,
-        null_token_index, null_str, initialize_bpe_layer=None,
-        run_mode="train", test_path_ls=None, dict_path=None, end_predictions=None,
+        null_token_index, null_str,
+        run_mode="train",
+        dict_path=None, end_predictions=None,
         report=True, model_suffix="", description="",
-        saving_every_epoch=10, lr=0.0001, fine_tuning_strategy="standart", model_location=None, model_id=None,
-        freeze_parameters=None, freeze_layer_prefix_ls=None,
-        # those two have been factorized out in fine_tuning_strategy
-        dropout_input_bpe=0,
-        report_full_path_shared=None, shared_id=None, bert_model=None, skip_1_t_n=False,
-        heuristic_ls=None, gold_error_detection=False, heuristic_test_ls=None,
-        portion_mask=None, masking_strategy=None,
-        norm_2_noise_eval=False, norm_2_noise_training=None,
+        saving_every_epoch=10,
+        model_location=None, model_id=None,
+        report_full_path_shared=None, skip_1_t_n=False,
+        heuristic_test_ls=None,
         remove_mask_str_prediction=False, inverse_writing=False,
         extra_label_for_prediction="",
         random_iterator_train=True, bucket_test=True, must_get_norm_test=True,
-        aggregating_bert_layer_mode=None,
         early_stoppin_metric=None, subsample_early_stoping_metric_val=None,
         compute_intersection_score_test=True,
         slang_dic_test=None, list_reference_heuristic_test=None,
         bert_module=None,
-        case=None, threshold_edit=3, tokenize_and_bpe=False,
-        layer_wise_attention=None, multi_task_loss_ponderation=None,
-        append_n_mask=False,
-        debug=False,  batch_size=2, n_epoch=1, verbose=1):
+        case=None, threshold_edit=3,
+        debug=False, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
               test : only test at the end : requires all directoris to be created
