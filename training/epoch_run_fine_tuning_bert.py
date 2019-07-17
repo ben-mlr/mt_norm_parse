@@ -21,6 +21,7 @@ def accumulate_scores_across_sents(agg_func_ls, sample_ls, dic_prediction_score,
             n_sents_dic[agg_func][sample] += dic_prediction_score[agg_func][sample]["n_sents"]
     return score_dic, n_tokens_dic, n_sents_dic
 
+
 def epoch_run(batchIter, tokenizer,
               iter, n_iter_max, model, epoch,
               use_gpu, data_label, null_token_index, null_str,
@@ -50,7 +51,6 @@ def epoch_run(batchIter, tokenizer,
             then accumulates for each sentences and foea each batch to get global score
             CAN add SAMPLE Parameter to get scores on specific subsample of the data : e.g. NEED_NORM, NORMED...
             Can also have different aggregation function
-            TODO : TEST those scoring fucntions
     """
     if samples_per_task_reporting is None:
         samples_per_task_reporting = SAMPLES_PER_TASK_TO_REPORT
@@ -146,7 +146,10 @@ def epoch_run(batchIter, tokenizer,
     loss = 0
 
     agg_func_ls = ["sum"]
+
     score_dic, n_tokens_dic, n_sents_dic = init_score_token_sent_dict(samples_per_task_reporting, tasks, agg_func_ls, compute_intersection_score)
+    # TODO : should be removed (everuthing should go through samples_per_task_reporting)
+    samples = samples_per_task_reporting["normalize"]
     # vocab_index_except_pad_cls_sep = [i for i in range(1, len(tokenizer.vocab)) if i not in [mask_token_index, sep_token_index, cls_token_index]]
     # pad is the first index
     skipping_evaluated_batch = 0
@@ -292,14 +295,14 @@ def epoch_run(batchIter, tokenizer,
                     output_tokens_tensor = output_tokens_tensor.cuda()
                     input_tokens_tensor = input_tokens_tensor.cuda()
             _verbose = verbose
-
             # logging
             verbose_level = _verbose if _verbose in ["raw_data", "alignement"] else "raw_data"
             logging_processing_data(_verbose, verbose, verbose_level, batch_raw_input,input_tokens_tensor,
                                     batch_raw_output, output_tokens_tensor, inp_bpe_tokenized, out_bpe_tokenized)
             _1_to_n_token = 0
             if task_normalize_is:
-                # aligning output BPE with input (we are rejecting batch with at least one 1 to n case # (that we don't want to handle)
+                # aligning output BPE with input
+                # (we are rejecting batch with at least one 1 to n case # (that we don't want to handle)
                 try:
                     output_tokens_tensor_aligned, input_tokens_tensor_aligned, input_alignement_with_raw, input_mask, _1_to_n_token = \
                     alignement.aligned_output(input_tokens_tensor, output_tokens_tensor, input_alignement_with_raw,
@@ -433,7 +436,7 @@ def epoch_run(batchIter, tokenizer,
                      var=[input_mask, input_tokens_tensor, output_tokens_tensor_aligned],
                      verbose_level="raw_data", verbose=verbose)
             feeding_the_model_with_label[feeding_the_model_with_label == 0] = -1
-            #TODO : should not be hardcoded : should have static mode --> provide loss, dynamic --> preset strategies
+            # TODO : should not be hardcoded : should have static mode --> provide loss, dynamic --> preset strategies
 
             # TODO : multi task : handle two cases -- input labels based on provided tasks , handle sum ---> and reporting of the loss in this new case
             loss_dic, layer_wise_weights = model(input_tokens_tensor, token_type_ids, input_mask,
@@ -576,7 +579,6 @@ def epoch_run(batchIter, tokenizer,
                 except Exception as e:
                     skip_score += 1
                     print("SKIPPED {} evaluation current error : {} ".format(skip_score, e))
-                    raise(e)
                 skipping_evaluated_batch += skipping
 
                 if print_pred:
@@ -610,7 +612,7 @@ def epoch_run(batchIter, tokenizer,
                 skipping_batch_n_to_1, aligned, noisy_over_splitted, skip_1_t_n, skipping_evaluated_batch, verbose)
 
     early_stoppin_metric_val = None
-    samples = _samples
+
     evaluated_task = list(set(evaluated_task))
     if predict_mode:
         if writer is not None:
