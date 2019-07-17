@@ -36,7 +36,7 @@ def train_eval_bert_normalize(args, verbose=1):
     voc_pos_size = 19 #18+1 for alg_arabizi # 53+1 for ARABIZI 1# 21 is for ENGLISH
     printing("MODEL : voc_pos_size hardcoded to {}", var=voc_pos_size, verbose_level=1, verbose=verbose)
 
-    debug = False
+    debug = True
     if os.environ.get("ENV") in ["rioc", "neff"]:
         debug = False
     if args.checkpoint_dir is None:
@@ -46,22 +46,21 @@ def train_eval_bert_normalize(args, verbose=1):
             model = make_bert_multitask(pretrained_model_dir=model_dir, tasks=["parsing"])
         else:
             model = get_bert_token_classification(pretrained_model_dir=model_dir,
-                                              vocab_size=vocab_size,
-                                              freeze_parameters=args.freeze_parameters,
-                                              freeze_layer_prefix_ls=args.freeze_layer_prefix_ls,
-                                              dropout_classifier=args.dropout_classifier,
-                                              dropout_bert=args.dropout_bert,
-                                              tasks=args.tasks,
-                                              voc_pos_size=voc_pos_size,
-                                              bert_module=args.bert_module,
-                                              layer_wise_attention=args.layer_wise_attention,
-                                              mask_n_predictor=args.append_n_mask,
-                                              initialize_bpe_layer=args.initialize_bpe_layer,
-                                              debug=debug)
+                                                  vocab_size=vocab_size,
+                                                  freeze_parameters=args.freeze_parameters,
+                                                  freeze_layer_prefix_ls=args.freeze_layer_prefix_ls,
+                                                  dropout_classifier=args.dropout_classifier,
+                                                  dropout_bert=args.dropout_bert,
+                                                  tasks=args.tasks,
+                                                  voc_pos_size=voc_pos_size,
+                                                  bert_module=args.bert_module,
+                                                  layer_wise_attention=args.layer_wise_attention,
+                                                  mask_n_predictor=args.append_n_mask,
+                                                  initialize_bpe_layer=args.initialize_bpe_layer,
+                                                  debug=debug)
     else:
         printing("MODEL : reloading from checkpoint {} all models parameters are ignored except task bert module and layer_wise_attention", var=[args.checkpoint_dir], verbose_level=1, verbose=verbose)
         # TODO args.original_task  , vocab_size is it necessary
-        #assert args.original_task is not None
         original_task = ["normalize"]
         print("WARNING : HARDCODED add_task_2_for_downstream : True ")
         model = get_bert_token_classification(vocab_size=vocab_size, voc_pos_size=voc_pos_size,
@@ -99,6 +98,7 @@ def train_eval_bert_normalize(args, verbose=1):
 
     # MLM in multitas mode is temporary and require task_i indexing : that's why we need to rename ponderation dictionary
     args.multi_task_loss_ponderation = update_multitask_loss(args.multi_task_loss_ponderation)
+
     run(args=args, model=model, voc_tokenizer=voc_tokenizer,
         description=description, null_token_index=null_token_index, null_str=NULL_STR,
         model_suffix="{}".format(args.model_id_pref), debug=debug,

@@ -440,151 +440,180 @@ def epoch_run(batchIter, tokenizer,
             # TODO : should not be hardcoded : should have static mode --> provide loss, dynamic --> preset strategies
 
             # TODO : multi task : handle two cases -- input labels based on provided args.tasks , handle sum ---> and reporting of the loss in this new case
-            loss_dic, layer_wise_weights = model(input_tokens_tensor, token_type_ids, input_mask,
-                                                 labels=feeding_the_model_with_label
-                                                 if task_normalize_is else None,
-                                                 labels_n_masks=labels_n_mask_prediction,
-                                                 labels_task_2=output_tokens_tensor_aligned
-                                                 if task_pos_is else None,
-                                                 aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
-                                                 multi_task_loss_ponderation=args.multi_task_loss_ponderation)
 
-            _loss = loss_dic["loss"]
-
-            # report the loss per args.tasks
-            if task_normalize_is:
-                loss_norm += loss_dic["loss_task_1"].detach()
-                n_batch_norm += 1
-                if args.append_n_mask:
-                    if not isinstance(loss_dic["loss_task_n_mask_prediction"], int):
-                        loss_n_mask_prediction += loss_dic["loss_task_n_mask_prediction"].detach()
-            if task_pos_is:
-                loss_pos += loss_dic["loss_task_2"].detach()
-                n_batch_pos += 1
-            if predict_mode:
-                predictions_topk = {}
-                # if predict more : will evaluate the model and write its predictions
-                # TODO : add mapping_info between task_id to model and task name necessary to iterator
-                logits, layer_wise_weights = model(input_tokens_tensor, token_type_ids, input_mask,
-                                                   aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
-                                                   multi_task_loss_ponderation=args.multi_task_loss_ponderation)
-
-
-                predicted_task = "pos" if task_pos_is else "normalize"
-                logits_task_label = MULTITASK_BERT_LABELS_MLM_HEAD[predicted_task]
-
-                # add prediction n_masks -->
-                if args.append_n_mask and task_normalize_is:
-                    # TODO : --> should add a : simultaneous task module !
-                    assert logits["logits_n_mask_prediction"] is not None, \
-                        "ERROR : args.append_n_mask is {} while logits['logits_n_mask_prediction'] is None".format(args.append_n_mask)
-                    prediction_n_mask = torch.argsort(logits["logits_n_mask_prediction"], dim=-1, descending=True)[:, :, 0]
-
-                predictions_topk[logits_task_label] = torch.argsort(logits[logits_task_label], dim=-1, descending=True)[:, :, :topk]
-
-                # from bpe index to string
-                sent_ls_top = from_bpe_token_to_str(predictions_topk[logits_task_label], topk, tokenizer=tokenizer,
-                                                    pred_mode=True, pos_dictionary=pos_dictionary,
-                                                    task=args.tasks[0], null_token_index=null_token_index, null_str=null_str)
-                gold = from_bpe_token_to_str(output_tokens_tensor_aligned, topk, tokenizer=tokenizer, pos_dictionary=pos_dictionary,
-                                             task=args.tasks[0], pred_mode=False, null_token_index=null_token_index, null_str=null_str)
-
-                source_preprocessed = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer, pos_dictionary=pos_dictionary, pred_mode=False, null_token_index=null_token_index, null_str=null_str, verbose=verbose)
-
-                # de-BPE-tokenize
-                src_detokenized = alignement.realigne(source_preprocessed, input_alignement_with_raw, null_str=null_str,
-                                                      tasks=["normalize"],
-                                                      # normalize means we deal wiht bpe input not pos
-                                                      mask_str=MASK_BERT, remove_mask_str=remove_mask_str_prediction)
-                gold_detokenized = alignement.realigne(gold, input_alignement_with_raw, remove_null_str=True, null_str=null_str, tasks=args.tasks, mask_str=MASK_BERT)
+            if not args.multitask:
+                # is meant to be completely removed
+                loss_dic, layer_wise_weights = model(input_tokens_tensor, token_type_ids, input_mask,
+                                                     labels=feeding_the_model_with_label
+                                                     if task_normalize_is else None,
+                                                     labels_n_masks=labels_n_mask_prediction,
+                                                     labels_task_2=output_tokens_tensor_aligned
+                                                     if task_pos_is else None,
+                                                     aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
+                                                     multi_task_loss_ponderation=args.multi_task_loss_ponderation)
+                _loss = loss_dic["loss"]
+                # report the loss per args.tasks
+                if task_normalize_is:
+                    loss_norm += loss_dic["loss_task_1"].detach()
+                    n_batch_norm += 1
+                    if args.append_n_mask:
+                        if not isinstance(loss_dic["loss_task_n_mask_prediction"], int):
+                            loss_n_mask_prediction += loss_dic["loss_task_n_mask_prediction"].detach()
                 if task_pos_is:
-                    # we remove padding here based on src that is correctly padded
-                    gold_detokenized = [gold_sent[:len(src_sent)] for gold_sent, src_sent in zip(gold_detokenized, src_detokenized)]
-                pred_detokenized_topk = []
-                for sent_ls in sent_ls_top:
-                    pred_detokenized_topk.append(alignement.realigne(sent_ls, input_alignement_with_raw,
-                                                                     remove_null_str=True,
-                                                                     tasks=args.tasks, remove_extra_predicted_token=True,
-                                                                     null_str=null_str, mask_str=MASK_BERT)
-                                                 )
-                    # NB : applying those successively might overlay heuristic
-                    if task_normalize_is:
-                        if args.heuristic_ls is not None:
-                            # NB : if the rules in args.heuristic_ls are not exclusive their order matters !!
-                            # the last one will be the one that is applied
-                            pred_detokenized_topk = predict_with_heuristic(src_detokenized=src_detokenized,
-                                                                           pred_detokenized_topk=pred_detokenized_topk,
-                                                                           list_reference=list_reference_heuristic, list_candidates=list_candidates,
-                                                                           slang_dic=slang_dic,
-                                                                           index_alphabetical_order=index_alphabetical_order,
-                                                                           heuristic_ls=args.heuristic_ls,
-                                                                           threshold_edit=threshold_edit,
-                                                                           edit_module_pred_need_norm_only=edit_module_pred_need_norm_only,
-                                                                           verbose=verbose)
-                        # NB : we overlay prediction with args.gold_error_detection
-                        if args.gold_error_detection:
-                            pred_detokenized_topk = predict_with_heuristic(src_detokenized=src_detokenized,
-                                                                           gold_detokenized=gold_detokenized,
-                                                                           pred_detokenized_topk=pred_detokenized_topk,
-                                                                           heuristic_ls=["gold_detection"], verbose=verbose)
-                            #print("PRED after gold",gold_detokenized, pred_detokenized_topk)
-                if writing_pred:
-                    # TODO : if you do multitask leaning
-                    #  you'll have to adapt here (you're passing twice the same parameters)
-                    new_file = writing_predictions_conll(dir_normalized, dir_normalized_original_only, dir_gold,
-                                                         dir_gold_original_only,
-                                                         src_detokenized, inverse_writing, pred_detokenized_topk,
-                                                         task_pos_is, iter, batch_i, new_file,  gold_detokenized,
-                                                         verbose)
-                try:
-                    if task_normalize_is and args.append_n_mask:
-                        perf_prediction_n_mask, skipping_n_mask, _ = \
-                            overall_word_level_metric_measure(labels_n_mask_prediction.tolist(), [prediction_n_mask.tolist()], topk=1,
-                                                              metric=metric, samples=samples_per_task_reporting["n_masks_pred"], agg_func_ls=agg_func_ls,
-                                                              reference_word_dic=reference_word_dic,
-                                                              compute_intersection_score=False,
-                                                              src_detokenized=None)
+                    loss_pos += loss_dic["loss_task_2"].detach()
+                    n_batch_pos += 1
+                if predict_mode:
+                    predictions_topk = {}
+                    # if predict more : will evaluate the model and write its predictions
+                    # TODO : add mapping_info between task_id to model and task name necessary to iterator
+                    logits, layer_wise_weights = model(input_tokens_tensor, token_type_ids, input_mask,
+                                                          aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
+                                                          multi_task_loss_ponderation=args.multi_task_loss_ponderation)
 
-                        score_dic["n_masks_pred"], n_tokens_dic["n_masks_pred"], n_sents_dic["n_masks_pred"] = \
+                    predicted_task = "pos" if task_pos_is else "normalize"
+                    logits_task_label = MULTITASK_BERT_LABELS_MLM_HEAD[predicted_task]
+
+                    # add prediction n_masks -->
+                    if args.append_n_mask and task_normalize_is:
+                        # TODO : --> should add a : simultaneous task module !
+                        assert logits["logits_n_mask_prediction"] is not None, \
+                            "ERROR : args.append_n_mask is {} while logits['logits_n_mask_prediction'] is None".format(args.append_n_mask)
+                        prediction_n_mask = torch.argsort(logits["logits_n_mask_prediction"], dim=-1, descending=True)[:, :, 0]
+
+                    if logits_task_label != "parsing":
+                        predictions_topk[logits_task_label] = torch.argsort(logits[logits_task_label], dim=-1, descending=True)[:, :, :topk]
+
+                    # from bpe index to string
+                    sent_ls_top = from_bpe_token_to_str(predictions_topk[logits_task_label], topk, tokenizer=tokenizer,
+                                                        pred_mode=True, pos_dictionary=pos_dictionary,
+                                                        task=args.tasks[0], null_token_index=null_token_index, null_str=null_str)
+                    gold = from_bpe_token_to_str(output_tokens_tensor_aligned, topk, tokenizer=tokenizer, pos_dictionary=pos_dictionary,
+                                                 task=args.tasks[0], pred_mode=False,
+                                                 null_token_index=null_token_index, null_str=null_str)
+
+                    source_preprocessed = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer, pos_dictionary=pos_dictionary, pred_mode=False, null_token_index=null_token_index, null_str=null_str, verbose=verbose)
+                    # de-BPE-tokenize
+                    src_detokenized = alignement.realigne(source_preprocessed, input_alignement_with_raw, null_str=null_str,
+                                                          tasks=["normalize"],
+                                                          # normalize means we deal wiht bpe input not pos
+                                                          mask_str=MASK_BERT, remove_mask_str=remove_mask_str_prediction)
+                    gold_detokenized = alignement.realigne(gold, input_alignement_with_raw, remove_null_str=True, null_str=null_str, tasks=args.tasks, mask_str=MASK_BERT)
+
+                    if task_pos_is:
+                        # we remove padding here based on src that is correctly padded
+                        gold_detokenized = [gold_sent[:len(src_sent)] for gold_sent, src_sent in zip(gold_detokenized, src_detokenized)]
+                    pred_detokenized_topk = []
+                    for sent_ls in sent_ls_top:
+                        pred_detokenized_topk.append(alignement.realigne(sent_ls, input_alignement_with_raw,
+                                                                         remove_null_str=True,
+                                                                         tasks=args.tasks, remove_extra_predicted_token=True,
+                                                                         null_str=null_str, mask_str=MASK_BERT)
+                                                     )
+                        # NB : applying those successively might overlay heuristic
+                        if task_normalize_is:
+                            if args.heuristic_ls is not None:
+                                # NB : if the rules in args.heuristic_ls are not exclusive their order matters !!
+                                # the last one will be the one that is applied
+                                pred_detokenized_topk = predict_with_heuristic(src_detokenized=src_detokenized,
+                                                                               pred_detokenized_topk=pred_detokenized_topk,
+                                                                               list_reference=list_reference_heuristic, list_candidates=list_candidates,
+                                                                               slang_dic=slang_dic,
+                                                                               index_alphabetical_order=index_alphabetical_order,
+                                                                               heuristic_ls=args.heuristic_ls,
+                                                                               threshold_edit=threshold_edit,
+                                                                               edit_module_pred_need_norm_only=edit_module_pred_need_norm_only,
+                                                                               verbose=verbose)
+                            # NB : we overlay prediction with args.gold_error_detection
+                            if args.gold_error_detection:
+                                pred_detokenized_topk = predict_with_heuristic(src_detokenized=src_detokenized,
+                                                                               gold_detokenized=gold_detokenized,
+                                                                               pred_detokenized_topk=pred_detokenized_topk,
+                                                                               heuristic_ls=["gold_detection"], verbose=verbose)
+                                #print("PRED after gold",gold_detokenized, pred_detokenized_topk)
+                    if writing_pred:
+                        # TODO : if you do multitask leaning
+                        #  you'll have to adapt here (you're passing twice the same parameters)
+                        new_file = writing_predictions_conll(dir_normalized, dir_normalized_original_only, dir_gold,
+                                                             dir_gold_original_only,
+                                                             src_detokenized, inverse_writing, pred_detokenized_topk,
+                                                             task_pos_is, iter, batch_i, new_file,  gold_detokenized,
+                                                             verbose)
+                    try:
+                        if task_normalize_is and args.append_n_mask:
+                            perf_prediction_n_mask, skipping_n_mask, _ = \
+                                overall_word_level_metric_measure(labels_n_mask_prediction.tolist(), [prediction_n_mask.tolist()], topk=1,
+                                                                  metric=metric, samples=samples_per_task_reporting["n_masks_pred"], agg_func_ls=agg_func_ls,
+                                                                  reference_word_dic=reference_word_dic,
+                                                                  compute_intersection_score=False,
+                                                                  src_detokenized=None)
+
+                            score_dic["n_masks_pred"], n_tokens_dic["n_masks_pred"], n_sents_dic["n_masks_pred"] = \
+                                accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
+                                                               sample_ls=samples_per_task_reporting["n_masks_pred"],
+                                                               dic_prediction_score=perf_prediction_n_mask,
+                                                               score_dic=score_dic["n_masks_pred"],
+                                                               n_tokens_dic=n_tokens_dic["n_masks_pred"],
+                                                               n_sents_dic=n_sents_dic["n_masks_pred"])
+                        elif task_normalize_is:
+                            # we fill it with an empty report for simplifying reporting
                             accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
-                                                           sample_ls=samples_per_task_reporting["n_masks_pred"],
-                                                           dic_prediction_score=perf_prediction_n_mask,
+                                                           sample_ls=["all"],
+                                                           dic_prediction_score={agg_func_ls[0]:
+                                                                                     {"all": {
+                                                                                         "agg_func": agg_func_ls[0],
+                                                                                         "metric": "exact_match",
+                                                                                         "score": 0,
+                                                                                         "n_sents": 0,
+                                                                                         "n_tokens": 0}
+                                                                                     }},
                                                            score_dic=score_dic["n_masks_pred"],
                                                            n_tokens_dic=n_tokens_dic["n_masks_pred"],
                                                            n_sents_dic=n_sents_dic["n_masks_pred"])
-                    elif task_normalize_is:
-                        # we fill it with an empty report for simplifying reporting
-                        accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
-                                                       sample_ls=["all"],
-                                                       dic_prediction_score={agg_func_ls[0]:
-                                                                                 {"all": {
-                                                                                     "agg_func": agg_func_ls[0],
-                                                                                     "metric": "exact_match",
-                                                                                     "score": 0,
-                                                                                     "n_sents": 0,
-                                                                                     "n_tokens": 0}
-                                                                                 }},
-                                                       score_dic=score_dic["n_masks_pred"],
-                                                       n_tokens_dic=n_tokens_dic["n_masks_pred"],
-                                                       n_sents_dic=n_sents_dic["n_masks_pred"])
-                    evaluated_task.append("n_masks_pred")
+                        evaluated_task.append("n_masks_pred")
 
-                    evaluated_task.append(predicted_task)
-                    perf_prediction, skipping, _samples = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk, topk, metric=metric, samples=samples, agg_func_ls=agg_func_ls, reference_word_dic=reference_word_dic, compute_intersection_score=compute_intersection_score, src_detokenized=src_detokenized)
-                    score_dic[predicted_task], n_tokens_dic[predicted_task], n_sents_dic[predicted_task] = \
-                        accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=_samples,
-                                                       dic_prediction_score=perf_prediction,
-                                                       score_dic=score_dic[predicted_task],
-                                                       n_tokens_dic=n_tokens_dic[predicted_task],
-                                                       n_sents_dic=n_sents_dic[predicted_task])
-                except Exception as e:
-                    skip_score += 1
-                    print("SKIPPED {} evaluation current error : {} ".format(skip_score, e))
-                skipping_evaluated_batch += skipping
+                        evaluated_task.append(predicted_task)
+                        perf_prediction, skipping, _samples = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk, topk, metric=metric, samples=samples, agg_func_ls=agg_func_ls, reference_word_dic=reference_word_dic, compute_intersection_score=compute_intersection_score, src_detokenized=src_detokenized)
+                        score_dic[predicted_task], n_tokens_dic[predicted_task], n_sents_dic[predicted_task] = \
+                            accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=_samples,
+                                                           dic_prediction_score=perf_prediction,
+                                                           score_dic=score_dic[predicted_task],
+                                                           n_tokens_dic=n_tokens_dic[predicted_task],
+                                                           n_sents_dic=n_sents_dic[predicted_task])
+                    except Exception as e:
+                        skip_score += 1
+                        print("SKIPPED {} evaluation current error : {} ".format(skip_score, e))
+                    skipping_evaluated_batch += skipping
 
-                if print_pred:
-                    logging_scores(perf_prediction, iter, batch_i, pred_detokenized_topk, verbose)
-                print_align_bpe(source_preprocessed, gold, input_alignement_with_raw, labels_n_mask_prediction, verbose=verbose, verbose_level=4)
+                    if print_pred:
+                        logging_scores(perf_prediction, iter, batch_i, pred_detokenized_topk, verbose)
+                    print_align_bpe(source_preprocessed, gold, input_alignement_with_raw, labels_n_mask_prediction, verbose=verbose, verbose_level=4)
+
+            # multitask :
+            elif args.multitask:
+                # labels should be handled regardless of the number and the tasks nature
+                # --> dict task:label
+                # --> then loss and logits based on the task
+                # --> expand the tasks like parsing (2 folds tasks)
+                # --> compute gradient based on policy and update at train time
+                # --> predict all tasks at pred time and write them down
+                # --> evaluate them based on labels
+                _, loss_dict, _ = model(input_tokens_tensor, token_type_ids)
+                # temporary
+                task_normalize_is = False
+                task_pos_is = False
+                # based on a policy : handle batch, epoch, batch weights, simultanuous
+                # --> define a unique loss that we backward
+                # assert the policy is consistent with the available labels fed to the model
+                if args.multitask:
+                    logits, _, _ = model(input_tokens_tensor, token_type_ids)
+                    logits_task_label = "parsing"
+                    # handle multitmodal tasks in a generic way (lookup to TASK_PARAMETERS)
+                    if logits_task_label == "parsing":
+                        logits["parsing_relation"] = logits["parsing"][0]
+                        logits["parsing_labels"] = logits["parsing"][1]
+                        del logits["parsing"]
+                pdb.set_trace()
+
 
             # training :
             loss += _loss.detach()

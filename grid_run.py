@@ -537,7 +537,7 @@ if __name__ == "__main__":
           BERT_NORMALIZATION = True
 
           if BERT_NORMALIZATION:
-              epochs = 20
+              epochs = 1
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,

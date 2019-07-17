@@ -55,12 +55,9 @@ AVAILABLE_BERT_FINE_TUNING_STRATEGY = ["bert_out_first", "standart", "flexible_l
 AVAILABLE_BERT_MASKING_STRATEGY = ["normed", "cls", "start_stop", "mlm", "norm_mask",
                                    "norm_mask_variable", "mlm_need_norm"]
 
-MULTITASK_BERT_LABELS_MLM_HEAD = {"pos": "logits_task_2", "normalize": "logits_task_1",
-                                  "append_masks": "logits_n_masks"}
+MULTITASK_BERT_LABELS_MLM_HEAD = {"pos": "logits_task_2", "normalize": "logits_task_1", "append_masks": "logits_n_masks"}
 
-MULTITASK_BERT_LABELS_MLM_HEAD_LOSS = {"pos": "loss_task_2", "normalize": "loss_task_1",
-                                       "append_masks": "loss_task_n_mask_prediction"}
-
+MULTITASK_BERT_LABELS_MLM_HEAD_LOSS = {"pos": "loss_task_2", "normalize": "loss_task_1", "append_masks": "loss_task_n_mask_prediction"}
 
 SAMPLES_PER_TASK_TO_REPORT = {
             "pos": ["all", "NEED_NORM", "NORMED", "PRED_NEED_NORM", "PRED_NORMED", "InV", "OOV"],
@@ -367,7 +364,8 @@ TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact
                                  "predicted_classes_pred_field": ["PRED_NORMED", "PRED_NEED_NORM"]},
                    "norm_not_norm": {"normalization": True},
                    "edit_prediction": {"normalization": True},
-                   "pos": {"normalization": False, "default_metric": "accuracy-pos"},
+                   "pos": {"normalization": False, "default_metric": "accuracy-pos", "pred": ["pos_pred"]},
+                   "parsing": {"normalization": False, "default_metric": None, "pred": ["arc_pred", "label_pred"]},
                    "all": {"normalization": True}}
 
 

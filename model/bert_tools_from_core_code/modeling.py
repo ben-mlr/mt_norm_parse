@@ -906,11 +906,39 @@ class BertGraphHead(nn.Module):
             s_arc.masked_fill_(~mask.unsqueeze(1), float('-inf'))
         else:
             print("IGNORING MASK ")
+
+
+        #pred = {TASKS_PARAMETERS["parsing"]["pred"][0]: s_arc,
+        #        TASKS_PARAMETERS["parsing"]["pred"][1]: s_rel}
+
         return s_arc, s_rel
 
 
-TASKS_PARAMETERS = {"pos": {"head": None, "label": "pos_label", "loss": CrossEntropyLoss(ignore_index=-1)},
-                    "parsing": {"head": BertGraphHead, "label": "parsing_label", "loss": CrossEntropyLoss()}}
+# THIS IS THE ID CARD OF EACH SUPPORTED TASKS in THE PROJECT
+# to add a ne tasks : we should just fill all the required fields and that's it
+TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact_match",
+                                 "head": None,"loss": CrossEntropyLoss(),
+                                 "predicted_classes": ["NORMED", "NEED_NORM"],
+                                 "predicted_classes_pred_field": ["PRED_NORMED", "PRED_NEED_NORM"]},
+                   "norm_not_norm": {"normalization": True, "head": None,"loss": CrossEntropyLoss()},
+                   "edit_prediction": {"normalization": True, "head": None, "loss": CrossEntropyLoss()},
+                   "pos": {"normalization": False, "default_metric": "accuracy-pos", "pred": ["pos_pred"], "head": None,
+                           "loss": CrossEntropyLoss()},
+                   "parsing": {
+                       "normalization": False,
+                       "default_metric": None,
+                       "pred": None, #["arc_pred", "label_pred"],
+                       "head": BertGraphHead,
+                       "label": "parsing_label",
+                       "loss": CrossEntropyLoss()
+                               },
+                   "all": {"normalization": True,
+                           "head": None,
+                           "loss": CrossEntropyLoss()}}
+
+
+#TASKS_PARAMETERS = {"pos": {"head": None, "label": "pos_label", "loss": CrossEntropyLoss(ignore_index=-1)},
+#                   "parsing": {"head": BertGraphHead, "label": "parsing_label", "loss": CrossEntropyLoss()}}
 
 
 class BertMultiTask(BertPreTrainedModel):
@@ -923,12 +951,12 @@ class BertMultiTask(BertPreTrainedModel):
         assert isinstance(tasks, list) and len(tasks) >= 1, "config.tasks should be a list of len >=1"
         self.head = nn.ModuleDict()
         self.tasks = tasks
-        self.task_parameters = TASKS_PARAMETERS
+        self.task_parameters = TASKS_PARAMETER
         self.layer_wise_attention = None
         self.labels_supported = [self.task_parameters[task]["label"] for task in tasks]
         for i, task in enumerate(tasks):
-            assert task in TASKS_PARAMETERS, "ERROR : task {} is not in {}".format(task, TASKS_PARAMETERS)
-            self.head[task] = TASKS_PARAMETERS[task]["head"](config)
+            assert task in TASKS_PARAMETER, "ERROR : task {} is not in {}".format(task, TASKS_PARAMETER)
+            self.head[task] = self.task_parameters[task]["head"](config)
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, **labels):
 
@@ -941,17 +969,19 @@ class BertMultiTask(BertPreTrainedModel):
         # task_wise layer attention
 
         sequence_output, _ = self.bert(input_ids, token_type_ids=None, attention_mask=None, output_all_encoded_layers=self.layer_wise_attention is not None)
-        pdb.set_trace()
         for task in self.tasks:
             # --> make sur
             print("MASK IGNORED")
+
             logits_dict[task] = self.head[task](sequence_output, mask=None)
+            # TODO : handle several labels at output
             if self.task_parameters[task]["label"] in labels:
                 # compute loss
                 # append it to dictionary
-                loss_dict[task] = self.task_parameters[task]["loss"](logits_dict[task], labels[self.task_parameters[task]["label"]])
-
-        return logits_dict, loss_dict
+                loss_dict[task] = self.task_parameters[task]["loss"](logits_dict[task],
+                                                                     labels[self.task_parameters[task]["label"]])
+        # thrid output is for potential attention weights
+        return logits_dict, loss_dict, None
 
 
 class BertForTreePrediction(BertPreTrainedModel):
