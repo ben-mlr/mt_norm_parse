@@ -259,10 +259,12 @@ def grid_param_label_generate(param,
           assert len(dev_sets) == len(tasks), "ERROR : we should have one dev set per task (no simulatnuous " \
                                               "training allowed for now but have tasks:{} and dev_path:{}".format(tasks,dev_sets)
           assert len(test_sets_ls[0].split(",")) == len(tasks), "ERROR not at least one test set per tasks {}".format(tasks)
-    sanity_check_args(py_script, dic_grid, train_ls, dev_ls, test_ls, tasks_ls)
 
+    sanity_check_args(py_script, dic_grid, train_ls, dev_ls, test_ls, tasks_ls)
     list_of_list_of_args = [lis_values for arg_dic, lis_values in dic_grid.items()]
+
   ind_model = 0
+
   if py_script == "train_evaluate_bert_normalizer":
     arg_free_combination = list(itertools.product(*list_of_list_of_args))
     printing("GRID : running free combination of argument !! ", verbose_level=1, verbose=1)

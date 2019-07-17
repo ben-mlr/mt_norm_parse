@@ -12,6 +12,7 @@ if __name__ == "__main__":
     args = args_train(script="train_evaluate_bert_normalizer")
     params = vars(args)
     args.lr = parse_argument_dictionary(params["lr"], hyperparameter="lr")
-    args.multi_task_loss_ponderation = parse_argument_dictionary(params["multi_task_loss_ponderation"], hyperparameter="multi_task_loss_ponderation")
+    if args.multi_task_loss_ponderation is not None:
+        args.multi_task_loss_ponderation = parse_argument_dictionary(params["multi_task_loss_ponderation"], hyperparameter="multi_task_loss_ponderation")
 
     train_eval_bert_normalize(args)

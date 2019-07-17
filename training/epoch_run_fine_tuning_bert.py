@@ -541,7 +541,12 @@ def epoch_run(batchIter, tokenizer,
                                                          verbose)
                 try:
                     if task_normalize_is and append_n_mask:
-                        perf_prediction_n_mask, skipping_n_mask, _ = overall_word_level_metric_measure(labels_n_mask_prediction.tolist(), [prediction_n_mask.tolist()], 1, metric=metric, samples=None, agg_func_ls=agg_func_ls, reference_word_dic=reference_word_dic, compute_intersection_score=False, src_detokenized=src_detokenized)
+                        samples_n_masks = ["n_masks_1", "n_masks_2", "n_masks_3", "n_masks_4", "n_masks_5", "all"]
+                        perf_prediction_n_mask, skipping_n_mask, _ = overall_word_level_metric_measure(labels_n_mask_prediction.tolist(), [prediction_n_mask.tolist()], topk=1,
+                                                                                                       metric=metric, samples=samples_n_masks, agg_func_ls=agg_func_ls,
+                                                                                                       reference_word_dic=reference_word_dic, compute_intersection_score=False,
+                                                                                                       src_detokenized=None)
+
                         score_dic["n_masks_pred"], n_tokens_dic["n_masks_pred"], n_sents_dic["n_masks_pred"] = \
                             accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
                                                            sample_ls=["all"],
@@ -577,6 +582,7 @@ def epoch_run(batchIter, tokenizer,
                 except Exception as e:
                     skip_score += 1
                     print("SKIPPED {} evaluation current error : {} ".format(skip_score, e))
+                    raise(e)
                 skipping_evaluated_batch += skipping
 
                 if print_pred:

@@ -61,6 +61,9 @@ def word_level_filter(gold, topk_pred, topk, src, sample="all",
         assert word_reference_dic_ls is not None, "No word_reference_dic_ls provided"
         assert word_reference_dic_ls.get("InV", None) is not None, "No word_reference_dic_ls['InV'] provided"
         sample_1_filter = src not in word_reference_dic_ls["InV"] and src.lower() not in word_reference_dic_ls["InV"]
+    elif sample.startswith("n_masks"):
+        assert isinstance(eval(sample[-1]), int), "ERROR : sample {} do not fit in n_masks_N ".format(sample)
+        sample_1_filter = gold == eval(sample[-1])
 
     if sample_2 is not None:
         assert sample_2 != sample, "we don't want reduncancies"

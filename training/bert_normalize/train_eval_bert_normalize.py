@@ -9,6 +9,16 @@ from toolbox.bert_tools.get_bert_info import get_bert_name
 from env.project_variables import MULTITASK_BERT_LABELS_MLM_HEAD, MULTITASK_BERT_LABELS_MLM_HEAD_LOSS
 
 
+def update_multitask_loss(multi_task_loss_ponderation):
+    if multi_task_loss_ponderation is None:
+        return None
+    multi_task_loss_ponderation_new = {}
+    for task, weight in multi_task_loss_ponderation.items():
+        if task in MULTITASK_BERT_LABELS_MLM_HEAD:
+            multi_task_loss_ponderation_new[MULTITASK_BERT_LABELS_MLM_HEAD_LOSS[task]] = weight
+    return multi_task_loss_ponderation_new
+
+
 def train_eval_bert_normalize(args, verbose=1):
 
     #tasks = ["normalize"]
@@ -26,7 +36,7 @@ def train_eval_bert_normalize(args, verbose=1):
     voc_pos_size = 19 #18+1 for alg_arabizi # 53+1 for ARABIZI 1# 21 is for ENGLISH
     printing("MODEL : voc_pos_size hardcoded to {}", var=voc_pos_size, verbose_level=1, verbose=verbose)
 
-    debug = True
+    debug = False
     if os.environ.get("ENV") in ["rioc", "neff"]:
         debug = False
     if args.checkpoint_dir is None:
@@ -88,24 +98,14 @@ def train_eval_bert_normalize(args, verbose=1):
     printing("INFO : tasks is {} so setting early_stoppin_metric to {} ", var=[args.tasks, early_stoppin_metric], verbose=verbose, verbose_level=1)
     printing("INFO : environ is {} so debug set to {}", var=[os.environ.get("ENV", "Unkwnown"),debug], verbose_level=1, verbose=verbose)
 
-
     # MLM in multitas mode is temporary and require task_i indexing : that's why we need to rename ponderation dictionary
-
-    def update_multitask_loss(multi_task_loss_ponderation):
-        multi_task_loss_ponderation_new = {}
-        for task, weight in multi_task_loss_ponderation.items():
-            if task in MULTITASK_BERT_LABELS_MLM_HEAD:
-                multi_task_loss_ponderation_new[MULTITASK_BERT_LABELS_MLM_HEAD_LOSS[task]] = weight
-        return multi_task_loss_ponderation_new
-
     args.multi_task_loss_ponderation = update_multitask_loss(args.multi_task_loss_ponderation)
-    pdb.set_trace()
     run(model=model,
         voc_tokenizer=voc_tokenizer, tasks=args.tasks, train_path=args.train_path, dev_path=args.dev_path,
         append_n_mask=args.append_n_mask,
         auxilliary_task_norm_not_norm=True,
         saving_every_epoch=15, lr=lr, batch_size=batch_size,
-        n_iter_max_per_epoch=100000, n_epoch=args.epochs,
+        n_iter_max_per_epoch=10, n_epoch=args.epochs,
         test_path_ls=args.test_paths,
         description=description, null_token_index=null_token_index, null_str=NULL_STR,
         model_suffix="{}".format(args.model_id_pref), debug=debug,
