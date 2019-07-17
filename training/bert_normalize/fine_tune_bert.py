@@ -185,20 +185,7 @@ def run(args,
                                                               epoch=epoch, verbose=verbose)
                 print("RUNNING TRAIN on GET_BATCH_MODE ")
                 loss_train, iter_train, perf_report_train, _ = epoch_run(batchIter_train, tokenizer,
-
-                                                                         tasks=args.tasks,
-                                                                         n_epoch=args.epochs,
-                                                                         heuristic_ls=args.heuristic_ls,
-                                                                         gold_error_detection=args.gold_error_detection,
-                                                                         dropout_input_bpe=args.dropout_input_bpe,
-                                                                         masking_strategy=args.masking_strategy,
-                                                                         portion_mask=args.portion_mask,
-                                                                         tokenize_and_bpe=args.tokenize_and_bpe,
-                                                                         norm_2_noise_training=args.norm_2_noise_training,
-                                                                         aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
-                                                                         append_n_mask=args.append_n_mask,
-                                                                         multi_task_loss_ponderation=args.multi_task_loss_ponderation,
-
+                                                                         args=args,
                                                                          pos_dictionary=pos_dictionary,
                                                                          data_label=train_data_label,
                                                                          model=model,
@@ -224,18 +211,8 @@ def run(args,
                 if args.dev_path is not None:
                     print("RUNNING DEV on ITERATION MODE")
                     loss_dev, iter_dev, perf_report_dev, early_stoping_val = epoch_run(batchIter_dev, tokenizer,
-                                                                                       masking_strategy=args.masking_strategy,
-                                                                                       portion_mask=args.portion_mask,
-                                                                                       heuristic_ls=args.heuristic_ls,
-                                                                                       gold_error_detection=args.gold_error_detection,
-                                                                                       norm_2_noise_training=args.norm_2_noise_training,
-                                                                                       # as training otherwise loss dev not more meaning
-                                                                                       tokenize_and_bpe=args.tokenize_and_bpe,
-                                                                                       aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
-                                                                                       append_n_mask=args.append_n_mask,
-                                                                                       multi_task_loss_ponderation=args.multi_task_loss_ponderation,
-                                                                                       epoch=epoch, tasks=args.tasks,
-
+                                                                                       args=args,
+                                                                                       epoch=epoch,
                                                                                        pos_dictionary=pos_dictionary,
                                                                                        iter=iter_dev, use_gpu=use_gpu,
                                                                                        model=model,
@@ -437,13 +414,7 @@ def run(args,
                     try:
 
                         loss_test, iter_test, perf_report_test, _ = epoch_run(batchIter_test, tokenizer,
-
-                                                                              masking_strategy=args.masking_strategy,
-                                                                              portion_mask=args.portion_mask,
-                                                                              aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
-                                                                              tokenize_and_bpe=args.tokenize_and_bpe,
-                                                                              append_n_mask=args.append_n_mask,
-                                                                              multi_task_loss_ponderation=args.multi_task_loss_ponderation,
+                                                                              args=args,
 
                                                                               pos_dictionary=pos_dictionary,
                                                                               iter=iter_dev, use_gpu=use_gpu,

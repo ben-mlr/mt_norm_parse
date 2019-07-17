@@ -23,26 +23,26 @@ def accumulate_scores_across_sents(agg_func_ls, sample_ls, dic_prediction_score,
 
 
 def epoch_run(batchIter, tokenizer,
+              args,
               iter, n_iter_max, model, epoch,
               use_gpu, data_label, null_token_index, null_str,
-              model_id, tasks, early_stoppin_metric=None,
+              model_id, early_stoppin_metric=None,
               pos_dictionary=None,
               skip_1_t_n=True,
               writer=None, optimizer=None,
               predict_mode=False, topk=None, metric=None,
               print_pred=False, args_dir=None,
-              heuristic_ls=None, gold_error_detection=False,
               reference_word_dic=None, dropout_input_bpe=0.,
               writing_pred=False, dir_end_pred=None, extra_label_for_prediction="",
-              log_perf=True, masking_strategy=None, portion_mask=None, remove_mask_str_prediction=False,
+              log_perf=True, remove_mask_str_prediction=False,
               inverse_writing=False,
-              norm_2_noise_eval=False, norm_2_noise_training=None, aggregating_bert_layer_mode="sum",
-              compute_intersection_score = False,
+              norm_2_noise_eval=False,
+              compute_intersection_score=False,
               subsample_early_stoping_metric_val=None,
               slang_dic=None, list_reference_heuristic=None,list_candidates=None, index_alphabetical_order=None,
               case=None, threshold_edit=None, edit_module_pred_need_norm_only=True, low_memory_foot_print_batch_mode=False,
-              batch_size_real=0, tokenize_and_bpe=False, n_epoch=None, append_n_mask=True,
-              ponderation_loss_policy="static", multi_task_loss_ponderation=None,
+              batch_size_real=0, n_epoch=None,
+              ponderation_loss_policy="static",
               samples_per_task_reporting=None,
               verbose=0):
     """
@@ -56,9 +56,10 @@ def epoch_run(batchIter, tokenizer,
         samples_per_task_reporting = SAMPLES_PER_TASK_TO_REPORT
 
     if ponderation_loss_policy == "static":
-        if multi_task_loss_ponderation is None:
-            multi_task_loss_ponderation = OrderedDict([("loss_task_1", 1), ("loss_task_2", 1), ("loss_task_n_mask_prediction", 1)])
-            printing("TRAINING : setting default multi_task_loss_ponderation {} ",var=[multi_task_loss_ponderation], verbose=verbose, verbose_level=1)
+        if args.multi_task_loss_ponderation is None:
+            args.multi_task_loss_ponderation = OrderedDict([("loss_task_1", 1), ("loss_task_2", 1), ("loss_task_n_mask_prediction", 1)])
+            printing("TRAINING : setting default args.multi_task_loss_ponderation {} ",
+                     var=[args.multi_task_loss_ponderation], verbose=verbose, verbose_level=1)
     else:
         raise(Exception("Only static strategy supported so far"))
 
@@ -67,46 +68,46 @@ def epoch_run(batchIter, tokenizer,
     if low_memory_foot_print_batch_mode:
         assert batch_size_real > 0, "ERROR have to define batch_size_real in low_memory_foot_print_batch_mode"
 
-    if heuristic_ls is not None:
+    if args.heuristic_ls is not None:
         for edit_rule in ["all", "ref", "data"]:
-            if "edit_check-"+edit_rule in heuristic_ls:
-                assert threshold_edit is not None, "ERROR threshold_edit required as heuristic_ls is {}".format(heuristic_ls)
+            if "edit_check-"+edit_rule in args.heuristic_ls:
+                assert threshold_edit is not None, "ERROR threshold_edit required as args.heuristic_ls is {}".format(args.heuristic_ls)
     if case is not None:
         AVAILABLE_CASE_OPTIONS = ["lower"]
         assert case in AVAILABLE_CASE_OPTIONS
-    assert norm_2_noise_training is None or not norm_2_noise_eval, "only one of the two should be triggered but we have norm_2_noise_training : {} norm_2_noise_eval:{}".format(norm_2_noise_training, norm_2_noise_eval)
-    if norm_2_noise_training is not None:
-        printing("WARNING : {} norm_2_noise_training is on ", var=[norm_2_noise_training],
+    assert args.norm_2_noise_training is None or not norm_2_noise_eval, "only one of the two should be triggered but we have args.norm_2_noise_training : {} norm_2_noise_eval:{}".format(args.norm_2_noise_training, norm_2_noise_eval)
+    if args.norm_2_noise_training is not None:
+        printing("WARNING : {} args.norm_2_noise_training is on ", var=[args.norm_2_noise_training],
                  verbose=verbose, verbose_level=1)
     if norm_2_noise_eval:
         printing("WARNING : {} norm_2_noise_eval is on ", var=[norm_2_noise_eval],
                  verbose=verbose, verbose_level=1)
-    assert len(tasks) <= 2
+    assert len(args.tasks) <= 2
     evaluated_task = []
     skip_score = 0
     skipping = 0
     label_heuristic = ""
-    if gold_error_detection:
+    if args.gold_error_detection:
         label_heuristic += "-gold"
-    if heuristic_ls is not None:
-        label_heuristic += "-"+"_".join(heuristic_ls)
+    if args.heuristic_ls is not None:
+        label_heuristic += "-"+"_".join(args.heuristic_ls)
     if norm_2_noise_eval:
         label_heuristic += "-noise_generation"
-    print("HEURISTIC", heuristic_ls, label_heuristic)
-    if masking_strategy is not None:
-        if "start_stop" not in masking_strategy:
-            assert "normalize" in tasks, "SO FAR : inconsistency between task {} and masking strategy {}".format(tasks, masking_strategy)
-        if isinstance(masking_strategy, list):
-            assert len(masking_strategy) <= 2, \
-                "first element should be strategy, second should be portion or first element only ".format(masking_strategy)
-            if len(masking_strategy) == 2:
-                portion_mask = eval(str(masking_strategy[1]))
-                masking_strategy = masking_strategy[0]
+    print("HEURISTIC", args.heuristic_ls, label_heuristic)
+    if args.masking_strategy is not None:
+        if "start_stop" not in args.masking_strategy:
+            assert "normalize" in args.tasks, "SO FAR : inconsistency between task {} and masking strategy {}".format(args.tasks, args.masking_strategy)
+        if isinstance(args.masking_strategy, list):
+            assert len(args.masking_strategy) <= 2, \
+                "first element should be strategy, second should be portion or first element only ".format(args.masking_strategy)
+            if len(args.masking_strategy) == 2:
+                args.portion_mask = eval(str(args.masking_strategy[1]))
+                args.masking_strategy = args.masking_strategy[0]
             else:
-                masking_strategy = masking_strategy[0]
-        assert masking_strategy in AVAILABLE_BERT_MASKING_STRATEGY, "masking_strategy {} should be in {}".format(masking_strategy, AVAILABLE_BERT_MASKING_STRATEGY)
-        if masking_strategy == "normed":
-            printing("INFO : Portion mask was found to {}", var=[portion_mask], verbose=verbose, verbose_level=1)
+                args.masking_strategy = args.masking_strategy[0]
+        assert args.masking_strategy in AVAILABLE_BERT_MASKING_STRATEGY, "args.masking_strategy {} should be in {}".format(args.masking_strategy, AVAILABLE_BERT_MASKING_STRATEGY)
+        if args.masking_strategy == "normed":
+            printing("INFO : Portion mask was found to {}", var=[args.portion_mask], verbose=verbose, verbose_level=1)
     if predict_mode:
         if topk is None:
             topk = 1
@@ -147,7 +148,7 @@ def epoch_run(batchIter, tokenizer,
 
     agg_func_ls = ["sum"]
 
-    score_dic, n_tokens_dic, n_sents_dic = init_score_token_sent_dict(samples_per_task_reporting, tasks, agg_func_ls, compute_intersection_score)
+    score_dic, n_tokens_dic, n_sents_dic = init_score_token_sent_dict(samples_per_task_reporting, args.tasks, agg_func_ls, compute_intersection_score)
     # TODO : should be removed (everuthing should go through samples_per_task_reporting)
     samples = samples_per_task_reporting["normalize"]
     # vocab_index_except_pad_cls_sep = [i for i in range(1, len(tokenizer.vocab)) if i not in [mask_token_index, sep_token_index, cls_token_index]]
@@ -183,9 +184,9 @@ def epoch_run(batchIter, tokenizer,
             norm2noise_bool = False
             batch_raw_output = None
             # Handling input
-            if (norm_2_noise_training is not None or norm_2_noise_eval) and task_normalize_is:
-                portion_norm2noise = norm_2_noise_training if norm_2_noise_training is not None else 1.
-                norm_2_noise_training = portion_norm2noise is not None
+            if (args.norm_2_noise_training is not None or norm_2_noise_eval) and task_normalize_is:
+                portion_norm2noise = args.norm_2_noise_training if args.norm_2_noise_training is not None else 1.
+                args.norm_2_noise_training = portion_norm2noise is not None
                 rand = np.random.uniform(low=0, high=1, size=1)[0]
                 norm2noise_bool = portion_norm2noise >= rand
                 if norm2noise_bool:
@@ -200,20 +201,20 @@ def epoch_run(batchIter, tokenizer,
 
             group_to_mask = None
 
-            if masking_strategy == "cls":
+            if args.masking_strategy == "cls":
                 # we trick batch.output_norm_not_norm : set all 1 to 0 (not to touch padding)
                 # we set first element to 1
                 batch.output_norm_not_norm[batch.output_norm_not_norm == 1] = 0
                 batch.output_norm_not_norm[:, 0] = 1
                 group_to_mask = batch.output_norm_not_norm
-            elif masking_strategy == "normed":
+            elif args.masking_strategy == "normed":
                 rand = np.random.uniform(low=0, high=1, size=1)[0]
-                group_to_mask = np.array(batch.output_norm_not_norm.cpu()) if portion_mask >= rand else None
-            if not tokenize_and_bpe:
+                group_to_mask = np.array(batch.output_norm_not_norm.cpu()) if args.portion_mask >= rand else None
+            if not args.tokenize_and_bpe:
                 input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, \
                 input_alignement_with_raw, input_mask = get_indexes(batch_raw_input, tokenizer, verbose, use_gpu,
                                                                     word_norm_not_norm=group_to_mask)
-            if masking_strategy == "start_stop":
+            if args.masking_strategy == "start_stop":
                 input_mask[input_tokens_tensor == sep_token_index] = 0
                 input_mask[input_tokens_tensor == cls_token_index] = 0
 
@@ -225,7 +226,7 @@ def epoch_run(batchIter, tokenizer,
                     printing("WARNING : output is output", verbose_level=2, verbose=1)
                     batch_raw_output = preprocess_batch_string_for_bert(batch.raw_output, rp_space=True)
 
-                if tokenize_and_bpe:
+                if args.tokenize_and_bpe:
                     try:
                         tokens_tensor_dic, segments_tensors_dic, tokenized_dic, aligned_index_padded_dic, mask_dic = \
                             get_indexes_src_gold(list_pretokenized_str_source=batch_raw_input,
@@ -344,7 +345,7 @@ def epoch_run(batchIter, tokenizer,
             if dropout_input_bpe > 0:
                 input_tokens_tensor, mask_dropout, dropout_applied = dropout_input_tensor(input_tokens_tensor, mask_token_index, sep_token_index=sep_token_index, dropout=dropout_input_bpe, applied_dropout_rate=True)
 
-            if append_n_mask and task_normalize_is:
+            if args.append_n_mask and task_normalize_is:
                 labels_n_mask_prediction = pred_n_bpe(input_tokens_tensor == mask_token_index)
                 # sanity test : are mask correectly encoded as -1
                 assert (((input_tokens_tensor == mask_token_index).nonzero() == (labels_n_mask_prediction == -1).nonzero())).all()
@@ -352,20 +353,20 @@ def epoch_run(batchIter, tokenizer,
                 labels_n_mask_prediction[input_tokens_tensor == 0] = -1
 
             # TODO : to factorize
-            if masking_strategy in ["mlm", "mlm_need_norm"] and optimizer is not None:
+            if args.masking_strategy in ["mlm", "mlm_need_norm"] and optimizer is not None:
                 dropout = 0.15
-                assert dropout_input_bpe == 0., "in masking_strategy mlm we hardcoded dropout to 0.2 {}".format(dropout)
+                assert dropout_input_bpe == 0., "in args.masking_strategy mlm we hardcoded dropout to 0.2 {}".format(dropout)
                 standart_pred = True
-                if masking_strategy == "mlm_need_norm":
-                    # in mlm_need_norm strategy : in portion_mask% of the time we learn as a standart mlm the rest of the time we do the same but only on need_norm tokens
-                    standart_pred = np.random.random() < portion_mask
+                if args.masking_strategy == "mlm_need_norm":
+                    # in mlm_need_norm strategy : in args.portion_mask% of the time we learn as a standart mlm the rest of the time we do the same but only on need_norm tokens
+                    standart_pred = np.random.random() < args.portion_mask
                     # we force unmask loss to 0
                     unmask_loss = 0
                 else:
-                    unmask_loss = portion_mask
+                    unmask_loss = args.portion_mask
                 if standart_pred:
                     input_tokens_tensor, mask_dropout, dropout_applied = dropout_input_tensor(input_tokens_tensor, mask_token_index, sep_token_index=sep_token_index, applied_dropout_rate=0.8, dropout=dropout)
-                elif masking_strategy == "mlm_need_norm" and not standart_pred:
+                elif args.masking_strategy == "mlm_need_norm" and not standart_pred:
                     feeding_the_model_with_label = output_tokens_tensor_aligned.clone()
                     # we only learn on tokens that are different from gold
                     feeding_the_model_with_label[input_tokens_tensor == output_tokens_tensor_aligned] = -1
@@ -417,14 +418,14 @@ def epoch_run(batchIter, tokenizer,
                 feeding_the_model_with_label = output_tokens_tensor_aligned.clone()
                 feeding_the_model_with_label[mask_loss != 0] = -1
                 # hald the time we actually mask those tokens otherwise we predict
-            elif masking_strategy in ["norm_mask", "norm_mask_variable"] and optimizer is not None:
-                if masking_strategy == "norm_mask_variable":
-                    #portion_mask = min(((epoch + 1) / n_epoch), 0.6)
-                    portion_mask = 1-(epoch + 1)/n_epoch #, 0.6))
-                mask_normed = np.random.random() < portion_mask
+            elif args.masking_strategy in ["norm_mask", "norm_mask_variable"] and optimizer is not None:
+                if args.masking_strategy == "norm_mask_variable":
+                    #args.portion_mask = min(((epoch + 1) / n_epoch), 0.6)
+                    args.portion_mask = 1-(epoch + 1)/n_epoch #, 0.6))
+                mask_normed = np.random.random() < args.portion_mask
                 feeding_the_model_with_label = output_tokens_tensor_aligned.clone()
                 if mask_normed:
-                    print("MASKING NORMED in mode {} portion mask {}".format(masking_strategy, portion_mask))
+                    print("MASKING NORMED in mode {} portion mask {}".format(args.masking_strategy, args.portion_mask))
                     feeding_the_model_with_label[input_tokens_tensor == output_tokens_tensor_aligned] = -1
                     if np.random.random() < 0.5:
                         # half the time we mask not to make the model only normalizing
@@ -438,23 +439,23 @@ def epoch_run(batchIter, tokenizer,
             feeding_the_model_with_label[feeding_the_model_with_label == 0] = -1
             # TODO : should not be hardcoded : should have static mode --> provide loss, dynamic --> preset strategies
 
-            # TODO : multi task : handle two cases -- input labels based on provided tasks , handle sum ---> and reporting of the loss in this new case
+            # TODO : multi task : handle two cases -- input labels based on provided args.tasks , handle sum ---> and reporting of the loss in this new case
             loss_dic, layer_wise_weights = model(input_tokens_tensor, token_type_ids, input_mask,
                                                  labels=feeding_the_model_with_label
                                                  if task_normalize_is else None,
                                                  labels_n_masks=labels_n_mask_prediction,
                                                  labels_task_2=output_tokens_tensor_aligned
                                                  if task_pos_is else None,
-                                                 aggregating_bert_layer_mode=aggregating_bert_layer_mode,
-                                                 multi_task_loss_ponderation=multi_task_loss_ponderation)
+                                                 aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
+                                                 multi_task_loss_ponderation=args.multi_task_loss_ponderation)
 
             _loss = loss_dic["loss"]
 
-            # report the loss per tasks
+            # report the loss per args.tasks
             if task_normalize_is:
                 loss_norm += loss_dic["loss_task_1"].detach()
                 n_batch_norm += 1
-                if append_n_mask:
+                if args.append_n_mask:
                     if not isinstance(loss_dic["loss_task_n_mask_prediction"], int):
                         loss_n_mask_prediction += loss_dic["loss_task_n_mask_prediction"].detach()
             if task_pos_is:
@@ -465,18 +466,18 @@ def epoch_run(batchIter, tokenizer,
                 # if predict more : will evaluate the model and write its predictions
                 # TODO : add mapping_info between task_id to model and task name necessary to iterator
                 logits, layer_wise_weights = model(input_tokens_tensor, token_type_ids, input_mask,
-                                                   aggregating_bert_layer_mode=aggregating_bert_layer_mode,
-                                                   multi_task_loss_ponderation=multi_task_loss_ponderation)
+                                                   aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
+                                                   multi_task_loss_ponderation=args.multi_task_loss_ponderation)
 
 
                 predicted_task = "pos" if task_pos_is else "normalize"
                 logits_task_label = MULTITASK_BERT_LABELS_MLM_HEAD[predicted_task]
 
                 # add prediction n_masks -->
-                if append_n_mask and task_normalize_is:
+                if args.append_n_mask and task_normalize_is:
                     # TODO : --> should add a : simultaneous task module !
                     assert logits["logits_n_mask_prediction"] is not None, \
-                        "ERROR : append_n_mask is {} while logits['logits_n_mask_prediction'] is None".format(append_n_mask)
+                        "ERROR : args.append_n_mask is {} while logits['logits_n_mask_prediction'] is None".format(args.append_n_mask)
                     prediction_n_mask = torch.argsort(logits["logits_n_mask_prediction"], dim=-1, descending=True)[:, :, 0]
 
                 predictions_topk[logits_task_label] = torch.argsort(logits[logits_task_label], dim=-1, descending=True)[:, :, :topk]
@@ -484,9 +485,9 @@ def epoch_run(batchIter, tokenizer,
                 # from bpe index to string
                 sent_ls_top = from_bpe_token_to_str(predictions_topk[logits_task_label], topk, tokenizer=tokenizer,
                                                     pred_mode=True, pos_dictionary=pos_dictionary,
-                                                    task=tasks[0], null_token_index=null_token_index, null_str=null_str)
+                                                    task=args.tasks[0], null_token_index=null_token_index, null_str=null_str)
                 gold = from_bpe_token_to_str(output_tokens_tensor_aligned, topk, tokenizer=tokenizer, pos_dictionary=pos_dictionary,
-                                             task=tasks[0], pred_mode=False, null_token_index=null_token_index, null_str=null_str)
+                                             task=args.tasks[0], pred_mode=False, null_token_index=null_token_index, null_str=null_str)
 
                 source_preprocessed = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer, pos_dictionary=pos_dictionary, pred_mode=False, null_token_index=null_token_index, null_str=null_str, verbose=verbose)
 
@@ -495,7 +496,7 @@ def epoch_run(batchIter, tokenizer,
                                                       tasks=["normalize"],
                                                       # normalize means we deal wiht bpe input not pos
                                                       mask_str=MASK_BERT, remove_mask_str=remove_mask_str_prediction)
-                gold_detokenized = alignement.realigne(gold, input_alignement_with_raw, remove_null_str=True, null_str=null_str, tasks=tasks, mask_str=MASK_BERT)
+                gold_detokenized = alignement.realigne(gold, input_alignement_with_raw, remove_null_str=True, null_str=null_str, tasks=args.tasks, mask_str=MASK_BERT)
                 if task_pos_is:
                     # we remove padding here based on src that is correctly padded
                     gold_detokenized = [gold_sent[:len(src_sent)] for gold_sent, src_sent in zip(gold_detokenized, src_detokenized)]
@@ -503,25 +504,25 @@ def epoch_run(batchIter, tokenizer,
                 for sent_ls in sent_ls_top:
                     pred_detokenized_topk.append(alignement.realigne(sent_ls, input_alignement_with_raw,
                                                                      remove_null_str=True,
-                                                                     tasks=tasks, remove_extra_predicted_token=True,
+                                                                     tasks=args.tasks, remove_extra_predicted_token=True,
                                                                      null_str=null_str, mask_str=MASK_BERT)
                                                  )
                     # NB : applying those successively might overlay heuristic
                     if task_normalize_is:
-                        if heuristic_ls is not None:
-                            # NB : if the rules in heuristic_ls are not exclusive their order matters !!
+                        if args.heuristic_ls is not None:
+                            # NB : if the rules in args.heuristic_ls are not exclusive their order matters !!
                             # the last one will be the one that is applied
                             pred_detokenized_topk = predict_with_heuristic(src_detokenized=src_detokenized,
                                                                            pred_detokenized_topk=pred_detokenized_topk,
                                                                            list_reference=list_reference_heuristic, list_candidates=list_candidates,
                                                                            slang_dic=slang_dic,
                                                                            index_alphabetical_order=index_alphabetical_order,
-                                                                           heuristic_ls=heuristic_ls,
+                                                                           heuristic_ls=args.heuristic_ls,
                                                                            threshold_edit=threshold_edit,
                                                                            edit_module_pred_need_norm_only=edit_module_pred_need_norm_only,
                                                                            verbose=verbose)
-                        # NB : we overlay prediction with gold_error_detection
-                        if gold_error_detection:
+                        # NB : we overlay prediction with args.gold_error_detection
+                        if args.gold_error_detection:
                             pred_detokenized_topk = predict_with_heuristic(src_detokenized=src_detokenized,
                                                                            gold_detokenized=gold_detokenized,
                                                                            pred_detokenized_topk=pred_detokenized_topk,
@@ -536,7 +537,7 @@ def epoch_run(batchIter, tokenizer,
                                                          task_pos_is, iter, batch_i, new_file,  gold_detokenized,
                                                          verbose)
                 try:
-                    if task_normalize_is and append_n_mask:
+                    if task_normalize_is and args.append_n_mask:
                         perf_prediction_n_mask, skipping_n_mask, _ = \
                             overall_word_level_metric_measure(labels_n_mask_prediction.tolist(), [prediction_n_mask.tolist()], topk=1,
                                                               metric=metric, samples=samples_per_task_reporting["n_masks_pred"], agg_func_ls=agg_func_ls,
@@ -603,7 +604,7 @@ def epoch_run(batchIter, tokenizer,
                 printing("MODE data {} not optimizing".format(data_label), verbose=verbose, verbose_level=4)
 
             if writer is not None:
-                tensorboard_loss_writer_batch_level(writer, mode, model_id, _loss, batch_i, iter, loss_dic, task_normalize_is,  append_n_mask, task_pos_is)
+                tensorboard_loss_writer_batch_level(writer, mode, model_id, _loss, batch_i, iter, loss_dic, task_normalize_is,  args.append_n_mask, task_pos_is)
         except StopIteration:
             printing("BREAKING ITERATION", verbose_level=1, verbose=1)
             break
@@ -616,13 +617,13 @@ def epoch_run(batchIter, tokenizer,
     evaluated_task = list(set(evaluated_task))
     if predict_mode:
         if writer is not None:
-            tensorboard_loss_writer_epoch_level(writer, tasks, mode, model_id, epoch, n_batch_norm, n_batch_pos, append_n_mask, loss, loss_norm, loss_pos, loss_n_mask_prediction, batch_i)
+            tensorboard_loss_writer_epoch_level(writer, args.tasks, mode, model_id, epoch, n_batch_norm, n_batch_pos, args.append_n_mask, loss, loss_norm, loss_pos, loss_n_mask_prediction, batch_i)
         reports = []
-        printing("TRAINING : evaluating on {} tasks ", var=[evaluated_task], verbose_level=1, verbose=verbose)
+        printing("TRAINING : evaluating on {} args.tasks ", var=[evaluated_task], verbose_level=1, verbose=verbose)
         # TODO -- ??
         reports, early_stoppin_metric_val, score, n_tokens = report_score_all(evaluated_task, agg_func_ls, samples_per_task_reporting,
                                                                               label_heuristic, score_dic, n_tokens_dic,
-                                                                              n_sents_dic, model_id, tasks, args_dir,
+                                                                              n_sents_dic, model_id, args.tasks, args_dir,
                                                                               data_label, reports,  writer, log_perf,
                                                                               early_stoppin_metric_val, early_stoppin_metric,
                                                                               mode, subsample_early_stoping_metric_val,
