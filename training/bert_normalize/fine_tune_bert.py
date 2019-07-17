@@ -53,10 +53,10 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
              verbose=verbose, verbose_level=1)
 
     if early_stoppin_metric is None:
-        if "pos" in tasks:
+        if "pos" in args.tasks:
             early_stoppin_metric = "accuracy-exact-pos"
             subsample_early_stoping_metric_val = "all"
-        elif "normalize" in tasks:
+        elif "normalize" in args.tasks:
             early_stoppin_metric = "f1-normalize"
             subsample_early_stoping_metric_val = "rates"
         printing("INFO : setting early_stoppin_metric to {}", var=[early_stoppin_metric], verbose=verbose, verbose_level=1)
@@ -64,20 +64,20 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         if early_stoppin_metric == "accuracy-exact-normalize":
             subsample_early_stoping_metric_val = "all"
         printing("INFO : early_stoppin_metric passed is {}", var=[early_stoppin_metric], verbose=verbose, verbose_level=1)
-    assert len(tasks) == len(train_path), "ERROR tasks is {} but train path are {}".format(tasks, train_path)
-    assert len(dev_path) == len(train_path)
-    #assert len(test_path_ls) == len(tasks), "{} tasks test_path_ls {}".format(test_path_ls, tasks)
+    assert len(args.tasks) == len(args.train_path), "ERROR args.tasks is {} but train path are {}".format(args.tasks, args.train_path)
+    assert len(args.dev_path) == len(args.train_path)
+    #assert len(test_path_ls) == len(args.tasks), "{} args.tasks test_path_ls {}".format(test_path_ls, args.tasks)
     if run_mode == "test":
-        assert test_path_ls is not None and isinstance(test_path_ls, list)
-    if test_path_ls is not None:
-        assert isinstance(test_path_ls, list) and isinstance(test_path_ls[0], list), \
-            "ERROR test_path_ls should be a list"
+        assert args.test_paths is not None and isinstance(args.test_paths, list)
+    if args.test_paths is not None:
+        assert isinstance(args.test_paths, list) and isinstance(args.test_paths[0], list), \
+            "ERROR args.test_paths should be a list"
 
     if run_mode == "train":
         printing("CHECKPOINTING info : saving model every {}", var=saving_every_epoch, verbose=verbose, verbose_level=1)
     use_gpu = use_gpu_(use_gpu=None, verbose=verbose)
-    train_data_label = "|".join([REPO_DATASET[_train_path] for _train_path in train_path])
-    dev_data_label = "|".join([REPO_DATASET[_dev_path] for _dev_path in dev_path]) if dev_path is not None else None
+    train_data_label = "|".join([REPO_DATASET[_train_path] for _train_path in args.train_path])
+    dev_data_label = "|".join([REPO_DATASET[_dev_path] for _dev_path in args.dev_path]) if args.dev_path is not None else None
     if use_gpu:
         model.to("cuda")
 
@@ -91,30 +91,31 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
     if run_mode == "train":
         assert model_location is None and model_id is None, "ERROR we are creating a new one "
         model_id, model_location, dict_path, tensorboard_log, end_predictions = \
-            setup_repoting_location(model_suffix=model_suffix, root_dir_checkpoints=CHECKPOINT_BERT_DIR, shared_id=shared_id,
+            setup_repoting_location(model_suffix=model_suffix, root_dir_checkpoints=CHECKPOINT_BERT_DIR,
+                                    shared_id=args.overall_label,
                                     verbose=verbose)
 
-        hyperparameters = OrderedDict([("bert_model", bert_model), ("lr", lr),
-                                       ("n_epochs", n_epoch),
-                                       ("initialize_bpe_layer", initialize_bpe_layer),
-                                       ("fine_tuning_strategy", fine_tuning_strategy),
-                                       ("dropout_input_bpe", dropout_input_bpe),
-                                       ("heuristic_ls", heuristic_ls),
-                                       ("gold_error_detection", gold_error_detection),
+        hyperparameters = OrderedDict([("bert_model", args.bert_model), ("lr", args.lr),
+                                       ("n_epochs", args.epochs),
+                                       ("initialize_bpe_layer", args.initialize_bpe_layer),
+                                       ("fine_tuning_strategy", args.fine_tuning_strategy),
+                                       ("dropout_input_bpe", args.dropout_input_bpe),
+                                       ("heuristic_ls", args.heuristic_ls),
+                                       ("gold_error_detection", args.gold_error_detection),
                                        ("dropout_classifier", args.dropout_classifier if args is not None else "UNK"),
                                        ("dropout_bert", args.dropout_bert if args is not None else "UNK"),
-                                       ("tasks", tasks),
-                                       ("masking_strategy", masking_strategy), ("portion_mask", portion_mask),
+                                       ("tasks", args.tasks),
+                                       ("masking_strategy", args.masking_strategy), ("portion_mask", args.portion_mask),
                                        ("checkpoint_dir", args.checkpoint_dir if args is not None else None),
-                                       ("norm_2_noise_training", norm_2_noise_training),
+                                       ("norm_2_noise_training", args.norm_2_noise_training),
                                        ("random_iterator_train", random_iterator_train),
-                                       ("aggregating_bert_layer_mode", aggregating_bert_layer_mode),
-                                       ("tokenize_and_bpe", tokenize_and_bpe),
+                                       ("aggregating_bert_layer_mode", args.aggregating_bert_layer_mode),
+                                       ("tokenize_and_bpe", args.tokenize_and_bpe),
                                        ("SEED", SEED_TORCH), ("case", case), ("bert_module", bert_module),
-                                       ("freeze_layer_prefix_ls", freeze_layer_prefix_ls),
-                                       ("layer_wise_attention", layer_wise_attention),
-                                       ("append_n_mask", append_n_mask),
-                                       ("multi_task_loss_ponderation", multi_task_loss_ponderation)
+                                       ("freeze_layer_prefix_ls", args.freeze_parameters),
+                                       ("layer_wise_attention", args.layer_wise_attention),
+                                       ("append_n_mask", args.append_n_mask),
+                                       ("multi_task_loss_ponderation", args.multi_task_loss_ponderation)
                                        ])
         printing("HYPERPARAMETERS {} ", var=[hyperparameters], verbose=verbose, verbose_level=1)
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
@@ -136,20 +137,20 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                  verbose=verbose)
 
     # build or make dictionaries
-    _dev_path = dev_path if dev_path is not None else train_path
+    _dev_path = args.dev_path if args.dev_path is not None else args.train_path
     word_dictionary, word_norm_dictionary, char_dictionary, pos_dictionary, \
     xpos_dictionary, type_dictionary = \
         conllu_data.load_dict(dict_path=dict_path,
-                              train_path=train_path if run_mode == "train" else None,
-                              dev_path=_dev_path if run_mode == "train" else None,
+                              train_path=args.train_path if run_mode == "train" else None,
+                              dev_path=args.dev_path if run_mode == "train" else None,
                               test_path=None,
                               word_embed_dict={},
                               dry_run=False,
                               expand_vocab=False,
                               word_normalization=True,
                               force_new_dic=True if run_mode == "train" else False,
-                              tasks=tasks,
-                              pos_specific_data_set=train_path[1] if len(tasks) > 1 and "pos" in tasks else None,
+                              tasks=args.tasks,
+                              pos_specific_data_set=args.train_path[1] if len(args.tasks) > 1 and "pos" in args.tasks else None,
                               case=case,
                               add_start_char=1 if run_mode == "train" else None,
                               verbose=1)
@@ -159,7 +160,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
     tokenizer = BertTokenizer.from_pretrained(voc_tokenizer)
     assert tokenizer is not None, "ERROR : tokenizer is None , voc_tokenizer failed to be loaded {}".format(voc_tokenizer)
     if run_mode == "train":
-        readers_train = readers_load(datasets=train_path, tasks=tasks, word_dictionary=word_dictionary,
+        readers_train = readers_load(datasets=args.train_path, tasks=args.tasks, word_dictionary=word_dictionary,
                                      word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
                                      pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
                                      type_dictionary=type_dictionary, use_gpu=use_gpu_hardcoded_readers ,
@@ -169,7 +170,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                      must_get_norm=True,
                                      verbose=verbose)
 
-        readers_dev = readers_load(datasets=dev_path, tasks=tasks, word_dictionary=word_dictionary,
+        readers_dev = readers_load(datasets=args.dev_path, tasks=args.tasks, word_dictionary=word_dictionary,
                                    word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
                                    pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
                                    type_dictionary=type_dictionary, use_gpu=use_gpu_hardcoded_readers,
@@ -177,15 +178,15 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                    add_start_char=1, add_end_char=1,
                                    symbolic_end=1, symbolic_root=1, bucket=use_gpu_hardcoded_readers, max_char_len=20,
                                    must_get_norm=True,
-                                   verbose=verbose) if dev_path is not None else None
+                                   verbose=verbose) if args.dev_path is not None else None
         # Load tokenizer
         early_stoping_val_former = 1000
         try:
-            for epoch in range(n_epoch):
+            for epoch in range(args.epochs):
 
-                checkpointing_model_data = (epoch % saving_every_epoch == 0 or epoch == (n_epoch - 1))
+                checkpointing_model_data = (epoch % saving_every_epoch == 0 or epoch == (args.epochs - 1))
                 # build iterator on the loaded data
-                batchIter_train = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_train, batch_size=batch_size,
+                batchIter_train = data_gen_multi_task_sampling_batch(tasks=args.tasks, readers=readers_train, batch_size=args.batch_size,
                                                                      word_dictionary=word_dictionary,
                                                                      char_dictionary=char_dictionary,
                                                                      pos_dictionary=pos_dictionary,
@@ -196,7 +197,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                      dropout_input=0.0,
                                                                      verbose=verbose)
                 # -|-|-
-                batchIter_dev = data_gen_multi_task_sampling_batch(tasks=tasks, readers=readers_dev, batch_size=batch_size,
+                batchIter_dev = data_gen_multi_task_sampling_batch(tasks=args.tasks, readers=readers_dev, batch_size=args.batch_size,
                                                                    word_dictionary=word_dictionary,
                                                                    char_dictionary=char_dictionary,
                                                                    pos_dictionary=pos_dictionary,
@@ -204,76 +205,76 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                    get_batch_mode=False,
                                                                    extend_n_batch=1,print_raw=False,
                                                                    dropout_input=0.0,
-                                                                   verbose=verbose) if dev_path is not None else None
+                                                                   verbose=verbose) if args.dev_path is not None else None
                 # TODO add optimizer (if not : dev loss)
                 model.train()
 
                 model, optimizer = apply_fine_tuning_strategy(model=model,
-                                                                             fine_tuning_strategy=fine_tuning_strategy,
-                                                                             lr_init=lr, betas=(0.9, 0.99),
-                                                                             epoch=epoch, verbose=verbose)
+                                                              fine_tuning_strategy=args.fine_tuning_strategy,
+                                                              lr_init=args.lr, betas=(0.9, 0.99),
+                                                              epoch=epoch, verbose=verbose)
                 print("RUNNING TRAIN on GET_BATCH_MODE ")
                 loss_train, iter_train, perf_report_train, _ = epoch_run(batchIter_train, tokenizer,
                                                                          pos_dictionary=pos_dictionary,
-                                                                         n_epoch=n_epoch,
+                                                                         n_epoch=args.epochs,
                                                                          data_label=train_data_label,
                                                                          model=model,
                                                                          writer=writer,
                                                                          iter=iter_train, epoch=epoch,
-                                                                         tasks=tasks,
-                                                                         writing_pred=epoch == (n_epoch - 1),
+                                                                         tasks=args.tasks,
+                                                                         writing_pred=epoch == (args.epochs - 1),
                                                                          dir_end_pred=end_predictions,
                                                                          optimizer=optimizer, use_gpu=use_gpu,
                                                                          predict_mode=True,
                                                                          skip_1_t_n=skip_1_t_n,
                                                                          model_id=model_id,
-                                                                         heuristic_ls=heuristic_ls, gold_error_detection=gold_error_detection,
+                                                                         heuristic_ls=args.heuristic_ls, gold_error_detection=args.gold_error_detection,
                                                                          reference_word_dic={"InV": inv_word_dic},
-                                                                         dropout_input_bpe=dropout_input_bpe,
+                                                                         dropout_input_bpe=args.dropout_input_bpe,
                                                                          null_token_index=null_token_index, null_str=null_str,
-                                                                         masking_strategy=masking_strategy, portion_mask=portion_mask,
-                                                                         norm_2_noise_training=norm_2_noise_training,
+                                                                         masking_strategy=args.masking_strategy, portion_mask=args.portion_mask,
+                                                                         norm_2_noise_training=args.norm_2_noise_training,
                                                                          norm_2_noise_eval=False,
-                                                                         aggregating_bert_layer_mode=aggregating_bert_layer_mode,
+                                                                         aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
                                                                          early_stoppin_metric=None,
-                                                                         case=case, tokenize_and_bpe=tokenize_and_bpe,
+                                                                         case=case, tokenize_and_bpe=args.tokenize_and_bpe,
                                                                          n_iter_max=n_iter_max_per_epoch,
-                                                                         append_n_mask=append_n_mask,
-                                                                         multi_task_loss_ponderation=multi_task_loss_ponderation,
+                                                                         append_n_mask=args.append_n_mask,
+                                                                         multi_task_loss_ponderation=args.multi_task_loss_ponderation,
                                                                          verbose=verbose)
 
 
                 model.eval()
 
-                if dev_path is not None:
+                if args.dev_path is not None:
                     print("RUNNING DEV on ITERATION MODE")
                     loss_dev, iter_dev, perf_report_dev, early_stoping_val = epoch_run(batchIter_dev, tokenizer,
                                                                                        pos_dictionary=pos_dictionary,
                                                                                        iter=iter_dev, use_gpu=use_gpu,
                                                                                        model=model,
                                                                                        writer=writer,
-                                                                                       writing_pred=epoch == (n_epoch - 1),
+                                                                                       writing_pred=epoch == (args.epochs - 1),
                                                                                        dir_end_pred=end_predictions,
                                                                                        predict_mode=True, data_label=dev_data_label,
-                                                                                       epoch=epoch, tasks=tasks,
+                                                                                       epoch=epoch, tasks=args.tasks,
                                                                                        null_token_index=null_token_index, null_str=null_str,
                                                                                        model_id=model_id,
                                                                                        skip_1_t_n=skip_1_t_n,
                                                                                        dropout_input_bpe=0,
-                                                                                       masking_strategy=masking_strategy,
-                                                                                       portion_mask=portion_mask,
-                                                                                       heuristic_ls=heuristic_ls,
-                                                                                       gold_error_detection=gold_error_detection,
+                                                                                       masking_strategy=args.masking_strategy,
+                                                                                       portion_mask=args.portion_mask,
+                                                                                       heuristic_ls=args.heuristic_ls,
+                                                                                       gold_error_detection=args.gold_error_detection,
                                                                                        reference_word_dic={"InV": inv_word_dic},
-                                                                                       norm_2_noise_training=norm_2_noise_training,# as training otherwise loss dev not more meaning
+                                                                                       norm_2_noise_training=args.norm_2_noise_training,# as training otherwise loss dev not more meaning
                                                                                        norm_2_noise_eval=False,
                                                                                        early_stoppin_metric=early_stoppin_metric,
-                                                                                       tokenize_and_bpe=tokenize_and_bpe,
+                                                                                       tokenize_and_bpe=args.tokenize_and_bpe,
                                                                                        subsample_early_stoping_metric_val=subsample_early_stoping_metric_val,
-                                                                                       aggregating_bert_layer_mode=aggregating_bert_layer_mode,
+                                                                                       aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
                                                                                        case=case,
-                                                                                       append_n_mask=append_n_mask,
-                                                                                       multi_task_loss_ponderation=multi_task_loss_ponderation,
+                                                                                       append_n_mask=args.append_n_mask,
+                                                                                       multi_task_loss_ponderation=args.multi_task_loss_ponderation,
                                                                                        n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                 else:
                     loss_dev, iter_dev, perf_report_dev = None, 0, None
@@ -282,7 +283,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                          verbose=verbose, verbose_level=1)
                 printing("PERFORMANCE {} DEV", var=[epoch, perf_report_dev], verbose=verbose, verbose_level=1)
 
-                printing("TRAINING : loss train:{} dev:{} for epoch {}  out of {}", var=[loss_train, loss_dev, epoch, n_epoch], verbose=1, verbose_level=1)
+                printing("TRAINING : loss train:{} dev:{} for epoch {}  out of {}", var=[loss_train, loss_dev, epoch, args.epochs], verbose=1, verbose_level=1)
 
                 if checkpointing_model_data or early_stoping_val < early_stoping_val_former:
                     if early_stoping_val is not None:
@@ -300,14 +301,14 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                     else:
                         print("NOT SAVING BEST MODEL : new loss {} did not beat first loss {}".format(early_stoping_val , early_stoping_val_former))
                     last_model = ""
-                    if epoch == (n_epoch - 1):
+                    if epoch == (args.epochs - 1):
                         last_model = "last"
                     printing("CHECKPOINT : saving {} model {} ", var=[last_model, checkpoint_dir], verbose=verbose,
                              verbose_level=1)
                     torch.save(model.state_dict(), checkpoint_dir)
                     args_dir = write_args(dir=model_location, checkpoint_dir=checkpoint_dir,
                                           model_id=model_id,
-                                          info_checkpoint=OrderedDict([("n_epochs", epoch+1), ("batch_size", batch_size),
+                                          info_checkpoint=OrderedDict([("n_epochs", epoch+1), ("batch_size", args.batch_size),
                                                                        ("train_path", train_data_label),
                                                                        ("dev_path", dev_data_label)]),
                                           verbose=verbose)
@@ -322,7 +323,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
             if row is not None:
                 update_status(row=row, new_status="ERROR", verbose=1)
             raise(e)
-    if run_mode in ["train", "test"] and test_path_ls is not None:
+    if run_mode in ["train", "test"] and args.test_paths is not None:
         report_all = []
         if run_mode == "train":
             if use_gpu:
@@ -342,9 +343,9 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
         alphabet_index = get_letter_indexes(list_reference_heuristic_test)
         list_candidates = None
         mode_need_norm_heuristic = None
-        for test_path in test_path_ls:
-            assert len(test_path) == len(tasks), "ERROR test_path {} tasks {}".format(test_path, tasks)
-            for test, task_to_eval in zip(test_path, tasks):
+        for test_path in args.test_paths:
+            assert len(test_path) == len(args.tasks), "ERROR test_path {} args.tasks {}".format(test_path, args.tasks)
+            for test, task_to_eval in zip(test_path, args.tasks):
                 #label_data = "|".join([REPO_DATASET[_test_path] for _test_path in test_path])
                 label_data = REPO_DATASET[test]+"-"+task_to_eval
                 if len(extra_label_for_prediction) > 0:
@@ -474,8 +475,8 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                               null_str=null_str,
                                                                               log_perf=False,
                                                                               dropout_input_bpe=0,
-                                                                              masking_strategy=masking_strategy,
-                                                                              portion_mask=portion_mask,
+                                                                              masking_strategy=args.masking_strategy,
+                                                                              portion_mask=args.portion_mask,
                                                                               heuristic_ls=heuristic_test,
                                                                               gold_error_detection=gold_error,
                                                                               slang_dic=slang_dic_test,
@@ -490,12 +491,12 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                                                                               compute_intersection_score=compute_intersection_score_test,
                                                                               remove_mask_str_prediction=remove_mask_str_prediction,
                                                                               inverse_writing=inverse_writing,
-                                                                              aggregating_bert_layer_mode=aggregating_bert_layer_mode,
+                                                                              aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
                                                                               reference_word_dic={"InV": inv_word_dic},
                                                                               case=case, threshold_edit=threshold_edit,
-                                                                              tokenize_and_bpe=tokenize_and_bpe,
-                                                                              append_n_mask=append_n_mask,
-                                                                              multi_task_loss_ponderation=multi_task_loss_ponderation,
+                                                                              tokenize_and_bpe=args.tokenize_and_bpe,
+                                                                              append_n_mask=args.append_n_mask,
+                                                                              multi_task_loss_ponderation=args.multi_task_loss_ponderation,
                                                                               edit_module_pred_need_norm_only=mode_need_norm_heuristic == "need_normed",
                                                                               n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                         print("LOSS TEST", loss_test)
@@ -512,7 +513,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                     print("DATA WRITTEN {}".format(end_predictions))
                     if writer is not None:
                         writer.add_text("Accuracy-{}-{}-{}".format(model_id, label_data, run_mode),
-                                        "After {} epochs with {} : performance is \n {} ".format(n_epoch, description,
+                                        "After {} epochs with {} : performance is \n {} ".format(args.epochs, description,
                                                                                                  str(perf_report_test)), 0)
                     else:
                         printing("WARNING : could not add accuracy to tensorboard cause writer was found None", verbose=verbose,
@@ -520,7 +521,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
                     report_all.extend(perf_report_test)
     else:
         printing("ERROR : EVALUATION none cause {} empty or run_mode {} ",
-                 var=[test_path_ls, run_mode], verbose_level=1, verbose=verbose)
+                 var=[args.test_paths, run_mode], verbose_level=1, verbose=verbose)
 
     if writer is not None:
         writer.close()
@@ -531,7 +532,7 @@ def run(tasks, train_path, dev_path, n_iter_max_per_epoch, args,
 
     report_dir = os.path.join(model_location, model_id+"-report.json")
     if report_full_path_shared is not None:
-        report_full_dir = os.path.join(report_full_path_shared, shared_id + "-report.json")
+        report_full_dir = os.path.join(report_full_path_shared, args.overall_label + "-report.json")
         if os.path.isfile(report_full_dir):
             report = json.load(open(report_full_dir, "r"))
         else:

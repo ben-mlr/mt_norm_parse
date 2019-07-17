@@ -47,8 +47,8 @@ def train_eval_bert_normalize(args, verbose=1):
         else:
             model = get_bert_token_classification(pretrained_model_dir=model_dir,
                                               vocab_size=vocab_size,
-                                              freeze_parameters=freeze_parameters,
-                                              freeze_layer_prefix_ls=freeze_layer_prefix_ls,
+                                              freeze_parameters=args.freeze_parameters,
+                                              freeze_layer_prefix_ls=args.freeze_layer_prefix_ls,
                                               dropout_classifier=args.dropout_classifier,
                                               dropout_bert=args.dropout_bert,
                                               tasks=args.tasks,
@@ -56,7 +56,7 @@ def train_eval_bert_normalize(args, verbose=1):
                                               bert_module=args.bert_module,
                                               layer_wise_attention=args.layer_wise_attention,
                                               mask_n_predictor=args.append_n_mask,
-                                              initialize_bpe_layer=initialize_bpe_layer,
+                                              initialize_bpe_layer=args.initialize_bpe_layer,
                                               debug=debug)
     else:
         printing("MODEL : reloading from checkpoint {} all models parameters are ignored except task bert module and layer_wise_attention", var=[args.checkpoint_dir], verbose_level=1, verbose=verbose)
@@ -79,8 +79,7 @@ def train_eval_bert_normalize(args, verbose=1):
             model.classifier_task_2 = nn.Linear(model.bert.config.hidden_size, voc_pos_size)
             model.num_labels_2 = voc_pos_size
 
-    lr = args.lr
-    batch_size = args.batch_size
+
     null_token_index = BERT_MODEL_DIC[args.bert_model]["vocab_size"]  # based on bert cased vocabulary
     description = "grid"
     dir_grid = args.overall_report_dir
@@ -101,29 +100,39 @@ def train_eval_bert_normalize(args, verbose=1):
     # MLM in multitas mode is temporary and require task_i indexing : that's why we need to rename ponderation dictionary
     args.multi_task_loss_ponderation = update_multitask_loss(args.multi_task_loss_ponderation)
     run(model=model,
-        voc_tokenizer=voc_tokenizer, tasks=args.tasks, train_path=args.train_path, dev_path=args.dev_path,
+        voc_tokenizer=voc_tokenizer,
+        args=args,
+
+        tasks=args.tasks, train_path=args.train_path, dev_path=args.dev_path,
         append_n_mask=args.append_n_mask,
-        auxilliary_task_norm_not_norm=True,
-        saving_every_epoch=15, lr=lr, batch_size=batch_size,
-        n_iter_max_per_epoch=100000, n_epoch=args.epochs,
+        layer_wise_attention=args.layer_wise_attention,
+        multi_task_loss_ponderation=args.multi_task_loss_ponderation,
+        lr=args.lr, batch_size=args.batch_size,
+        n_epoch=args.epochs,
         test_path_ls=args.test_paths,
-        description=description, null_token_index=null_token_index, null_str=NULL_STR,
-        model_suffix="{}".format(args.model_id_pref), debug=debug,
-        freeze_parameters=freeze_parameters, freeze_layer_prefix_ls=freeze_layer_prefix_ls, bert_model=args.bert_model,
-        initialize_bpe_layer=initialize_bpe_layer, report_full_path_shared=dir_grid, shared_id=args.overall_label,
-        fine_tuning_strategy=args.fine_tuning_strategy,
-        heuristic_ls=args.heuristic_ls, gold_error_detection=args.gold_error_detection,
-        args=args, dropout_input_bpe=args.dropout_input_bpe,
+        bert_model=args.bert_model, shared_id=args.overall_label,
+        dropout_input_bpe=args.dropout_input_bpe,
         portion_mask=args.portion_mask, masking_strategy=args.masking_strategy,
         norm_2_noise_training=args.norm_2_noise_training,
+        aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
+        fine_tuning_strategy=args.fine_tuning_strategy,
+        heuristic_ls=args.heuristic_ls, gold_error_detection=args.gold_error_detection,
+        freeze_parameters=args.freeze_parameters, freeze_layer_prefix_ls=args.freeze_layer_prefix_ls,
+        initialize_bpe_layer=args.initialize_bpe_layer, report_full_path_shared=dir_grid,
+        bert_module=args.bert_module, tokenize_and_bpe=args.tokenize_and_bpe,
+
+        description=description, null_token_index=null_token_index, null_str=NULL_STR,
+        model_suffix="{}".format(args.model_id_pref), debug=debug,
+
         random_iterator_train=True,  bucket_test=False,
         compute_intersection_score_test=True,
-        aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
-        bert_module=args.bert_module, tokenize_and_bpe=args.tokenize_and_bpe,
+
         list_reference_heuristic_test=list_reference_heuristic_test, case="lower",
-        layer_wise_attention=args.layer_wise_attention,
+        n_iter_max_per_epoch=100000,
         slang_dic_test=slang_dic, early_stoppin_metric=early_stoppin_metric,
-        multi_task_loss_ponderation=args.multi_task_loss_ponderation,
+
+        saving_every_epoch=15,
+        auxilliary_task_norm_not_norm=True,
         report=True, verbose=1)
 
     printing("MODEL {} trained and evaluated", var=[args.model_id_pref], verbose_level=1, verbose=verbose)
