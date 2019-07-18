@@ -1,5 +1,5 @@
 from env.importing import hmean
-from env.project_variables import TASKS_PARAMETER
+from env.tasks_settings import TASKS_PARAMETER
 from io_.info_print import printing
 
 

@@ -2,7 +2,7 @@
 import sys
 import os
 
-from env.project_variables import TASKS_PARAMETER
+from env.tasks_settings import TASKS_PARAMETER
 from evaluate.scoring.confusion_matrix_rates import get_perf_rate
 
 #sys.path.insert(0, os.path.join(os.environ.get("EXPERIENCE", ".."), "experimental_pipe"))

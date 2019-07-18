@@ -2,7 +2,8 @@ from .ioutils import DependencyInstance, Sentence
 from .constants import DIGIT_RE, MAX_CHAR_LENGTH, NUM_CHAR_PAD, ROOT, ROOT_CHAR, ROOT_POS, ROOT_TYPE, PAD, END_CHAR, END_POS, END_TYPE, END
 from io_.info_print import printing
 from io_.dat.conllu_get_normalization import get_normalized_token
-from env.project_variables import AVAILABLE_TASKS, TASKS_PARAMETER
+from env.project_variables import AVAILABLE_TASKS
+from env.tasks_settings import TASKS_PARAMETER
 from env.importing import *
 from env.project_variables import PROJECT_PATH
 

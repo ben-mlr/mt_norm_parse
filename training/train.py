@@ -11,7 +11,8 @@ from tracking.plot_loss import simple_plot
 from toolbox.checkpointing import checkpoint, update_curve_dic
 from io_.info_print import disable_tqdm_level, printing
 from env.project_variables import PROJECT_PATH, REPO_DATASET, REPO_LABEL2SET,\
-    BREAKING_NO_DECREASE, CHECKPOINT_DIR, LOSS_DETAIL_TEMPLATE_LS, AVAILABLE_OPTIMIZER, TASKS_PARAMETER
+    BREAKING_NO_DECREASE, CHECKPOINT_DIR, LOSS_DETAIL_TEMPLATE_LS, AVAILABLE_OPTIMIZER
+from env.tasks_settings import TASKS_PARAMETER
 from env.project_variables import STARTING_CHECKPOINTING_WITH_SCORE
 
 from toolbox.gpu_related import use_gpu_

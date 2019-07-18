@@ -1,5 +1,6 @@
 from env.importing import *
 from env.project_variables import *
+from env.tasks_settings import TASKS_PARAMETER
 from io_.dat.constants import PAD_ID_BERT, MASK_BERT, CLS_BERT, SEP_BERT, SPECIAL_TOKEN_LS, NULL_STR
 from io_.info_print import printing
 from io_.bert_iterators_tools.string_processing import preprocess_batch_string_for_bert, from_bpe_token_to_str, get_indexes, get_indexes_src_gold
@@ -10,6 +11,7 @@ from evaluate.scoring.report import overall_word_level_metric_measure
 from model.n_masks_predictor import pred_n_bpe
 from toolbox.pred_tools.heuristics import predict_with_heuristic
 from training.epoch_run_fine_tuning_tools import get_casing, logging_processing_data, logging_scores, log_warning, print_align_bpe, tensorboard_loss_writer_batch_level, tensorboard_loss_writer_epoch_level, writing_predictions_conll, init_score_token_sent_dict
+from io_.bert_iterators_tools.get_bpe_labels import get_label_per_bpe
 from toolbox.deep_learning_toolbox import dropout_input_tensor
 
 
@@ -248,58 +250,23 @@ def epoch_run(batchIter, tokenizer,
                         output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask = \
                             get_indexes(batch_raw_output, tokenizer, verbose, use_gpu)
                         counting_failure_parralel_bpe_batch += 1
-
                 else:
                     output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask =\
                     get_indexes(batch_raw_output, tokenizer, verbose, use_gpu, word_norm_not_norm=None)
                 printing("DATA dim : {} input {} output ", var=[input_tokens_tensor.size(), output_tokens_tensor.size()],
                          verbose_level=2, verbose=verbose)
             if task_pos_is:
-                # TODO : factorize all this
-                #  should be done in pytorch + reducancies with get_index + factorize is somewhwere
-                output_tokens_tensor = np.array(batch.pos.cpu())
                 out_bpe_tokenized = None
-                #inde, _ = torch.min((torch.Tensor(input_alignement_with_raw) == 2).nonzero()[:, 1], dim=0)
-                new_input = np.array(input_tokens_tensor.cpu())
-                #new_input = [[input_tokens_tensor[ind_sent, ind] for ind in range(len(sent)) if sent[ind] != sent[ind - 1]] for ind_sent, sent in enumerate(input_alignement_with_raw)]
-                len_max = max([len(sent) for sent in new_input])
-                new_input = [[inp for inp in sent]+[PAD_ID_BERT for _ in range(len_max-len(sent))] for sent in new_input]
-                # we mask bpe token that have been split (we don't mask the first bpe token of each word)
-                _input_mask = [[0 if new_input[ind_sent][ind_tok] == PAD_ID_BERT or input_alignement_with_raw[ind_sent][ind_tok-1] == input_alignement_with_raw[ind_sent][ind_tok] else 1 for ind_tok in range(len(new_input[ind_sent]))] for ind_sent in range(len(new_input))]
-                output_tokens_tensor_new = []
-                for ind_sent in range(len(_input_mask)):
-                    output_tokens_tensor_new_ls = []
-                    shift = 0
-                    for ind_tok in range(len(_input_mask[ind_sent])):
-                        mask = _input_mask[ind_sent][ind_tok]
-                        try:
-                            label = output_tokens_tensor[ind_sent, ind_tok-shift]
-                        except Exception as e:
-                            print("ERROR ind_send:{} ind_tok {} shift {} output_tokens_tensor {} {}".format(ind_sent, ind_tok, shift, output_tokens_tensor, e))
-                            print("ERROR ind_send ", batch.raw_input, batch.raw_output)
-                            label = output_tokens_tensor[ind_sent, output_tokens_tensor.shape[1]-1]
-
-                        if mask != 0:
-                            output_tokens_tensor_new_ls.append(label)
-                        else:
-                            # 1 for _PAD_POS
-                            output_tokens_tensor_new_ls.append(1)
-                            shift += 1
-                    output_tokens_tensor_new.append(output_tokens_tensor_new_ls)
-
-                output_tokens_tensor = torch.Tensor(output_tokens_tensor_new).long()
-                input_mask = torch.Tensor(_input_mask).long()
-                input_tokens_tensor = torch.Tensor(new_input).long()
-
-                if use_gpu:
-                    input_mask = input_mask.cuda()
-                    output_tokens_tensor = output_tokens_tensor.cuda()
-                    input_tokens_tensor = input_tokens_tensor.cuda()
-            _verbose = verbose
+                pdb.set_trace()
+                input_mask, output_tokens_tensor, input_tokens_tensor = get_label_per_bpe(args.tasks, batch, input_tokens_tensor,
+                                                                                          input_alignement_with_raw,
+                                                                                          use_gpu,
+                                                                                          tasks_parameters=TASKS_PARAMETER)
             # logging
-            verbose_level = _verbose if _verbose in ["raw_data", "alignement"] else "raw_data"
-            logging_processing_data(_verbose, verbose, verbose_level, batch_raw_input,input_tokens_tensor,
+            verbose_level = verbose if verbose in ["raw_data", "alignement"] else "raw_data"
+            logging_processing_data(verbose, verbose, verbose_level, batch_raw_input, input_tokens_tensor,
                                     batch_raw_output, output_tokens_tensor, inp_bpe_tokenized, out_bpe_tokenized)
+
             _1_to_n_token = 0
             if task_normalize_is:
                 # aligning output BPE with input
@@ -590,13 +557,25 @@ def epoch_run(batchIter, tokenizer,
 
             # multitask :
             elif args.multitask:
+                pdb.set_trace()
                 # labels should be handled regardless of the number and the tasks nature
-                # --> dict task:label
+                # --> dict task:label in task_pos_is
+                # support all word level so far (parsing, pos) then only include normalization
+                #   --> could output a dict of task with label list  : label : [] , label_values : []
                 # --> then loss and logits based on the task
+                #   - sum all loss in a distinct way them : for reporting in tensorboard
                 # --> expand the tasks like parsing (2 folds tasks)
                 # --> compute gradient based on policy and update at train time
                 # --> predict all tasks at pred time and write them down
+                #   - using argsort
+                #   - handle topk prediction for each task with default one
+                #   - for all word level tasks : normalization, tagging, edit, parsing :
+                #       handle realignement to words
+                #   - write in conll
+                #   - score each tasks
                 # --> evaluate them based on labels
+                batch.types
+                batch.heads
                 _, loss_dict, _ = model(input_tokens_tensor, token_type_ids)
                 # temporary
                 task_normalize_is = False

@@ -3,7 +3,8 @@ from env.models_dir import BERT_MODEL_DIC
 from model.bert_tools_from_core_code.tokenization import BertTokenizer
 from env.project_variables import *
 from io_.dat.constants import *
-from env.project_variables import EN_LINES_EWT_TRAIN, LIU_DEV, TRAINING, DEMO, TASKS_PARAMETER
+from env.project_variables import EN_LINES_EWT_TRAIN, LIU_DEV, TRAINING, DEMO
+from env.tasks_settings import TASKS_PARAMETER
 from io_.dat import conllu_data
 from io_.info_print import printing, print_char_seq, disable_tqdm_level
 from io_.bert_iterators_tools.alignement import aligned_output, realigne

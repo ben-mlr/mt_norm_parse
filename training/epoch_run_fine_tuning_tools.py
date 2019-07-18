@@ -1,5 +1,5 @@
-from env.importing import pdb, OrderedDict
-from io_.dat.constants import SPECIAL_TOKEN_LS
+
+from io_.dat.constants import SPECIAL_TOKEN_LS, PAD_ID_BERT
 from io_.printout_iterator_as_raw import printing
 from io_.dat.normalized_writer import write_conll
 

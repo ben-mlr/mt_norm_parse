@@ -24,16 +24,12 @@ def train_eval_bert_normalize(args, verbose=1):
     #tasks = ["normalize"]
 
     args.bert_model = get_bert_name(args.bert_model)
-
     voc_tokenizer = BERT_MODEL_DIC[args.bert_model]["vocab"]
     model_dir = BERT_MODEL_DIC[args.bert_model]["model"]
     vocab_size = BERT_MODEL_DIC[args.bert_model]["vocab_size"]
 
-    initialize_bpe_layer = args.initialize_bpe_layer
-    freeze_parameters = args.freeze_parameters
-    freeze_layer_prefix_ls = args.freeze_layer_prefix_ls
     # ["bert"]
-    voc_pos_size = 19 #18+1 for alg_arabizi # 53+1 for ARABIZI 1# 21 is for ENGLISH
+    voc_pos_size = 21  #18+1 for alg_arabizi # 53+1 for ARABIZI 1# 21 is for ENGLISH
     printing("MODEL : voc_pos_size hardcoded to {}", var=voc_pos_size, verbose_level=1, verbose=verbose)
 
     debug = True
@@ -70,7 +66,6 @@ def train_eval_bert_normalize(args, verbose=1):
                                               mask_n_predictor=args.append_n_mask,
                                               add_task_2_for_downstream=True,
                                               checkpoint_dir=args.checkpoint_dir, debug=debug)
-
         add_task_2 = False
         if add_task_2:
             printing("MODEL : adding extra classifer for task_2  with {} label", var=[voc_pos_size],
@@ -78,11 +73,8 @@ def train_eval_bert_normalize(args, verbose=1):
             model.classifier_task_2 = nn.Linear(model.bert.config.hidden_size, voc_pos_size)
             model.num_labels_2 = voc_pos_size
 
-
     null_token_index = BERT_MODEL_DIC[args.bert_model]["vocab_size"]  # based on bert cased vocabulary
     description = "grid"
-    dir_grid = args.overall_report_dir
-
     list_reference_heuristic_test = pickle.load(open(os.path.join(PROJECT_PATH,"data/wiki-news-FAIR-SG-top50000.pkl"), "rb"))
     slang_dic = json.load(open(os.path.join(PROJECT_PATH, "data/urban_dic_abbreviations.json"), "r"))
 
@@ -95,7 +87,6 @@ def train_eval_bert_normalize(args, verbose=1):
 
     printing("INFO : tasks is {} so setting early_stoppin_metric to {} ", var=[args.tasks, early_stoppin_metric], verbose=verbose, verbose_level=1)
     printing("INFO : environ is {} so debug set to {}", var=[os.environ.get("ENV", "Unkwnown"),debug], verbose_level=1, verbose=verbose)
-
     # MLM in multitas mode is temporary and require task_i indexing : that's why we need to rename ponderation dictionary
     args.multi_task_loss_ponderation = update_multitask_loss(args.multi_task_loss_ponderation)
 

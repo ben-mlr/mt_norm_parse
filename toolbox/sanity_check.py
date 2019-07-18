@@ -1,4 +1,5 @@
-from env.project_variables import AVAILABLE_TASKS, MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE, AVAILABLE_WORD_LEVEL_LABELLING_MODE, TASKS_PARAMETER
+from env.project_variables import AVAILABLE_TASKS, MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE, AVAILABLE_WORD_LEVEL_LABELLING_MODE
+from env.tasks_settings import TASKS_PARAMETER
 import time
 from io_.info_print import printing
 

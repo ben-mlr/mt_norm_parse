@@ -385,7 +385,7 @@ if __name__ == "__main__":
                                                                                  "edit_prediction": 0}],
                                                 write_to_dir=RUN_SCRIPTS_DIR)
 
-          FINE_TUNE_BERT = False
+          FINE_TUNE_BERT = True
           if FINE_TUNE_BERT:
               epochs = 1
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
@@ -424,16 +424,16 @@ if __name__ == "__main__":
                                                   #dev_path=[[TWEETS_GANESH_DEV]],
                                                   #train_path=[[LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED]], dev_path=[[LIU_DEV]],
                                                   #train_path=[[CODE_MIXED_RAW_TRAIN_SMALL]], dev_path=[[CODE_MIXED_RAW_CUT_DEV]],
-                                                  train_path=[[ARABIZI_TRAIN_POS]], dev_path=[[ARABIZI_DEV_POS]],
+                                                  train_path=[[EWT_DEV]], dev_path=[[EWT_DEV]],
                                                   #train_path=[[EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV]],
                                                   #train_path=[[AUGMENTED_LEX_DIC[n_sent]] for n_sent in [80, 100, 120, 150, 250, 350]],
                                                   #dev_path=[[LIU_DEV] for n_sent in [80, 100, 120,150,250,350]],
-                                                  test_paths=[[[ARABIZI_TEST_POS], [ARABIZI_TRAIN_POS], [ARABIZI_DEV_POS]]],
+                                                  #test_paths=[[[ARABIZI_TEST_POS], [ARABIZI_TRAIN_POS], [ARABIZI_DEV_POS]]],
                                                   #test_paths=[[[CODE_MIXED_RAW_CUT_TEST]]],
                                                   #test_paths=[[[LIU_DEV], [DEV], [TEST], [LEX_TEST], [LEX_DEV_SPLIT_2], [LEX_TRAIN]]],# for _ in [80, 100, 120,150,250,350]],
                                                   #test_paths=[[[LEX_TRAIN_SPLIT_2], [LEX_DEV_SPLIT_2], [LEX_TEST]]],# [[LEX_TRAIN_SPLIT_2], [LEX_DEV_SPLIT_2], [LEX_TEST]]],
                                                   #test_paths=[[[EWT_DEV], [EN_LINES_EWT_TRAIN], [EWT_TEST], [DEV], [TEST]], [[LEX_TEST, EWT_DEV], [LIU_DEV, EWT_TEST], [DEV,  DEV], [TEST, TEST]]],
-                                                  #test_paths=[[[EWT_DEV], [EN_LINES_EWT_TRAIN], [EWT_TEST], [DEV], [TEST]]],
+                                                  test_paths=[[[EWT_DEV]]],# [EN_LINES_EWT_TRAIN], [EWT_TEST], [DEV], [TEST]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
@@ -534,7 +534,7 @@ if __name__ == "__main__":
                                                   mode_word_encoding_ls=None,
                                                   dropout_input_ls=None, multi_task_loss_ponderation_ls=None,
                                                   scale_ls=[1])
-          BERT_NORMALIZATION = True
+          BERT_NORMALIZATION = False
 
           if BERT_NORMALIZATION:
               epochs = 1

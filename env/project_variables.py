@@ -82,8 +82,6 @@ MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE = ["uniform", "normalization_100", "
 DEFAULT_SCORING_FUNCTION = "exact_match"
 AVAILABLE_WORD_LEVEL_LABELLING_MODE = ["word", "pos", "norm_not_norm"]
 
-
-
 # DATASETS proportion_pred_train_ls
 TRAINING_LABEL, TRAINING = "en-ud-train", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-train.conllu")
 TRAINING_DEMO_LABEL, TRAINING_DEMO = "en-ud-train_demo", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-train_demo.conllu")
@@ -359,14 +357,15 @@ REPO_W2V = {
 # for some task we need normalize = True for getting the label
 # NB : predicted_classes does not necessarily mean that the task is to predict those classes but that
 # it can be deduced in a straitforward way from he prediciton !!
-TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact_match",
-                                 "predicted_classes": ["NORMED", "NEED_NORM"],
-                                 "predicted_classes_pred_field": ["PRED_NORMED", "PRED_NEED_NORM"]},
-                   "norm_not_norm": {"normalization": True},
-                   "edit_prediction": {"normalization": True},
-                   "pos": {"normalization": False, "default_metric": "accuracy-pos", "pred": ["pos_pred"]},
-                   "parsing": {"normalization": False, "default_metric": None, "pred": ["arc_pred", "label_pred"]},
-                   "all": {"normalization": True}}
+DEP_TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact_match",
+                                     "predicted_classes": ["NORMED", "NEED_NORM"],
+                                     "predicted_classes_pred_field": ["PRED_NORMED", "PRED_NEED_NORM"]},
+                       "norm_not_norm": {"normalization": True},
+                       "edit_prediction": {"normalization": True},
+                       "pos": {"normalization": False, "default_metric": "accuracy-pos", "pred": ["pos_pred"]},
+                       "parsing": {"normalization": False, "default_metric": None, "pred": ["arc_pred", "label_pred"]},
+                       "all": {"normalization": True}}
+
 
 
 # output dir for writing

@@ -4,7 +4,8 @@ from env.project_variables import DEV, LIU_DEV
 
 from io_.dat.constants import *
 from io_.batch_generator import MaskBatch
-from env.project_variables import EN_LINES_EWT_TRAIN, LIU_DEV, TRAINING, DEMO, TASKS_PARAMETER
+from env.project_variables import EN_LINES_EWT_TRAIN, LIU_DEV, TRAINING, DEMO
+from env.tasks_settings import TASKS_PARAMETER
 from io_.dat import conllu_data
 from io_.info_print import printing, print_char_seq, disable_tqdm_level
 from io_.printout_iterator_as_raw import outputing_raw_data_from_iterator
