@@ -6,7 +6,13 @@ SEED_TORCH = 123
 # ENVIRONMENT VARIABLES
 PROJECT_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 RUN_SCRIPTS_DIR = os.path.join(PROJECT_PATH, "run_scripts")
-LM_PROJECT = os.path.join(PROJECT_PATH, "..", "representation", "lm")
+
+
+BERT_MODELS_DIRECTORY = os.path.join(PROJECT_PATH, "..", "representation", "lm", "bert_models")
+#LM_PROJECT = os.path.join(PROJECT_PATH, "..", "representation", "lm")
+
+assert os.path.isdir(BERT_MODELS_DIRECTORY), \
+    "ERROR {} does not exist : you should define it (it's used as out bert models directory) "
 
 # MODELS
 # checkpoint dir if not checkpoint_dir as defined in args.json not found
@@ -18,12 +24,11 @@ if os.environ.get("ENV") == "neff" and NEW_SAVING_DIRECTORY_NEFF:
 else:
     CHECKPOINT_DIR = os.path.join(PROJECT_PATH, "checkpoints")
 
-# CHECKPOINT_DIR = os.path.join(PROJECT_PATH, "checkpoints")
-# SPECIFIC LCATION FOR BERT CHECKPOINT
-
 CHECKPOINT_BERT_DIR = os.path.join(CHECKPOINT_DIR, "bert")
 
-assert os.path.isdir(CHECKPOINT_BERT_DIR), "ERROR : {} CHECKPOINT_BERT_DIR  does not exist  ".format(CHECKPOINT_BERT_DIR)
+assert os.path.isdir(CHECKPOINT_BERT_DIR), \
+    "ERROR : {} CHECKPOINT_BERT_DIR  does not exist : you should create it in {} ".format(CHECKPOINT_BERT_DIR, CHECKPOINT_DIR)
+
 
 CLIENT_GOOGLE_CLOUD = os.path.join(PROJECT_PATH, "tracking/google_api")
 SHEET_NAME_DEFAULT, TAB_NAME_DEFAULT = "model_evaluation", "experiments_tracking"
@@ -34,6 +39,7 @@ NONE_ARGS = ["gpu"]
 BOOL_ARGS = ["word_embed", "teacher_force", "char_decoding", "unrolling_word", "init_context_decoder",
              "word_decoding", "stable_decoding_state", "char_src_attention"]
 DIC_ARGS = ["multi_task_loss_ponderation", "lr"]
+
 GPU_AVAILABLE_DEFAULT_LS = ["0", "1", "2", "3"]
 
 # architecture/model/training supported
@@ -83,6 +89,7 @@ DEFAULT_SCORING_FUNCTION = "exact_match"
 AVAILABLE_WORD_LEVEL_LABELLING_MODE = ["word", "pos", "norm_not_norm"]
 
 # DATASETS proportion_pred_train_ls
+
 TRAINING_LABEL, TRAINING = "en-ud-train", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-train.conllu")
 TRAINING_DEMO_LABEL, TRAINING_DEMO = "en-ud-train_demo", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-train_demo.conllu")
 
@@ -194,12 +201,11 @@ TWEETS_GANESH_DEV_LABEL, TWEETS_GANESH_DEV = "pan_tweets_200k", os.path.join(PRO
 
 
 #PERMUTATION
-PERMUTATION_TRAIN_LABEL, PERMUTATION_TRAIN = "permutation-train", \
-                                             os.path.join(PROJECT_PATH, "./data/permutation-train.conll")
-PERMUTATION_TEST_LABEL, PERMUTATION_TEST= "permutation-test", \
-                                          os.path.join(PROJECT_PATH, "./data/permutation-test.conll")
+PERMUTATION_TRAIN_LABEL, PERMUTATION_TRAIN = "permutation-train", os.path.join(PROJECT_PATH, "./data/permutation-train.conll")
+PERMUTATION_TEST_LABEL, PERMUTATION_TEST= "permutation-test", os.path.join(PROJECT_PATH, "./data/permutation-test.conll")
 PERMUTATION_TRAIN_DIC = {}
 PERMUTATION_TRAIN_LABEL_DIC = {}
+
 for n_sent in [100, 1000, 10000, 50000, 100000, 200000]:
     dir_train = "{}-{}{}".format(PERMUTATION_TRAIN[:-6], n_sent, PERMUTATION_TRAIN[-6:])
     PERMUTATION_TRAIN_DIC[n_sent] = dir_train

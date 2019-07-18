@@ -7,7 +7,7 @@ from evaluate.scoring.confusion_matrix_rates import get_perf_rate
 
 #sys.path.insert(0, os.path.join(os.environ.get("EXPERIENCE", ".."), "experimental_pipe"))
 sys.path.append(os.environ.get("EXPERIENCE"))
-from reporting.write_to_performance_repo import report_template, write_dic
+from reporting.write_to_performance_repo import report_template
 
 
 def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, score_dic, n_tokens_dic, n_sents_dic, model_id, tasks, args_dir, data_label, reports, writer, log_perf,
@@ -34,17 +34,22 @@ def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, scor
                 n_sents = n_sents_dic[task][agg_func][sample]
                 # metric_val = "accuracy-exact-{}".format(tasks[1] if len(tasks)>1 else tasks[0])
                 metric_val = "accuracy-exact-{}".format(task)
-                report = report_template(metric_val=metric_val, subsample=sample +label_heuristic, info_score_val=None,
-                                         score_val=score /n_tokens if n_tokens > 0 else None,
-                                         n_sents=n_sents,
-                                         avg_per_sent=0,
-                                         n_tokens_score=n_tokens,
-                                         model_full_name_val=model_id, task=tasks,
-                                         evaluation_script_val="exact_match",
-                                         model_args_dir=args_dir,
-                                         token_type="word",
-                                         report_path_val=None,
-                                         data_val=data_label)
+
+                try:
+                    report = report_template(metric_val=metric_val, subsample=sample +label_heuristic, info_score_val=None,
+                                             score_val=score /n_tokens if n_tokens > 0 else None,
+                                             n_sents=n_sents,
+                                             avg_per_sent=0,
+                                             n_tokens_score=n_tokens,
+                                             model_full_name_val=model_id, task=tasks,
+                                             evaluation_script_val="exact_match",
+                                             model_args_dir=args_dir,
+                                             token_type="word",
+                                             report_path_val=None,
+                                             data_val=data_label)
+                except Exception as e:
+                    print(e)
+                    print("REPORT : ")
 
                 if early_stoppin_metric is not None:
                     if metric_val == early_stoppin_metric and subsample_early_stoping_metric_val == sample +label_heuristic and score is not None:
@@ -70,13 +75,18 @@ def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, scor
                     score, n_rate_universe = get_perf_rate(metric=metric_val, n_tokens_dic=n_tokens_dic["normalize"],
                                                            score_dic=score_dic["normalize"],
                                                            agg_func=agg_func)
-                    report = report_template(metric_val=metric_val, subsample="rates" +label_heuristic,
-                                             info_score_val=None,
-                                             score_val=score, n_sents=n_sents_dic["normalize"][agg_func]["all"],
-                                             avg_per_sent=0,
-                                             n_tokens_score=n_rate_universe, model_full_name_val=model_id, task=tasks,
-                                             evaluation_script_val="exact_match", model_args_dir=args_dir,
-                                             token_type="word", report_path_val=None, data_val=data_label)
+                    try:
+                        report = report_template(metric_val=metric_val, subsample="rates" +label_heuristic,
+                                                 info_score_val=None,
+                                                 score_val=score, n_sents=n_sents_dic["normalize"][agg_func]["all"],
+                                                 avg_per_sent=0,
+                                                 n_tokens_score=n_rate_universe, model_full_name_val=model_id, task=tasks,
+                                                 evaluation_script_val="exact_match", model_args_dir=args_dir,
+                                                 token_type="word", report_path_val=None, data_val=data_label)
+                    except Exception as e:
+                        print(e)
+                        print("REPORT ")
+
                     if early_stoppin_metric is not None:
                         if metric_val == early_stoppin_metric and subsample_early_stoping_metric_val == "rates" +label_heuristic and score is not None:
                             early_stoppin_metric_val = -score

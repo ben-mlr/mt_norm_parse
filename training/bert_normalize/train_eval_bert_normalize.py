@@ -32,7 +32,7 @@ def train_eval_bert_normalize(args, verbose=1):
     voc_pos_size = 21  #18+1 for alg_arabizi # 53+1 for ARABIZI 1# 21 is for ENGLISH
     printing("MODEL : voc_pos_size hardcoded to {}", var=voc_pos_size, verbose_level=1, verbose=verbose)
 
-    debug = True
+    debug = False
     if os.environ.get("ENV") in ["rioc", "neff"]:
         debug = False
     if args.checkpoint_dir is None:
@@ -55,7 +55,8 @@ def train_eval_bert_normalize(args, verbose=1):
                                                   initialize_bpe_layer=args.initialize_bpe_layer,
                                                   debug=debug)
     else:
-        printing("MODEL : reloading from checkpoint {} all models parameters are ignored except task bert module and layer_wise_attention", var=[args.checkpoint_dir], verbose_level=1, verbose=verbose)
+        printing("MODEL : reloading from checkpoint {} all models parameters are "
+                 "ignored except task bert module and layer_wise_attention", var=[args.checkpoint_dir], verbose_level=1, verbose=verbose)
         # TODO args.original_task  , vocab_size is it necessary
         original_task = ["normalize"]
         print("WARNING : HARDCODED add_task_2_for_downstream : True ")

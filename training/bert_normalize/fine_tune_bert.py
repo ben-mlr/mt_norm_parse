@@ -183,7 +183,7 @@ def run(args,
                                                               fine_tuning_strategy=args.fine_tuning_strategy,
                                                               lr_init=args.lr, betas=(0.9, 0.99),
                                                               epoch=epoch, verbose=verbose)
-                print("RUNNING TRAIN on GET_BATCH_MODE ")
+                printing("TRAINING : training on GET_BATCH_MODE ", verbose=verbose, verbose_level=2)
                 loss_train, iter_train, perf_report_train, _ = epoch_run(batchIter_train, tokenizer,
                                                                          args=args,
                                                                          pos_dictionary=pos_dictionary,

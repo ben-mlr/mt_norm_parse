@@ -521,6 +521,7 @@ def epoch_run(batchIter, tokenizer,
                                                                score_dic=score_dic["n_masks_pred"],
                                                                n_tokens_dic=n_tokens_dic["n_masks_pred"],
                                                                n_sents_dic=n_sents_dic["n_masks_pred"])
+                            evaluated_task.append("n_masks_pred")
                         elif task_normalize_is:
                             # we fill it with an empty report for simplifying reporting
                             accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
@@ -536,7 +537,7 @@ def epoch_run(batchIter, tokenizer,
                                                            score_dic=score_dic["n_masks_pred"],
                                                            n_tokens_dic=n_tokens_dic["n_masks_pred"],
                                                            n_sents_dic=n_sents_dic["n_masks_pred"])
-                        evaluated_task.append("n_masks_pred")
+                            evaluated_task.append("n_masks_pred")
 
                         evaluated_task.append(predicted_task)
                         perf_prediction, skipping, _samples = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk, topk, metric=metric, samples=samples, agg_func_ls=agg_func_ls, reference_word_dic=reference_word_dic, compute_intersection_score=compute_intersection_score, src_detokenized=src_detokenized)
@@ -574,8 +575,8 @@ def epoch_run(batchIter, tokenizer,
                 #   - write in conll
                 #   - score each tasks
                 # --> evaluate them based on labels
-                batch.types
-                batch.heads
+                #batch.types
+                #batch.heads
                 _, loss_dict, _ = model(input_tokens_tensor, token_type_ids)
                 # temporary
                 task_normalize_is = False
