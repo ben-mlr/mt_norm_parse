@@ -22,7 +22,6 @@ def update_multitask_loss(multi_task_loss_ponderation):
 def train_eval_bert_normalize(args, verbose=1):
 
     #tasks = ["normalize"]
-
     args.bert_model = get_bert_name(args.bert_model)
     voc_tokenizer = BERT_MODEL_DIC[args.bert_model]["vocab"]
     model_dir = BERT_MODEL_DIC[args.bert_model]["model"]
@@ -32,14 +31,14 @@ def train_eval_bert_normalize(args, verbose=1):
     voc_pos_size = 21  #18+1 for alg_arabizi # 53+1 for ARABIZI 1# 21 is for ENGLISH
     printing("MODEL : voc_pos_size hardcoded to {}", var=voc_pos_size, verbose_level=1, verbose=verbose)
 
-    debug = False
+    debug = True
     if os.environ.get("ENV") in ["rioc", "neff"]:
         debug = False
     if args.checkpoint_dir is None:
         # TODO vocab_size should be loaded from args.json
         # TEMPORARY : should eventually keep only : model = make_bert_multitask()
         if args.multitask:
-            model = make_bert_multitask(pretrained_model_dir=model_dir, tasks=["parsing"])
+            model = make_bert_multitask(pretrained_model_dir=model_dir, tasks=["pos"])
         else:
             model = get_bert_token_classification(pretrained_model_dir=model_dir,
                                                   vocab_size=vocab_size,

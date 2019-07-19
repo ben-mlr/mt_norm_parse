@@ -175,3 +175,16 @@ def init_score_token_sent_dict(samples_per_task_reporting, tasks, agg_func_ls, c
 
     return score_dic, n_tokens_dic, n_sents_dic
 
+
+def dimension_check_label(label_per_task, input_tokens_tensor):
+    for task, labels in label_per_task.items():
+        labels.size(0) == input_tokens_tensor.size(
+            0), "task {} output_tokens_tensor_aligned.size(0) {} input_tokens_tensor.size() {}".format(task,
+                                                                                                       labels.size(),
+                                                                                                       input_tokens_tensor.size())
+        labels.size(1) == input_tokens_tensor.size(
+            1), "task {} output_tokens_tensor_aligned.size(1) {} input_tokens_tensor.size() {}".format(task,
+                                                                                                       labels.size(
+                                                                                                           1),
+                                                                                                       input_tokens_tensor.size(
+                                                                                                           1))

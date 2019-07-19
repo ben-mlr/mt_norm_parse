@@ -847,15 +847,34 @@ class BertForPreTraining(BertPreTrainedModel):
             return prediction_scores, seq_relationship_score
 
 
-
 from model.parser_modules import (CHAR_LSTM, MLP, Biaffine, BiLSTM, IndependentDropout, SharedDropout)
+
+
+class BertTokenHead(nn.Module):
+
+    def __init__(self, config, num_labels, dropout_classifier):
+        super(BertTokenHead, self).__init__()
+        self.classifier = nn.Linear(config.hidden_size, num_labels)
+        self.dropout = nn.Dropout(dropout_classifier) if dropout_classifier is not None else None
+        #self.apply(self.init_bert_weights)
+
+    def forward(self, x, attention_mask):
+
+        logits = self.classifier_task_1(x)
+        # Only keep active parts of the loss
+        if attention_mask is not None:
+            active_loss = attention_mask.view(-1) == 1
+            active_logits = logits.view(-1, self.num_labels)[active_loss]
+
+        return active_logits
 
 
 class BertGraphHead(nn.Module):
     # the MLP layers
-    def __init__(self, config):
+    def __init__(self, config, dropout_classifier=None, num_labels=None):
         super(BertGraphHead, self).__init__()
-
+        assert dropout_classifier is None
+        assert num_labels is None
         n_mlp_arc = 100
         n_mlp_rel = 100
 
@@ -921,7 +940,7 @@ class BertGraphHead(nn.Module):
 # NB : label fiels should be a list of labels as name in the Batch class
 
 
-TASKS_PARAMETER  = {"normalize": {"normalization": True, "default_metric": "exact_match",
+TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact_match",
                                  "head": None, "loss": CrossEntropyLoss(),
                                 "prediction_level": "word",
                                  "predicted_classes": ["NORMED", "NEED_NORM"],
@@ -938,9 +957,9 @@ TASKS_PARAMETER  = {"normalize": {"normalization": True, "default_metric": "exac
                    "pos": {"normalization": False, "default_metric": "accuracy-pos",
                            "pred": ["pos_pred"],
                            "label": ["pos"],
-                           "head": None,
+                           "head": BertTokenHead,
                            "prediction_level": "word",
-                           "loss": CrossEntropyLoss()},
+                           "loss": CrossEntropyLoss(ignore_index=-1)},
                    "parsing": {
                        "normalization": False,
                        "default_metric": None,
@@ -953,6 +972,7 @@ TASKS_PARAMETER  = {"normalize": {"normalization": True, "default_metric": "exac
                    "all": {"normalization": True,
                            "head": None,
                            "loss": CrossEntropyLoss()}}
+
 
 class BertMultiTask(BertPreTrainedModel):
     """
@@ -969,10 +989,14 @@ class BertMultiTask(BertPreTrainedModel):
         self.labels_supported = [self.task_parameters[task]["label"] for task in tasks]
         for i, task in enumerate(tasks):
             assert task in TASKS_PARAMETER, "ERROR : task {} is not in {}".format(task, TASKS_PARAMETER)
-            self.head[task] = self.task_parameters[task]["head"](config)
+            if task != "pos":
+                self.head[task] = self.task_parameters[task]["head"](config)
+            else:
+                self.head[task] = self.task_parameters[task]["head"](config, num_labels=21, dropout_classifier=0.1)
 
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None, **labels):
-
+    def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None):
+        if labels is None:
+            labels = OrderedDict()
         logits_dict = OrderedDict()
         loss_dict = OrderedDict()
 
@@ -980,19 +1004,19 @@ class BertMultiTask(BertPreTrainedModel):
             assert labels in self.labels_supported, "label {} in {} not supported".format(label, labels)
 
         # task_wise layer attention
-
         sequence_output, _ = self.bert(input_ids, token_type_ids=None, attention_mask=None, output_all_encoded_layers=self.layer_wise_attention is not None)
         for task in self.tasks:
             # --> make sur
             print("MASK IGNORED")
-
             logits_dict[task] = self.head[task](sequence_output, mask=None)
             # TODO : handle several labels at output
-            if self.task_parameters[task]["label"] in labels:
-                # compute loss
-                # append it to dictionary
-                loss_dict[task] = self.task_parameters[task]["loss"](logits_dict[task],
-                                                                     labels[self.task_parameters[task]["label"]])
+            pdb.set_trace()
+            for label_task in self.task_parameters[task]["label"]:
+                if label_task in labels:
+                    # compute loss
+                    # append it to dictionary
+                    pdb.set_trace()
+                    loss_dict[task] = self.task_parameters[task]["loss"](logits_dict[task], labels[label_task])
         # thrid output is for potential attention weights
         return logits_dict, loss_dict, None
 
@@ -1431,6 +1455,7 @@ class BertForTokenClassification(BertPreTrainedModel):
         super(BertForTokenClassification, self).__init__(config)
         self.num_labels = num_labels
         self.bert = BertModel(config)
+
         if dropout_classifier is None:
             dropout_classifier = config.hidden_dropout_prob
             log = "DEFAULT"
@@ -1444,6 +1469,8 @@ class BertForTokenClassification(BertPreTrainedModel):
         self.num_labels_n_mask = 5
         self.num_labels_2 = num_labels_2
         self.loss_weights_default = OrderedDict([("loss_task_1", 1), ("loss_task_2", 1), ("loss_task_n_mask_prediction", 1)])
+
+        self.classifier_task_1 = nn.Linear(config.hidden_size, num_labels)
         self.apply(self.init_bert_weights)
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None,

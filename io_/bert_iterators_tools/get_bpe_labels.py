@@ -55,6 +55,8 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
     (in regard to the task type , so far only word level is supported)
     """
     #  TODO : should be done in pytorch + reducancies with get_index
+
+    label_per_task = OrderedDict()
     input_mask, output_tokens_tensor = None, None
     if False and tasks[0] == "pos" and len(tasks) == 1:
 
@@ -98,10 +100,12 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
         input_mask = torch.Tensor(_input_mask).long()
         input_tokens_tensor = torch.Tensor(new_input).long()
 
+        output_tokens_tensor_aligned = output_tokens_tensor[:, : input_tokens_tensor.size(1)]
+        output_tokens_tensor_aligned = output_tokens_tensor_aligned.contiguous()
+        token_type_ids = torch.zeros_like(input_tokens_tensor)
+
         if use_gpu:
-            input_mask = input_mask.cuda()
-            output_tokens_tensor = output_tokens_tensor.cuda()
-            input_tokens_tensor = input_tokens_tensor.cuda()
+            output_tokens_tensor_aligned = output_tokens_tensor_aligned.cuda()
 
     elif "pos" in tasks or "parsing" in tasks:
         pdb.set_trace()
@@ -115,7 +119,20 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
                     output_tokens_tensor, input_mask, input_tokens_tensor = \
                         get_bpe_label_word_level_task(label, batch, input_tokens_tensor, input_alignement_with_raw)
 
+                    output_tokens_tensor_aligned = output_tokens_tensor[:, : input_tokens_tensor.size(1)]
+                    output_tokens_tensor_aligned = output_tokens_tensor_aligned.contiguous()
+                    if use_gpu:
+                        output_tokens_tensor_aligned = output_tokens_tensor_aligned.cuda()
+
+                    label_per_task[task] = output_tokens_tensor_aligned
     else:
         raise(Exception("ERROR : only pos supported so far "))
 
-    return input_mask, output_tokens_tensor, input_tokens_tensor
+    token_type_ids = torch.zeros_like(input_tokens_tensor)
+
+    if use_gpu:
+        input_mask = input_mask.cuda()
+        input_tokens_tensor = input_tokens_tensor.cuda()
+        token_type_ids = token_type_ids.cuda()
+
+    return input_mask, input_tokens_tensor, token_type_ids, label_per_task

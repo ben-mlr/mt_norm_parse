@@ -153,7 +153,6 @@ def run(args,
         early_stoping_val_former = 1000
         try:
             for epoch in range(args.epochs):
-
                 checkpointing_model_data = (epoch % saving_every_epoch == 0 or epoch == (args.epochs - 1))
                 # build iterator on the loaded data
                 batchIter_train = data_gen_multi_task_sampling_batch(tasks=args.tasks, readers=readers_train, batch_size=args.batch_size,
