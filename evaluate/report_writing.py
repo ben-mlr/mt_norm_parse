@@ -1,4 +1,4 @@
-
+from env.importing import pdb, sys, os
 import sys
 import os
 
@@ -14,9 +14,11 @@ except:
     print("REPORTING modules downloaded from local project ")
 
 
-
 def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, score_dic, n_tokens_dic, n_sents_dic, model_id, tasks, args_dir, data_label, reports, writer, log_perf,
                      early_stoppin_metric_val, early_stoppin_metric, mode, subsample_early_stoping_metric_val, epoch):
+
+    score = None
+    n_tokens = 0
     assert isinstance(samples, dict), "ERROR samples : {}".format(samples)
     for task in list(set(evaluated_task)):
         assert task in samples, "ERROR : task {} was not found in samples dictionary {}".format(task, samples)
@@ -53,7 +55,6 @@ def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, scor
                                              report_path_val=None,
                                              data_val=data_label)
                 except Exception as e:
-
                     print("REPORT : ")
                     raise (e)
                 if early_stoppin_metric is not None:

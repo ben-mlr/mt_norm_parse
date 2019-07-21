@@ -10,7 +10,9 @@ from evaluate.report_writing import report_score_all
 from evaluate.scoring.report import overall_word_level_metric_measure
 from model.n_masks_predictor import pred_n_bpe
 from toolbox.pred_tools.heuristics import predict_with_heuristic
-from training.epoch_run_fine_tuning_tools import get_casing, logging_processing_data, logging_scores, log_warning, print_align_bpe, tensorboard_loss_writer_batch_level, tensorboard_loss_writer_epoch_level, writing_predictions_conll, init_score_token_sent_dict, dimension_check_label
+from training.epoch_run_fine_tuning_tools import get_casing, logging_processing_data, logging_scores, log_warning, print_align_bpe, tensorboard_loss_writer_batch_level, tensorboard_loss_writer_batch_level_multi, \
+    tensorboard_loss_writer_epoch_level, \
+    writing_predictions_conll, init_score_token_sent_dict, dimension_check_label
 from io_.bert_iterators_tools.get_bpe_labels import get_label_per_bpe
 from toolbox.deep_learning_toolbox import dropout_input_tensor
 
@@ -59,7 +61,7 @@ def epoch_run(batchIter, tokenizer,
         samples_per_task_reporting = SAMPLES_PER_TASK_TO_REPORT
     if task_to_eval is not None:
         args.tasks = task_to_eval
-        print("WARNING : task_to_eval was provided ")
+        printing("WARNING : task_to_eval was provided ", verbose=verbose, verbose_level=1)
     if ponderation_loss_policy == "static":
         if args.multi_task_loss_ponderation is None:
             args.multi_task_loss_ponderation = OrderedDict([("loss_task_1", 1), ("loss_task_2", 1), ("loss_task_n_mask_prediction", 1)])
@@ -181,6 +183,7 @@ def epoch_run(batchIter, tokenizer,
             task_pos_is = len(batch.raw_output[0]) == 0
             # only one task supported at a time per batch so far based on the input batch
             task_normalize_is = not task_pos_is
+            task_pos_is = False
             # case the batches if case is 'lower'
             batch = get_casing(case, batch, task_normalize_is)
             #print("ITERATING on {} task".format("pos" if task_pos_is else "normalize"))
@@ -315,7 +318,8 @@ def epoch_run(batchIter, tokenizer,
             if args.append_n_mask and task_normalize_is:
                 labels_n_mask_prediction = pred_n_bpe(input_tokens_tensor == mask_token_index)
                 # sanity test : are mask correectly encoded as -1
-                assert (((input_tokens_tensor == mask_token_index).nonzero() == (labels_n_mask_prediction == -1).nonzero())).all()
+                assert (((input_tokens_tensor == mask_token_index).nonzero()
+                         == (labels_n_mask_prediction == -1).nonzero())).all()
                 # Assigning padded input to label -1 for loss ignore
                 labels_n_mask_prediction[input_tokens_tensor == 0] = -1
 
@@ -452,8 +456,8 @@ def epoch_run(batchIter, tokenizer,
                         prediction_n_mask = torch.argsort(logits["logits_n_mask_prediction"], dim=-1, descending=True)[:, :, 0]
 
                     if logits_task_label != "parsing":
-                        predictions_topk[logits_task_label] = torch.argsort(logits[logits_task_label], dim=-1, descending=True)[:, :, :topk]
-
+                        predictions_topk[logits_task_label] = torch.argsort(logits[logits_task_label],
+                                                                            dim=-1, descending=True)[:, :, :topk]
                     # from bpe index to string
                     sent_ls_top = from_bpe_token_to_str(predictions_topk[logits_task_label], topk, tokenizer=tokenizer,
                                                         pred_mode=True, pos_dictionary=pos_dictionary,
@@ -512,8 +516,11 @@ def epoch_run(batchIter, tokenizer,
                     try:
                         if task_normalize_is and args.append_n_mask:
                             perf_prediction_n_mask, skipping_n_mask, _ = \
-                                overall_word_level_metric_measure(labels_n_mask_prediction.tolist(), [prediction_n_mask.tolist()], topk=1,
-                                                                  metric=metric, samples=samples_per_task_reporting["n_masks_pred"], agg_func_ls=agg_func_ls,
+                                overall_word_level_metric_measure(labels_n_mask_prediction.tolist(),
+                                                                  [prediction_n_mask.tolist()], topk=1,
+                                                                  metric=metric,
+                                                                  samples=samples_per_task_reporting["n_masks_pred"],
+                                                                  agg_func_ls=agg_func_ls,
                                                                   reference_word_dic=reference_word_dic,
                                                                   compute_intersection_score=False,
                                                                   src_detokenized=None)
@@ -562,15 +569,10 @@ def epoch_run(batchIter, tokenizer,
 
             # multitask :
             elif args.multitask:
-                pdb.set_trace()
                 # labels should be handled regardless of the number and the tasks nature
-                # --> dict task:label in task_pos_is
                 # support all word level so far (parsing, pos) then only include normalization
-                #   --> could output a dict of task with label list  : label : [] , label_values : []
                 # --> then loss and logits based on the task
-                #   - sum all loss in a distinct way them : for reporting in tensorboard
                 # --> expand the tasks like parsing (2 folds tasks)
-                # --> compute gradient based on policy and update at train time
                 # --> predict all tasks at pred time and write them down
                 #   - using argsort
                 #   - handle topk prediction for each task with default one
@@ -579,17 +581,33 @@ def epoch_run(batchIter, tokenizer,
                 #   - write in conll
                 #   - score each tasks
                 # --> evaluate them based on labels
-                #batch.types
-                #batch.heads
-                _, loss_dict, _ = model(input_tokens_tensor, token_type_ids, label_per_task)
+                # HANDLE THE CASE FOR WHICH ONLY PREDICTION
+                # TODO:
+                # - prediction
+                # - factorize masking
+
+                logits_dic, loss_dic, _ = model(input_tokens_tensor, token_type_ids, labels=label_per_task, attention_mask=None)
+                #
+                if len(list(loss_dic.keys()) & set(TASKS_PARAMETER.keys())) != len(loss_dic.keys()):
+                    # it means a given task has several set of labels (e.g parsing)
+                    # should do same for logits
+                    pass
+
+                def get_multitask_loss(tasks, loss_dict, ponderation):
+                    loss = 0
+                    for task in tasks:
+                        loss += ponderation[task]*loss_dict[task]
+                    return loss
+
+                _loss = get_multitask_loss(args.tasks, loss_dic,
+                                           args.multi_task_loss_ponderation)
                 # temporary
-                pdb.set_trace()
                 task_normalize_is = False
                 task_pos_is = False
                 # based on a policy : handle batch, epoch, batch weights, simultanuous
                 # --> define a unique loss that we backward
                 # assert the policy is consistent with the available labels fed to the model
-                if args.multitask:
+                if args.multitask and False:
                     logits, _, _ = model(input_tokens_tensor, token_type_ids)
                     logits_task_label = "parsing"
                     # handle multitmodal tasks in a generic way (lookup to TASK_PARAMETERS)
@@ -597,14 +615,14 @@ def epoch_run(batchIter, tokenizer,
                         logits["parsing_relation"] = logits["parsing"][0]
                         logits["parsing_labels"] = logits["parsing"][1]
                         del logits["parsing"]
-                pdb.set_trace()
             # training :
             loss += _loss.detach()
             if optimizer is not None:
                 _loss.backward()
                 if (low_memory_foot_print_batch_mode and batch_i % batch_size_real == 0) or not low_memory_foot_print_batch_mode:
                     if low_memory_foot_print_batch_mode:
-                        printing("OPTIMIZING in low_memory_foot_print_batch_mode cause batch index {} is batch_size_real",
+                        printing("OPTIMIZING in low_memory_foot_print_batch_mode cause batch index {}"
+                                 " is batch_size_real",
                                  var=[batch_i, batch_size_real], verbose=verbose, verbose_level=1)
                     for opti in optimizer:
                         opti.step()
@@ -614,9 +632,10 @@ def epoch_run(batchIter, tokenizer,
             else:
                 mode = "dev"
                 printing("MODE data {} not optimizing".format(data_label), verbose=verbose, verbose_level=4)
-
             if writer is not None:
                 tensorboard_loss_writer_batch_level(writer, mode, model_id, _loss, batch_i, iter, loss_dic, task_normalize_is,  args.append_n_mask, task_pos_is)
+                if args.multitask:
+                    tensorboard_loss_writer_batch_level_multi(writer, mode, model_id, _loss, batch_i, iter, loss_dic, tasks=args.tasks)
         except StopIteration:
             printing("BREAKING ITERATION", verbose_level=1, verbose=1)
             break
@@ -624,8 +643,7 @@ def epoch_run(batchIter, tokenizer,
     log_warning(counting_failure_parralel_bpe_batch, data_label, batch_i, batch, noisy_under_splitted,
                 skipping_batch_n_to_1, aligned, noisy_over_splitted, skip_1_t_n, skipping_evaluated_batch, verbose)
 
-    early_stoppin_metric_val = None
-
+    early_stoppin_metric_val = 999
     evaluated_task = list(set(evaluated_task))
     if predict_mode:
         if writer is not None:

@@ -85,6 +85,18 @@ def log_warning(counting_failure_parralel_bpe_batch, data_label, batch_i, batch,
              var=[data_label, skipping_evaluated_batch], verbose_level=1, verbose=1)
 
 
+def tensorboard_loss_writer_batch_level_multi(writer, mode, model_id, _loss, batch_i, iter, loss_dic, tasks):
+
+    writer.add_scalars("loss-batch-sum",
+                       {"loss-{}-{}-bpe".format(mode, model_id): _loss.clone().cpu().data.numpy()
+                       if not isinstance(_loss, int) else 0},
+                       iter+batch_i)
+    for task in tasks:
+        writer.add_scalars("loss-batch-{}".format(task),
+                           {"loss-{}-{}-bpe".format(mode, model_id): loss_dic[task].detach().clone().cpu().data.numpy()},
+                           iter + batch_i)
+
+
 def tensorboard_loss_writer_batch_level(writer, mode, model_id, _loss, batch_i, iter, loss_dic,task_normalize_is,  append_n_mask, task_pos_is):
     writer.add_scalars("loss-batch-sum",
                        {"loss-{}-{}-bpe".format(mode, model_id): _loss.clone().cpu().data.numpy()

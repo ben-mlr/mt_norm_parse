@@ -851,7 +851,6 @@ from model.parser_modules import (CHAR_LSTM, MLP, Biaffine, BiLSTM, IndependentD
 
 
 class BertTokenHead(nn.Module):
-
     def __init__(self, config, num_labels, dropout_classifier):
         super(BertTokenHead, self).__init__()
         self.classifier = nn.Linear(config.hidden_size, num_labels)
@@ -859,14 +858,13 @@ class BertTokenHead(nn.Module):
         #self.apply(self.init_bert_weights)
 
     def forward(self, x, attention_mask):
-
-        logits = self.classifier_task_1(x)
+        logits = self.classifier(x)
         # Only keep active parts of the loss
         if attention_mask is not None:
             active_loss = attention_mask.view(-1) == 1
             active_logits = logits.view(-1, self.num_labels)[active_loss]
-
-        return active_logits
+            return active_logits
+        return logits
 
 
 class BertGraphHead(nn.Module):
@@ -954,7 +952,8 @@ TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact
                                        "head": None,
                                        "prediction_level": "word",
                                        "loss": CrossEntropyLoss()},
-                   "pos": {"normalization": False, "default_metric": "accuracy-pos",
+                   "pos": {"normalization": False,
+                           "default_metric": "accuracy-pos",
                            "pred": ["pos_pred"],
                            "label": ["pos"],
                            "head": BertTokenHead,
@@ -986,37 +985,36 @@ class BertMultiTask(BertPreTrainedModel):
         self.tasks = tasks
         self.task_parameters = TASKS_PARAMETER
         self.layer_wise_attention = None
-        self.labels_supported = [self.task_parameters[task]["label"] for task in tasks]
+        self.labels_supported = [label for task in tasks for label in self.task_parameters[task]["label"]]
         for i, task in enumerate(tasks):
             assert task in TASKS_PARAMETER, "ERROR : task {} is not in {}".format(task, TASKS_PARAMETER)
             if task != "pos":
+                # TODO : factorize
                 self.head[task] = self.task_parameters[task]["head"](config)
             else:
-                self.head[task] = self.task_parameters[task]["head"](config, num_labels=21, dropout_classifier=0.1)
+                self.num_labels = 21
+                self.head[task] = self.task_parameters[task]["head"](config, num_labels=self.num_labels, dropout_classifier=0.1)
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None):
         if labels is None:
             labels = OrderedDict()
         logits_dict = OrderedDict()
         loss_dict = OrderedDict()
-
+        # sanity check the labels : they should all be in
         for label, value in labels.items():
-            assert labels in self.labels_supported, "label {} in {} not supported".format(label, labels)
+            assert label in self.labels_supported, "label {} in {} not supported".format(label, self.labels_supported)
 
         # task_wise layer attention
-        sequence_output, _ = self.bert(input_ids, token_type_ids=None, attention_mask=None, output_all_encoded_layers=self.layer_wise_attention is not None)
+        sequence_output, _ = self.bert(input_ids, token_type_ids=None,
+                                       attention_mask=attention_mask,
+                                       output_all_encoded_layers=self.layer_wise_attention is not None)
         for task in self.tasks:
             # --> make sur
-            print("MASK IGNORED")
-            logits_dict[task] = self.head[task](sequence_output, mask=None)
+            logits_dict[task] = self.head[task](sequence_output, attention_mask=attention_mask)
             # TODO : handle several labels at output
-            pdb.set_trace()
             for label_task in self.task_parameters[task]["label"]:
                 if label_task in labels:
-                    # compute loss
-                    # append it to dictionary
-                    pdb.set_trace()
-                    loss_dict[task] = self.task_parameters[task]["loss"](logits_dict[task], labels[label_task])
+                    loss_dict[task] = self.task_parameters[task]["loss"](logits_dict[task].view(-1, self.num_labels), labels[label_task].view(-1))
         # thrid output is for potential attention weights
         return logits_dict, loss_dict, None
 
@@ -1040,9 +1038,7 @@ class BertForTreePrediction(BertPreTrainedModel):
         # feed it to BERT
         # then --> x
         s_arc, s_rel = self.cls(sequence_output)
-
         #pred_arcs, pred_rels = self.decode(s_arc, s_rel)
-
         if labels is not None:
             # output loss Cross entropy ?
             pass

@@ -108,7 +108,6 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
             output_tokens_tensor_aligned = output_tokens_tensor_aligned.cuda()
 
     elif "pos" in tasks or "parsing" in tasks:
-        pdb.set_trace()
 
         for task in tasks:
             for label_name in tasks_parameters[task]["label"]:

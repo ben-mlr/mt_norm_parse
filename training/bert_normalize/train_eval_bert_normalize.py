@@ -21,7 +21,6 @@ def update_multitask_loss(multi_task_loss_ponderation):
 
 def train_eval_bert_normalize(args, verbose=1):
 
-    #tasks = ["normalize"]
     args.bert_model = get_bert_name(args.bert_model)
     voc_tokenizer = BERT_MODEL_DIC[args.bert_model]["vocab"]
     model_dir = BERT_MODEL_DIC[args.bert_model]["model"]
@@ -31,7 +30,7 @@ def train_eval_bert_normalize(args, verbose=1):
     voc_pos_size = 17+1 #18+1 for alg_arabizi # 53+1 for ARABIZI 1# 21 is for ENGLISH
     printing("MODEL : voc_pos_size hardcoded to {}", var=voc_pos_size, verbose_level=1, verbose=verbose)
 
-    debug = False
+    debug = True
     if os.environ.get("ENV") in ["rioc", "neff"]:
         debug = False
     if args.checkpoint_dir is None:
@@ -88,7 +87,8 @@ def train_eval_bert_normalize(args, verbose=1):
     printing("INFO : tasks is {} so setting early_stoppin_metric to {} ", var=[args.tasks, early_stoppin_metric], verbose=verbose, verbose_level=1)
     printing("INFO : environ is {} so debug set to {}", var=[os.environ.get("ENV", "Unkwnown"),debug], verbose_level=1, verbose=verbose)
     # MLM in multitas mode is temporary and require task_i indexing : that's why we need to rename ponderation dictionary
-    args.multi_task_loss_ponderation = update_multitask_loss(args.multi_task_loss_ponderation)
+    if not args.multitask:
+        args.multi_task_loss_ponderation = update_multitask_loss(args.multi_task_loss_ponderation)
 
     run(args=args, model=model, voc_tokenizer=voc_tokenizer,
         description=description, null_token_index=null_token_index, null_str=NULL_STR,
