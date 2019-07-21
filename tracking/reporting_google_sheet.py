@@ -28,6 +28,7 @@ try:
 except Exception as e:
     creds = None
     print(e)
+    print("REPORTING : google sheet reporting not available")
 
 def open_client(credientials=creds, sheet_name=SHEET_NAME_DEFAULT, tab_name=TAB_NAME_DEFAULT):
     client = gspread.authorize(credientials)

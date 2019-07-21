@@ -16,7 +16,7 @@ from env.project_variables import PROJECT_PATH, TRAINING, DEV,EWT_DEV,EWT_PRED_T
     EWT_TEST, TEST, DEMO, DEMO2, LIU, LEX_TEST, REPO_DATASET, CHECKPOINT_DIR, LEX_TRAIN, LIU_TRAIN, LIU_DEV, CP_WR_PASTE_TEST, MTNT_EN_FR_TEST,MTNT_EN_FR_TEST_DEMO
 from toolbox.gpu_related import use_gpu_
 
-sys.path.insert(0, os.environ.get("EXPERIENCE",os.path.join(PROJECT_PATH, "..", "experimental_pipe")))
+sys.path.insert(0, os.environ.get("EXPERIENCE", os.path.join(PROJECT_PATH, "..", "experimental_pipe")))
 try:
     from reporting.write_to_performance_repo import report_template, write_dic
     reportint_unavailable = False

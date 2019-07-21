@@ -44,15 +44,17 @@ To download the all annotaded UD data
 ```
 python ./train_evaluate_bert_normalizer.py 
 ## Data
---train_path ./data/en-ud-dev.integrated.conll  # 
---dev_path ./data/en-ud-dev.integrated.conll # 
---test_path ./data/en-ud-dev.integrated.conll  # 
+--train_path ./data/en-ud-train-demo.conll  # 
+--dev_path ./data/en-ud-dev-demo.conll # 
+--test_path ./data/en-ud-test-demo.conll  # 
 ## tasks 
 --tasks pos ## as a space separated list of task among  ['normalize', 'pos', 'edit', 'norm_not_norm']
 ## tokenization 
 --tokenize_and_bpe 0 #
 ## architecture
 --bert_module mlm # 
+--initialize_bpe_layer 1 #
+--bert_model bert_base_multilingual_cased  # bert models cf. env/model_dir to see available models 
 --aggregating_bert_layer_mode last ## 
 --layer_wise_attention 0 ##
 --append_n_mask 0

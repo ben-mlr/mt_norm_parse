@@ -70,8 +70,9 @@ def run(args,
     if run_mode == "train":
         printing("CHECKPOINTING info : saving model every {}", var=saving_every_epoch, verbose=verbose, verbose_level=1)
     use_gpu = use_gpu_(use_gpu=None, verbose=verbose)
-    train_data_label = "|".join([REPO_DATASET[_train_path] for _train_path in args.train_path])
-    dev_data_label = "|".join([REPO_DATASET[_dev_path] for _dev_path in args.dev_path]) if args.dev_path is not None else None
+
+    train_data_label = "|".join([REPO_DATASET.get(_train_path, "train_{}".format(i)) for i, _train_path in enumerate(args.train_path)])
+    dev_data_label = "|".join([REPO_DATASET.get(_dev_path, "dev_{}".format(i)) for i, _dev_path in enumerate(args.dev_path)]) if args.dev_path is not None else None
     if use_gpu:
         model.to("cuda")
 
@@ -299,8 +300,7 @@ def run(args,
         for test_path in args.test_paths:
             assert len(test_path) == len(args.tasks), "ERROR test_path {} args.tasks {}".format(test_path, args.tasks)
             for test, task_to_eval in zip(test_path, args.tasks):
-                #label_data = "|".join([REPO_DATASET[_test_path] for _test_path in test_path])
-                label_data = REPO_DATASET[test]+"-"+task_to_eval
+                label_data = REPO_DATASET.get(test, "test")+"-"+task_to_eval
                 if len(extra_label_for_prediction) > 0:
                     label_data += "-" + extra_label_for_prediction
                 readers_test = readers_load(datasets=[test],
