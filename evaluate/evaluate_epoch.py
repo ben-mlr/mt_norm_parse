@@ -15,8 +15,14 @@ from env.project_variables import PROJECT_PATH, TRAINING, DEV,EWT_DEV,EWT_PRED_T
     PERMUTATION_TRAIN, PERMUTATION_TEST, \
     EWT_TEST, TEST, DEMO, DEMO2, LIU, LEX_TEST, REPO_DATASET, CHECKPOINT_DIR, LEX_TRAIN, LIU_TRAIN, LIU_DEV, CP_WR_PASTE_TEST, MTNT_EN_FR_TEST,MTNT_EN_FR_TEST_DEMO
 from toolbox.gpu_related import use_gpu_
-sys.path.insert(0, os.path.join(PROJECT_PATH, "..", "experimental_pipe"))
-from reporting.write_to_performance_repo import report_template, write_dic
+
+sys.path.insert(0, os.environ.get("EXPERIENCE",os.path.join(PROJECT_PATH, "..", "experimental_pipe")))
+try:
+    from reporting.write_to_performance_repo import report_template, write_dic
+    reportint_unavailable = False
+except Exception as e:
+    print("REPORTING modules not available")
+    reportint_unavailable = True
 from evaluate.normalization_errors import score_auxiliary
 from env.project_variables import SCORE_AUX
 
@@ -119,18 +125,21 @@ def evaluate(batch_size, data_path, tasks, evaluated_task,
             mode_norm = reg.group(1)
             task = reg.group(2)
             # report all in a dictionary
-            report = report_template(metric_val=score_name,
-                                     info_score_val=mode_norm,
-                                     score_val=score_value,
-                                     n_sents=score_dic_new["n_sents"],
-                                     avg_per_sent=0,
-                                     n_tokens_score=score_dic_new.get(mode_norm+"-"+task+"-gold-count",-1),
-                                     model_full_name_val=model.model_full_name,
-                                     task=task,
-                                     report_path_val=model.arguments["checkpoint_dir"],
-                                     evaluation_script_val="exact_match",
-                                     model_args_dir=model.args_dir,
-                                     data_val=REPO_DATASET[data_path])
+            if not reportint_unavailable:
+                report = report_template(metric_val=score_name,
+                                         info_score_val=mode_norm,
+                                         score_val=score_value,
+                                         n_sents=score_dic_new["n_sents"],
+                                         avg_per_sent=0,
+                                         n_tokens_score=score_dic_new.get(mode_norm+"-"+task+"-gold-count",-1),
+                                         model_full_name_val=model.model_full_name,
+                                         task=task,
+                                         report_path_val=model.arguments["checkpoint_dir"],
+                                         evaluation_script_val="exact_match",
+                                         model_args_dir=model.args_dir,
+                                         data_val=REPO_DATASET[data_path])
+            else:
+                report = {"report ":0}
             over_all_report_dir = os.path.join(dir_report, model.model_full_name + "-report-" + label_report + ".json")
             over_all_report_dir_all_models = os.path.join(overall_report_dir, overall_label + "-report.json")
             writing_mode = "w" if not os.path.isfile(over_all_report_dir) else "a"
