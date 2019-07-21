@@ -9,7 +9,7 @@ test/test_models/
 .ipynb_checkpoints
 	all_scalars.json
 checkpoints/
-data/
+#data/
 dictionaries/
 predictions/
 reports

@@ -75,7 +75,7 @@ def train_eval_bert_normalize(args, verbose=1):
 
     null_token_index = BERT_MODEL_DIC[args.bert_model]["vocab_size"]  # based on bert cased vocabulary
     description = "grid"
-    list_reference_heuristic_test = pickle.load(open(os.path.join(PROJECT_PATH,"data/wiki-news-FAIR-SG-top50000.pkl"), "rb"))
+    list_reference_heuristic_test = pickle.load(open(os.path.join(PROJECT_PATH, "data/wiki-news-FAIR-SG-top50000.pkl"), "rb"))
     slang_dic = json.load(open(os.path.join(PROJECT_PATH, "data/urban_dic_abbreviations.json"), "r"))
 
     if "normalize" in args.tasks:
