@@ -26,6 +26,7 @@ try:
     # Extract and print all of the values
     SHEET_NAME_DEFAULT, TAB_NAME_DEFAULT = "model_evaluation", "experiments_tracking"
 except Exception as e:
+    creds = None
     print(e)
 
 def open_client(credientials=creds, sheet_name=SHEET_NAME_DEFAULT, tab_name=TAB_NAME_DEFAULT):
