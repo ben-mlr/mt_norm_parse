@@ -233,9 +233,9 @@ def run(args,
                 else:
                     loss_dev, iter_dev, perf_report_dev = None, 0, None
 
-                printing("PERFORMANCE {} TRAIN", var=[epoch, perf_report_train],
+                printing("PERFORMANCE {} TRAIN {}", var=[epoch, perf_report_train],
                          verbose=verbose, verbose_level=1)
-                printing("PERFORMANCE {} DEV", var=[epoch, perf_report_dev], verbose=verbose, verbose_level=1)
+                printing("PERFORMANCE {} DEV {} ", var=[epoch, perf_report_dev], verbose=verbose, verbose_level=1)
 
                 printing("TRAINING : loss train:{} dev:{} for epoch {}  out of {}", var=[loss_train, loss_dev, epoch, args.epochs], verbose=1, verbose_level=1)
 
@@ -267,8 +267,8 @@ def run(args,
                                                                        ("dev_path", dev_data_label)]),
                                           verbose=verbose)
 
-            print("PERFORMANCE LAST {} TRAIN".format(epoch), perf_report_train)
-            print("PERFORMANCE LAST {} DEV".format(epoch), perf_report_dev)
+            print("PERFORMANCE LAST {} TRAIN : {} ".format(epoch, perf_report_train))
+            print("PERFORMANCE LAST {} DEV : {} ".format(epoch, perf_report_dev))
 
             if row is not None:
                 update_status(row=row, new_status="training-done", verbose=1)
@@ -493,7 +493,7 @@ def run(args,
         printing("{} {} ", var=[REPORT_FLAG_DIR_STR, report_full_dir], verbose=verbose, verbose_level=0)
 
     json.dump(report_all, open(report_dir, "w"))
-
+    print("REPORTING TO {}".format(report_dir))
     if report_full_path_shared is None:
         printing("{} {} ", var=[REPORT_FLAG_DIR_STR, report_dir], verbose=verbose, verbose_level=0)
 
