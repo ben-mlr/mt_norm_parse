@@ -6,8 +6,13 @@ from env.tasks_settings import TASKS_PARAMETER
 from evaluate.scoring.confusion_matrix_rates import get_perf_rate
 
 #sys.path.insert(0, os.path.join(os.environ.get("EXPERIENCE", ".."), "experimental_pipe"))
-sys.path.append(os.environ.get("EXPERIENCE"))
-from reporting.write_to_performance_repo import report_template
+try:
+    sys.path.append(os.environ.get("EXPERIENCE"))
+    from reporting.write_to_performance_repo import report_template
+except:
+    from evaluate.scoring.report_template import report_template
+    print("REPORTING modules downloaded from local project ")
+
 
 
 def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, score_dic, n_tokens_dic, n_sents_dic, model_id, tasks, args_dir, data_label, reports, writer, log_perf,
@@ -48,9 +53,9 @@ def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, scor
                                              report_path_val=None,
                                              data_val=data_label)
                 except Exception as e:
-                    print(e)
-                    print("REPORT : ")
 
+                    print("REPORT : ")
+                    raise (e)
                 if early_stoppin_metric is not None:
                     if metric_val == early_stoppin_metric and subsample_early_stoping_metric_val == sample +label_heuristic and score is not None:
                         early_stoppin_metric_val = -score /n_tokens

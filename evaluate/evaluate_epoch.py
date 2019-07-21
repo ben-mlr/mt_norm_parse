@@ -18,11 +18,12 @@ from toolbox.gpu_related import use_gpu_
 
 sys.path.insert(0, os.environ.get("EXPERIENCE", os.path.join(PROJECT_PATH, "..", "experimental_pipe")))
 try:
-    from reporting.write_to_performance_repo import report_template, write_dic
+    from reporting.write_to_performance_repo import report_template
     reportint_unavailable = False
 except Exception as e:
-    print("REPORTING modules not available")
-    reportint_unavailable = True
+    from evaluate.scoring.report_template import report_template
+    print("REPORTING modules downloaded from local project ")
+    reportint_unavailable = False
 from evaluate.normalization_errors import score_auxiliary
 from env.project_variables import SCORE_AUX
 
