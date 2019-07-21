@@ -264,6 +264,8 @@ def epoch_run(batchIter, tokenizer,
                     get_label_per_bpe(args.tasks, batch, input_tokens_tensor,
                                       input_alignement_with_raw, use_gpu, tasks_parameters=TASKS_PARAMETER)
                 dimension_check_label(label_per_task, input_tokens_tensor)
+                if task_pos_is:
+                    output_tokens_tensor_aligned = label_per_task["pos"]
 
                 # NB : we use the aligned input with the
             # logging
