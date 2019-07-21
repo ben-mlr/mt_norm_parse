@@ -19,11 +19,14 @@ REPORTED_VARIABLE_PER_SHEET = {"experiments_tracking": {"git_id": 1,
                                                         "evaluation_dir": 9,
                                                         "tensorboard_dir": 10}
                                }
-CLIENT_GOOGLE_CLOUD = os.path.join(PROJECT_PATH, "tracking/google_api")
-creds = ServiceAccountCredentials.from_json_keyfile_name(os.path.join(CLIENT_GOOGLE_CLOUD, 'client.json'), SCOPES_GOOGLE_SHEET)
-# Extract and print all of the values
-SHEET_NAME_DEFAULT, TAB_NAME_DEFAULT = "model_evaluation", "experiments_tracking"
 
+try:
+    CLIENT_GOOGLE_CLOUD = os.path.join(PROJECT_PATH, "tracking/google_api")
+    creds = ServiceAccountCredentials.from_json_keyfile_name(os.path.join(CLIENT_GOOGLE_CLOUD, 'client.json'), SCOPES_GOOGLE_SHEET)
+    # Extract and print all of the values
+    SHEET_NAME_DEFAULT, TAB_NAME_DEFAULT = "model_evaluation", "experiments_tracking"
+except Exception as e:
+    print(e)
 
 def open_client(credientials=creds, sheet_name=SHEET_NAME_DEFAULT, tab_name=TAB_NAME_DEFAULT):
     client = gspread.authorize(credientials)
