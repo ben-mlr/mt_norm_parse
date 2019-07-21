@@ -20,3 +20,5 @@ test_/test_models/
 test_/test_plot_attention/
 
 w2v/
+
+mt_norm_parse.yml
