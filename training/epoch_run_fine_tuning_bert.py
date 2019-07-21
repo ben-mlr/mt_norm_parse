@@ -46,6 +46,7 @@ def epoch_run(batchIter, tokenizer,
               batch_size_real=0, n_epoch=None,
               ponderation_loss_policy="static",
               samples_per_task_reporting=None,
+              task_to_eval=None,
               verbose=0):
     """
     About Evaluation :
@@ -56,7 +57,9 @@ def epoch_run(batchIter, tokenizer,
     """
     if samples_per_task_reporting is None:
         samples_per_task_reporting = SAMPLES_PER_TASK_TO_REPORT
-
+    if task_to_eval is not None:
+        args.tasks = task_to_eval
+        print("WARNING : task_to_eval was provided ")
     if ponderation_loss_policy == "static":
         if args.multi_task_loss_ponderation is None:
             args.multi_task_loss_ponderation = OrderedDict([("loss_task_1", 1), ("loss_task_2", 1), ("loss_task_n_mask_prediction", 1)])

@@ -414,13 +414,12 @@ def run(args,
 
                         loss_test, iter_test, perf_report_test, _ = epoch_run(batchIter_test, tokenizer,
                                                                               args=args,
-
                                                                               pos_dictionary=pos_dictionary,
                                                                               iter=iter_dev, use_gpu=use_gpu,
                                                                               model=model,
                                                                               writer=None,
                                                                               writing_pred=True,
-                                                                              optimizer=None, tasks=[task_to_eval],
+                                                                              optimizer=None,
                                                                               args_dir=args_dir, model_id=model_id,
                                                                               dir_end_pred=end_predictions,
                                                                               skip_1_t_n=skip_1_t_n,
@@ -430,13 +429,10 @@ def run(args,
                                                                               null_str=null_str,
                                                                               log_perf=False,
                                                                               dropout_input_bpe=0,
-                                                                              heuristic_ls=heuristic_test,
-                                                                              gold_error_detection=gold_error,
                                                                               slang_dic=slang_dic_test,
                                                                               list_reference_heuristic=list_reference_heuristic_test,
                                                                               list_candidates=list_candidates,
                                                                               index_alphabetical_order=alphabet_index,
-                                                                              norm_2_noise_training=None,
                                                                               # we decide wether we eval everything in mode
                                                                               # norm2noise or not
                                                                               # --> we could also add a loop and tag in report
