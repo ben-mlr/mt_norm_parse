@@ -148,8 +148,10 @@ def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu,
     return tokens_tensor, segments_tensors, tokenized_ls, aligned_index_padded, mask
 
 
-def from_bpe_token_to_str(bpe_tensor, topk, pred_mode, null_token_index, null_str, tokenizer=None, pos_dictionary=None, task="normalize", verbose=1
-                          ):
+def from_bpe_token_to_str(bpe_tensor, topk, pred_mode, null_token_index, null_str, tokenizer=None,
+                          pos_dictionary=None, task="normalize",
+                          label_dictionary=None,
+                          get_string=False, verbose=1):
     """
     it actually supports not only bpe token but also pos-token
     pred_mode allow to handle gold data also (which only have 2 dim and not three)
@@ -158,23 +160,34 @@ def from_bpe_token_to_str(bpe_tensor, topk, pred_mode, null_token_index, null_st
     :param pred_mode: book
     :return:
     """
-    predictions_topk_ls = [[[bpe_tensor[sent, word, top].item() if pred_mode else bpe_tensor[sent, word].item()
-                             for word in range(bpe_tensor.size(1))] for sent in range(bpe_tensor.size(0))]
-                           for top in range(topk)]
-    if task == "normalize":
+    assert task is not None or get_string, \
+        "ERROR : task {} get_string {} : one of them should be defined or True".format(task, get_string)
+
+    predictions_topk_ls = [[[bpe_tensor[sent, word, top].item() if pred_mode else bpe_tensor[sent, word].item() for word in range(bpe_tensor.size(1))] for sent in range(bpe_tensor.size(0))] for top in range(topk)]
+
+    if task == "normalize" or get_string:
         assert tokenizer is not None
         sent_ls_top = [[tokenizer.convert_ids_to_tokens(sent_bpe, special_extra_token=null_token_index,
                                                         special_token_string=null_str) for sent_bpe in predictions_topk]
                        for predictions_topk in predictions_topk_ls]
-        printing("DATA : bpe string again {}",var=[sent_ls_top], verbose=verbose, verbose_level="raw_data")
+        printing("DATA : bpe string again {}", var=[sent_ls_top], verbose=verbose, verbose_level="raw_data")
+
     elif task == "pos":
         # NB +1 because index 0 is related to UNK
+        if label_dictionary is not None:
+            pos_dictionary = label_dictionary
         try:
             sent_ls_top = [[[pos_dictionary.instances[token_ind-1] if token_ind > 0 else "UNK"
-                         for token_ind in sent_bpe] for sent_bpe in predictions_topk]
-                       for predictions_topk in predictions_topk_ls]
+                            for token_ind in sent_bpe] for sent_bpe in predictions_topk]
+                            for predictions_topk in predictions_topk_ls]
         except IndexError as e:
             print("ERROR {} : must be {} index was called while pos_dictionary is {} len".format(e, predictions_topk_ls, len(pos_dictionary.instances)))
+    else:
+        dictionary = label_dictionary
+        sent_ls_top = [[[dictionary.instances[token_ind - 1] if token_ind > 0 else "UNK"
+                         for token_ind in sent_bpe] for sent_bpe in predictions_topk]
+                       for predictions_topk in predictions_topk_ls]
     if not pred_mode:
         sent_ls_top = sent_ls_top[0]
+
     return sent_ls_top

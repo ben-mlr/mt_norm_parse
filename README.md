@@ -7,7 +7,7 @@ Multitask learning framework for sequence prediction and sequence labelling
 This project works under two versions of pytorch : torch 0.4 and torch 1.0  
 
 Therefore two possible conda env : 
-- Install conda environment with `lm.yml`  (1.0) (ALLENNLP missing, pip install --upgrade oauth2client !)
+- `conda env create -f lm.yml`  (1.0) (migh need to add missing, `pip install --upgrade oauth2client` !)
 
 In `./env/project_variables.py` define BERT_MODELS_DIRECTORY as the location of the bert tar.gz and vocabulary file 
 

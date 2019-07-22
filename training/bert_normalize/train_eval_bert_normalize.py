@@ -27,10 +27,10 @@ def train_eval_bert_normalize(args, verbose=1):
     vocab_size = BERT_MODEL_DIC[args.bert_model]["vocab_size"]
 
     # ["bert"]
-    voc_pos_size = 17+1 #18+1 for alg_arabizi # 53+1 for ARABIZI 1# 21 is for ENGLISH
+    voc_pos_size = 21 #18+1 for alg_arabizi # 53+1 for ARABIZI 1# 21 is for ENGLISH
     printing("MODEL : voc_pos_size hardcoded to {}", var=voc_pos_size, verbose_level=1, verbose=verbose)
 
-    debug = True
+    debug = False
     if os.environ.get("ENV") in ["rioc", "neff"]:
         debug = False
     if args.checkpoint_dir is None:
@@ -58,7 +58,8 @@ def train_eval_bert_normalize(args, verbose=1):
         # TODO args.original_task  , vocab_size is it necessary
         original_task = ["normalize"]
         print("WARNING : HARDCODED add_task_2_for_downstream : True ")
-        model = get_bert_token_classification(vocab_size=vocab_size, voc_pos_size=voc_pos_size,
+        model = get_bert_token_classification(vocab_size=vocab_size,
+                                              voc_pos_size=voc_pos_size,
                                               tasks=original_task,
                                               initialize_bpe_layer=None, bert_module=args.bert_module,
                                               layer_wise_attention=args.layer_wise_attention,

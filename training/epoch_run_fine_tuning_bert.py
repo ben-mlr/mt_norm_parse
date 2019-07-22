@@ -4,8 +4,9 @@ from env.tasks_settings import TASKS_PARAMETER
 from io_.dat.constants import PAD_ID_BERT, MASK_BERT, CLS_BERT, SEP_BERT, SPECIAL_TOKEN_LS, NULL_STR
 from io_.info_print import printing
 from io_.bert_iterators_tools.string_processing import preprocess_batch_string_for_bert, from_bpe_token_to_str, get_indexes, get_indexes_src_gold
+from io_.bert_iterators_tools.get_string_from_bpe import get_prediction, get_bpe_string, get_indexes_src_gold, get_detokenized_str
 #from io_.bert_iterators_tools.alignement import aligned_output, realigne
-import io_.bert_iterators_tools.alignement  as alignement
+import io_.bert_iterators_tools.alignement as alignement
 from evaluate.report_writing import report_score_all
 from evaluate.scoring.report import overall_word_level_metric_measure
 from model.n_masks_predictor import pred_n_bpe
@@ -48,7 +49,7 @@ def epoch_run(batchIter, tokenizer,
               batch_size_real=0, n_epoch=None,
               ponderation_loss_policy="static",
               samples_per_task_reporting=None,
-              task_to_eval=None,
+              task_to_eval=None, task_to_label_dictionary=None,
               verbose=0):
     """
     About Evaluation :
@@ -57,10 +58,13 @@ def epoch_run(batchIter, tokenizer,
             CAN add SAMPLE Parameter to get scores on specific subsample of the data : e.g. NEED_NORM, NORMED...
             Can also have different aggregation function
     """
+    if args.multitask:
+        assert task_to_label_dictionary is not None, "ERROR : task_to_label_dictionary should be defined "
     if samples_per_task_reporting is None:
         samples_per_task_reporting = SAMPLES_PER_TASK_TO_REPORT
     if task_to_eval is not None:
         args.tasks = task_to_eval
+        assert task_to_eval in label_per_task, "ERROR : {} label was not provided in {}".format(task_to_eval, label_per_task)
         printing("WARNING : task_to_eval was provided ", verbose=verbose, verbose_level=1)
     if ponderation_loss_policy == "static":
         if args.multi_task_loss_ponderation is None:
@@ -183,7 +187,7 @@ def epoch_run(batchIter, tokenizer,
             task_pos_is = len(batch.raw_output[0]) == 0
             # only one task supported at a time per batch so far based on the input batch
             task_normalize_is = not task_pos_is
-            task_pos_is = False
+            #task_pos_is = False
             # case the batches if case is 'lower'
             batch = get_casing(case, batch, task_normalize_is)
             #print("ITERATING on {} task".format("pos" if task_pos_is else "normalize"))
@@ -261,8 +265,10 @@ def epoch_run(batchIter, tokenizer,
                     get_indexes(batch_raw_output, tokenizer, verbose, use_gpu, word_norm_not_norm=None)
                 printing("DATA dim : {} input {} output ", var=[input_tokens_tensor.size(), output_tokens_tensor.size()],
                          verbose_level=2, verbose=verbose)
-                assert output_tokens_tensor_aligned.size(0) == input_tokens_tensor.size(0), "output_tokens_tensor_aligned.size(0) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(), input_tokens_tensor.size())
-                assert output_tokens_tensor_aligned.size(1) == input_tokens_tensor.size(1), "output_tokens_tensor_aligned.size(1) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(1), input_tokens_tensor.size(1))
+                assert output_tokens_tensor_aligned.size(0) == input_tokens_tensor.size(0), \
+                    "output_tokens_tensor_aligned.size(0) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(), input_tokens_tensor.size())
+                assert output_tokens_tensor_aligned.size(1) == input_tokens_tensor.size(1), \
+                    "output_tokens_tensor_aligned.size(1) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(1), input_tokens_tensor.size(1))
 
             if task_pos_is or args.multitask:
                 out_bpe_tokenized = None
@@ -285,10 +291,10 @@ def epoch_run(batchIter, tokenizer,
                 # (we are rejecting batch with at least one 1 to n case # (that we don't want to handle)
                 try:
                     output_tokens_tensor_aligned, input_tokens_tensor_aligned, input_alignement_with_raw, input_mask, _1_to_n_token = \
-                    alignement.aligned_output(input_tokens_tensor, output_tokens_tensor, input_alignement_with_raw,
-                                              output_alignement_with_raw, mask_token_index=mask_token_index,
-                                              input_mask=input_mask, use_gpu=use_gpu,
-                                              null_token_index=null_token_index, verbose=verbose)
+                        alignement.aligned_output(input_tokens_tensor, output_tokens_tensor, input_alignement_with_raw,
+                                                  output_alignement_with_raw, mask_token_index=mask_token_index,
+                                                  input_mask=input_mask, use_gpu=use_gpu,
+                                                  null_token_index=null_token_index, verbose=verbose)
                 except:
                     pdb.set_trace()
                 input_tokens_tensor = input_tokens_tensor_aligned
@@ -418,6 +424,7 @@ def epoch_run(batchIter, tokenizer,
 
             if not args.multitask:
                 # is meant to be completely removed
+
                 loss_dic, layer_wise_weights = model(input_tokens_tensor, token_type_ids, input_mask,
                                                      labels=feeding_the_model_with_label
                                                      if task_normalize_is else None,
@@ -442,8 +449,8 @@ def epoch_run(batchIter, tokenizer,
                     # if predict more : will evaluate the model and write its predictions
                     # TODO : add mapping_info between task_id to model and task name necessary to iterator
                     logits, layer_wise_weights = model(input_tokens_tensor, token_type_ids, input_mask,
-                                                          aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
-                                                          multi_task_loss_ponderation=args.multi_task_loss_ponderation)
+                                                       aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
+                                                       multi_task_loss_ponderation=args.multi_task_loss_ponderation)
 
                     predicted_task = "pos" if task_pos_is else "normalize"
                     logits_task_label = MULTITASK_BERT_LABELS_MLM_HEAD[predicted_task]
@@ -456,23 +463,21 @@ def epoch_run(batchIter, tokenizer,
                         prediction_n_mask = torch.argsort(logits["logits_n_mask_prediction"], dim=-1, descending=True)[:, :, 0]
 
                     if logits_task_label != "parsing":
-                        predictions_topk[logits_task_label] = torch.argsort(logits[logits_task_label],
-                                                                            dim=-1, descending=True)[:, :, :topk]
+                        predictions_topk[logits_task_label] = torch.argsort(logits[logits_task_label], dim=-1,
+                                                                            descending=True)[:, :, :topk]
                     # from bpe index to string
                     sent_ls_top = from_bpe_token_to_str(predictions_topk[logits_task_label], topk, tokenizer=tokenizer,
-                                                        pred_mode=True, pos_dictionary=pos_dictionary,
-                                                        task=args.tasks[0], null_token_index=null_token_index, null_str=null_str)
-                    gold = from_bpe_token_to_str(output_tokens_tensor_aligned, topk, tokenizer=tokenizer, pos_dictionary=pos_dictionary,
-                                                 task=args.tasks[0], pred_mode=False,
-                                                 null_token_index=null_token_index, null_str=null_str)
-
+                                                        pred_mode=True, pos_dictionary=pos_dictionary, task=args.tasks[0],
+                                                        null_token_index=null_token_index, null_str=null_str)
+                    gold = from_bpe_token_to_str(output_tokens_tensor_aligned, topk, tokenizer=tokenizer, pos_dictionary=pos_dictionary, task=args.tasks[0], pred_mode=False, null_token_index=null_token_index, null_str=null_str)
                     source_preprocessed = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer, pos_dictionary=pos_dictionary, pred_mode=False, null_token_index=null_token_index, null_str=null_str, verbose=verbose)
                     # de-BPE-tokenize
-                    src_detokenized = alignement.realigne(source_preprocessed, input_alignement_with_raw, null_str=null_str,
-                                                          tasks=["normalize"],
+                    src_detokenized = alignement.realigne(source_preprocessed, input_alignement_with_raw,
+                                                          null_str=null_str, tasks=["normalize"],
                                                           # normalize means we deal wiht bpe input not pos
                                                           mask_str=MASK_BERT, remove_mask_str=remove_mask_str_prediction)
-                    gold_detokenized = alignement.realigne(gold, input_alignement_with_raw, remove_null_str=True, null_str=null_str, tasks=args.tasks, mask_str=MASK_BERT)
+                    gold_detokenized = alignement.realigne(gold, input_alignement_with_raw, remove_null_str=True,
+                                                           null_str=null_str, tasks=args.tasks, mask_str=MASK_BERT)
 
                     if task_pos_is:
                         # we remove padding here based on src that is correctly padded
@@ -535,23 +540,21 @@ def epoch_run(batchIter, tokenizer,
                             evaluated_task.append("n_masks_pred")
                         elif task_normalize_is:
                             # we fill it with an empty report for simplifying reporting
-                            accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
-                                                           sample_ls=["all"],
-                                                           dic_prediction_score={agg_func_ls[0]:
-                                                                                     {"all": {
-                                                                                         "agg_func": agg_func_ls[0],
-                                                                                         "metric": "exact_match",
-                                                                                         "score": 0,
-                                                                                         "n_sents": 0,
-                                                                                         "n_tokens": 0}
-                                                                                     }},
-                                                           score_dic=score_dic["n_masks_pred"],
-                                                           n_tokens_dic=n_tokens_dic["n_masks_pred"],
-                                                           n_sents_dic=n_sents_dic["n_masks_pred"])
+                            accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=["all"], dic_prediction_score={agg_func_ls[0]:{"all": {"agg_func": agg_func_ls[0],"metric": "exact_match",
+                                                                                     "score": 0,
+                                                                                     "n_sents": 0,
+                                                                                     "n_tokens": 0
+                                                                                 }}},
+                                                           score_dic=score_dic["n_masks_pred"], n_tokens_dic=n_tokens_dic["n_masks_pred"], n_sents_dic=n_sents_dic["n_masks_pred"])
                             evaluated_task.append("n_masks_pred")
 
                         evaluated_task.append(predicted_task)
-                        perf_prediction, skipping, _samples = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk, topk, metric=metric, samples=samples, agg_func_ls=agg_func_ls, reference_word_dic=reference_word_dic, compute_intersection_score=compute_intersection_score, src_detokenized=src_detokenized)
+                        perf_prediction, skipping, _samples = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk, topk,
+                                                                                                metric=metric, samples=samples,
+                                                                                                agg_func_ls=agg_func_ls,
+                                                                                                reference_word_dic=reference_word_dic,
+                                                                                                compute_intersection_score=compute_intersection_score,
+                                                                                                src_detokenized=src_detokenized)
                         score_dic[predicted_task], n_tokens_dic[predicted_task], n_sents_dic[predicted_task] = \
                             accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=_samples,
                                                            dic_prediction_score=perf_prediction,
@@ -585,13 +588,53 @@ def epoch_run(batchIter, tokenizer,
                 # TODO:
                 # - prediction
                 # - factorize masking
+                assert "normalize" not in args.tasks, "ERROR : input and output not supported yet for 'normalize' " \
+                                                      "task in this setting "
 
                 logits_dic, loss_dic, _ = model(input_tokens_tensor, token_type_ids, labels=label_per_task, attention_mask=None)
-                #
-                if len(list(loss_dic.keys()) & set(TASKS_PARAMETER.keys())) != len(loss_dic.keys()):
+
+                if len(list(loss_dic.keys() & set(TASKS_PARAMETER.keys()))) != len(loss_dic.keys()):
                     # it means a given task has several set of labels (e.g parsing)
                     # should do same for logits
                     pass
+
+                predictions_topk_dic = get_prediction(logits_dic, topk=topk)
+
+                def get_aligned_output(label_per_task, tasks):
+                    output_tokens_tensor_aligned_dict = OrderedDict()
+                    for task in tasks:
+                        if task != "normalize":
+                            output_tokens_tensor_aligned_dict[task] = label_per_task[task]
+
+                    return output_tokens_tensor_aligned_dict
+
+                output_tokens_tensor_aligned_dic = get_aligned_output(label_per_task, args.tasks)
+
+
+                source_preprocessed, label_dic, predict_dic = get_bpe_string(predictions_topk_dic, output_tokens_tensor_aligned_dic,
+                                                                             input_tokens_tensor, topk, tokenizer, task_to_label_dictionary,
+                                                                             args.tasks, null_str, null_token_index, verbose)
+                pdb.set_trace()
+                src_detokenized, label_detokenized_dic, predict_detokenize_dic = get_detokenized_str(source_preprocessed, input_alignement_with_raw,
+                                                                                                     label_dic, predict_dic, null_str,
+                                                                                                     args.tasks, remove_mask_str_prediction)
+                pdb.set_trace()
+                for task in vars(args)["tasks"]:
+                    pdb.set_trace()
+                    perf_prediction, skipping, _samples = overall_word_level_metric_measure(label_detokenized_dic[task],
+                                                                                            predict_detokenize_dic[task],
+                                                                                            topk, metric=metric, samples=samples,
+                                                                                            agg_func_ls=agg_func_ls,
+                                                                                            reference_word_dic=reference_word_dic,
+                                                                                            compute_intersection_score=compute_intersection_score,
+                                                                                            src_detokenized=src_detokenized)
+                    pdb.set_trace()
+                    score_dic[task], n_tokens_dic[task], n_sents_dic[task] = accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=_samples,
+                                                                                                            dic_prediction_score=perf_prediction, score_dic=score_dic[task],
+                                                                                                            n_tokens_dic=n_tokens_dic[task], n_sents_dic=n_sents_dic[task])
+                    evaluated_task.append(task)
+
+                pdb.set_trace()
 
                 def get_multitask_loss(tasks, loss_dict, ponderation):
                     loss = 0
@@ -599,8 +642,7 @@ def epoch_run(batchIter, tokenizer,
                         loss += ponderation[task]*loss_dict[task]
                     return loss
 
-                _loss = get_multitask_loss(args.tasks, loss_dic,
-                                           args.multi_task_loss_ponderation)
+                _loss = get_multitask_loss(args.tasks, loss_dic, args.multi_task_loss_ponderation)
                 # temporary
                 task_normalize_is = False
                 task_pos_is = False

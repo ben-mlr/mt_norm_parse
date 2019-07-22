@@ -29,8 +29,7 @@ def overall_word_level_metric_measure(gold_sent_ls,
         "ERROR : one of the samples in {} not supported {}".format(samples, AVAILABLE_EVALUATION_SAMPLE_FILTER)
 
     assert isinstance(agg_func_ls, list)
-    assert len(pred_sent_ls_topk) == topk, "ERROR topk not consistent with prediction list " \
-        .format(len(pred_sent_ls_topk), topk)
+    assert len(pred_sent_ls_topk) == topk, "ERROR topk not consistent with prediction list ".format(len(pred_sent_ls_topk), topk)
     overall_score_ls_sent = []
     intersected_samples = []
     if compute_intersection_score:
@@ -46,17 +45,17 @@ def overall_word_level_metric_measure(gold_sent_ls,
     for gold_ind_sent, gold_sent in enumerate(gold_sent_ls):
         # TODO test for all topk
         try:
-            assert len(gold_sent) == len(pred_sent_ls_topk[0][gold_ind_sent])
+            assert len(gold_sent) == len(pred_sent_ls_topk[0][gold_ind_sent]), "ERROR : gold_sent : {} len {} and pred_sent_ls_topk[0][gold_ind_sent] {} len {} "\
+                .format(gold_sent, len(gold_sent),
+                        pred_sent_ls_topk[0][gold_ind_sent], len(pred_sent_ls_topk[0][gold_ind_sent]))
             # WARNING : this might not be true in POS mode for some cases (when mask bpe is used)
-
         except Exception as e:
-            print(e)
+            print("ERROR (scoring/report) ", e)
             if len(gold_sent) > len(pred_sent_ls_topk[0][gold_ind_sent]):
                 counter = 0
                 n_to_solve = len(gold_sent) - len(pred_sent_ls_topk[0][gold_ind_sent])
                 for ind in range(n_to_solve):
                     counter += gold_sent[-n_to_solve:][ind] == "_PAD_POS"
-
                 if n_to_solve == counter:
                     gold_sent = gold_sent[:-n_to_solve]
                     src_detokenized[gold_ind_sent] = src_detokenized[gold_ind_sent][:-n_to_solve]
@@ -79,7 +78,7 @@ def overall_word_level_metric_measure(gold_sent_ls,
             else:
                 skipping_sent += len(gold_sent_ls)
                 overall_score_ls_sent = [[0]]
-                pdb.set_trace()
+                #pdb.set_trace()
                 break
         if src_detokenized is not None and samples[0] != "all" and len(samples) > 1:
             # otherise we don't need src_detokenized
@@ -94,8 +93,14 @@ def overall_word_level_metric_measure(gold_sent_ls,
             topk_word_pred = [pred_sent_ls_topk[top][gold_ind_sent][ind_word] for top in range(topk)]
             score_sent.append(word_level_scoring(metric=metric, gold=gold_token, topk_pred=topk_word_pred, topk=topk))
             for ind_sample, _sample in enumerate(samples):
-                src = src_detokenized[gold_ind_sent][ind_word] if _sample != "all" and not _sample.startswith("n_masks") else None
-                filter_sent[_sample].append(word_level_filter(sample=_sample, gold=gold_token, topk_pred=topk_word_pred, topk=topk, src=src, word_reference_dic_ls=reference_word_dic))
+                try:
+                    src = src_detokenized[gold_ind_sent][ind_word] if _sample != "all" and not _sample.startswith("n_masks") else None
+                except Exception as e:
+                    print("ERROR (scoring/report) handling src {} index ({},{}) ".format(src_detokenized, gold_ind_sent, ind_word), e)
+                    pdb.set_trace()
+                filter_sent[_sample].append(word_level_filter(sample=_sample, gold=gold_token, topk_pred=topk_word_pred,
+                                                              topk=topk, src=src,
+                                                              word_reference_dic_ls=reference_word_dic))
 
             if compute_intersection_score:
                 for ind_sample, _sample in enumerate(sample_to_intersesct):
@@ -132,7 +137,8 @@ def overall_word_level_metric_measure(gold_sent_ls,
                     "n_sents": agg_func_batch_score(overall_ls_sent_score=overall_score_ls_sent,
                                                     overall_filter=overall_filter_ls[sample],
                                                     agg_func="n_sents")}
-            except:
+            except Exception as e:
+                print(e)
                 pdb.set_trace()
 
     return result, skipping_sent, samples+intersected_samples

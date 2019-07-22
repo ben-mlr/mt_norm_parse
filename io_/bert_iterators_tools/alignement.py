@@ -158,6 +158,65 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
     return output_tokens_tensor_aligned, input_tokens_tensor_aligned, input_tokens_tensor_aligned_sent_ls_tensor, input_mask_aligned, _1_to_n_token_counter
 
 
+def realigne_multi(ls_sent_str, input_alignement_with_raw, null_str, mask_str, task,
+                   remove_null_str=True, remove_mask_str=False, remove_extra_predicted_token=False):
+    """
+    # factorize with net realign
+    ** remove_extra_predicted_token used iif pred mode **
+    - detokenization of ls_sent_str based on input_alignement_with_raw index
+    - we remove paddding and end detokenization at symbol [SEP] that we take as the end of sentence signal
+    """
+
+    assert len(ls_sent_str) == len(input_alignement_with_raw), \
+        "ERROR : ls_sent_str {} : {} input_alignement_with_raw {} : {} "\
+            .format(ls_sent_str, len(ls_sent_str), input_alignement_with_raw, len(input_alignement_with_raw))
+    new_sent_ls = []
+    for sent, index_ls in zip(ls_sent_str, input_alignement_with_raw):
+        assert len(sent) == len(index_ls), "ERROR : sent {} and index_ls {} not same len".format(sent, index_ls)
+        former_index = -1
+        new_sent = []
+        former_token = ""
+        for _i, (token, index) in enumerate(zip(sent, index_ls)):
+            trigger_end_sent = False
+            if remove_extra_predicted_token:
+                if index == 1000:
+                    # we reach the end according to gold data
+                    # (this means we just stop looking at the prediciton of the model (we can do that because we assumed word alignement))
+                    trigger_end_sent = True
+            if token == null_str:
+                token = NULL_STR_TO_SHOW if not remove_null_str else ""
+            if token == mask_str:
+                token = "X" if not remove_mask_str else ""
+            if "normalize" == task:
+                if index == former_index:
+                    if token.startswith("##"):
+                        former_token += token[2:]
+                    else:
+                        former_token += token
+            elif "pos" == task:
+                # we just  ignore token
+                if index == former_index:
+                    pass
+            else:
+                raise(Exception("task {} not supported".format(task)))
+            if index != former_index or _i + 1 == len(index_ls):
+                new_sent.append(former_token)
+                former_token = token
+                if trigger_end_sent:
+                    break
+            # if not pred mode : always not trigger_end_sent : True (required for the model to not stop too early if predict SEP too soon)
+            if (former_token == TOKEN_BPE_BERT_SEP or _i + 1 == len(index_ls) and not remove_extra_predicted_token) or \
+                    ((remove_extra_predicted_token and (
+                            former_token == TOKEN_BPE_BERT_SEP and trigger_end_sent) or _i + 1 == len(index_ls))):
+                new_sent.append(token)
+                break
+            former_index = index
+
+        new_sent_ls.append(new_sent[1:])
+
+    return new_sent_ls
+
+
 def realigne(ls_sent_str, input_alignement_with_raw, null_str, mask_str, tasks,
              remove_null_str=True, remove_mask_str=False, remove_extra_predicted_token=False):
     """
@@ -208,8 +267,8 @@ def realigne(ls_sent_str, input_alignement_with_raw, null_str, mask_str, tasks,
                 new_sent.append(token)
                 break
             former_index = index
-
         new_sent_ls.append(new_sent[1:])
+
     return new_sent_ls
 
 
