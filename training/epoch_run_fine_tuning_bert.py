@@ -13,7 +13,7 @@ from model.n_masks_predictor import pred_n_bpe
 from toolbox.pred_tools.heuristics import predict_with_heuristic
 from training.epoch_run_fine_tuning_tools import get_casing, logging_processing_data, logging_scores, log_warning, print_align_bpe, tensorboard_loss_writer_batch_level, tensorboard_loss_writer_batch_level_multi, \
     tensorboard_loss_writer_epoch_level, \
-    writing_predictions_conll, init_score_token_sent_dict, dimension_check_label
+    writing_predictions_conll, writing_predictions_conll_multi, init_score_token_sent_dict, dimension_check_label
 from io_.bert_iterators_tools.get_bpe_labels import get_label_per_bpe
 from toolbox.deep_learning_toolbox import dropout_input_tensor
 from model.bert_tools_from_core_code.masking import focused_masking
@@ -342,6 +342,8 @@ def epoch_run(batchIter, tokenizer,
                                     mask_token_index, sep_token_index, use_gpu, epoch, n_epoch, args.portion_mask,
                                     input_mask, tokenizer,
                                     verbose)
+            elif args.multitask:
+                assert args.masking_strategy is None, "ERROR : {} not supported in multitask mode ".format(args.masking_strategy)
             if not args.multitask:
                 # is meant to be completely removed
                 feeding_the_model_with_label[feeding_the_model_with_label == 0] = -1
@@ -504,13 +506,11 @@ def epoch_run(batchIter, tokenizer,
                 # - factorize masking
                 assert "normalize" not in args.tasks, "ERROR : input and output not supported yet for 'normalize' " \
                                                       "task in this setting "
-
                 for task in args.tasks:
                     # make mask for the loss padding
                     # TODO handle task specific index pad
                     label_per_task[task][label_per_task[task] == PAD_ID_TAG] = -1
 
-                pdb.set_trace()
                 logits_dic, loss_dic, _ = model(input_tokens_tensor, token_type_ids,
                                                 labels=label_per_task, attention_mask=input_mask)
 
@@ -545,8 +545,18 @@ def epoch_run(batchIter, tokenizer,
                                                                                                             score_dic=score_dic[task],
                                                                                                             n_tokens_dic=n_tokens_dic[task],
                                                                                                             n_sents_dic=n_sents_dic[task])
+
                     evaluated_task.append(task)
 
+                if writing_pred:
+                    pdb.set_trace()
+                    new_file = writing_predictions_conll_multi(
+                        dir_pred=dir_normalized, dir_normalized_original_only=dir_normalized_original_only,
+                        dir_gold=dir_gold, dir_gold_original_only=dir_gold_original_only,
+                        src_detokenized=src_detokenized, pred_per_task=predict_detokenize_dic,
+                        iter=iter, batch_i=batch_i, new_file=new_file, gold_per_tasks=label_detokenized_dic,
+                        tasks=args.tasks, verbose=verbose)
+                    pdb.set_trace()
 
                 def get_multitask_loss(tasks, loss_dict, ponderation):
                     loss = 0

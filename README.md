@@ -13,6 +13,8 @@ In `./env/project_variables.py` define BERT_MODELS_DIRECTORY as the location of 
 
 `mkdir BERT_MODELS_DIRECTORY`
 
+`mkdir checkpoints`
+`mkdir checkpoints/bert`
 
 ## Downloading Bert Models 
 
@@ -44,9 +46,9 @@ To download the all annotaded UD data
 ```
 python ./train_evaluate_bert_normalizer.py 
 ## Data
---train_path ./data/en-ud-train-demo.conll  # 
---dev_path ./data/en-ud-dev-demo.conll # 
---test_path ./data/en-ud-test-demo.conll  # 
+--train_path ./data/en-ud-train-demo.conllu  # 
+--dev_path ./data/en-ud-dev-demo.conllu # 
+--test_path ./data/en-ud-test-demo.conllu  # 
 ## tasks 
 --tasks pos ## as a space separated list of task among  ['normalize', 'pos', 'edit', 'norm_not_norm']
 ## tokenization 

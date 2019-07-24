@@ -7,7 +7,7 @@ APPLY_PERMUTE_WORD = 0.8
 
 
 def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_ls,
-                src_text_pos, pred_pos_ls, tasks, inverse=False,permuting_mode=None,cp_paste=False,
+                src_text_pos, pred_pos_ls, tasks, inverse=False,permuting_mode=None, cp_paste=False,
                 ind_batch=0, new_file=False, cut_sent=False, verbose=0):
     assert format in ["conll"]
     #assert len(tasks) == 1, "ERROR : only supported so far 1 task at a time"
@@ -169,4 +169,80 @@ def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_
                     norm_file.write("\n")
                     original.write("\n")
             printing("WRITING predicted batch of {} original and {} normalized", var=[dir_original, dir_normalized], verbose=verbose, verbose_level="raw_data")
+    return max_len_word
+
+
+def write_conll_multitask(format, dir_pred, dir_original, src_text_ls,
+                          pred_per_task, tasks, cp_paste=False, gold=False,
+                          ind_batch=0, new_file=False, cut_sent=False, verbose=0):
+
+    assert format in ["conll"]
+    writing_top = 1
+    # assert each task is predicting as many sample per batch
+    task_len_former = -1
+    task_former = ""
+    for task in tasks:
+        task_len = len(pred_per_task[task])
+        if task_len_former > 0:
+            assert task_len == task_len_former, "ERROR {} and {} task ".format(task_former, task)
+            assert task_len == len(src_text_ls), "ERROR mismatch source and prediction"
+        task_former = task
+        if format == "conll":
+            mode_write = "w" if new_file else "a"
+        if new_file:
+            printing("CREATING NEW FILE (io_/dat/normalized_writer) : {} ", var=[dir_pred], verbose=verbose, verbose_level=1)
+
+        with open(dir_pred, mode_write) as norm_file:
+            with open(dir_original, mode_write) as original:
+                len_original = 0
+                for ind_sent, original_sent in enumerate(src_text_ls):
+                    pred_sent = OrderedDict()
+                    for task in tasks:
+                        if gold:
+                            pred_sent[task] = pred_per_task[task][ind_sent]
+                        else:
+                            pred_sent[task] = pred_per_task[task][writing_top-1][ind_sent]
+                        try:
+                            assert len(original_sent) == len(pred_sent[task]),\
+                                "WARNING : (writer) original_sent len {} {} \n  normalized_sent len {} {}"\
+                                    .format(len(original_sent), original_sent, len(pred_sent[task]), pred_sent[task])
+                        except AssertionError as e:
+                            print(e)
+                            if len(original_sent) > len(pred_sent[task]):
+                                pred_sent[task].extend(["UNK" for _ in range(len(original_sent)-len(pred_sent[task]))])
+                                print("WARNING (writer) : original larger than prediction : so appending UNK token for writing")
+                            else:
+                                print("WARNING (writer) : original smaller than prediction for ")
+
+                    norm_file.write("#\n")
+                    original.write("#\n")
+                    norm_file.write("#sent_id = {} \n".format(ind_sent+ind_batch+1))
+                    original.write("#sent_id = {} \n".format(ind_sent+ind_batch+1))
+                    ind_adjust = 0
+
+                    for ind, original_token in enumerate(original_sent):
+                        # WE REMOVE SPECIAL TOKENS ONLY IF THEY APPEAR AT THE BEGINING OR AT THE END
+                        # on the source token !! (it tells us when we stop) (we nevern want to use gold information)
+                        max_len_word = max(len(original_token), len_original)
+                        if original_token in SPECIAL_TOKEN_LS and (ind+1 == len(original_sent) or ind == 0):
+                            ind_adjust = 1
+                            continue
+
+                        pos = pred_sent["pos"][ind] if "pos" in pred_per_task else "_"
+                        normalize = "Norm={}|".format(pred_sent["normalize"][ind]) \
+                            if "normalize" in pred_per_task else "_"
+                        if cp_paste:
+                            normalize = "Norm={}|".format(original_token)
+                        norm_file.write("{index}\t{original}\t_\t{pos}\t_\t_\t{dep}\t_\t_\t{norm}\n".
+                                        format(index=ind + 1 - ind_adjust, original=original_token, pos=pos,
+                                               dep=ind - ind_adjust if ind - ind_adjust > 0 else 0, norm=normalize))
+
+                        original.write("{}\t{}\t_\t_\t_\t_\t_\t_\t{}\t_\n".format(ind+1, original_token,
+                                                                                  ind - ind_adjust if ind - ind_adjust > 0 else 0))
+                        if cut_sent:
+                            if ind > 50:
+                                break
+                    norm_file.write("\n")
+                    original.write("\n")
+            printing("WRITING predicted batch of {} original and {} normalized", var=[dir_original, dir_pred], verbose=verbose, verbose_level="raw_data")
     return max_len_word

@@ -1,7 +1,7 @@
 
 from io_.dat.constants import SPECIAL_TOKEN_LS, PAD_ID_BERT
 from io_.printout_iterator_as_raw import printing
-from io_.dat.normalized_writer import write_conll
+from io_.dat.normalized_writer import write_conll, write_conll_multitask
 
 
 def get_casing(case, batch, task_normalize_is):
@@ -164,6 +164,27 @@ def writing_predictions_conll(dir_normalized, dir_normalized_original_only, dir_
                 ind_batch=iter + batch_i, new_file=new_file, verbose=verbose)
     new_file = False
     return new_file
+
+
+def writing_predictions_conll_multi(dir_pred, dir_normalized_original_only,
+                                    dir_gold, dir_gold_original_only,
+                                    src_detokenized, pred_per_task,
+                                    iter, batch_i,tasks,
+                                    new_file, gold_per_tasks, verbose):
+
+    write_conll_multitask(format="conll", dir_pred=dir_pred,
+                          dir_original=dir_normalized_original_only,
+                          src_text_ls=src_detokenized,
+                          tasks=tasks, ind_batch=iter + batch_i, new_file=new_file,
+                          pred_per_task=pred_per_task,
+                          verbose=verbose)
+    write_conll_multitask(format="conll", dir_pred=dir_gold,
+                          dir_original=dir_gold_original_only,tasks=tasks,
+                          src_text_ls=src_detokenized,
+                          pred_per_task=gold_per_tasks, gold=True,
+                          ind_batch=iter + batch_i, new_file=new_file, verbose=verbose)
+
+    return False
 
 
 def init_score_token_sent_dict(samples_per_task_reporting, tasks, agg_func_ls, compute_intersection_score):

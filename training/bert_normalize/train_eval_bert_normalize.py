@@ -1,6 +1,7 @@
 from env.importing import os, nn, json, OrderedDict, pickle, pdb
 from training.bert_normalize.fine_tune_bert import run
 from env.project_variables import PROJECT_PATH
+from model.bert_tools_from_core_code.tools import get_multi_task_bert_model
 from model.bert_normalize import get_bert_token_classification, make_bert_multitask
 from io_.dat.constants import TOKEN_BPE_BERT_START, TOKEN_BPE_BERT_SEP, NULL_STR, PAD_BERT, PAD_ID_BERT, SPECIAL_TOKEN_LS
 from env.models_dir import BERT_MODEL_DIC
@@ -30,9 +31,11 @@ def train_eval_bert_normalize(args, verbose=1):
     voc_pos_size = 21 #18+1 for alg_arabizi # 53+1 for ARABIZI 1# 21 is for ENGLISH
     printing("MODEL : voc_pos_size hardcoded to {}", var=voc_pos_size, verbose_level=1, verbose=verbose)
 
-    debug = True
+    debug = False
     if os.environ.get("ENV") in ["rioc", "neff"]:
         debug = False
+
+    model = get_multi_task_bert_model(args,  model_dir, vocab_size, voc_pos_size, debug, verbose)
     if args.checkpoint_dir is None:
         # TODO vocab_size should be loaded from args.json
         # TEMPORARY : should eventually keep only : model = make_bert_multitask()
@@ -68,8 +71,7 @@ def train_eval_bert_normalize(args, verbose=1):
                                               checkpoint_dir=args.checkpoint_dir, debug=debug)
         add_task_2 = False
         if add_task_2:
-            printing("MODEL : adding extra classifer for task_2  with {} label", var=[voc_pos_size],
-                     verbose=verbose, verbose_level=1)
+            printing("MODEL : adding extra classifer for task_2  with {} label", var=[voc_pos_size], verbose=verbose, verbose_level=1)
             model.classifier_task_2 = nn.Linear(model.bert.config.hidden_size, voc_pos_size)
             model.num_labels_2 = voc_pos_size
 
@@ -97,7 +99,7 @@ def train_eval_bert_normalize(args, verbose=1):
         model_suffix="{}".format(args.model_id_pref), debug=debug,
         random_iterator_train=True,  bucket_test=False, compute_intersection_score_test=True,
         list_reference_heuristic_test=list_reference_heuristic_test, case="lower",
-        n_iter_max_per_epoch=100,
+        n_iter_max_per_epoch=4,
         slang_dic_test=slang_dic, early_stoppin_metric=early_stoppin_metric,
         saving_every_epoch=15, auxilliary_task_norm_not_norm=True,
         report=True, verbose=1)
