@@ -1,10 +1,10 @@
 from env.importing import *
 from env.project_variables import *
 from env.tasks_settings import TASKS_PARAMETER
-from io_.dat.constants import PAD_ID_BERT, MASK_BERT, CLS_BERT, SEP_BERT, SPECIAL_TOKEN_LS, NULL_STR
+from io_.dat.constants import PAD_ID_BERT, MASK_BERT, CLS_BERT, SEP_BERT, SPECIAL_TOKEN_LS, NULL_STR, PAD_ID_TAG
 from io_.info_print import printing
 from io_.bert_iterators_tools.string_processing import preprocess_batch_string_for_bert, from_bpe_token_to_str, get_indexes, get_indexes_src_gold
-from io_.bert_iterators_tools.get_string_from_bpe import get_prediction, get_bpe_string, get_indexes_src_gold, get_detokenized_str
+from io_.bert_iterators_tools.get_string_from_bpe import get_prediction, get_bpe_string, get_indexes_src_gold, get_detokenized_str, get_aligned_output
 #from io_.bert_iterators_tools.alignement import aligned_output, realigne
 import io_.bert_iterators_tools.alignement as alignement
 from evaluate.report_writing import report_score_all
@@ -16,6 +16,7 @@ from training.epoch_run_fine_tuning_tools import get_casing, logging_processing_
     writing_predictions_conll, init_score_token_sent_dict, dimension_check_label
 from io_.bert_iterators_tools.get_bpe_labels import get_label_per_bpe
 from toolbox.deep_learning_toolbox import dropout_input_tensor
+from model.bert_tools_from_core_code.masking import focused_masking
 
 
 def accumulate_scores_across_sents(agg_func_ls, sample_ls, dic_prediction_score, score_dic, n_tokens_dic, n_sents_dic):
@@ -64,7 +65,7 @@ def epoch_run(batchIter, tokenizer,
         samples_per_task_reporting = SAMPLES_PER_TASK_TO_REPORT
     if task_to_eval is not None:
         args.tasks = task_to_eval
-        assert task_to_eval in label_per_task, "ERROR : {} label was not provided in {}".format(task_to_eval, label_per_task)
+        assert task_to_eval in task_to_label_dictionary, "ERROR : {} label was not provided in {}".format(task_to_eval, task_to_label_dictionary)
         printing("WARNING : task_to_eval was provided ", verbose=verbose, verbose_level=1)
     if ponderation_loss_policy == "static":
         if args.multi_task_loss_ponderation is None:
@@ -319,7 +320,11 @@ def epoch_run(batchIter, tokenizer,
             #printing("CUDA SANITY CHECK input_tokens:{}  type:{}input_mask:{}  label:{}", var=[input_tokens_tensor.is_cuda, token_type_ids.is_cuda, input_mask.is_cuda, output_tokens_tensor_aligned.is_cuda], verbose=verbose, verbose_level="cuda")
             # we have to recompute the mask based on aligned input
             if dropout_input_bpe > 0:
-                input_tokens_tensor, mask_dropout, dropout_applied = dropout_input_tensor(input_tokens_tensor, mask_token_index, sep_token_index=sep_token_index, dropout=dropout_input_bpe, applied_dropout_rate=True)
+                input_tokens_tensor, mask_dropout, dropout_applied = dropout_input_tensor(input_tokens_tensor,
+                                                                                          mask_token_index,
+                                                                                          sep_token_index=sep_token_index,
+                                                                                          dropout=dropout_input_bpe,
+                                                                                          applied_dropout_rate=True)
 
             if args.append_n_mask and task_normalize_is:
                 labels_n_mask_prediction = pred_n_bpe(input_tokens_tensor == mask_token_index)
@@ -330,12 +335,23 @@ def epoch_run(batchIter, tokenizer,
                 labels_n_mask_prediction[input_tokens_tensor == 0] = -1
 
             # TODO : to factorize
+            if not args.multitask and optimizer is not None:
+
+                input_tokens_tensor, feeding_the_model_with_label = \
+                    focused_masking(args.masking_strategy, input_tokens_tensor, output_tokens_tensor_aligned, dropout_input_bpe,
+                                    mask_token_index, sep_token_index, use_gpu, epoch, n_epoch, args.portion_mask,
+                                    input_mask, tokenizer,
+                                    verbose)
+
             if args.masking_strategy in ["mlm", "mlm_need_norm"] and optimizer is not None:
                 dropout = 0.15
                 assert dropout_input_bpe == 0., "in args.masking_strategy mlm we hardcoded dropout to 0.2 {}".format(dropout)
+                # standart pred means : standart MLM prediction
                 standart_pred = True
+                # unmask_loss : bool do we unmask other loss than only the MASKed tokens ( if unmask_loss True : (<>0  we apply dynamic dropout policy cf. ..)
                 if args.masking_strategy == "mlm_need_norm":
-                    # in mlm_need_norm strategy : in args.portion_mask% of the time we learn as a standart mlm the rest of the time we do the same but only on need_norm tokens
+                    # in mlm_need_norm strategy : in args.portion_mask% of the time
+                    #  we learn as a standart mlm the rest of the time we do the same but only on need_norm tokens
                     standart_pred = np.random.random() < args.portion_mask
                     # we force unmask loss to 0
                     unmask_loss = 0
@@ -378,7 +394,7 @@ def epoch_run(batchIter, tokenizer,
                         input_tokens_tensor[mask_dropout == 0] = permute
 
                 if unmask_loss:
-                    print("WARNING : unmaskloss is {}  (0 means only optimizing on the MASK >0 means optimizes "
+                    print("WARNING : unmaskloss is {}  : 0 means only optimizing on the MASK  , > 0 means optimizes "
                           "also on some other sampled based on dropout_adapted)".format(unmask_loss))
                     power = 3
                     capped = 0.5
@@ -388,7 +404,8 @@ def epoch_run(batchIter, tokenizer,
                                                           sep_token_index=sep_token_index,
                                                           apply_dropout=False,
                                                           dropout=dropout_adated)
-                    # we backpropagate only on tokens that receive a mask (MLM objective) + some extra ones tgat we control with dropout_adated
+                    # we backpropagate only on tokens that receive a mask (MLM objective) +
+                    #  some extra ones tgat we control with dropout_adated
                     mask_loss = mask_dropout*mask_losses
                 else:
                     mask_loss = mask_dropout
@@ -413,17 +430,13 @@ def epoch_run(batchIter, tokenizer,
                 printing("MASK mask:{} \nMASK input:{} \nMASK output:{}",
                          var=[input_mask, input_tokens_tensor, output_tokens_tensor_aligned],
                          verbose_level="raw_data", verbose=verbose)
-            if not args.multitask:
-                feeding_the_model_with_label[feeding_the_model_with_label == 0] = -1
-            else:
-                for task in args.tasks:
-                    # make mask for the loss padding
-                    label_per_task[task][label_per_task[task] == 0] = -1
+
             # TODO : should not be hardcoded : should have static mode --> provide loss, dynamic --> preset strategies
             # TODO : multi task : handle two cases -- input labels based on provided args.tasks , handle sum ---> and reporting of the loss in this new case
 
             if not args.multitask:
                 # is meant to be completely removed
+                feeding_the_model_with_label[feeding_the_model_with_label == 0] = -1
 
                 loss_dic, layer_wise_weights = model(input_tokens_tensor, token_type_ids, input_mask,
                                                      labels=feeding_the_model_with_label
@@ -572,13 +585,6 @@ def epoch_run(batchIter, tokenizer,
 
             # multitask :
             elif args.multitask:
-                # labels should be handled regardless of the number and the tasks nature
-                # support all word level so far (parsing, pos) then only include normalization
-                # --> then loss and logits based on the task
-                # --> expand the tasks like parsing (2 folds tasks)
-                # --> predict all tasks at pred time and write them down
-                #   - using argsort
-                #   - handle topk prediction for each task with default one
                 #   - for all word level tasks : normalization, tagging, edit, parsing :
                 #       handle realignement to words
                 #   - write in conll
@@ -591,7 +597,14 @@ def epoch_run(batchIter, tokenizer,
                 assert "normalize" not in args.tasks, "ERROR : input and output not supported yet for 'normalize' " \
                                                       "task in this setting "
 
-                logits_dic, loss_dic, _ = model(input_tokens_tensor, token_type_ids, labels=label_per_task, attention_mask=None)
+                for task in args.tasks:
+                    # make mask for the loss padding
+                    # TODO handle task specific index pad
+                    label_per_task[task][label_per_task[task] == PAD_ID_TAG] = -1
+
+                pdb.set_trace()
+                logits_dic, loss_dic, _ = model(input_tokens_tensor, token_type_ids,
+                                                labels=label_per_task, attention_mask=input_mask)
 
                 if len(list(loss_dic.keys() & set(TASKS_PARAMETER.keys()))) != len(loss_dic.keys()):
                     # it means a given task has several set of labels (e.g parsing)
@@ -600,27 +613,16 @@ def epoch_run(batchIter, tokenizer,
 
                 predictions_topk_dic = get_prediction(logits_dic, topk=topk)
 
-                def get_aligned_output(label_per_task, tasks):
-                    output_tokens_tensor_aligned_dict = OrderedDict()
-                    for task in tasks:
-                        if task != "normalize":
-                            output_tokens_tensor_aligned_dict[task] = label_per_task[task]
-
-                    return output_tokens_tensor_aligned_dict
-
                 output_tokens_tensor_aligned_dic = get_aligned_output(label_per_task, args.tasks)
-
 
                 source_preprocessed, label_dic, predict_dic = get_bpe_string(predictions_topk_dic, output_tokens_tensor_aligned_dic,
                                                                              input_tokens_tensor, topk, tokenizer, task_to_label_dictionary,
                                                                              args.tasks, null_str, null_token_index, verbose)
-                pdb.set_trace()
+
                 src_detokenized, label_detokenized_dic, predict_detokenize_dic = get_detokenized_str(source_preprocessed, input_alignement_with_raw,
                                                                                                      label_dic, predict_dic, null_str,
                                                                                                      args.tasks, remove_mask_str_prediction)
-                pdb.set_trace()
                 for task in vars(args)["tasks"]:
-                    pdb.set_trace()
                     perf_prediction, skipping, _samples = overall_word_level_metric_measure(label_detokenized_dic[task],
                                                                                             predict_detokenize_dic[task],
                                                                                             topk, metric=metric, samples=samples,
@@ -628,13 +630,15 @@ def epoch_run(batchIter, tokenizer,
                                                                                             reference_word_dic=reference_word_dic,
                                                                                             compute_intersection_score=compute_intersection_score,
                                                                                             src_detokenized=src_detokenized)
-                    pdb.set_trace()
-                    score_dic[task], n_tokens_dic[task], n_sents_dic[task] = accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=_samples,
-                                                                                                            dic_prediction_score=perf_prediction, score_dic=score_dic[task],
-                                                                                                            n_tokens_dic=n_tokens_dic[task], n_sents_dic=n_sents_dic[task])
+
+                    score_dic[task], n_tokens_dic[task], n_sents_dic[task] = accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
+                                                                                                            sample_ls=_samples,
+                                                                                                            dic_prediction_score=perf_prediction,
+                                                                                                            score_dic=score_dic[task],
+                                                                                                            n_tokens_dic=n_tokens_dic[task],
+                                                                                                            n_sents_dic=n_sents_dic[task])
                     evaluated_task.append(task)
 
-                pdb.set_trace()
 
                 def get_multitask_loss(tasks, loss_dict, ponderation):
                     loss = 0
@@ -646,7 +650,7 @@ def epoch_run(batchIter, tokenizer,
                 # temporary
                 task_normalize_is = False
                 task_pos_is = False
-                # based on a policy : handle batch, epoch, batch weights, simultanuous
+                # based on a policy : handle batch, epoch, batch weights, simultanuously
                 # --> define a unique loss that we backward
                 # assert the policy is consistent with the available labels fed to the model
                 if args.multitask and False:

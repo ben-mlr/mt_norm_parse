@@ -39,7 +39,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                       freeze_parameters_ls=None,
                       bert_model_ls=None, dropout_classifier_ls=None, fine_tuning_strategy_ls=None, dropout_input_bpe_ls=None, dropout_bert_ls=None,
                       masking_strategy_ls=None,checkpoint_dir_ls=None, norm_2_noise_training_ls=None, aggregating_bert_layer_mode_ls=None,bert_module_ls=None,
-                      layer_wise_attention_ls=None,tokenize_and_bpe_ls=None, append_n_mask_ls=None,
+                      layer_wise_attention_ls=None,tokenize_and_bpe_ls=None, append_n_mask_ls=None, multitask_ls=None,
                       py_script="train_evaluate_run"):
     """
 
@@ -92,7 +92,8 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                                                                             masking_strategy_ls=masking_strategy_ls, checkpoint_dir_ls=checkpoint_dir_ls,
                                                                             norm_2_noise_training_ls=norm_2_noise_training_ls, aggregating_bert_layer_mode_ls=aggregating_bert_layer_mode_ls,
                                                                             append_n_mask_ls=append_n_mask_ls,
-                                                                            bert_module_ls=bert_module_ls, layer_wise_attention_ls=layer_wise_attention_ls,tokenize_and_bpe_ls=tokenize_and_bpe_ls,
+                                                                            bert_module_ls=bert_module_ls, layer_wise_attention_ls=layer_wise_attention_ls,
+                                                                            tokenize_and_bpe_ls=tokenize_and_bpe_ls, multitask_ls=multitask_ls
                                                                             )
     if gpu_mode == "random":
         if gpus_ls is None:

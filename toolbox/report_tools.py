@@ -98,7 +98,6 @@ def write_args(dir, model_id, checkpoint_dir=None,
     return args_dir
 
 
-
 def get_hyperparameters_dict(args, case, random_iterator_train, seed, verbose):
 
     hyperparameters = OrderedDict([("bert_model", args.bert_model), ("lr", args.lr),
@@ -123,7 +122,8 @@ def get_hyperparameters_dict(args, case, random_iterator_train, seed, verbose):
                                    ("freeze_layer_prefix_ls", args.freeze_parameters),
                                    ("layer_wise_attention", args.layer_wise_attention),
                                    ("append_n_mask", args.append_n_mask),
-                                   ("multi_task_loss_ponderation", args.multi_task_loss_ponderation)
+                                   ("multi_task_loss_ponderation", args.multi_task_loss_ponderation),
+                                   ("multitask", args.multitask),
                                    ])
     printing("HYPERPARAMETERS {} ", var=[hyperparameters], verbose=verbose, verbose_level=1)
     return hyperparameters

@@ -30,7 +30,7 @@ def train_eval_bert_normalize(args, verbose=1):
     voc_pos_size = 21 #18+1 for alg_arabizi # 53+1 for ARABIZI 1# 21 is for ENGLISH
     printing("MODEL : voc_pos_size hardcoded to {}", var=voc_pos_size, verbose_level=1, verbose=verbose)
 
-    debug = False
+    debug = True
     if os.environ.get("ENV") in ["rioc", "neff"]:
         debug = False
     if args.checkpoint_dir is None:
@@ -86,17 +86,18 @@ def train_eval_bert_normalize(args, verbose=1):
         raise(Exception("Neither normalize nor pos is in {} (cant define early_stoppin_metric)".format(args.tasks)))
 
     printing("INFO : tasks is {} so setting early_stoppin_metric to {} ", var=[args.tasks, early_stoppin_metric], verbose=verbose, verbose_level=1)
-    printing("INFO : environ is {} so debug set to {}", var=[os.environ.get("ENV", "Unkwnown"),debug], verbose_level=1, verbose=verbose)
+    printing("INFO : environ is {} so debug set to {}", var=[os.environ.get("ENV", "Unkwnown"), debug], verbose_level=1, verbose=verbose)
     # MLM in multitas mode is temporary and require task_i indexing : that's why we need to rename ponderation dictionary
     if not args.multitask:
         args.multi_task_loss_ponderation = update_multitask_loss(args.multi_task_loss_ponderation)
 
     run(args=args, model=model, voc_tokenizer=voc_tokenizer,
+        report_full_path_shared=args.overall_report_dir,
         description=description, null_token_index=null_token_index, null_str=NULL_STR,
         model_suffix="{}".format(args.model_id_pref), debug=debug,
         random_iterator_train=True,  bucket_test=False, compute_intersection_score_test=True,
         list_reference_heuristic_test=list_reference_heuristic_test, case="lower",
-        n_iter_max_per_epoch=10,
+        n_iter_max_per_epoch=100,
         slang_dic_test=slang_dic, early_stoppin_metric=early_stoppin_metric,
         saving_every_epoch=15, auxilliary_task_norm_not_norm=True,
         report=True, verbose=1)

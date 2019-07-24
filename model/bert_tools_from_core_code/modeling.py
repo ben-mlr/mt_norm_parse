@@ -251,6 +251,7 @@ except ImportError:
             x = (x - u) / torch.sqrt(s + self.variance_epsilon)
             return self.weight * x + self.bias
 
+
 class BertEmbeddings(nn.Module):
     """Construct the embeddings from word, position and token_type embeddings.
     """
@@ -853,17 +854,17 @@ from model.parser_modules import (CHAR_LSTM, MLP, Biaffine, BiLSTM, IndependentD
 class BertTokenHead(nn.Module):
     def __init__(self, config, num_labels, dropout_classifier):
         super(BertTokenHead, self).__init__()
-        self.classifier = nn.Linear(config.hidden_size, num_labels)
+        self.num_labels = num_labels
+        self.classifier = nn.Linear(config.hidden_size, self.num_labels)
         self.dropout = nn.Dropout(dropout_classifier) if dropout_classifier is not None else None
         #self.apply(self.init_bert_weights)
 
     def forward(self, x, attention_mask):
+        assert attention_mask is None, "ERROR : not need of active logits only : handled in the loss for training " \
+                                       "attention_mask"
         logits = self.classifier(x)
         # Only keep active parts of the loss
-        if attention_mask is not None:
-            active_loss = attention_mask.view(-1) == 1
-            active_logits = logits.view(-1, self.num_labels)[active_loss]
-            return active_logits
+
         return logits
 
 
@@ -993,7 +994,8 @@ class BertMultiTask(BertPreTrainedModel):
                 self.head[task] = self.task_parameters[task]["head"](config)
             else:
                 self.num_labels = 21
-                self.head[task] = self.task_parameters[task]["head"](config, num_labels=self.num_labels, dropout_classifier=0.1)
+                self.head[task] = self.task_parameters[task]["head"](config, num_labels=self.num_labels,
+                                                                     dropout_classifier=0.1)
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None):
         if labels is None:
@@ -1010,9 +1012,10 @@ class BertMultiTask(BertPreTrainedModel):
                                        output_all_encoded_layers=self.layer_wise_attention is not None)
         for task in self.tasks:
             # --> make sur
-            logits_dict[task] = self.head[task](sequence_output, attention_mask=attention_mask)
+            logits_dict[task] = self.head[task](sequence_output, attention_mask=None)
             # TODO : handle several labels at output
             for label_task in self.task_parameters[task]["label"]:
+                # HANDLE HERE MULTI MODAL TASKS
                 if label_task in labels:
                     loss_dict[task] = self.task_parameters[task]["loss"](logits_dict[task].view(-1, self.num_labels), labels[label_task].view(-1))
         # thrid output is for potential attention weights
@@ -1159,7 +1162,9 @@ class BertForMaskedLM(BertPreTrainedModel):
             logits_n_mask_prediction = self.mask_n_predictor(sequence_output)
             pred_dict["logits_n_mask_prediction"] = logits_n_mask_prediction
         if labels is not None and self.mask_n_predictor is not None:
-            assert labels_n_masks is not None, "ERROR : you provided labels for normalization and self.mask_n_predictor : so you should provide labels_n_mask_prediction"
+            assert labels_n_masks is not None, \
+                "ERROR : you provided labels for normalization and" \
+                " self.mask_n_predictor : so you should provide labels_n_mask_prediction"
             loss_fct_masks_pred = CrossEntropyLoss(ignore_index=-1)
             try:
                 loss_dict["loss_task_n_mask_prediction"] = loss_fct_masks_pred(logits_n_mask_prediction.view(-1, self.num_labels_n_mask), labels_n_masks.view(-1))

@@ -190,6 +190,7 @@ def run(args,
                                                                          task_to_label_dictionary={"pos":pos_dictionary},
                                                                          data_label=train_data_label,
                                                                          model=model,
+                                                                         dropout_input_bpe=args.dropout_input_bpe,
                                                                          writer=writer,
                                                                          iter=iter_train, epoch=epoch,
                                                                          writing_pred=epoch == (args.epochs - 1),
@@ -496,6 +497,7 @@ def run(args,
     json.dump(report_all, open(report_dir, "w"))
     print("REPORTING TO {}".format(report_dir))
     if report_full_path_shared is None:
+        print("WARNING ; report_full_path_shared is None")
         printing("{} {} ", var=[REPORT_FLAG_DIR_STR, report_dir], verbose=verbose, verbose_level=0)
 
     return model

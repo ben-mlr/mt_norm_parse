@@ -72,6 +72,14 @@ def get_detokenized_str(source_preprocessed, input_alignement_with_raw, label_di
             predict_detokenize_dic[task].append(alignement.realigne_multi(sent_ls, input_alignement_with_raw,
                                                 remove_null_str=True, task=task, remove_extra_predicted_token=True,
                                                 null_str=null_str, mask_str=MASK_BERT))
-    pdb.set_trace()
 
     return src_detokenized, label_detokenized_dic, predict_detokenize_dic
+
+
+def get_aligned_output(label_per_task, tasks):
+    output_tokens_tensor_aligned_dict = OrderedDict()
+    for task in tasks:
+        if task != "normalize":
+            output_tokens_tensor_aligned_dict[task] = label_per_task[task]
+
+    return output_tokens_tensor_aligned_dict
