@@ -908,7 +908,7 @@ class BertGraphHead(nn.Module):
         self.pad_index = pad_index
         self.unk_index = unk_index
 
-    def forward(self, x, mask):
+    def forward(self, x, mask=None):
         # apply MLPs to the BiLSTM output states
         arc_h = self.mlp_arc_h(x)
         arc_d = self.mlp_arc_d(x)
@@ -916,86 +916,55 @@ class BertGraphHead(nn.Module):
         rel_d = self.mlp_rel_d(x)
         # get arc and rel scores from the bilinear attention
         # [batch_size, seq_len, seq_len]
-        s_arc = self.arc_attn(arc_d, arc_h)
+        s_heads = self.arc_attn(arc_d, arc_h)
         # [batch_size, seq_len, seq_len, n_rels]
-        s_rel = self.rel_attn(rel_d, rel_h).permute(0, 2, 3, 1)
+        s_labels = self.rel_attn(rel_d, rel_h).permute(0, 2, 3, 1)
 
         if mask is not None:
             pdb.set_trace()
             # set the scores that exceed the length of each sentence to -inf
-            s_arc.masked_fill_(~mask.unsqueeze(1), float('-inf'))
+            s_heads.masked_fill_(~mask.unsqueeze(1), float('-inf'))
         else:
-            print("IGNORING MASK ")
+            print("MODEL : ignoring mask ")
 
 
         #pred = {TASKS_PARAMETERS["parsing"]["pred"][0]: s_arc,
         #        TASKS_PARAMETERS["parsing"]["pred"][1]: s_rel}
 
-        return s_arc, s_rel
+        return s_heads, s_labels
 
 
 # THIS IS THE ID CARD OF EACH SUPPORTED TASKS in THE PROJECT
 # to add a ne tasks : we should just fill all the required fields and that's it
 # NB : label fiels should be a list of labels as name in the Batch class
 
-
-TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact_match",
-                                 "head": None, "loss": CrossEntropyLoss(),
-                                "prediction_level": "word",
-                                 "predicted_classes": ["NORMED", "NEED_NORM"],
-                                 "predicted_classes_pred_field": ["PRED_NORMED", "PRED_NEED_NORM"]},
-                   "norm_not_norm": {"normalization": True,
-                                     "head": None,
-                                     "loss": CrossEntropyLoss(),
-                                     "prediction_level": "word",
-                                     },
-                   "edit_prediction": {"normalization": True,
-                                       "head": None,
-                                       "prediction_level": "word",
-                                       "loss": CrossEntropyLoss()},
-                   "pos": {"normalization": False,
-                           "default_metric": "accuracy-pos",
-                           "pred": ["pos_pred"],
-                           "label": ["pos"],
-                           "head": BertTokenHead,
-                           "prediction_level": "word",
-                           "loss": CrossEntropyLoss(ignore_index=-1)},
-                   "parsing": {
-                       "normalization": False,
-                       "default_metric": None,
-                       "pred": None, #["arc_pred", "label_pred"],
-                       "head": BertGraphHead,
-                       "label": ["types", "heads"],
-                       "prediction_level": "word",
-                       "loss": CrossEntropyLoss()
-                               },
-                   "all": {"normalization": True,
-                           "head": None,
-                           "loss": CrossEntropyLoss()}}
-
+from env.tasks_settings import TASKS_PARAMETER
 
 class BertMultiTask(BertPreTrainedModel):
     """
     BERT model which can call any other modules
     """
-    def __init__(self, config, tasks):
+    def __init__(self, config, tasks, num_labels_per_task):
         super(BertMultiTask, self).__init__(config)
         self.bert = BertModel(config)
+        assert isinstance(num_labels_per_task, dict)
         assert isinstance(tasks, list) and len(tasks) >= 1, "config.tasks should be a list of len >=1"
         self.head = nn.ModuleDict()
         self.tasks = tasks
         self.task_parameters = TASKS_PARAMETER
         self.layer_wise_attention = None
         self.labels_supported = [label for task in tasks for label in self.task_parameters[task]["label"]]
+        for task in tasks:
+            assert task in num_labels_per_task, "ERROR : no num label for task {} ".format(task)
+        self.num_labels_dic = num_labels_per_task
         for i, task in enumerate(tasks):
             assert task in TASKS_PARAMETER, "ERROR : task {} is not in {}".format(task, TASKS_PARAMETER)
             if task != "pos":
                 # TODO : factorize
-                self.head[task] = self.task_parameters[task]["head"](config)
+                self.head[task] = eval(self.task_parameters[task]["head"])(config)
             else:
-                self.num_labels = 21
-                self.head[task] = self.task_parameters[task]["head"](config, num_labels=self.num_labels,
-                                                                     dropout_classifier=0.1)
+                #self.num_labels = 21
+                self.head[task] = eval(self.task_parameters[task]["head"])(config, num_labels=self.num_labels, dropout_classifier=0.1)
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None):
         if labels is None:
@@ -1011,15 +980,40 @@ class BertMultiTask(BertPreTrainedModel):
                                        attention_mask=attention_mask,
                                        output_all_encoded_layers=self.layer_wise_attention is not None)
         for task in self.tasks:
-            # --> make sur
-            logits_dict[task] = self.head[task](sequence_output, attention_mask=None)
-            # TODO : handle several labels at output
+            logits_dict[task] = self.head[task](sequence_output)
+            # handle several labels at output (e.g  parsing)
+            n_pred = len(list(logits_dict[task]))
+            assert n_pred == len(self.task_parameters[task]["label"]), "ERROR : not as many labels as prediction for task {}".format(task)
+            if n_pred == 2:
+                logits_dict = self.rename_multi_modal_task_logits(labels=self.task_parameters[task]["label"], logits_dict=logits_dict, task=task)
+            elif n_pred > 2:
+                raise (Exception("More than 3 tensors as prediction is not supported (task {})".format(task)))
+
             for label_task in self.task_parameters[task]["label"]:
                 # HANDLE HERE MULTI MODAL TASKS
                 if label_task in labels:
-                    loss_dict[task] = self.task_parameters[task]["loss"](logits_dict[task].view(-1, self.num_labels), labels[label_task].view(-1))
+
+                    loss_dict[label_task] = self.get_loss(self.task_parameters[task]["loss"], label_task, self.num_labels_dic[task], labels, logits_dict, task)
         # thrid output is for potential attention weights
         return logits_dict, loss_dict, None
+
+
+    @staticmethod
+    def get_loss(loss_func, label_task, num_label_dic, labels, logits_dict, task):
+        if not label_task.startswith("parsing"):
+            loss = loss_func(logits_dict[label_task].view(-1, num_label_dic[task]), labels[label_task].view(-1))
+        elif label_task == "parsing_heads":
+            loss = loss_func(logits_dict[label_task], labels[label_task])
+        elif label_task == "parsing_types":
+            loss = 0#torch.zeros(logits_dict[label_task].size(0), logits_dict[label_task].size(1))
+        return loss
+    @staticmethod
+    def rename_multi_modal_task_logits(labels, logits_dict, task):
+        for i_label, double_label in enumerate(labels):
+            # NB : the order of self.task_parameters[task]["label"] must be the same as the head output
+            logits_dict[double_label] = logits_dict[task][i_label]
+        del logits_dict[task]
+        return logits_dict
 
 
 class BertForTreePrediction(BertPreTrainedModel):

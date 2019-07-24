@@ -55,7 +55,7 @@ LOSS_DETAIL_TEMPLATE_LS = {"loss_overall": [], "loss_seq_prediction": [],
                            "other": {}}
 SCORE_AUX = ["norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recall", "norm_not_norm-accuracy"]
 
-AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm", "append_masks", "pos", "edit_prediction"]
+AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm", "append_masks", "pos", "edit_prediction", "parsing"]
 AVAILABLE_AGGREGATION_FUNC_AUX_TASKS = ["norm_not_norm", "edit_prediction"]
 AVAILABLE_BERT_FINE_TUNING_STRATEGY = ["bert_out_first", "standart", "flexible_lr", "only_first_and_last"]
 AVAILABLE_BERT_MASKING_STRATEGY = ["normed", "cls", "start_stop", "mlm", "norm_mask",

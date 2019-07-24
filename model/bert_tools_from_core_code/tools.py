@@ -32,6 +32,12 @@ except AttributeError:
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
+def get_multitask_loss(tasks, loss_dict, ponderation):
+    loss = 0
+    for task in tasks:
+        loss += ponderation[task] * loss_dict[task]
+    return loss
+
 
 def url_to_filename(url, etag=None):
     """

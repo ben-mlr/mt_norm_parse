@@ -7,7 +7,7 @@ def get_multi_task_bert_model(args, model_dir, vocab_size, voc_pos_size, debug, 
         # TODO vocab_size should be loaded from args.json
         # TEMPORARY : should eventually keep only : model = make_bert_multitask()
         if args.multitask:
-            model = make_bert_multitask(pretrained_model_dir=model_dir, tasks=["pos"])
+            model = make_bert_multitask(pretrained_model_dir=model_dir, tasks=args.tasks)
         else:
             model = get_bert_token_classification(pretrained_model_dir=model_dir,
                                                   vocab_size=vocab_size,

@@ -25,10 +25,10 @@ class MaskBatch(object):
         self.input_seq = input_seq
         self.input_word = input_word
 
-
+        # NB : the attributes should be aligned with the task_settings label field
         self.pos = pos
-        self.types = types
-        self.heads = heads
+        self.parsing_types = types
+        self.parsing_heads = heads
         if dropout_input > 0:
             # we put it jere so that input_seq_mask computed based on droped input_seq # migh cause trouble for input_seq_len
             droping_multiplier_word = torch.zeros_like(input_word).bernoulli_(1-dropout_input)
@@ -65,8 +65,7 @@ class MaskBatch(object):
         get_len_input, start = get_timing(start)
         printing("BATCH : SOURCE true dim size {} ",
                  var=(self.input_seq.size()), verbose=verbose, verbose_level=3)
-        printing("BATCH : SOURCE input_seq_len  {} ",
-                 var=(self.input_seq_len), verbose=verbose, verbose_level=5)
+        printing("BATCH : SOURCE input_seq_len  {} ", var=(self.input_seq_len), verbose=verbose, verbose_level=5)
         printing("BATCH : SOURCE input_seq_len size {} ",
                  var=(self.input_seq_len.size()), verbose=verbose,
                  verbose_level=5)

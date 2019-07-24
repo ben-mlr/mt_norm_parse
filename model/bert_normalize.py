@@ -9,7 +9,7 @@ def make_bert_multitask(pretrained_model_dir, tasks):
     assert isinstance(tasks, list) and len(tasks)>=1, "ERROR tasks {} should be a list of len >=1".format(tasks)
 
     if pretrained_model_dir is not None:
-        model = BertMultiTask.from_pretrained(pretrained_model_dir, tasks=tasks)
+        model = BertMultiTask.from_pretrained(pretrained_model_dir, tasks=tasks, num_labels_per_task={"pos": 21, "parsing": 50})
     else:
         raise(Exception("not supported yet"))
 

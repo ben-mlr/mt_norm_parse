@@ -10,6 +10,7 @@ import io_.bert_iterators_tools.alignement as alignement
 from evaluate.report_writing import report_score_all
 from evaluate.scoring.report import overall_word_level_metric_measure
 from model.n_masks_predictor import pred_n_bpe
+from model.bert_tools_from_core_code.modeling import get_multitask_loss
 from toolbox.pred_tools.heuristics import predict_with_heuristic
 from training.epoch_run_fine_tuning_tools import get_casing, logging_processing_data, logging_scores, log_warning, print_align_bpe, tensorboard_loss_writer_batch_level, tensorboard_loss_writer_batch_level_multi, \
     tensorboard_loss_writer_epoch_level, \
@@ -188,7 +189,8 @@ def epoch_run(batchIter, tokenizer,
             task_pos_is = len(batch.raw_output[0]) == 0
             # only one task supported at a time per batch so far based on the input batch
             task_normalize_is = not task_pos_is
-            #task_pos_is = False
+            task_pos_is = False
+            print("WARNING : task_pos_is  hadrcoded to false ")
             # case the batches if case is 'lower'
             batch = get_casing(case, batch, task_normalize_is)
             #print("ITERATING on {} task".format("pos" if task_pos_is else "normalize"))
@@ -273,9 +275,7 @@ def epoch_run(batchIter, tokenizer,
 
             if task_pos_is or args.multitask:
                 out_bpe_tokenized = None
-                input_mask, input_tokens_tensor, token_type_ids, label_per_task = \
-                    get_label_per_bpe(args.tasks, batch, input_tokens_tensor,
-                                      input_alignement_with_raw, use_gpu, tasks_parameters=TASKS_PARAMETER)
+                input_mask, input_tokens_tensor, token_type_ids, label_per_task = get_label_per_bpe(args.tasks, batch, input_tokens_tensor, input_alignement_with_raw, use_gpu, tasks_parameters=TASKS_PARAMETER)
                 dimension_check_label(label_per_task, input_tokens_tensor)
                 if task_pos_is:
                     output_tokens_tensor_aligned = label_per_task["pos"]
@@ -497,22 +497,18 @@ def epoch_run(batchIter, tokenizer,
             elif args.multitask:
                 #   - for all word level tasks : normalization, tagging, edit, parsing :
                 #       handle realignement to words
-                #   - write in conll
-                #   - score each tasks
                 # --> evaluate them based on labels
                 # HANDLE THE CASE FOR WHICH ONLY PREDICTION
                 # TODO:
-                # - prediction
-                # - factorize masking
+                # - factorize   masking
                 assert "normalize" not in args.tasks, "ERROR : input and output not supported yet for 'normalize' " \
                                                       "task in this setting "
-                for task in args.tasks:
+                for label in label_per_task:
                     # make mask for the loss padding
                     # TODO handle task specific index pad
-                    label_per_task[task][label_per_task[task] == PAD_ID_TAG] = -1
-
-                logits_dic, loss_dic, _ = model(input_tokens_tensor, token_type_ids,
-                                                labels=label_per_task, attention_mask=input_mask)
+                    label_per_task[label][label_per_task[label] == PAD_ID_TAG] = -1
+                pdb.set_trace()
+                logits_dic, loss_dic, _ = model(input_tokens_tensor, token_type_ids, labels=label_per_task, attention_mask=input_mask)
 
                 if len(list(loss_dic.keys() & set(TASKS_PARAMETER.keys()))) != len(loss_dic.keys()):
                     # it means a given task has several set of labels (e.g parsing)
@@ -550,20 +546,17 @@ def epoch_run(batchIter, tokenizer,
 
                 if writing_pred:
                     new_file = writing_predictions_conll_multi(
-                        dir_pred=dir_normalized, dir_normalized_original_only=dir_normalized_original_only,
-                        dir_gold=dir_gold, dir_gold_original_only=dir_gold_original_only,
-                        src_detokenized=src_detokenized, pred_per_task=predict_detokenize_dic,
-                        iter=iter, batch_i=batch_i, new_file=new_file, gold_per_tasks=label_detokenized_dic,
-                        tasks=args.tasks, verbose=verbose)
-
-                def get_multitask_loss(tasks, loss_dict, ponderation):
-                    loss = 0
-                    for task in tasks:
-                        loss += ponderation[task]*loss_dict[task]
-                    return loss
+                                            dir_pred=dir_normalized, dir_normalized_original_only=dir_normalized_original_only,
+                                            dir_gold=dir_gold, dir_gold_original_only=dir_gold_original_only,
+                                            src_detokenized=src_detokenized, pred_per_task=predict_detokenize_dic,
+                                            iter=iter, batch_i=batch_i, new_file=new_file, gold_per_tasks=label_detokenized_dic,
+                                            tasks=args.tasks, verbose=verbose)
 
                 _loss = get_multitask_loss(args.tasks, loss_dic, args.multi_task_loss_ponderation)
                 # temporary
+
+                #label_per_task[""]
+
                 task_normalize_is = False
                 task_pos_is = False
                 # based on a policy : handle batch, epoch, batch weights, simultanuously

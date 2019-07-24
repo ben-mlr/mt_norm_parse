@@ -269,6 +269,9 @@ def sanity_check_batch_label(task, batch, verbose=1):
         assert batch.output_norm_not_norm is not None, "ERROR checking norm_not_norm"
     elif task in ["all", "edit_prediction"]:
         assert batch.edit is not None, "ERROR edit batch was found None "
+    elif task in ["all", "parsing"]:
+        assert batch.parsing_heads is not None, "ERROR : heads were not found in batch "
+        assert batch.parsing_types is not None, "ERROR : types were not found in batch "
     else:
         raise(Exception("task provided {} could not be checked".format(task)))
     #printing("BATCH CHECKED ", verbose=verbose, verbose_level=1)

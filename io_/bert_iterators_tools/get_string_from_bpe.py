@@ -18,23 +18,23 @@ def get_bpe_string(predictions_topk_dic, output_tokens_tensor_aligned_dic, input
     predict_dic = OrderedDict()
     label_dic = OrderedDict()
 
-    for task in tasks:
-        sent_ls_top = from_bpe_token_to_str(predictions_topk_dic[task], topk, tokenizer=tokenizer,
-                                            pred_mode=True, label_dictionary=task_to_label_dictionary[task],
-                                            get_string=False, task=task,
+    for label in predictions_topk_dic:
+        sent_ls_top = from_bpe_token_to_str(predictions_topk_dic[label], topk, tokenizer=tokenizer,
+                                            pred_mode=True, label_dictionary=task_to_label_dictionary[label],
+                                            get_string=False, label=label,
                                             null_token_index=null_token_index, null_str=null_str)
 
-        gold = from_bpe_token_to_str(output_tokens_tensor_aligned_dic[task], topk, tokenizer=tokenizer,
-                                     label_dictionary=task_to_label_dictionary[task],
+        gold = from_bpe_token_to_str(output_tokens_tensor_aligned_dic[label], topk, tokenizer=tokenizer,
+                                     label_dictionary=task_to_label_dictionary[label],
                                      pred_mode=False,
-                                     get_string=False, task=task,
+                                     get_string=False, label=label,
                                      null_token_index=null_token_index, null_str=null_str)
 
-        predict_dic[task] = sent_ls_top
-        label_dic[task] = gold
+        predict_dic[label] = sent_ls_top
+        label_dic[label] = gold
 
     source_preprocessed = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer,
-                                                label_dictionary=task_to_label_dictionary[task],
+                                                label_dictionary=task_to_label_dictionary[label],
                                                 pred_mode=False,
                                                 null_token_index=null_token_index, null_str=null_str,
                                                 get_string=True, verbose=verbose)
@@ -78,8 +78,8 @@ def get_detokenized_str(source_preprocessed, input_alignement_with_raw, label_di
 
 def get_aligned_output(label_per_task, tasks):
     output_tokens_tensor_aligned_dict = OrderedDict()
-    for task in tasks:
-        if task != "normalize":
-            output_tokens_tensor_aligned_dict[task] = label_per_task[task]
+    for label in label_per_task:
+        if label != "normalize":
+            output_tokens_tensor_aligned_dict[label] = label_per_task[label ]
 
     return output_tokens_tensor_aligned_dict

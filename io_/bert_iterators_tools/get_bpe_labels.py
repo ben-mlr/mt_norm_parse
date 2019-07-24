@@ -107,25 +107,26 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
         if use_gpu:
             output_tokens_tensor_aligned = output_tokens_tensor_aligned.cuda()
 
-    elif "pos" in tasks or "parsing" in tasks:
-
+    else:
         for task in tasks:
-            for label_name in tasks_parameters[task]["label"]:
-                label = eval("batch.{}".format(label_name))
+            for task_batch_name in tasks_parameters[task]["label"]:
+                task_batch = eval("batch.{}".format(task_batch_name))
                 # we handle all word level tasks in the same way
                 assert tasks_parameters[task]["prediction_level"] == "word", "ERROR only word level task supported here so far"
+                pdb.set_trace()
                 if tasks_parameters[task]["prediction_level"] == "word":
                     output_tokens_tensor, input_mask, input_tokens_tensor = \
-                        get_bpe_label_word_level_task(label, batch, input_tokens_tensor, input_alignement_with_raw)
+                        get_bpe_label_word_level_task(task_batch, batch, input_tokens_tensor, input_alignement_with_raw)
 
                     output_tokens_tensor_aligned = output_tokens_tensor[:, : input_tokens_tensor.size(1)]
                     output_tokens_tensor_aligned = output_tokens_tensor_aligned.contiguous()
                     if use_gpu:
                         output_tokens_tensor_aligned = output_tokens_tensor_aligned.cuda()
-
-                    label_per_task[task] = output_tokens_tensor_aligned
-    else:
-        raise(Exception("ERROR : only pos supported so far "))
+                    # if the task has several label : we just appen the label name to the task in the label dictionary
+                    label_name = task_batch_name #task if len(tasks_parameters[task]["label"]) == 1 else task+"_"+task_batch_name
+                    label_per_task[label_name] = output_tokens_tensor_aligned
+                else:
+                    raise(Exception("ERROR : only word level supported so far "))
 
     token_type_ids = torch.zeros_like(input_tokens_tensor)
 
@@ -133,5 +134,7 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
         input_mask = input_mask.cuda()
         input_tokens_tensor = input_tokens_tensor.cuda()
         token_type_ids = token_type_ids.cuda()
+        for lab in label_per_task:
+            label_per_task[lab] = label_per_task[lab].cuda()
 
     return input_mask, input_tokens_tensor, token_type_ids, label_per_task
