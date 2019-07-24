@@ -549,14 +549,12 @@ def epoch_run(batchIter, tokenizer,
                     evaluated_task.append(task)
 
                 if writing_pred:
-                    pdb.set_trace()
                     new_file = writing_predictions_conll_multi(
                         dir_pred=dir_normalized, dir_normalized_original_only=dir_normalized_original_only,
                         dir_gold=dir_gold, dir_gold_original_only=dir_gold_original_only,
                         src_detokenized=src_detokenized, pred_per_task=predict_detokenize_dic,
                         iter=iter, batch_i=batch_i, new_file=new_file, gold_per_tasks=label_detokenized_dic,
                         tasks=args.tasks, verbose=verbose)
-                    pdb.set_trace()
 
                 def get_multitask_loss(tasks, loss_dict, ponderation):
                     loss = 0

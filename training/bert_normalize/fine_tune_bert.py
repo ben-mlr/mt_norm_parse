@@ -13,11 +13,13 @@ from model.bert_tools_from_core_code.tokenization import BertTokenizer
 from training.epoch_run_fine_tuning_bert import epoch_run
 from toolbox.report_tools import write_args, get_hyperparameters_dict
 from toolbox.pred_tools.heuristics import get_letter_indexes
+from model.bert_tools_from_core_code.get_model import get_multi_task_bert_model
 
 
 def run(args,
         n_iter_max_per_epoch,
-        voc_tokenizer, auxilliary_task_norm_not_norm, model,
+        vocab_size, model_dir,
+        voc_tokenizer, auxilliary_task_norm_not_norm,
         null_token_index, null_str,
         run_mode="train",
         dict_path=None, end_predictions=None,
@@ -73,8 +75,6 @@ def run(args,
 
     train_data_label = "|".join([REPO_DATASET.get(_train_path, "train_{}".format(i)) for i, _train_path in enumerate(args.train_path)])
     dev_data_label = "|".join([REPO_DATASET.get(_dev_path, "dev_{}".format(i)) for i, _dev_path in enumerate(args.dev_path)]) if args.dev_path is not None else None
-    if use_gpu:
-        model.to("cuda")
 
     if not debug:
         pdb.set_trace = lambda: None
@@ -125,6 +125,12 @@ def run(args,
                               case=case,
                               add_start_char=1 if run_mode == "train" else None,
                               verbose=1)
+    voc_pos_size = len(pos_dictionary.instance2index)+1
+    printing("MODEL : voc_pos_size defined as {}", var=voc_pos_size, verbose_level=1, verbose=verbose)
+    model = get_multi_task_bert_model(args, model_dir, vocab_size, voc_pos_size, debug, verbose)
+
+    if use_gpu:
+        model.to("cuda")
 
     inv_word_dic = word_dictionary.instance2index
     # load , mask, bucket and index data
