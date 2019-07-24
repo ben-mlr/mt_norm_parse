@@ -859,14 +859,13 @@ class BertTokenHead(nn.Module):
         self.dropout = nn.Dropout(dropout_classifier) if dropout_classifier is not None else None
         #self.apply(self.init_bert_weights)
 
-    def forward(self, x, attention_mask):
+    def forward(self, x, attention_mask=None):
         assert attention_mask is None, "ERROR : not need of active logits only : handled in the loss for training " \
                                        "attention_mask"
         logits = self.classifier(x)
         # Only keep active parts of the loss
-
-        return logits
-
+        # NB : the , is mandatory !
+        return logits,
 
 class BertGraphHead(nn.Module):
     # the MLP layers
@@ -940,6 +939,7 @@ class BertGraphHead(nn.Module):
 
 from env.tasks_settings import TASKS_PARAMETER
 
+
 class BertMultiTask(BertPreTrainedModel):
     """
     BERT model which can call any other modules
@@ -964,7 +964,7 @@ class BertMultiTask(BertPreTrainedModel):
                 self.head[task] = eval(self.task_parameters[task]["head"])(config)
             else:
                 #self.num_labels = 21
-                self.head[task] = eval(self.task_parameters[task]["head"])(config, num_labels=self.num_labels, dropout_classifier=0.1)
+                self.head[task] = eval(self.task_parameters[task]["head"])(config, num_labels=self.num_labels_dic["pos"], dropout_classifier=0.1)
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None):
         if labels is None:
@@ -983,17 +983,12 @@ class BertMultiTask(BertPreTrainedModel):
             logits_dict[task] = self.head[task](sequence_output)
             # handle several labels at output (e.g  parsing)
             n_pred = len(list(logits_dict[task]))
-            assert n_pred == len(self.task_parameters[task]["label"]), "ERROR : not as many labels as prediction for task {}".format(task)
-            if n_pred == 2:
-                logits_dict = self.rename_multi_modal_task_logits(labels=self.task_parameters[task]["label"], logits_dict=logits_dict, task=task)
-            elif n_pred > 2:
-                raise (Exception("More than 3 tensors as prediction is not supported (task {})".format(task)))
-
+            assert n_pred == len(self.task_parameters[task]["label"]), "ERROR : not as many labels as prediction for task {} : {} vs {} ".format(task, self.task_parameters[task]["label"], logits_dict[task])
+            logits_dict = self.rename_multi_modal_task_logits(labels=self.task_parameters[task]["label"], logits_dict=logits_dict, task=task, n_pred=n_pred)
             for label_task in self.task_parameters[task]["label"]:
                 # HANDLE HERE MULTI MODAL TASKS
                 if label_task in labels:
-
-                    loss_dict[label_task] = self.get_loss(self.task_parameters[task]["loss"], label_task, self.num_labels_dic[task], labels, logits_dict, task)
+                    loss_dict[label_task] = self.get_loss(self.task_parameters[task]["loss"], label_task, self.num_labels_dic, labels, logits_dict, task)
         # thrid output is for potential attention weights
         return logits_dict, loss_dict, None
 
@@ -1008,11 +1003,16 @@ class BertMultiTask(BertPreTrainedModel):
             loss = 0#torch.zeros(logits_dict[label_task].size(0), logits_dict[label_task].size(1))
         return loss
     @staticmethod
-    def rename_multi_modal_task_logits(labels, logits_dict, task):
-        for i_label, double_label in enumerate(labels):
-            # NB : the order of self.task_parameters[task]["label"] must be the same as the head output
-            logits_dict[double_label] = logits_dict[task][i_label]
-        del logits_dict[task]
+    def rename_multi_modal_task_logits(labels, logits_dict, task, n_pred):
+        if n_pred==2:
+            for i_label, double_label in enumerate(labels):
+                # NB : the order of self.task_parameters[task]["label"] must be the same as the head output
+                logits_dict[double_label] = logits_dict[task][i_label]
+            del logits_dict[task]
+        elif n_pred==1:
+            logits_dict[task] = logits_dict[task][0]
+        else:
+            raise (Exception("More than 3 tensors as prediction is not supported (task {})".format(task)))
         return logits_dict
 
 
