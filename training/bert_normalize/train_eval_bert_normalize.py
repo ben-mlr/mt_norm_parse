@@ -1,13 +1,13 @@
 from env.importing import os, nn, json, OrderedDict, pickle, pdb
 from training.bert_normalize.fine_tune_bert import run
 from env.project_variables import PROJECT_PATH
-from model.bert_tools_from_core_code.tools import get_multi_task_bert_model
+from model.bert_tools_from_core_code.get_model import get_multi_task_bert_model
 from model.bert_normalize import get_bert_token_classification, make_bert_multitask
 from io_.dat.constants import TOKEN_BPE_BERT_START, TOKEN_BPE_BERT_SEP, NULL_STR, PAD_BERT, PAD_ID_BERT, SPECIAL_TOKEN_LS
 from env.models_dir import BERT_MODEL_DIC
-from io_.info_print import printing
 from toolbox.bert_tools.get_bert_info import get_bert_name
 from env.project_variables import MULTITASK_BERT_LABELS_MLM_HEAD, MULTITASK_BERT_LABELS_MLM_HEAD_LOSS
+from io_.info_print import printing
 
 
 def update_multitask_loss(multi_task_loss_ponderation):
@@ -36,44 +36,7 @@ def train_eval_bert_normalize(args, verbose=1):
         debug = False
 
     model = get_multi_task_bert_model(args,  model_dir, vocab_size, voc_pos_size, debug, verbose)
-    if args.checkpoint_dir is None:
-        # TODO vocab_size should be loaded from args.json
-        # TEMPORARY : should eventually keep only : model = make_bert_multitask()
-        if args.multitask:
-            model = make_bert_multitask(pretrained_model_dir=model_dir, tasks=["pos"])
-        else:
-            model = get_bert_token_classification(pretrained_model_dir=model_dir,
-                                                  vocab_size=vocab_size,
-                                                  freeze_parameters=args.freeze_parameters,
-                                                  freeze_layer_prefix_ls=args.freeze_layer_prefix_ls,
-                                                  dropout_classifier=args.dropout_classifier,
-                                                  dropout_bert=args.dropout_bert,
-                                                  tasks=args.tasks,
-                                                  voc_pos_size=voc_pos_size,
-                                                  bert_module=args.bert_module,
-                                                  layer_wise_attention=args.layer_wise_attention,
-                                                  mask_n_predictor=args.append_n_mask,
-                                                  initialize_bpe_layer=args.initialize_bpe_layer,
-                                                  debug=debug)
-    else:
-        printing("MODEL : reloading from checkpoint {} all models parameters are "
-                 "ignored except task bert module and layer_wise_attention", var=[args.checkpoint_dir], verbose_level=1, verbose=verbose)
-        # TODO args.original_task  , vocab_size is it necessary
-        original_task = ["normalize"]
-        print("WARNING : HARDCODED add_task_2_for_downstream : True ")
-        model = get_bert_token_classification(vocab_size=vocab_size,
-                                              voc_pos_size=voc_pos_size,
-                                              tasks=original_task,
-                                              initialize_bpe_layer=None, bert_module=args.bert_module,
-                                              layer_wise_attention=args.layer_wise_attention,
-                                              mask_n_predictor=args.append_n_mask,
-                                              add_task_2_for_downstream=True,
-                                              checkpoint_dir=args.checkpoint_dir, debug=debug)
-        add_task_2 = False
-        if add_task_2:
-            printing("MODEL : adding extra classifer for task_2  with {} label", var=[voc_pos_size], verbose=verbose, verbose_level=1)
-            model.classifier_task_2 = nn.Linear(model.bert.config.hidden_size, voc_pos_size)
-            model.num_labels_2 = voc_pos_size
+
 
     null_token_index = BERT_MODEL_DIC[args.bert_model]["vocab_size"]  # based on bert cased vocabulary
     description = "grid"
