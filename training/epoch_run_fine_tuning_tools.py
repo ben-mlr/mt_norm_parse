@@ -91,9 +91,9 @@ def tensorboard_loss_writer_batch_level_multi(writer, mode, model_id, _loss, bat
                        {"loss-{}-{}-bpe".format(mode, model_id): _loss.clone().cpu().data.numpy()
                        if not isinstance(_loss, int) else 0},
                        iter+batch_i)
-    for task in tasks:
-        writer.add_scalars("loss-batch-{}".format(task),
-                           {"loss-{}-{}-bpe".format(mode, model_id): loss_dic[task].detach().clone().cpu().data.numpy()},
+    for label in loss_dic:
+        writer.add_scalars("loss-batch-{}".format(label),
+                           {"loss-{}-{}-bpe".format(mode, model_id): loss_dic[label].detach().clone().cpu().data.numpy()},
                            iter + batch_i)
 
 
@@ -187,7 +187,13 @@ def writing_predictions_conll_multi(dir_pred, dir_normalized_original_only,
     return False
 
 
-def init_score_token_sent_dict(samples_per_task_reporting, tasks, agg_func_ls, compute_intersection_score):
+def get_task_label(tasks, task_settings):
+    list_label_score = []
+    for task in tasks:
+        list_label_score.extend(task_settings[task]["label"])
+    return list_label_score
+
+def init_score_token_sent_dict(samples_per_task_reporting, tasks, agg_func_ls, compute_intersection_score, task_settings):
 
     # TODO : make it more systematic (should not hardcode 'normalize' "
 
@@ -197,7 +203,10 @@ def init_score_token_sent_dict(samples_per_task_reporting, tasks, agg_func_ls, c
         for ind, sam in enumerate(samples[1:]):
             for ind_2 in range(ind):
                 init_samples.append(sam+"-n-"+samples[ind_2+1])
-    _tasks = tasks
+    #_tasks = [_task for _task in tasks if _task != "parsing"]
+
+    _tasks = get_task_label(tasks, task_settings)
+
     score_dic = {task: {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls} for task in _tasks}
     n_tokens_dic = {task: {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls} for task in _tasks}
     n_sents_dic = {task: {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls} for task in _tasks}

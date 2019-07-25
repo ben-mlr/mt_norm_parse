@@ -66,13 +66,14 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             if not NORM2NOISY:
                 yield MaskBatch(chars, chars_norm,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
                                 edit=edit,
+                                types=types, heads=heads,
                                 output_word=word_norm, pos=pos, input_word=words, dropout_input=dropout_input,
                                 raw_input=raw_word_inputs, raw_output=normalized_str,
                                 verbose=verbose), order_ids
             else:
                 yield MaskBatch(chars_norm, chars,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
-                                output_word=word_norm, pos=pos, input_word=words, dropout_input=dropout_input,
-                                edit=edit,
+                                output_word=word_norm, pos=pos, input_word=words, dropout_input=dropout_input, edit=edit,
+                                types=types, heads=heads,
                                 raw_input=normalized_str, raw_output=raw_word_inputs,
                                 verbose=verbose), order_ids
 
@@ -121,7 +122,8 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                                 output_norm_not_norm=word_norm_not_norm, dropout_input=dropout_input,
                                 pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose), order_ids
             else:
-                yield MaskBatch(char, chars_norm, output_word=word_norm, edit=edit, types=types, heads=heads,
+                yield MaskBatch(char, chars_norm, output_word=word_norm, edit=edit,
+                                types=types, heads=heads,
                                 output_norm_not_norm=word_norm_not_norm, dropout_input=dropout_input,
                                 pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose,
                                 raw_input=raw_word_inputs, raw_output=normalized_str), order_ids

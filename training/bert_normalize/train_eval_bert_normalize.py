@@ -11,10 +11,13 @@ from env.project_variables import MULTITASK_BERT_LABELS_MLM_HEAD, MULTITASK_BERT
 from io_.info_print import printing
 from evaluate.scoring.early_stopping_metrics import get_early_stopping_metric
 
+
 def update_multitask_loss_ponderation(multi_task_loss_ponderation):
+
     if multi_task_loss_ponderation is None:
         return None
     multi_task_loss_ponderation_new = {}
+
     for task, weight in multi_task_loss_ponderation.items():
         if task in MULTITASK_BERT_LABELS_MLM_HEAD:
             multi_task_loss_ponderation_new[MULTITASK_BERT_LABELS_MLM_HEAD_LOSS[task]] = weight

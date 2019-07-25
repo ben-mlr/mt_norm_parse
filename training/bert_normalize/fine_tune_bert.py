@@ -14,7 +14,7 @@ from training.epoch_run_fine_tuning_bert import epoch_run
 from toolbox.report_tools import write_args, get_hyperparameters_dict
 from toolbox.pred_tools.heuristics import get_letter_indexes
 from model.bert_tools_from_core_code.get_model import get_multi_task_bert_model
-
+from training.bert_normalize.multi_task_tools import get_vocab_size_and_dictionary_per_task
 
 def run(args,
         n_iter_max_per_epoch,
@@ -125,9 +125,13 @@ def run(args,
                               case=case,
                               add_start_char=1 if run_mode == "train" else None,
                               verbose=1)
-    voc_pos_size = len(pos_dictionary.instance2index)+1
-    printing("MODEL : voc_pos_size defined as {}", var=voc_pos_size, verbose_level=1, verbose=verbose)
-    model = get_multi_task_bert_model(args, model_dir, vocab_size, voc_pos_size, debug, verbose)
+
+    num_labels_per_task, task_to_label_dictionary = get_vocab_size_and_dictionary_per_task(args.tasks, pos_dictionary=pos_dictionary, type_dictionary=type_dictionary)
+    voc_pos_size = num_labels_per_task["pos"] if "pos" in args.tasks else None
+    if voc_pos_size is not None:
+        printing("MODEL : voc_pos_size defined as {}", var=voc_pos_size,  verbose_level=1, verbose=verbose)
+    model = get_multi_task_bert_model(args, model_dir, vocab_size, voc_pos_size, debug, verbose,
+                                      num_labels_per_task=num_labels_per_task)
 
     if use_gpu:
         model.to("cuda")
@@ -179,7 +183,8 @@ def run(args,
                                                                    pos_dictionary=pos_dictionary,
                                                                    word_dictionary_norm=word_norm_dictionary,
                                                                    get_batch_mode=False,
-                                                                   extend_n_batch=1,print_raw=False,
+                                                                   extend_n_batch=1,
+                                                                   print_raw=False,
                                                                    dropout_input=0.0,
                                                                    verbose=verbose) if args.dev_path is not None else None
                 # TODO add optimizer (if not : dev loss)
@@ -193,7 +198,7 @@ def run(args,
                 loss_train, iter_train, perf_report_train, _ = epoch_run(batchIter_train, tokenizer,
                                                                          args=args,
                                                                          pos_dictionary=pos_dictionary,
-                                                                         task_to_label_dictionary={"pos": pos_dictionary, "parsing_types": type_dictionary, "parsing_heads": "index"},
+                                                                         task_to_label_dictionary=task_to_label_dictionary,
                                                                          data_label=train_data_label,
                                                                          model=model,
                                                                          dropout_input_bpe=args.dropout_input_bpe,
@@ -222,8 +227,7 @@ def run(args,
                                                                                        args=args,
                                                                                        epoch=epoch,
                                                                                        pos_dictionary=pos_dictionary,
-                                                                                       task_to_label_dictionary={
-                                                                                           "pos": pos_dictionary},
+                                                                                       task_to_label_dictionary=task_to_label_dictionary,
                                                                                        iter=iter_dev, use_gpu=use_gpu,
                                                                                        model=model,
                                                                                        writer=writer,
@@ -427,8 +431,7 @@ def run(args,
                                                                               pos_dictionary=pos_dictionary,
                                                                               iter=iter_dev, use_gpu=use_gpu,
                                                                               model=model,
-                                                                              task_to_label_dictionary={
-                                                                                  "pos": pos_dictionary},
+                                                                              task_to_label_dictionary=task_to_label_dictionary,
                                                                               writer=None,
                                                                               writing_pred=True,
                                                                               optimizer=None,

@@ -867,16 +867,16 @@ class BertTokenHead(nn.Module):
         # NB : the , is mandatory !
         return logits,
 
+
 class BertGraphHead(nn.Module):
     # the MLP layers
     def __init__(self, config, dropout_classifier=None, num_labels=None):
         super(BertGraphHead, self).__init__()
         assert dropout_classifier is None
-        assert num_labels is None
         n_mlp_arc = 100
         n_mlp_rel = 100
 
-        n_rels = 20
+        n_rels = num_labels
         mlp_dropout = 0.1
 
         pad_index = 1
@@ -955,15 +955,22 @@ class BertMultiTask(BertPreTrainedModel):
         self.layer_wise_attention = None
         self.labels_supported = [label for task in tasks for label in self.task_parameters[task]["label"]]
         for task in tasks:
-            assert task in num_labels_per_task, "ERROR : no num label for task {} ".format(task)
+            try:
+                assert task in num_labels_per_task, "ERROR : no num label for task {} ".format(task)
+            except Exception as e:
+                # handling parsing specificity here (the task and the dictionary(and the labels also) are not names the same
+                if task == "parsing":
+                    assert "parsing_types" in num_labels_per_task, "ERROR parsing_types should be in {}".format(num_labels_per_task)
+                else:
+                    raise(e)
         self.num_labels_dic = num_labels_per_task
         for i, task in enumerate(tasks):
             assert task in TASKS_PARAMETER, "ERROR : task {} is not in {}".format(task, TASKS_PARAMETER)
+            num_label = task if task != "parsing" else "parsing_types"
             if task != "pos":
                 # TODO : factorize
-                self.head[task] = eval(self.task_parameters[task]["head"])(config)
+                self.head[task] = eval(self.task_parameters[task]["head"])(config, num_labels=self.num_labels_dic[num_label])
             else:
-                #self.num_labels = 21
                 self.head[task] = eval(self.task_parameters[task]["head"])(config, num_labels=self.num_labels_dic["pos"], dropout_classifier=0.1)
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None):
@@ -1000,16 +1007,22 @@ class BertMultiTask(BertPreTrainedModel):
         elif label_task == "parsing_heads":
             loss = loss_func(logits_dict[label_task], labels[label_task])
         elif label_task == "parsing_types":
-            loss = 0#torch.zeros(logits_dict[label_task].size(0), logits_dict[label_task].size(1))
+            # gold label after removing 0 gold
+            gold = labels["parsing_types"][labels["parsing_heads"] != -1]
+            # pred logits (after removing 0) on the gold heads
+            pred = logits_dict["parsing_types"][(labels["parsing_heads"] != -1).nonzero()[:, 0], (labels["parsing_heads"] != -1).nonzero()[:, 1], labels["parsing_heads"][labels["parsing_heads"] != -1]]
+            loss = loss_func(pred, gold)
+            print("LOSS PARSING TYPES : to validate ")
         return loss
+
     @staticmethod
     def rename_multi_modal_task_logits(labels, logits_dict, task, n_pred):
-        if n_pred==2:
+        if n_pred == 2:
             for i_label, double_label in enumerate(labels):
                 # NB : the order of self.task_parameters[task]["label"] must be the same as the head output
                 logits_dict[double_label] = logits_dict[task][i_label]
             del logits_dict[task]
-        elif n_pred==1:
+        elif n_pred == 1:
             logits_dict[task] = logits_dict[task][0]
         else:
             raise (Exception("More than 3 tensors as prediction is not supported (task {})".format(task)))

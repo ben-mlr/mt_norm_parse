@@ -179,7 +179,7 @@ def create_dict(dict_path, train_path, dev_path, test_path, tasks,
         #if pos_specific_data_set is None:
         # otherwise : pos-dictionary will be build with pos_specific_data_set
         #  pos_dictionary.add(pos)
-        if task in ["all", "pos"]:
+        if task in ["all", "pos", "parsing"]:
           pos_dictionary.add(pos)
           xpos_dictionary.add(xpos)
           type_dictionary.add(typ)
@@ -348,8 +348,8 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
   """
 
   if bucket:
-    _buckets = [5, 10, 15, 20, 25, 30, 40]#, 50, 60, 70, 80, 90, 100]
-    printing("WARNING : bucket limited to 40", verbose=verbose, verbose_level=1)
+    _buckets = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, -1]
+    #printing("WARNING : bucket limited to 40", verbose=verbose, verbose_level=1)
   else:
     _buckets = [40]
     printing("WARNING : for validation we don't bucket the data : bucket len is {} (-1 means will be based "

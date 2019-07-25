@@ -193,12 +193,12 @@ def realigne_multi(ls_sent_str, input_alignement_with_raw, null_str, mask_str, t
                         former_token += token[2:]
                     else:
                         former_token += token
-            elif "pos" == task:
+            elif "pos" == task or task.startswith("parsing"):
                 # we just  ignore token
                 if index == former_index:
                     pass
             else:
-                raise(Exception("task {} not supported".format(task)))
+                raise(Exception("task {} not supported in realignement ".format(task)))
             if index != former_index or _i + 1 == len(index_ls):
                 new_sent.append(former_token)
                 former_token = token

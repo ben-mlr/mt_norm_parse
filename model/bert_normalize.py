@@ -4,12 +4,13 @@ from toolbox.deep_learning_toolbox import freeze_param
 from model.bert_tools_from_core_code.modeling import BertForTokenClassification, BertConfig, BertForMaskedLM, BertMultiTask
 
 
-def make_bert_multitask(pretrained_model_dir, tasks):
-
-    assert isinstance(tasks, list) and len(tasks)>=1, "ERROR tasks {} should be a list of len >=1".format(tasks)
+def make_bert_multitask(pretrained_model_dir, tasks, num_labels_per_task):
+    assert num_labels_per_task is not None and isinstance(num_labels_per_task, dict), \
+        "ERROR : num_labels_per_task {} should be a dictionary".format(num_labels_per_task)
+    assert isinstance(tasks, list) and len(tasks) >= 1, "ERROR tasks {} should be a list of len >=1".format(tasks)
 
     if pretrained_model_dir is not None:
-        model = BertMultiTask.from_pretrained(pretrained_model_dir, tasks=tasks, num_labels_per_task={"pos": 21, "parsing": 50})
+        model = BertMultiTask.from_pretrained(pretrained_model_dir, tasks=tasks, num_labels_per_task=num_labels_per_task)
     else:
         raise(Exception("not supported yet"))
 

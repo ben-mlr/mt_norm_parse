@@ -113,7 +113,6 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
                 task_batch = eval("batch.{}".format(task_batch_name))
                 # we handle all word level tasks in the same way
                 assert tasks_parameters[task]["prediction_level"] == "word", "ERROR only word level task supported here so far"
-                pdb.set_trace()
                 if tasks_parameters[task]["prediction_level"] == "word":
                     output_tokens_tensor, input_mask, input_tokens_tensor = \
                         get_bpe_label_word_level_task(task_batch, batch, input_tokens_tensor, input_alignement_with_raw)

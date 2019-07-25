@@ -1,13 +1,14 @@
+from env.importing import nn
 from model.bert_normalize import get_bert_token_classification, make_bert_multitask
 from io_.info_print import printing
 
 
-def get_multi_task_bert_model(args, model_dir, vocab_size, voc_pos_size, debug, verbose):
+def get_multi_task_bert_model(args, model_dir, vocab_size, voc_pos_size, debug, verbose, num_labels_per_task=None):
     if args.checkpoint_dir is None:
         # TODO vocab_size should be loaded from args.json
         # TEMPORARY : should eventually keep only : model = make_bert_multitask()
         if args.multitask:
-            model = make_bert_multitask(pretrained_model_dir=model_dir, tasks=args.tasks)
+            model = make_bert_multitask(pretrained_model_dir=model_dir, tasks=args.tasks, num_labels_per_task=num_labels_per_task)
         else:
             model = get_bert_token_classification(pretrained_model_dir=model_dir,
                                                   vocab_size=vocab_size,

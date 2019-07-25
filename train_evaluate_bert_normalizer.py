@@ -18,6 +18,7 @@ if __name__ == "__main__":
                                                                      hyperparameter="multi_task_loss_ponderation")
     if args.multitask:
         args.multi_task_loss_ponderation = OrderedDict([("pos", 1), ("loss_task_2", 1),
-                                                        ("loss_task_n_mask_prediction", 1)])
+                                                        ("loss_task_n_mask_prediction", 1),
+                                                        ("parsing_types", 1), ("parsing_heads", 1)])
         # TODO FACTORIZE MULTITASK
     train_eval_bert_normalize(args)

@@ -161,7 +161,7 @@ def epoch_run(batchIter, tokenizer,
 
     agg_func_ls = ["sum"]
 
-    score_dic, n_tokens_dic, n_sents_dic = init_score_token_sent_dict(samples_per_task_reporting, args.tasks, agg_func_ls, compute_intersection_score)
+    score_dic, n_tokens_dic, n_sents_dic = init_score_token_sent_dict(samples_per_task_reporting, args.tasks, agg_func_ls, compute_intersection_score, task_settings=TASKS_PARAMETER)
     # TODO : should be removed (everuthing should go through samples_per_task_reporting)
     samples = samples_per_task_reporting["normalize"]
     # vocab_index_except_pad_cls_sep = [i for i in range(1, len(tokenizer.vocab)) if i not in [mask_token_index, sep_token_index, cls_token_index]]
@@ -507,7 +507,7 @@ def epoch_run(batchIter, tokenizer,
                     # make mask for the loss padding
                     # TODO handle task specific index pad
                     label_per_task[label][label_per_task[label] == PAD_ID_TAG] = -1
-                pdb.set_trace()
+
                 logits_dic, loss_dic, _ = model(input_tokens_tensor, token_type_ids, labels=label_per_task, attention_mask=input_mask)
 
                 if len(list(loss_dic.keys() & set(TASKS_PARAMETER.keys()))) != len(loss_dic.keys()):
@@ -521,28 +521,28 @@ def epoch_run(batchIter, tokenizer,
 
                 source_preprocessed, label_dic, predict_dic = get_bpe_string(predictions_topk_dic, output_tokens_tensor_aligned_dic,
                                                                              input_tokens_tensor, topk, tokenizer, task_to_label_dictionary,
-                                                                             args.tasks, null_str, null_token_index, verbose)
+                                                                             null_str, null_token_index, verbose)
 
                 src_detokenized, label_detokenized_dic, predict_detokenize_dic = get_detokenized_str(source_preprocessed, input_alignement_with_raw,
                                                                                                      label_dic, predict_dic, null_str,
                                                                                                      args.tasks, remove_mask_str_prediction)
-                for task in vars(args)["tasks"]:
-                    perf_prediction, skipping, _samples = overall_word_level_metric_measure(label_detokenized_dic[task],
-                                                                                            predict_detokenize_dic[task],
+                for label in label_detokenized_dic:
+                    perf_prediction, skipping, _samples = overall_word_level_metric_measure(label_detokenized_dic[label],
+                                                                                            predict_detokenize_dic[label],
                                                                                             topk, metric=metric, samples=samples,
                                                                                             agg_func_ls=agg_func_ls,
                                                                                             reference_word_dic=reference_word_dic,
                                                                                             compute_intersection_score=compute_intersection_score,
                                                                                             src_detokenized=src_detokenized)
 
-                    score_dic[task], n_tokens_dic[task], n_sents_dic[task] = accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
-                                                                                                            sample_ls=_samples,
-                                                                                                            dic_prediction_score=perf_prediction,
-                                                                                                            score_dic=score_dic[task],
-                                                                                                            n_tokens_dic=n_tokens_dic[task],
-                                                                                                            n_sents_dic=n_sents_dic[task])
+                    score_dic[label], n_tokens_dic[label], n_sents_dic[label] = accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
+                                                                                                               sample_ls=_samples,
+                                                                                                               dic_prediction_score=perf_prediction,
+                                                                                                               score_dic=score_dic[label],
+                                                                                                               n_tokens_dic=n_tokens_dic[label],
+                                                                                                               n_sents_dic=n_sents_dic[label])
 
-                    evaluated_task.append(task)
+                    evaluated_task.append(label)
 
                 if writing_pred:
                     new_file = writing_predictions_conll_multi(
