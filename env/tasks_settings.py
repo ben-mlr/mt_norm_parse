@@ -8,11 +8,20 @@ from env.importing import CrossEntropyLoss
 #    eg parsing_heads, parsing_types
 
 TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact_match",
-                                 "head": None, "loss": CrossEntropyLoss(),
+                                 "head": None, "loss": CrossEntropyLoss(ignore_index=-1),
                                  "prediction_level": "bpe",
+                                 "label": ["normalize"],
                                  "eval_metrics": [["accuracy-exact-normalize"]],
                                  "predicted_classes": ["NORMED", "NEED_NORM"],
                                  "predicted_classes_pred_field": ["PRED_NORMED", "PRED_NEED_NORM"]
+                                 },
+                    "append_masks": {"normalization": True, "default_metric": "exact_match",
+                                 "head": None, "loss": CrossEntropyLoss(),
+                                 "prediction_level": "bpe",
+                                 "label": ["append_masks"],
+                                 "eval_metrics": [["accuracy-exact-append_masks"]],
+                                 #"predicted_classes": ["NORMED", "NEED_NORM"],
+                                 #"predicted_classes_pred_field": ["PRED_NORMED", "PRED_NEED_NORM"]
                                  },
                    "norm_not_norm": {"normalization": True,
                                      "head": None,

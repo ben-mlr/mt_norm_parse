@@ -189,8 +189,8 @@ def epoch_run(batchIter, tokenizer,
             task_pos_is = len(batch.raw_output[0]) == 0
             # only one task supported at a time per batch so far based on the input batch
             task_normalize_is = not task_pos_is
-            task_pos_is = False
-            print("WARNING : task_pos_is  hadrcoded to false ")
+            task_pos_is = "pos" in args.tasks and len(args.tasks) == 1
+            print("WARNING : task_pos_is  {} ".format(task_pos_is))
             # case the batches if case is 'lower'
             batch = get_casing(case, batch, task_normalize_is)
             #print("ITERATING on {} task".format("pos" if task_pos_is else "normalize"))
@@ -226,8 +226,7 @@ def epoch_run(batchIter, tokenizer,
                 rand = np.random.uniform(low=0, high=1, size=1)[0]
                 group_to_mask = np.array(batch.output_norm_not_norm.cpu()) if args.portion_mask >= rand else None
             if not args.tokenize_and_bpe:
-                input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, \
-                input_alignement_with_raw, input_mask = get_indexes(batch_raw_input, tokenizer, verbose, use_gpu,
+                input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = get_indexes(batch_raw_input, tokenizer, verbose, use_gpu,
                                                                     word_norm_not_norm=group_to_mask)
             if args.masking_strategy == "start_stop":
                 input_mask[input_tokens_tensor == sep_token_index] = 0
@@ -264,20 +263,14 @@ def epoch_run(batchIter, tokenizer,
                             get_indexes(batch_raw_output, tokenizer, verbose, use_gpu)
                         counting_failure_parralel_bpe_batch += 1
                 else:
-                    output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask =\
-                    get_indexes(batch_raw_output, tokenizer, verbose, use_gpu, word_norm_not_norm=None)
-                printing("DATA dim : {} input {} output ", var=[input_tokens_tensor.size(), output_tokens_tensor.size()],
-                         verbose_level=2, verbose=verbose)
-                assert output_tokens_tensor_aligned.size(0) == input_tokens_tensor.size(0), \
-                    "output_tokens_tensor_aligned.size(0) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(), input_tokens_tensor.size())
-                assert output_tokens_tensor_aligned.size(1) == input_tokens_tensor.size(1), \
-                    "output_tokens_tensor_aligned.size(1) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(1), input_tokens_tensor.size(1))
+                    output_tokens_tensor, output_segments_tensors, out_bpe_tokenized, output_alignement_with_raw, output_mask = get_indexes(batch_raw_output, tokenizer, verbose, use_gpu, word_norm_not_norm=None)
+                printing("DATA dim : {} input {} output ", var=[input_tokens_tensor.size(), output_tokens_tensor.size()], verbose_level=2, verbose=verbose)
 
-            if task_pos_is or args.multitask:
+            if args.multitask or "pos" in args.tasks:
                 out_bpe_tokenized = None
                 input_mask, input_tokens_tensor, token_type_ids, label_per_task = get_label_per_bpe(args.tasks, batch, input_tokens_tensor, input_alignement_with_raw, use_gpu, tasks_parameters=TASKS_PARAMETER)
                 dimension_check_label(label_per_task, input_tokens_tensor)
-                if task_pos_is:
+                if "pos" in args.tasks:
                     output_tokens_tensor_aligned = label_per_task["pos"]
 
                 # NB : we use the aligned input with the
@@ -298,6 +291,10 @@ def epoch_run(batchIter, tokenizer,
                                                   null_token_index=null_token_index, verbose=verbose)
                 except:
                     pdb.set_trace()
+
+                assert output_tokens_tensor_aligned.size(0) == input_tokens_tensor_aligned.size(0), "output_tokens_tensor_aligned.size(0) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(), input_tokens_tensor_aligned.size())
+                assert output_tokens_tensor_aligned.size(1) == input_tokens_tensor_aligned.size(1), "output_tokens_tensor_aligned.size(1) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(1), input_tokens_tensor_aligned.size(1))
+
                 input_tokens_tensor = input_tokens_tensor_aligned
                 token_type_ids = torch.zeros_like(input_tokens_tensor)
                 if use_gpu:
@@ -342,21 +339,23 @@ def epoch_run(batchIter, tokenizer,
                                     mask_token_index, sep_token_index, use_gpu, epoch, n_epoch, args.portion_mask,
                                     input_mask, tokenizer,
                                     verbose)
+            elif not args.multitask:
+                feeding_the_model_with_label = output_tokens_tensor_aligned.clone()
             elif args.multitask:
                 assert args.masking_strategy is None, "ERROR : {} not supported in multitask mode ".format(args.masking_strategy)
             if not args.multitask:
                 # is meant to be completely removed
                 feeding_the_model_with_label[feeding_the_model_with_label == 0] = -1
-
+                assert len(args.tasks) == 1, "ERROR : when args.multitask not True : only allowing one task at the time "
                 loss_dic, layer_wise_weights = model(input_tokens_tensor, token_type_ids, input_mask,
-                                                     labels=feeding_the_model_with_label
-                                                     if task_normalize_is else None,
+                                                     labels=feeding_the_model_with_label if "normalize" in args.tasks else None,
                                                      labels_n_masks=labels_n_mask_prediction,
-                                                     labels_task_2=output_tokens_tensor_aligned
-                                                     if task_pos_is else None,
+                                                     labels_task_2=output_tokens_tensor_aligned if "pos" in args.tasks else None,
                                                      aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
                                                      multi_task_loss_ponderation=args.multi_task_loss_ponderation)
+
                 _loss = loss_dic["loss"]
+
                 # report the loss per args.tasks
                 if task_normalize_is:
                     loss_norm += loss_dic["loss_task_1"].detach()
@@ -390,10 +389,12 @@ def epoch_run(batchIter, tokenizer,
                                                                             descending=True)[:, :, :topk]
                     # from bpe index to string
                     sent_ls_top = from_bpe_token_to_str(predictions_topk[logits_task_label], topk, tokenizer=tokenizer,
-                                                        pred_mode=True, pos_dictionary=pos_dictionary, task=args.tasks[0],
+                                                        pred_mode=True, pos_dictionary=pos_dictionary,
                                                         null_token_index=null_token_index, null_str=null_str)
-                    gold = from_bpe_token_to_str(output_tokens_tensor_aligned, topk, tokenizer=tokenizer, pos_dictionary=pos_dictionary, task=args.tasks[0], pred_mode=False, null_token_index=null_token_index, null_str=null_str)
-                    source_preprocessed = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer, pos_dictionary=pos_dictionary, pred_mode=False, null_token_index=null_token_index, null_str=null_str, verbose=verbose)
+                    gold = from_bpe_token_to_str(output_tokens_tensor_aligned, topk, tokenizer=tokenizer, pos_dictionary=pos_dictionary,
+                                                 pred_mode=False, null_token_index=null_token_index, null_str=null_str)
+                    source_preprocessed = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer, pos_dictionary=pos_dictionary,
+                                                                pred_mode=False, null_token_index=null_token_index, null_str=null_str, verbose=verbose)
                     # de-BPE-tokenize
                     src_detokenized = alignement.realigne(source_preprocessed, input_alignement_with_raw,
                                                           null_str=null_str, tasks=["normalize"],
