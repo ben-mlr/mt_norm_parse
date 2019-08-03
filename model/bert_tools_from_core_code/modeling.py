@@ -1136,7 +1136,6 @@ class BertForMaskedLM(BertPreTrainedModel):
             multi_task_loss_ponderation = self.loss_weights_default
         sequence_output, _ = self.bert(input_ids, token_type_ids, attention_mask, output_all_encoded_layers=self.layer_wise_attention is not None)
         if self.mask_n_predictor is not None:
-            pdb.set_trace()
             sequence_output_masks, _ = self.bert(input_ids, token_type_ids=torch.zeros_like(input_ids), attention_mask=(input_ids != 0) & (input_ids != mask_token_index), output_all_encoded_layers=None)
         softmax_weight = None
         if self.layer_wise_attention is not None:
@@ -1173,7 +1172,6 @@ class BertForMaskedLM(BertPreTrainedModel):
 
         if self.mask_n_predictor is not None:
             assert self.num_labels_n_mask > 0, "ERROR  "
-            pdb.set_trace()
             logits_n_mask_prediction = self.mask_n_predictor(sequence_output_masks)
             #logits_n_mask_prediction = self.mask_n_predictor(sequence_output)
             pred_dict["logits_n_mask_prediction"] = logits_n_mask_prediction
@@ -1182,7 +1180,6 @@ class BertForMaskedLM(BertPreTrainedModel):
                 "ERROR : you provided labels for normalization and" \
                 " self.mask_n_predictor : so you should provide labels_n_mask_prediction"
             loss_fct_masks_pred = CrossEntropyLoss(ignore_index=-1)
-            pdb.set_trace()
             loss_dict["loss_task_n_mask_prediction"] = loss_fct_masks_pred(logits_n_mask_prediction.view(-1, self.num_labels_n_mask), labels_n_masks.view(-1))
 
         if self.classifier_task_2 is not None:

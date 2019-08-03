@@ -306,7 +306,6 @@ def epoch_run(batchIter, tokenizer,
                 input_token_mask = input_tokens_tensor.clone()
                 input_tokens_tensor = input_tokens_tensor_aligned
                 token_type_ids = torch.zeros_like(input_tokens_tensor)
-                pdb.set_trace()
                 if use_gpu:
                     token_type_ids = token_type_ids.cuda()
                 #
@@ -332,7 +331,6 @@ def epoch_run(batchIter, tokenizer,
                                                                                           dropout=dropout_input_bpe,
                                                                                           applied_dropout_rate=True)
             if args.append_n_mask and task_normalize_is:
-                pdb.set_trace()
                 # --> the label needs to be he same shape of input : input_token_mask
                 # with -1 for pad
                 labels_n_mask_prediction = pred_n_bpe(input_tokens_tensor == mask_token_index)
@@ -344,7 +342,6 @@ def epoch_run(batchIter, tokenizer,
                          == (labels_n_mask_prediction == -1).nonzero())).all()
                 # Assigning padded input to label -1 for loss ignore
                 labels_n_mask_prediction[input_tokens_tensor == 0] = -1
-                pdb.set_trace()
 
             # TODO : to factorize
             if not args.multitask and optimizer is not None:
@@ -405,19 +402,56 @@ def epoch_run(batchIter, tokenizer,
                             "ERROR : args.append_n_mask is {} while logits['logits_n_mask_prediction'] is None".format(args.append_n_mask)
                         prediction_n_mask = torch.argsort(logits["logits_n_mask_prediction"],
                                                           dim=-1, descending=True)[:, :, 0]
+                        # TODO : extend  input_tokens_tensor based on prediction_n_mask : append masks
+
+                        def extend_input(masks, input, input_alignement_with_raw, use_gpu):
+                            assert masks.size(0) == input.size(0)
+                            assert masks.size(1) == input.size(1)
+                            extended_input = []
+                            extended_alignement = []
+                            max_len = 0
+                            for ind_sent in range(masks.size(0)):
+                                extended_input_sent = []
+                                extended_alignement_sent = []
+                                for ind_tok in range(input.size(1)):
+                                    if masks[ind_sent, ind_tok].item() != 0:
+                                        extended_input_sent.append(input[ind_sent, ind_tok].item())
+                                        extended_input_sent.extend([mask_token_index for _ in range(masks[ind_sent, ind_tok])])
+                                        extended_alignement_sent.extend([input_alignement_with_raw[ind_sent, ind_tok].item()
+                                                                         for _ in range(masks[ind_sent, ind_tok]+1)])
+                                    else:
+                                        extended_input_sent.append(input[ind_sent, ind_tok].item())
+                                        extended_alignement_sent.extend([input_alignement_with_raw[ind_sent, ind_tok].item() for _ in range(masks[ind_sent, ind_tok] + 1)])
+                                    max_len = max(len(extended_input_sent), max_len)
+                                extended_input.append(extended_input_sent)
+                                extended_alignement.append(extended_alignement_sent)
+                            # add padding
+                            extended_input = [sent+[0 for _ in range(max_len-len(sent))] for sent in extended_input]
+                            extended_alignement_sent = [sent_alignement+[1000 for _ in range(max_len-len(sent_alignement))] for sent_alignement in extended_alignement]
+
+                            extended_input_torch = torch.tensor(extended_input)
+                            extended_alignement_sent_torch = torch.tensor(extended_alignement_sent)
+
+                            if use_gpu:
+                                extended_input_torch = extended_input_torch.cuda()
+                                extended_alignement_sent_torch = extended_alignement_sent_torch.cuda()
+                            return extended_input_torch, extended_alignement_sent_torch
+                        pred_inputs, extended_input_alignement_with_raw = extend_input(prediction_n_mask, input_tokens_tensor, input_alignement_with_raw, use_gpu)
+
                         pdb.set_trace()
 
                     if logits_task_label != "parsing":
                         predictions_topk[logits_task_label] = torch.argsort(logits[logits_task_label], dim=-1,
                                                                             descending=True)[:, :, :topk]
                     # from bpe index to string
-                    sent_ls_top = from_bpe_token_to_str(predictions_topk[logits_task_label], topk, tokenizer=tokenizer,
-                                                        pred_mode=True, pos_dictionary=pos_dictionary,
-                                                        null_token_index=null_token_index, null_str=null_str)
+                    sent_ls_top = from_bpe_token_to_str(predictions_topk[logits_task_label], topk, tokenizer=tokenizer,pred_mode=True, pos_dictionary=pos_dictionary,null_token_index=null_token_index, null_str=null_str)
+
                     gold = from_bpe_token_to_str(output_tokens_tensor_aligned, topk, tokenizer=tokenizer, pos_dictionary=pos_dictionary,
                                                  pred_mode=False, null_token_index=null_token_index, null_str=null_str)
-                    source_preprocessed = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer, pos_dictionary=pos_dictionary,
-                                                                pred_mode=False, null_token_index=null_token_index, null_str=null_str, verbose=verbose)
+                    source_preprocessed = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer,
+                                                                pos_dictionary=pos_dictionary,
+                                                                pred_mode=False, null_token_index=null_token_index,
+                                                                null_str=null_str, verbose=verbose)
                     # de-BPE-tokenize
                     src_detokenized = alignement.realigne(source_preprocessed, input_alignement_with_raw,
                                                           null_str=null_str, tasks=["normalize"],
@@ -430,12 +464,28 @@ def epoch_run(batchIter, tokenizer,
                         # we remove padding here based on src that is correctly padded
                         gold_detokenized = [gold_sent[:len(src_sent)] for gold_sent, src_sent in zip(gold_detokenized, src_detokenized)]
                     pred_detokenized_topk = []
+                    pred_n_masks_detokenized_topk = []
+
+                    if args.append_n_mask and task_normalize_is:
+                        # TODO : factorize somewhere !
+                        pdb.set_trace()
+                        sent_ls_pred_n_masks_top = from_bpe_token_to_str(pred_inputs, topk, tokenizer=tokenizer, pred_mode=False,
+                                                                         pos_dictionary=pos_dictionary,null_token_index=null_token_index,null_str=null_str)
+
+                        pred_n_masks_detokenized_topk.append(alignement.realigne(sent_ls_pred_n_masks_top,
+                                                                                 extended_input_alignement_with_raw,
+                                                                                 remove_null_str=True,
+                                                                                 tasks=args.tasks,
+                                                                                 remove_extra_predicted_token=True,
+                                                                                 null_str=null_str, mask_str=MASK_BERT))
+
                     for sent_ls in sent_ls_top:
                         pred_detokenized_topk.append(alignement.realigne(sent_ls, input_alignement_with_raw,
                                                                          remove_null_str=True,
                                                                          tasks=args.tasks, remove_extra_predicted_token=True,
                                                                          null_str=null_str, mask_str=MASK_BERT)
                                                      )
+
                         # NB : applying those successively might overlay heuristic
                         if task_normalize_is:
                             if args.heuristic_ls is not None:
@@ -466,7 +516,9 @@ def epoch_run(batchIter, tokenizer,
                                                              task_pos_is, iter, batch_i, new_file,  gold_detokenized,
                                                              verbose)
                     try:
+
                         if task_normalize_is and args.append_n_mask:
+                            # Masks
                             perf_prediction_n_mask, skipping_n_mask, _ = \
                                 overall_word_level_metric_measure(labels_n_mask_prediction.tolist(),
                                                                   [prediction_n_mask.tolist()], topk=1,
@@ -484,7 +536,29 @@ def epoch_run(batchIter, tokenizer,
                                                                score_dic=score_dic["n_masks_pred"],
                                                                n_tokens_dic=n_tokens_dic["n_masks_pred"],
                                                                n_sents_dic=n_sents_dic["n_masks_pred"])
+                            # token based on predicted masks
+                            pdb.set_trace()
+                            perf_detok_prediction_on_n_mask, skipping_n_mask, _ = \
+                                overall_word_level_metric_measure(gold_detokenized,
+                                                                  pred_n_masks_detokenized_topk, topk=1,
+                                                                  metric=metric,
+                                                                  samples=samples_per_task_reporting["normalize_pred"],
+                                                                  agg_func_ls=agg_func_ls,
+                                                                  reference_word_dic=reference_word_dic,
+                                                                  compute_intersection_score=False,
+                                                                  src_detokenized=src_detokenized)
+                            pdb.set_trace()
+                            score_dic["normalize_pred"], n_tokens_dic["normalize_pred"], n_sents_dic["normalize_pred"] = \
+                                accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
+                                                               sample_ls=samples_per_task_reporting["normalize_pred"],
+                                                               dic_prediction_score=perf_detok_prediction_on_n_mask,
+                                                               score_dic=score_dic["normalize_pred"],
+                                                               n_tokens_dic=n_tokens_dic["normalize_pred"],
+                                                               n_sents_dic=n_sents_dic["normalize_pred"])
+                            pdb.set_trace()
+                            evaluated_task.append("normalize_pred")
                             evaluated_task.append("n_masks_pred")
+
                         elif task_normalize_is:
                             # we fill it with an empty report for simplifying reporting
                             accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=["all"], dic_prediction_score={agg_func_ls[0]:{"all": {"agg_func": agg_func_ls[0],"metric": "exact_match",
@@ -494,6 +568,7 @@ def epoch_run(batchIter, tokenizer,
                                                                                  }}},
                                                            score_dic=score_dic["n_masks_pred"], n_tokens_dic=n_tokens_dic["n_masks_pred"], n_sents_dic=n_sents_dic["n_masks_pred"])
                             evaluated_task.append("n_masks_pred")
+
 
                         evaluated_task.append(predicted_task)
                         perf_prediction, skipping, _samples = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk, topk,

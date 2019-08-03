@@ -387,7 +387,7 @@ if __name__ == "__main__":
                                                                                  "edit_prediction": 0}],
                                                 write_to_dir=RUN_SCRIPTS_DIR)
 
-          FINE_TUNE_BERT = True
+          FINE_TUNE_BERT = False
           if FINE_TUNE_BERT:
               epochs = 1
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
@@ -537,10 +537,9 @@ if __name__ == "__main__":
                                                   mode_word_encoding_ls=None,
                                                   dropout_input_ls=None, multi_task_loss_ponderation_ls=None,
                                                   scale_ls=[1])
-          BERT_NORMALIZATION = False
-
+          BERT_NORMALIZATION = True
           if BERT_NORMALIZATION:
-              epochs = 1
+              epochs = 15
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
@@ -564,8 +563,7 @@ if __name__ == "__main__":
                                                   train_path=[[LEX_TRAIN_SPLIT_2]], dev_path=[[LEX_DEV_SPLIT_2]],
                                                   test_paths=[[[LEX_TEST], [LEX_DEV_SPLIT_2], [LEX_TRAIN_SPLIT_2]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
-                                                  multi_task_loss_ponderation_ls=[OrderedDict([("pos", 0.0), ("normalize", 1.0), ("append_masks", 0.5), ("norm_not_norm", 0),
-                                                                                               ("edit_prediction", 0), ("parsing", 0)])],
+                                                  multi_task_loss_ponderation_ls=[OrderedDict([("pos", 0.0), ("normalize", 0.5), ("append_masks", 1.0), ("norm_not_norm", 0), ("edit_prediction", 0), ("parsing", 0)])],
                                                                                   #OrderedDict([("pos", 0.0), ("normalize", 0.5), ("append_masks", 1.0), ("norm_not_norm", 0), ("edit_prediction", 0)]),
                                                                                   #OrderedDict([("pos", 0.0), ("normalize", 1.0), ("append_masks", 0.1), ("norm_not_norm", 0), ("edit_prediction", 0)]),
                                                                                   #OrderedDict([("pos", 0.0), ("normalize", 1.0), ("append_masks", 1.0), ("norm_not_norm", 0), ("edit_prediction", 0)])],

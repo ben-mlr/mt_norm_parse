@@ -212,9 +212,10 @@ def init_score_token_sent_dict(samples_per_task_reporting, tasks, agg_func_ls, c
     n_tokens_dic = {task: {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls} for task in _tasks}
     n_sents_dic = {task: {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls} for task in _tasks}
     if "normalize" in tasks:
-        score_dic["n_masks_pred"] = {"sum": {sample: 0 for sample in samples_per_task_reporting["n_masks_pred"]}}
-        n_tokens_dic["n_masks_pred"] = {"sum": {sample: 0 for sample in samples_per_task_reporting["n_masks_pred"]}}
-        n_sents_dic["n_masks_pred"] = {"sum": {sample: 0 for sample in samples_per_task_reporting["n_masks_pred"]}}
+        for extra_label in ["n_masks_pred", "normalize_pred"]:
+            score_dic[extra_label] = {"sum": {sample: 0 for sample in samples_per_task_reporting[extra_label]}}
+            n_tokens_dic[extra_label] = {"sum": {sample: 0 for sample in samples_per_task_reporting[extra_label]}}
+            n_sents_dic[extra_label] = {"sum": {sample: 0 for sample in samples_per_task_reporting[extra_label]}}
 
     return score_dic, n_tokens_dic, n_sents_dic
 
