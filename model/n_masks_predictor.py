@@ -14,7 +14,7 @@ def pred_n_bpe(input):
                 count_1 += 1
             elif input[ind_sent, ind_word] == 0:
                 # reached the end of the multi-bpe
-                if ind_word >= 0 and input[ind_sent, ind_word -1] == 1:
+                if ind_word >= 0 and input[ind_sent, ind_word - 1] == 1:
                     output[ind_sent, ind_multi_bpe] = min(count_1, NUM_LABELS_N_MASKS-1)
                     count_1 = 1
                 output[ind_sent, ind_word] = 1

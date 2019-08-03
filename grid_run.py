@@ -387,9 +387,9 @@ if __name__ == "__main__":
                                                                                  "edit_prediction": 0}],
                                                 write_to_dir=RUN_SCRIPTS_DIR)
 
-          FINE_TUNE_BERT = False
+          FINE_TUNE_BERT = True
           if FINE_TUNE_BERT:
-              epochs = 20
+              epochs = 1
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,  
                                                   grid_label=LABEL_GRID,
@@ -411,10 +411,10 @@ if __name__ == "__main__":
                                                   #                     ["normed", "0.75"],["normed", "1."]],#[None,,
                                                   #lr_ls=[OrderedDict([("bert", "0.00001"), ("classifier", "0.0001")]),
                                                   #       OrderedDict([("bert", "0.00001"), ("classifier", "0.00001")])],
-                                                  tasks_ls=[["pos"] for _ in range(1)],#[["pos"], ["normalize", "pos"]],#, ["normalize"]],
+                                                  tasks_ls=[["parsing"] for _ in range(1)],#[["pos"], ["normalize", "pos"]],#, ["normalize"]],
                                                   fine_tuning_strategy_ls=["standart"],
                                                   dropout_classifier_ls=[0.0],
-                                                  multitask_ls=[1, 0],
+                                                  multitask_ls=[1],
                                                   dropout_input_bpe_ls=[0.0], layer_wise_attention_ls=[0],
                                                   aggregating_bert_layer_mode_ls=["last"],
                                                   dropout_bert_ls=[0.1], tokenize_and_bpe_ls=[0],
@@ -537,7 +537,7 @@ if __name__ == "__main__":
                                                   mode_word_encoding_ls=None,
                                                   dropout_input_ls=None, multi_task_loss_ponderation_ls=None,
                                                   scale_ls=[1])
-          BERT_NORMALIZATION = True
+          BERT_NORMALIZATION = False
 
           if BERT_NORMALIZATION:
               epochs = 1

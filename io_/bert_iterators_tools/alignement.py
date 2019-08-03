@@ -19,6 +19,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
     output_tokens_tensor_aligned = torch.empty_like(input_tokens_tensor)
     input_tokens_tensor_aligned = torch.empty_like(input_tokens_tensor)
     output_tokens_tensor_aligned_sent_ls = []
+    output_tokens_n_masks_tensor_aligned_sent_ls = []
     input_tokens_tensor_aligned_sent_ls = []
     new_alignement_with_input_ls = []
     new_input_mask_ls = []
@@ -35,6 +36,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
         _1_to_n_token = False
         not_the_end_of_input = True
         output_tokens_tensor_aligned_sent = []
+        output_tokens_n_masks = []
         input_tokens_tensor_aligned_sent = []
         new_input_mask = []
         new_alignement_with_input = []
@@ -84,6 +86,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
             if n_to_1_token:
                 appending = null_token_index
                 output_tokens_tensor_aligned_sent.append(appending)
+                output_tokens_n_masks.append(1)
                 input_tokens_tensor_aligned_sent.append(input_tokens_tensor[ind_sent, _i_input])
                 new_input_mask.append(input_mask[ind_sent, _i_input].item())
                 # index alignement
@@ -93,6 +96,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
                 output_tokens_tensor_aligned_sent.append(output_tokens_tensor[ind_sent, _i_output])
                 add_mask = True
                 input_tokens_tensor_aligned_sent.append(mask_token_index)
+                output_tokens_n_masks.append(-1)
                 # mask update
                 new_input_mask.append(1)
                 new_alignement_with_input.append(_input_alignement_with_raw[_i_input-_1_to_n_token])
@@ -100,11 +104,13 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
             elif not end_output_with_padded_reach:
                 appending = output_tokens_tensor[ind_sent, _i_output]
                 output_tokens_tensor_aligned_sent.append(appending)
+                output_tokens_n_masks.append(-1)
                 input_tokens_tensor_aligned_sent.append(input_tokens_tensor[ind_sent, _i_input])
                 new_input_mask.append(input_mask[ind_sent, _i_input].item())
                 new_alignement_with_input.append(_input_alignement_with_raw[_i_input])
             else:
                 output_tokens_tensor_aligned_sent.append(0)
+                output_tokens_n_masks.append(0)
             _i_input += 1-_1_to_n_token
             # padded_reached_ind is to make sure we 're not facing problem in the output
             _i_output += (1 - n_to_1_token - padded_reached_ind)

@@ -862,6 +862,7 @@ class BertTokenHead(nn.Module):
     def forward(self, x, attention_mask=None):
         assert attention_mask is None, "ERROR : not need of active logits only : handled in the loss for training " \
                                        "attention_mask"
+        x = self.dropout(x)
         logits = self.classifier(x)
         # Only keep active parts of the loss
         # NB : the , is mandatory !
@@ -1115,21 +1116,28 @@ class BertForMaskedLM(BertPreTrainedModel):
         self.mask_n_predictor = BertMaskNPredictionHead(config) if config.mask_n_predictor else None
         self.num_labels_n_mask = NUM_LABELS_N_MASKS
         self.num_labels_2 = num_labels_2
+
         self.loss_weights_default = OrderedDict([("loss_task_1", 1), ("loss_task_2", 1), ("loss_task_n_mask_prediction", 1)])
 
         print("WARNING : NB in forward(modelling) aggregating_bert_layer_mode is ignore in BertForMaskedLM")
 
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None,
+    def forward(self, input_ids,
+                input_token_mask=None, token_type_ids=None, attention_mask=None,
                 masked_lm_labels=None, labels=None, labels_task_2=None, labels_n_masks=None,
                 multi_task_loss_ponderation=None,
-                aggregating_bert_layer_mode=None, output_all_encoded_layers=False):
+                aggregating_bert_layer_mode=None, output_all_encoded_layers=False,
+                mask_token_index=None):
 
         if masked_lm_labels is None:
             masked_lm_labels = labels
+
         # masked_lm_labels  : what is it ??
         if multi_task_loss_ponderation is None:
             multi_task_loss_ponderation = self.loss_weights_default
         sequence_output, _ = self.bert(input_ids, token_type_ids, attention_mask, output_all_encoded_layers=self.layer_wise_attention is not None)
+        if self.mask_n_predictor is not None:
+            pdb.set_trace()
+            sequence_output_masks, _ = self.bert(input_ids, token_type_ids=torch.zeros_like(input_ids), attention_mask=(input_ids != 0) & (input_ids != mask_token_index), output_all_encoded_layers=None)
         softmax_weight = None
         if self.layer_wise_attention is not None:
             stacked_layers = torch.stack(sequence_output, dim=-1).transpose(3, 2).squeeze(-1)
@@ -1140,7 +1148,6 @@ class BertForMaskedLM(BertPreTrainedModel):
                 energy[:, :, layer_n] = -float("Inf")
                 print("DROPING LAYER {} IN ATTENTION".format(layer_n))
             softmax_weight = F.softmax(energy, dim=-1).unsqueeze(-1)
-
             stacked_layers = stacked_layers.transpose(3, 2)
             batch_dim = softmax_weight.size(0)
             len_seq = softmax_weight.size(1)
@@ -1166,17 +1173,18 @@ class BertForMaskedLM(BertPreTrainedModel):
 
         if self.mask_n_predictor is not None:
             assert self.num_labels_n_mask > 0, "ERROR  "
-            logits_n_mask_prediction = self.mask_n_predictor(sequence_output)
+            pdb.set_trace()
+            logits_n_mask_prediction = self.mask_n_predictor(sequence_output_masks)
+            #logits_n_mask_prediction = self.mask_n_predictor(sequence_output)
             pred_dict["logits_n_mask_prediction"] = logits_n_mask_prediction
         if labels is not None and self.mask_n_predictor is not None:
             assert labels_n_masks is not None, \
                 "ERROR : you provided labels for normalization and" \
                 " self.mask_n_predictor : so you should provide labels_n_mask_prediction"
             loss_fct_masks_pred = CrossEntropyLoss(ignore_index=-1)
-            try:
-                loss_dict["loss_task_n_mask_prediction"] = loss_fct_masks_pred(logits_n_mask_prediction.view(-1, self.num_labels_n_mask), labels_n_masks.view(-1))
-            except:
-                pdb.set_trace()
+            pdb.set_trace()
+            loss_dict["loss_task_n_mask_prediction"] = loss_fct_masks_pred(logits_n_mask_prediction.view(-1, self.num_labels_n_mask), labels_n_masks.view(-1))
+
         if self.classifier_task_2 is not None:
             assert self.num_labels_2 is not None, "num_labels_2 required"
             logits_task_2 = self.classifier_task_2(sequence_output)

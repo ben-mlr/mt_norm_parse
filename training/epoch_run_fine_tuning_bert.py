@@ -178,6 +178,7 @@ def epoch_run(batchIter, tokenizer,
     n_batch_norm = 0
     n_task_pos_sanity = 0
     n_task_normalize_sanity = 0
+    input_token_mask = None
 
     counting_failure_parralel_bpe_batch = 0
     while True:
@@ -226,13 +227,14 @@ def epoch_run(batchIter, tokenizer,
                 rand = np.random.uniform(low=0, high=1, size=1)[0]
                 group_to_mask = np.array(batch.output_norm_not_norm.cpu()) if args.portion_mask >= rand else None
             if not args.tokenize_and_bpe:
-                input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = get_indexes(batch_raw_input, tokenizer, verbose, use_gpu,
-                                                                    word_norm_not_norm=group_to_mask)
+                input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = \
+                    get_indexes(batch_raw_input, tokenizer, verbose, use_gpu, word_norm_not_norm=group_to_mask)
             if args.masking_strategy == "start_stop":
                 input_mask[input_tokens_tensor == sep_token_index] = 0
                 input_mask[input_tokens_tensor == cls_token_index] = 0
 
             if task_normalize_is:
+
                 if norm2noise_bool or norm_2_noise_eval:
                     printing("WARNING : output is noisy input", verbose_level=2, verbose=1)
                     batch_raw_output = preprocess_batch_string_for_bert(batch.raw_input)
@@ -268,7 +270,11 @@ def epoch_run(batchIter, tokenizer,
 
             if args.multitask or "pos" in args.tasks:
                 out_bpe_tokenized = None
-                input_mask, input_tokens_tensor, token_type_ids, label_per_task = get_label_per_bpe(args.tasks, batch, input_tokens_tensor, input_alignement_with_raw, use_gpu, tasks_parameters=TASKS_PARAMETER)
+                input_mask, input_tokens_tensor, token_type_ids, label_per_task = get_label_per_bpe(args.tasks, batch,
+                                                                                                    input_tokens_tensor,
+                                                                                                    input_alignement_with_raw,
+                                                                                                    use_gpu,
+                                                                                                    tasks_parameters=TASKS_PARAMETER)
                 dimension_check_label(label_per_task, input_tokens_tensor)
                 if "pos" in args.tasks:
                     output_tokens_tensor_aligned = label_per_task["pos"]
@@ -292,11 +298,15 @@ def epoch_run(batchIter, tokenizer,
                 except:
                     pdb.set_trace()
 
-                assert output_tokens_tensor_aligned.size(0) == input_tokens_tensor_aligned.size(0), "output_tokens_tensor_aligned.size(0) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(), input_tokens_tensor_aligned.size())
-                assert output_tokens_tensor_aligned.size(1) == input_tokens_tensor_aligned.size(1), "output_tokens_tensor_aligned.size(1) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(1), input_tokens_tensor_aligned.size(1))
+                assert output_tokens_tensor_aligned.size(0) == input_tokens_tensor_aligned.size(0), \
+                    "output_tokens_tensor_aligned.size(0) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(), input_tokens_tensor_aligned.size())
+                assert output_tokens_tensor_aligned.size(1) == input_tokens_tensor_aligned.size(1), \
+                    "output_tokens_tensor_aligned.size(1) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(1), input_tokens_tensor_aligned.size(1))
 
+                input_token_mask = input_tokens_tensor.clone()
                 input_tokens_tensor = input_tokens_tensor_aligned
                 token_type_ids = torch.zeros_like(input_tokens_tensor)
+                pdb.set_trace()
                 if use_gpu:
                     token_type_ids = token_type_ids.cuda()
                 #
@@ -313,7 +323,6 @@ def epoch_run(batchIter, tokenizer,
                 #continue
             # sanity checking alignement
             # we consider only 1 sentence case
-
             #printing("CUDA SANITY CHECK input_tokens:{}  type:{}input_mask:{}  label:{}", var=[input_tokens_tensor.is_cuda, token_type_ids.is_cuda, input_mask.is_cuda, output_tokens_tensor_aligned.is_cuda], verbose=verbose, verbose_level="cuda")
             # we have to recompute the mask based on aligned input
             if dropout_input_bpe > 0:
@@ -322,18 +331,23 @@ def epoch_run(batchIter, tokenizer,
                                                                                           sep_token_index=sep_token_index,
                                                                                           dropout=dropout_input_bpe,
                                                                                           applied_dropout_rate=True)
-
             if args.append_n_mask and task_normalize_is:
+                pdb.set_trace()
+                # --> the label needs to be he same shape of input : input_token_mask
+                # with -1 for pad
                 labels_n_mask_prediction = pred_n_bpe(input_tokens_tensor == mask_token_index)
+                # - handle both output and both input , should it be calling the same model api ??
+                # - Backpropagate in one step
+                # - predict in two steps
                 # sanity test : are mask correectly encoded as -1
                 assert (((input_tokens_tensor == mask_token_index).nonzero()
                          == (labels_n_mask_prediction == -1).nonzero())).all()
                 # Assigning padded input to label -1 for loss ignore
                 labels_n_mask_prediction[input_tokens_tensor == 0] = -1
+                pdb.set_trace()
 
             # TODO : to factorize
             if not args.multitask and optimizer is not None:
-
                 input_tokens_tensor, feeding_the_model_with_label = \
                     focused_masking(args.masking_strategy, input_tokens_tensor, output_tokens_tensor_aligned, dropout_input_bpe,
                                     mask_token_index, sep_token_index, use_gpu, epoch, n_epoch, args.portion_mask,
@@ -344,14 +358,20 @@ def epoch_run(batchIter, tokenizer,
             elif args.multitask:
                 assert args.masking_strategy is None, "ERROR : {} not supported in multitask mode ".format(args.masking_strategy)
             if not args.multitask:
+                assert len(args.tasks) == 1 and ("pos" in args.tasks or "normalize" in args.tasks), \
+                    "ERROR : as args.multitask False mode only pos or normalize " \
+                    "supported (single) task while we have {} ".format(args.multitask)
                 # is meant to be completely removed
                 feeding_the_model_with_label[feeding_the_model_with_label == 0] = -1
                 assert len(args.tasks) == 1, "ERROR : when args.multitask not True : only allowing one task at the time "
-                loss_dic, layer_wise_weights = model(input_tokens_tensor, token_type_ids, input_mask,
+                loss_dic, layer_wise_weights = model(input_ids=input_tokens_tensor,
+                                                     token_type_ids=token_type_ids, attention_mask=input_mask,
                                                      labels=feeding_the_model_with_label if "normalize" in args.tasks else None,
                                                      labels_n_masks=labels_n_mask_prediction,
+                                                     input_token_mask=input_token_mask,
                                                      labels_task_2=output_tokens_tensor_aligned if "pos" in args.tasks else None,
                                                      aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
+                                                     mask_token_index=mask_token_index,
                                                      multi_task_loss_ponderation=args.multi_task_loss_ponderation)
 
                 _loss = loss_dic["loss"]
@@ -372,6 +392,7 @@ def epoch_run(batchIter, tokenizer,
                     # TODO : add mapping_info between task_id to model and task name necessary to iterator
                     logits, layer_wise_weights = model(input_tokens_tensor, token_type_ids, input_mask,
                                                        aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
+                                                       mask_token_index=mask_token_index,
                                                        multi_task_loss_ponderation=args.multi_task_loss_ponderation)
 
                     predicted_task = "pos" if task_pos_is else "normalize"
@@ -382,7 +403,9 @@ def epoch_run(batchIter, tokenizer,
                         # TODO : --> should add a : simultaneous task module !
                         assert logits["logits_n_mask_prediction"] is not None, \
                             "ERROR : args.append_n_mask is {} while logits['logits_n_mask_prediction'] is None".format(args.append_n_mask)
-                        prediction_n_mask = torch.argsort(logits["logits_n_mask_prediction"], dim=-1, descending=True)[:, :, 0]
+                        prediction_n_mask = torch.argsort(logits["logits_n_mask_prediction"],
+                                                          dim=-1, descending=True)[:, :, 0]
+                        pdb.set_trace()
 
                     if logits_task_label != "parsing":
                         predictions_topk[logits_task_label] = torch.argsort(logits[logits_task_label], dim=-1,
@@ -606,7 +629,6 @@ def epoch_run(batchIter, tokenizer,
             tensorboard_loss_writer_epoch_level(writer, args.tasks, mode, model_id, epoch, n_batch_norm, n_batch_pos, args.append_n_mask, loss, loss_norm, loss_pos, loss_n_mask_prediction, batch_i)
         reports = []
         printing("TRAINING : evaluating on {} args.tasks ", var=[evaluated_task], verbose_level=1, verbose=verbose)
-        # TODO -- ??
         reports, early_stoppin_metric_val, score, n_tokens = report_score_all(evaluated_task, agg_func_ls, samples_per_task_reporting,
                                                                               label_heuristic, score_dic, n_tokens_dic,
                                                                               n_sents_dic, model_id, args.tasks, args_dir,

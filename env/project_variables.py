@@ -7,7 +7,6 @@ SEED_TORCH = 123
 PROJECT_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 RUN_SCRIPTS_DIR = os.path.join(PROJECT_PATH, "run_scripts")
 
-
 BERT_MODELS_DIRECTORY = os.path.join(PROJECT_PATH, "..", "representation", "lm", "bert_models")
 #LM_PROJECT = os.path.join(PROJECT_PATH, "..", "representation", "lm")
 
@@ -77,9 +76,11 @@ edit_rules = ["edit_check-"+ref_list_label+"-"+need_normed_rule for ref_list_lab
 heuristics = ["gold_detection", "#", "@", "url", "slang_translate"]
 HEURISTICS = heuristics+edit_rules
 
+# TODO : factorize this with task_settings
 TASKS_2_METRICS_STR = {"all": ["accuracy-exact-normalize", "accuracy-normalize","InV-accuracy-normalize","OOV-accuracy-normalize",
                                "npv-normalize", "recall-normalize", "precision-normalize","tnr-normalize", "accuracy-exact-pos",
                                "f1-normalize", "accuracy-exact-n_masks_pred"],
+                       "parsing":["accuracy-exact-parsing_heads", "accuracy-exact-parsing_types"],
                        "normalize": ["accuracy-exact-normalize", "accuracy-normalize", "npv-normalize", "recall-normalize", "precision-normalize",
                                      "tnr-normalize", "f1-normalize", "accuracy-exact-n_masks_pred"],
                        "pos": ["accuracy-exact-pos"],

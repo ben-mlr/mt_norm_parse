@@ -238,7 +238,7 @@ def grid_param_label_generate(param,
       if _args != "tasks" and _args not in ["train_path", "dev_path", "test_path"]:
         dic_grid[_args] = args_avail[args+"_ls"]
       elif _args == "tasks":
-        assert len(list(set(eval(_args+"_ls")[0]) & set(["normalize", "pos"]))) > 0, \
+        assert len(list(set(eval(_args+"_ls")[0]) & set(["normalize", "pos", "parsing"]))) > 0, \
           "ERROR : only normalize, pos supported so far {}".format(eval(_args+"_ls"))
         #dic_grid[_args] = args_avail[_args + "_ls"]
 

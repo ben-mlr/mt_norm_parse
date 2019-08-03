@@ -114,6 +114,7 @@ def tensorboard_loss_writer_batch_level(writer, mode, model_id, _loss, batch_i, 
                             },
                            iter + batch_i)
         if append_n_mask:
+
             writer.add_scalars("loss-batch-norm-pred_n_mask",
                                {"loss-{}-{}-pred_n_mask".format(mode, model_id):
                                     loss_dic["loss_task_n_mask_prediction"].detach().clone().cpu().data.numpy()
