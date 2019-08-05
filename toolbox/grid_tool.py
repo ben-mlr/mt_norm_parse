@@ -1,6 +1,5 @@
-import itertools
 
-from env.importing import *
+from env.importing import np, OrderedDict, os, itertools, sys
 from io_.info_print import printing
 from env.project_variables import TASKS_2_METRICS_STR, GPU_AVAILABLE_DEFAULT_LS, REPO_W2V, AVAILABLE_BERT_FINE_TUNING_STRATEGY, REPO_DATASET
 from env.default_hyperparameters import *
@@ -34,7 +33,7 @@ def get_gpu_id(gpu_mode, gpus_ls, verbose):
       printing("ENV : switch to default gpu_ls {} cause mode is {}".format(gpus_ls, gpu_mode),
                verbose=verbose, verbose_level=1)
   if gpu_mode == "random":
-    gpu = np.random.choice(gpus_ls,1)[0]
+    gpu = np.random.choice(gpus_ls, 1)[0]
   elif gpu_mode == "fixed":
     assert len(gpus_ls) == 1, "ERROR : gpus_ls should be len 1 as gpu_mode fixed"
     gpu = gpus_ls[0]
@@ -254,11 +253,14 @@ def grid_param_label_generate(param,
         assert len(tasks_ls) == len(dev_ls), "ERROR : GRID search : should have as many task(s for multitask) than dev_path ls"
         assert len(tasks_ls) == len(test_ls), "ERROR : should have as many task(s for multitask) than test ls "
         for train_sets, dev_sets, test_sets_ls, tasks in zip(train_ls, dev_ls, test_ls, tasks_ls):
-          assert len(train_sets) == len(tasks), "ERROR : we should have one training set per task (no simulatnuous " \
-                                                "training allowed for now but have tasks:{} and train_path:{}".format(tasks, train_sets)
-          assert len(dev_sets) == len(tasks), "ERROR : we should have one dev set per task (no simulatnuous " \
-                                              "training allowed for now but have tasks:{} and dev_path:{}".format(tasks,dev_sets)
-          assert len(test_sets_ls[0].split(",")) == len(tasks), "ERROR not at least one test set per tasks {}".format(tasks)
+          try:
+            assert len(train_sets) == len(tasks), "ERROR : we should have one training set per task (no simulatnuous " \
+                                                  "training allowed for now but have tasks:{} and train_path:{}".format(tasks, train_sets)
+            assert len(dev_sets) == len(tasks), "ERROR : we should have one dev set per task (no simulatnuous " \
+                                                "training allowed for now but have tasks:{} and dev_path:{}".format(tasks,dev_sets)
+            assert len(test_sets_ls[0].split(",")) == len(tasks), "ERROR not at least one test set per tasks {}".format(tasks)
+          except Exception as e:
+            print(e)
 
     sanity_check_args(py_script, dic_grid, train_ls, dev_ls, test_ls, tasks_ls)
     list_of_list_of_args = [lis_values for arg_dic, lis_values in dic_grid.items()]

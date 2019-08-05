@@ -178,8 +178,11 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
     #assert not simultanuous_training, "ERROR : so far : "
     assert "all" not in tasks, "ERROR not supported yet (pb for simultanuous training..) "
     if not "all" in tasks and not simultanuous_training:
-        assert len(tasks) == len(datasets), "ERROR : as simultanuous_training is {} : " \
+        try:
+            assert len(tasks) == len(datasets), "ERROR : as simultanuous_training is {} : " \
                                             "we need 1 dataset per task but have only {} for task {} ".format(simultanuous_training, datasets, tasks)
+        except Exception as e:
+            print(e)
     elif not simultanuous_training:
         assert len(tasks) == 1, "ERROR : if all should have only all nothing else"
         printing("TRAINING : MultiTask Iterator wit task 'all' ", verbose_level=1, verbose=verbose)

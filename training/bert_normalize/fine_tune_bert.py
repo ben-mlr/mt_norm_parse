@@ -61,9 +61,11 @@ def run(args,
         if early_stoppin_metric == "accuracy-exact-normalize":
             subsample_early_stoping_metric_val = "all"
         printing("INFO : early_stoppin_metric passed is {}", var=[early_stoppin_metric], verbose=verbose, verbose_level=1)
-    assert len(args.tasks) == len(args.train_path), "ERROR args.tasks is {} but train path are {}".format(args.tasks, args.train_path)
-    assert len(args.dev_path) == len(args.train_path)
-
+    try:
+        assert len(args.tasks) == len(args.train_path), "ERROR args.tasks is {} but train path are {}".format(args.tasks, args.train_path)
+        assert len(args.dev_path) == len(args.train_path)
+    except Exception as e:
+        print(e)
     if run_mode == "test":
         assert args.test_paths is not None and isinstance(args.test_paths, list)
     if args.test_paths is not None:
@@ -121,7 +123,7 @@ def run(args,
                               word_normalization=True,
                               force_new_dic=True if run_mode == "train" else False,
                               tasks=args.tasks,
-                              pos_specific_data_set=args.train_path[1] if len(args.tasks) > 1 and "pos" in args.tasks else None,
+                              pos_specific_data_set=args.train_path[1] if len(args.tasks) > 1 and len(args.train_path)>1 and "pos" in args.tasks else None,
                               case=case,
                               add_start_char=1 if run_mode == "train" else None,
                               verbose=1)

@@ -41,7 +41,7 @@ TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact
                            "label": ["pos"],
                            "head": "BertTokenHead",
                            "prediction_level": "word",
-                           "loss": CrossEntropyLoss(ignore_index=-1)
+                           "loss": CrossEntropyLoss(ignore_index=-1,reduce="sum")
                            },
                    "parsing": {
                        "normalization": False,
@@ -50,7 +50,7 @@ TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact
                        "head": "BertGraphHead",
                        "label": ["parsing_heads", "parsing_types"],
                        "prediction_level": "word",
-                       "loss": CrossEntropyLoss(ignore_index=-1)
+                       "loss": CrossEntropyLoss(ignore_index=-1, reduction="sum")
                    },
                    "all": {"normalization": True,
                            "head": None,

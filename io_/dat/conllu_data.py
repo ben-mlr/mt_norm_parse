@@ -443,6 +443,10 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       continue
     bucket_length = _buckets[bucket_id]
     char_length = min(max_char_len+NUM_CHAR_PAD, max_char_length[bucket_id] + NUM_CHAR_PAD)
+    if max_char_len+NUM_CHAR_PAD < max_char_length[bucket_id] + NUM_CHAR_PAD:
+      printing("WARNING : Iterator conllu_data CUTTING bucket {} to max allowed length {}",
+               var=[max_char_len+NUM_CHAR_PAD],
+               verbose=verbose, verbose_level=1)
     wid_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)
     cid_inputs = np.empty([bucket_size, bucket_length, char_length], dtype=np.int64)
     pid_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)

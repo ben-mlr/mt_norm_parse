@@ -1,7 +1,6 @@
 import sys
 
-from env.importing import *
-
+from env.importing import platform, argparse, OrderedDict, uuid4
 from io_.info_print import printing
 from training.train_eval import train_eval
 from toolbox.grid_tool import grid_param_label_generate, get_experimented_tasks
@@ -296,7 +295,7 @@ if __name__ == "__main__":
                                                                                    "norm_not_norm": 0, "edit_prediction": 0}],
                                                   write_to_dir=RUN_SCRIPTS_DIR)
           
-          MULTI_TASK = False 
+          MULTI_TASK = False
           if MULTI_TASK:
               epochs=150
               train_path = [[EN_LINES_EWT_TRAIN], [EN_LINES_EWT_TRAIN, LIU_TRAIN], [EN_LINES_EWT_TRAIN, LIU_TRAIN]]#[DEMO, DEMO]#
@@ -387,7 +386,7 @@ if __name__ == "__main__":
                                                                                  "edit_prediction": 0}],
                                                 write_to_dir=RUN_SCRIPTS_DIR)
 
-          FINE_TUNE_BERT = False
+          FINE_TUNE_BERT = True
           if FINE_TUNE_BERT:
               epochs = 1
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
@@ -411,7 +410,7 @@ if __name__ == "__main__":
                                                   #                     ["normed", "0.75"],["normed", "1."]],#[None,,
                                                   #lr_ls=[OrderedDict([("bert", "0.00001"), ("classifier", "0.0001")]),
                                                   #       OrderedDict([("bert", "0.00001"), ("classifier", "0.00001")])],
-                                                  tasks_ls=[["parsing"] for _ in range(1)],#[["pos"], ["normalize", "pos"]],#, ["normalize"]],
+                                                  tasks_ls=[["pos","parsing"] for _ in range(1)],#[["pos"], ["normalize", "pos"]],#, ["normalize"]],
                                                   fine_tuning_strategy_ls=["standart"],
                                                   dropout_classifier_ls=[0.0],
                                                   multitask_ls=[1],
@@ -537,9 +536,9 @@ if __name__ == "__main__":
                                                   mode_word_encoding_ls=None,
                                                   dropout_input_ls=None, multi_task_loss_ponderation_ls=None,
                                                   scale_ls=[1])
-          BERT_NORMALIZATION = True
+          BERT_NORMALIZATION = False
           if BERT_NORMALIZATION:
-              epochs = 15
+              epochs = 20
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,

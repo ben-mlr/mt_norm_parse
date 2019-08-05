@@ -32,7 +32,7 @@ except AttributeError:
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
-def get_multitask_loss(tasks, loss_dict, ponderation):
+def get_multitask_loss(loss_dict, ponderation):
     loss = 0
     for label_loss in loss_dict:
         loss += ponderation[label_loss] * loss_dict[label_loss]

@@ -31,6 +31,7 @@ import sys
 from io import open
 
 from env.importing import torch, nn, CrossEntropyLoss, F, np, pdb
+from io_.dat.constants import PAD_ID_LOSS_STANDART
 from io_.dat.constants import NUM_LABELS_N_MASKS
 
 
@@ -921,15 +922,10 @@ class BertGraphHead(nn.Module):
         s_labels = self.rel_attn(rel_d, rel_h).permute(0, 2, 3, 1)
 
         if mask is not None:
-            pdb.set_trace()
             # set the scores that exceed the length of each sentence to -inf
             s_heads.masked_fill_(~mask.unsqueeze(1), float('-inf'))
         else:
             print("MODEL : ignoring mask ")
-
-
-        #pred = {TASKS_PARAMETERS["parsing"]["pred"][0]: s_arc,
-        #        TASKS_PARAMETERS["parsing"]["pred"][1]: s_rel}
 
         return s_heads, s_labels
 
@@ -959,7 +955,7 @@ class BertMultiTask(BertPreTrainedModel):
             try:
                 assert task in num_labels_per_task, "ERROR : no num label for task {} ".format(task)
             except Exception as e:
-                # handling parsing specificity here (the task and the dictionary(and the labels also) are not names the same
+                # Handling parsing specificity here (the task and the dictionary(and the labels also) are not names the same
                 if task == "parsing":
                     assert "parsing_types" in num_labels_per_task, "ERROR parsing_types should be in {}".format(num_labels_per_task)
                 else:
@@ -1009,10 +1005,13 @@ class BertMultiTask(BertPreTrainedModel):
             loss = loss_func(logits_dict[label_task], labels[label_task])
         elif label_task == "parsing_types":
             # gold label after removing 0 gold
-            gold = labels["parsing_types"][labels["parsing_heads"] != -1]
-            # pred logits (after removing 0) on the gold heads
-            pred = logits_dict["parsing_types"][(labels["parsing_heads"] != -1).nonzero()[:, 0], (labels["parsing_heads"] != -1).nonzero()[:, 1], labels["parsing_heads"][labels["parsing_heads"] != -1]]
+            gold = labels["parsing_types"][labels["parsing_heads"] != PAD_ID_LOSS_STANDART]
+            # pred logits (after removing -1) on the gold heads
+            pdb.set_trace()
+            pred = logits_dict["parsing_types"][(labels["parsing_heads"] != PAD_ID_LOSS_STANDART).nonzero()[:, 0], (labels["parsing_heads"] != PAD_ID_LOSS_STANDART).nonzero()[:, 1], labels["parsing_heads"][labels["parsing_heads"] != PAD_ID_LOSS_STANDART]]
+            # remark : in the way it's coded for paring : the padding is already removed (so ignore index is null)
             loss = loss_func(pred, gold)
+            pdb.set_trace()
             print("LOSS PARSING TYPES : to validate ")
         return loss
 

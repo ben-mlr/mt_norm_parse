@@ -10,6 +10,7 @@ from sys import platform
 import pdb as pdb
 import git
 import sys
+import itertools
 from tqdm import tqdm
 import io
 import codecs
