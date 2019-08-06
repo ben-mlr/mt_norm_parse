@@ -870,6 +870,13 @@ class BertTokenHead(nn.Module):
         return logits,
 
 
+class BertGraphHeadKyungTae():
+
+    def __init__(self):
+        pass
+    def forward(self):
+        pass
+
 class BertGraphHead(nn.Module):
     # the MLP layers
     def __init__(self, config, dropout_classifier=None, num_labels=None):
@@ -966,6 +973,7 @@ class BertMultiTask(BertPreTrainedModel):
             num_label = task if task != "parsing" else "parsing_types"
             if task != "pos":
                 # TODO : factorize
+                # e.g : for parsing : self.head["parsing"] = BertGraphHead
                 self.head[task] = eval(self.task_parameters[task]["head"])(config, num_labels=self.num_labels_dic[num_label])
             else:
                 self.head[task] = eval(self.task_parameters[task]["head"])(config, num_labels=self.num_labels_dic["pos"], dropout_classifier=0.1)

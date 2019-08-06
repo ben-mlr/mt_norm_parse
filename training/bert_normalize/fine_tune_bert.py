@@ -16,6 +16,7 @@ from toolbox.pred_tools.heuristics import get_letter_indexes
 from model.bert_tools_from_core_code.get_model import get_multi_task_bert_model
 from training.bert_normalize.multi_task_tools import get_vocab_size_and_dictionary_per_task
 
+
 def run(args,
         n_iter_max_per_epoch,
         vocab_size, model_dir,

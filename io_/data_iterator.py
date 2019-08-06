@@ -182,7 +182,9 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
             assert len(tasks) == len(datasets), "ERROR : as simultanuous_training is {} : " \
                                             "we need 1 dataset per task but have only {} for task {} ".format(simultanuous_training, datasets, tasks)
         except Exception as e:
-            print(e)
+            datasets = [datasets[0] for _ in tasks]
+            # SHOULD NOT DO THAT !!
+            print("WARNING : duplicating readers", e)
     elif not simultanuous_training:
         assert len(tasks) == 1, "ERROR : if all should have only all nothing else"
         printing("TRAINING : MultiTask Iterator wit task 'all' ", verbose_level=1, verbose=verbose)
@@ -192,6 +194,7 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
         raise(Exception("Not supported yet --> should handle the loop "))
 
     for task, data in zip(tasks, datasets):
+
         if task == "normalize":
             tasks = ["normalize", "norm_not_norm"]
         else:
@@ -223,7 +226,10 @@ def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary, char_dic
                                        dropout_input=0, print_raw=False,
                                        verbose=1):
     "multitask learning iterator"
+    #try:
     assert len(tasks) == len(readers)
+    #except Exception as e:
+    #    print(e)
     assert mode_batch_sampling in MODE_BATCH_SAMPLING_AVAILABLE
     iterator = {}
     end_task_flag = {}

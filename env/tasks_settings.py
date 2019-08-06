@@ -52,6 +52,11 @@ TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact
                        "prediction_level": "word",
                        "loss": CrossEntropyLoss(ignore_index=-1, reduction="sum")
                    },
+                   "parsing_attention": {
+                       "head": "BertGraphHeadKyungTae",
+                       "loss": CrossEntropyLoss(ignore_index=-1, reduction="sum")
+
+                   },
                    "all": {"normalization": True,
                            "head": None,
                            "loss": CrossEntropyLoss()}}

@@ -201,7 +201,8 @@ def epoch_run(batchIter, tokenizer,
             # only one task supported at a time per batch so far based on the input batch
             task_normalize_is = not task_pos_is
             task_pos_is = "pos" in args.tasks and len(args.tasks) == 1
-            print("WARNING : task_pos_is  {} ".format(task_pos_is))
+            if task_pos_is:
+               print("WARNING : task_pos_is  {} ".format(task_pos_is))
             # case the batches if case is 'lower'
             batch = get_casing(case, batch, task_normalize_is)
             #print("ITERATING on {} task".format("pos" if task_pos_is else "normalize"))
@@ -418,7 +419,6 @@ def epoch_run(batchIter, tokenizer,
                         pred_inputs, extended_input_alignement_with_raw = extend_input(prediction_n_mask, input_tokens_tensor,
                                                                                        input_alignement_with_raw, mask_token_index, use_gpu)
 
-
                     if logits_task_label != "parsing":
                         predictions_topk[logits_task_label] = torch.argsort(logits[logits_task_label], dim=-1,
                                                                             descending=True)[:, :, :topk]
@@ -450,7 +450,7 @@ def epoch_run(batchIter, tokenizer,
                         pdb.set_trace()
                         sent_ls_pred_n_masks_top = from_bpe_token_to_str(pred_inputs, topk, tokenizer=tokenizer, pred_mode=False,
                                                                          pos_dictionary=pos_dictionary,null_token_index=null_token_index,null_str=null_str)
-
+                        print("PRED n_masks ,", sent_ls_pred_n_masks_top)
                         pred_n_masks_detokenized_topk.append(alignement.realigne(sent_ls_pred_n_masks_top,
                                                                                  extended_input_alignement_with_raw,
                                                                                  remove_null_str=True,

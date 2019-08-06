@@ -43,6 +43,10 @@ To download the all annotaded UD data
 
 ## Training and evaluating 
 
+
+
+### POS (master branch)
+
 ```
 python ./train_evaluate_bert_normalizer.py 
 ## Data
@@ -73,6 +77,11 @@ python ./train_evaluate_bert_normalizer.py
 --overall_report_dir ./checkpoints/28d8d-B-summary #
 --model_id_pref 28d8d-B-model_1 #
 ``` 
+
+### Parsing (!! dev branch still unstable)
+
+ python ./train_evaluate_bert_normalizer.py --train_path /Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/../../parsing/normpar/data/en_lines+ewt-ud-train.conllu --dev_path /Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/../../parsing/normpar/data/en-ud-dev.integrated-po_as_norm --test_path /Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/../../parsing/normpar/data/en_lines+ewt-ud-train.conllu /Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/../../parsing/normpar/data/en-ud-test.conllu /Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/../../parsing/normpar/data/en-ud-dev.integrated-po_as_norm --tasks parsing --batch_size 4 --lr 1e-05 --initialize_bpe_layer 1 --freeze_parameters 0 --bert_model cased --dropout_classifier 0.0 --fine_tuning_strategy standart --dropout_input_bpe 0.0 --bert_module mlm --append_n_mask 0 --dropout_bert 0.1 --aggregating_bert_layer_mode last --layer_wise_attention 0 --tokenize_and_bpe 0 --multitask 1 --overall_label a241d-B --model_id_pref a241d-B-model_1 --epochs 1 --overall_report_dir /Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/../checkpoints/a241d-B-summary
+
 
 ### Reporting details 
 
