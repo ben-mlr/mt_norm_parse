@@ -916,7 +916,7 @@ class BertGraphHead(nn.Module):
         self.pad_index = pad_index
         self.unk_index = unk_index
 
-    def forward(self, x, mask=None):
+    def forward(self, x, head_mask=None):
         # apply MLPs to the BiLSTM output states
         arc_h = self.mlp_arc_h(x)
         arc_d = self.mlp_arc_d(x)
@@ -928,9 +928,11 @@ class BertGraphHead(nn.Module):
         # [batch_size, seq_len, seq_len, n_rels]
         s_labels = self.rel_attn(rel_d, rel_h).permute(0, 2, 3, 1)
 
-        if mask is not None:
+        if head_mask is not None:
+            # NB ? : is it necessary : as we only keep
             # set the scores that exceed the length of each sentence to -inf
-            s_heads.masked_fill_(~mask.unsqueeze(1), float('-inf'))
+            head_mask = head_mask.byte()
+            s_heads.masked_fill_(~head_mask.unsqueeze(1), float('-inf'))
         else:
             print("MODEL : ignoring mask ")
 
@@ -979,9 +981,11 @@ class BertMultiTask(BertPreTrainedModel):
             else:
                 self.head[task] = eval(self.task_parameters[task]["head"])(config, num_labels=self.num_labels_dic["pos"], dropout_classifier=0.1)
 
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None):
+    def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None, head_masks=None):
         if labels is None:
             labels = OrderedDict()
+        if head_masks is None:
+            head_masks = OrderedDict()
         logits_dict = OrderedDict()
         loss_dict = OrderedDict()
         # sanity check the labels : they should all be in
@@ -993,10 +997,11 @@ class BertMultiTask(BertPreTrainedModel):
                                        attention_mask=attention_mask,
                                        output_all_encoded_layers=self.layer_wise_attention is not None)
         for task in self.tasks:
-            logits_dict[task] = self.head[task](sequence_output)
+            logits_dict[task] = self.head[task](sequence_output, head_mask=head_masks.get(task, None))
             # handle several labels at output (e.g  parsing)
             n_pred = len(list(logits_dict[task]))
-            assert n_pred == len(self.task_parameters[task]["label"]), "ERROR : not as many labels as prediction for task {} : {} vs {} ".format(task, self.task_parameters[task]["label"], logits_dict[task])
+            assert n_pred == len(self.task_parameters[task]["label"]), \
+                "ERROR : not as many labels as prediction for task {} : {} vs {} ".format(task, self.task_parameters[task]["label"], logits_dict[task])
             logits_dict = self.rename_multi_modal_task_logits(labels=self.task_parameters[task]["label"], logits_dict=logits_dict, task=task, n_pred=n_pred)
             for label_task in self.task_parameters[task]["label"]:
                 # HANDLE HERE MULTI MODAL TASKS
@@ -1132,7 +1137,7 @@ class BertForMaskedLM(BertPreTrainedModel):
     def forward(self, input_ids,
                 input_token_mask=None, token_type_ids=None, attention_mask=None,
                 masked_lm_labels=None, labels=None, labels_task_2=None, labels_n_masks=None,
-                multi_task_loss_ponderation=None,
+                multi_task_loss_ponderation=None, head_mask=None,
                 aggregating_bert_layer_mode=None, output_all_encoded_layers=False,
                 mask_token_index=None):
 
