@@ -65,6 +65,9 @@ def epoch_run(batchIter, tokenizer,
     """
     if args.multitask:
         assert task_to_label_dictionary is not None, "ERROR : task_to_label_dictionary should be defined "
+    if not args.multitask:
+        assert ("pos" in args.tasks or "normalize" in args.tasks) and "parsing" not in args.tasks, \
+            "ERROR : in --multitask 0 mode only normalize and pos supported bu {} tasks passed ".format(args.tasks)
     if samples_per_task_reporting is None:
         samples_per_task_reporting = SAMPLES_PER_TASK_TO_REPORT
     if task_to_eval is not None:
@@ -423,7 +426,9 @@ def epoch_run(batchIter, tokenizer,
                         predictions_topk[logits_task_label] = torch.argsort(logits[logits_task_label], dim=-1,
                                                                             descending=True)[:, :, :topk]
                     # from bpe index to string
-                    sent_ls_top = from_bpe_token_to_str(predictions_topk[logits_task_label], topk, tokenizer=tokenizer,pred_mode=True, pos_dictionary=pos_dictionary,null_token_index=null_token_index, null_str=null_str)
+                    sent_ls_top = from_bpe_token_to_str(predictions_topk[logits_task_label], topk, tokenizer=tokenizer,
+                                                        pred_mode=True, pos_dictionary=pos_dictionary,
+                                                        null_token_index=null_token_index, null_str=null_str)
 
                     gold = from_bpe_token_to_str(output_tokens_tensor_aligned, topk, tokenizer=tokenizer, pos_dictionary=pos_dictionary,
                                                  pred_mode=False, null_token_index=null_token_index, null_str=null_str)
@@ -450,13 +455,19 @@ def epoch_run(batchIter, tokenizer,
                         pdb.set_trace()
                         sent_ls_pred_n_masks_top = from_bpe_token_to_str(pred_inputs, topk, tokenizer=tokenizer, pred_mode=False,
                                                                          pos_dictionary=pos_dictionary,null_token_index=null_token_index,null_str=null_str)
-                        print("PRED n_masks ,", sent_ls_pred_n_masks_top)
+
                         pred_n_masks_detokenized_topk.append(alignement.realigne(sent_ls_pred_n_masks_top,
                                                                                  extended_input_alignement_with_raw,
                                                                                  remove_null_str=True,
                                                                                  tasks=args.tasks,
                                                                                  remove_extra_predicted_token=True,
                                                                                  null_str=null_str, mask_str=MASK_BERT))
+                        print("DEBUG (training/epoch_run_fine_tuning_bert.py) INPUT input_tokens_tensor {} "
+                              "\n DEBUG : prediction_n_mask {}  PRED "
+                              "\n_masks predicted inputs {}  "
+                              "\n DEBUG : pred inputs as str  {} "
+                              "\n DEBUG : aligned pred_input {} ".format(
+                              input_tokens_tensor, prediction_n_mask, pred_inputs, sent_ls_pred_n_masks_top, pred_n_masks_detokenized_topk))
 
                     for sent_ls in sent_ls_top:
                         pred_detokenized_topk.append(alignement.realigne(sent_ls, input_alignement_with_raw,
@@ -610,7 +621,11 @@ def epoch_run(batchIter, tokenizer,
 
                 output_tokens_tensor_aligned_dic = get_aligned_output(label_per_task, args.tasks)
 
-                source_preprocessed, label_dic, predict_dic = get_bpe_string(predictions_topk_dic, output_tokens_tensor_aligned_dic, input_tokens_tensor, topk, tokenizer, task_to_label_dictionary, null_str, null_token_index, verbose)
+                source_preprocessed, label_dic, predict_dic = get_bpe_string(predictions_topk_dic,
+                                                                             output_tokens_tensor_aligned_dic,
+                                                                             input_tokens_tensor, topk, tokenizer,
+                                                                             task_to_label_dictionary, null_str,
+                                                                             null_token_index, verbose)
 
                 src_detokenized, label_detokenized_dic, predict_detokenize_dic = get_detokenized_str(source_preprocessed, input_alignement_with_raw, label_dic, predict_dic, null_str, args.tasks, remove_mask_str_prediction)
 

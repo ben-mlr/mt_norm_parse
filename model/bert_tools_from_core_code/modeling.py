@@ -962,7 +962,8 @@ class BertMultiTask(BertPreTrainedModel):
             try:
                 assert task in num_labels_per_task, "ERROR : no num label for task {} ".format(task)
             except Exception as e:
-                # Handling parsing specificity here (the task and the dictionary(and the labels also) are not names the same
+                # Handling parsing specificity here
+                # (the task and the dictionary(and the labels also) are not names the same
                 if task == "parsing":
                     assert "parsing_types" in num_labels_per_task, "ERROR parsing_types should be in {}".format(num_labels_per_task)
                 else:
