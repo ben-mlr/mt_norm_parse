@@ -2,7 +2,7 @@ from env.importing import torch
 from io_.dat.constants import NUM_LABELS_N_MASKS
 
 
-def pred_n_bpe(input):
+def get_n_bpe_pred(input):
     output = torch.empty_like(input).long()
     for ind_sent in range(input.size(0)):
         count_1 = 1

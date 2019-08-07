@@ -386,7 +386,7 @@ if __name__ == "__main__":
                                                                                  "edit_prediction": 0}],
                                                 write_to_dir=RUN_SCRIPTS_DIR)
 
-          FINE_TUNE_BERT = True
+          FINE_TUNE_BERT = False
           if FINE_TUNE_BERT:
               epochs = 1
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
@@ -422,8 +422,8 @@ if __name__ == "__main__":
                                                   freeze_layer_prefix_ls_ls=[None],
                                                   #train_path=[[EN_LINES_EWT_TRAIN], [LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED, EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV], [LIU_DEV, EWT_DEV]],
                                                   #[LIU_TRAIN_OWOPUTI],
-                                                  #train_path=[[TWEETS_GANESH_PERM_400]], #  [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_NOISY],[LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_2_NOISY], [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_1000]],
-                                                  #dev_path=[[TWEETS_GANESH_DEV]],
+                                                  #train_path=[[ARABIZI_TRAIN_POS]],#TWEETS_GANESH_PERM_400]], #  [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_NOISY],[LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_2_NOISY], [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_1000]],
+                                                  #dev_path=[[ARABIZI_DEV_POS]],
                                                   #train_path=[[LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED]], dev_path=[[LIU_DEV]],
                                                   #train_path=[[CODE_MIXED_RAW_TRAIN_SMALL]], dev_path=[[CODE_MIXED_RAW_CUT_DEV]],
                                                   train_path=[[EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV]],
@@ -458,7 +458,7 @@ if __name__ == "__main__":
                                                   scale_ls=[1])
                                 # arguments that are specific to script generation
 
-          PRETRAINING = False
+          PRETRAINING = False 
           if PRETRAINING:
               epochs = 1
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
@@ -536,13 +536,13 @@ if __name__ == "__main__":
                                                   mode_word_encoding_ls=None,
                                                   dropout_input_ls=None, multi_task_loss_ponderation_ls=None,
                                                   scale_ls=[1])
-          BERT_NORMALIZATION = False
+          BERT_NORMALIZATION = True
           if BERT_NORMALIZATION:
-              epochs = 10
+              epochs = 2
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
-                                                  batch_size_ls=[4],
+                                                  batch_size_ls=[1],
                                                   #checkpoint_dir_ls=["'" + os.path.join(CHECKPOINT_BERT_DIR,"9535768-B-45690-9535768-B-model_0/9535768-B-45690-9535768-B-model_0-epbest-checkpoint.pt") + "'"],
                                                   gpu_mode="random",
                                                   bert_module_ls=["mlm"],  # ["mlm"],

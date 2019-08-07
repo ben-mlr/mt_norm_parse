@@ -294,7 +294,7 @@ def dimension_check_label(label_per_task, input_tokens_tensor):
 def extend_input(masks, input, input_alignement_with_raw, mask_token_index, use_gpu):
     """
     extend input based on predicted masks
-    :param masks:
+    :param masks: predicted number of inputs
     :param input:
     :param input_alignement_with_raw:
     :param mask_token_index:
@@ -310,15 +310,14 @@ def extend_input(masks, input, input_alignement_with_raw, mask_token_index, use_
         extended_input_sent = []
         extended_alignement_sent = []
         for ind_tok in range(input.size(1)):
-            if masks[ind_sent, ind_tok].item() != 0:
+            # we account 0 prediction as 1 for prediction
+            if masks[ind_sent, ind_tok].item() > 1:
                 extended_input_sent.append(input[ind_sent, ind_tok].item())
-                extended_input_sent.extend([mask_token_index for _ in range(masks[ind_sent, ind_tok])])
-                extended_alignement_sent.extend([input_alignement_with_raw[ind_sent, ind_tok].item()
-                                                 for _ in range(masks[ind_sent, ind_tok] + 1)])
+                extended_input_sent.extend([mask_token_index for _ in range(masks[ind_sent, ind_tok]-1)])
+                extended_alignement_sent.extend([input_alignement_with_raw[ind_sent, ind_tok].item() for _ in range(masks[ind_sent, ind_tok])])
             else:
                 extended_input_sent.append(input[ind_sent, ind_tok].item())
-                extended_alignement_sent.extend(
-                    [input_alignement_with_raw[ind_sent, ind_tok].item() for _ in range(masks[ind_sent, ind_tok] + 1)])
+                extended_alignement_sent.extend([input_alignement_with_raw[ind_sent, ind_tok].item() for _ in range(max(masks[ind_sent, ind_tok],1))])
             max_len = max(len(extended_input_sent), max_len)
         extended_input.append(extended_input_sent)
         extended_alignement.append(extended_alignement_sent)

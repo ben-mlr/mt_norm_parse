@@ -1135,7 +1135,7 @@ class BertForMaskedLM(BertPreTrainedModel):
         print("WARNING : NB in forward(modelling) aggregating_bert_layer_mode is ignore in BertForMaskedLM")
 
     def forward(self, input_ids,
-                input_token_mask=None, token_type_ids=None, attention_mask=None,
+                token_type_ids=None, attention_mask=None,
                 masked_lm_labels=None, labels=None, labels_task_2=None, labels_n_masks=None,
                 multi_task_loss_ponderation=None, head_mask=None,
                 aggregating_bert_layer_mode=None, output_all_encoded_layers=False,
@@ -1174,15 +1174,6 @@ class BertForMaskedLM(BertPreTrainedModel):
                                  ("loss_task_n_mask_prediction", 0)])
         pred_dict = OrderedDict([("logits_task_1", None), ("logits_task_2", None), ("logits_n_mask_prediction", None)])
 
-        DEPRECIATED = True
-        if not DEPRECIATED and self.mask_n_predictor is not None:
-            mask_predictor_state = self.mask_n_predictor(sequence_output)
-            pred_dict["logits_n_masks"] = mask_predictor_state
-            if labels_n_masks is not None:
-                loss_mask_pred = CrossEntropyLoss(ignore_index=-1)
-                loss_dict["loss_n_masks"] = loss_mask_pred(mask_predictor_state)
-            # TODO : add check for labels : if check return logits other wise return prediciton
-
         if self.mask_n_predictor is not None:
             assert self.num_labels_n_mask > 0, "ERROR  "
             logits_n_mask_prediction = self.mask_n_predictor(sequence_output_masks)
@@ -1192,7 +1183,9 @@ class BertForMaskedLM(BertPreTrainedModel):
             assert labels_n_masks is not None, \
                 "ERROR : you provided labels for normalization and" \
                 " self.mask_n_predictor : so you should provide labels_n_mask_prediction"
-            loss_fct_masks_pred = CrossEntropyLoss(ignore_index=-1)
+            total_ponderation = 90
+            loss_fct_masks_pred = CrossEntropyLoss(ignore_index=-1, weight=torch.Tensor([5/total_ponderation, 20/total_ponderation,20/total_ponderation,20/total_ponderation,20/total_ponderation]))
+            pdb.set_trace()
             loss_dict["loss_task_n_mask_prediction"] = loss_fct_masks_pred(logits_n_mask_prediction.view(-1, self.num_labels_n_mask), labels_n_masks.view(-1))
 
         if self.classifier_task_2 is not None:

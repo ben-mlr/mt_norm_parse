@@ -1,4 +1,5 @@
 from env.importing import OrderedDict, torch, pdb
+from io_.dat.constants import PAD_ID_LOSS_STANDART
 from io_.bert_iterators_tools.string_processing import preprocess_batch_string_for_bert, from_bpe_token_to_str, get_indexes, get_indexes_src_gold
 import io_.bert_iterators_tools.alignement as alignement
 from io_.dat.constants import MASK_BERT
@@ -8,20 +9,24 @@ def get_prediction(logits_dic, topk):
     assert topk == 1
     predictions_topk_dic = OrderedDict()
     for logit_label, logits in logits_dic.items():
-        if logit_label != "parsing_types":
-            predictions_topk_dic[logit_label] = torch.argsort(logits, dim=-1, descending=True)[:, :, :topk]
-        else:
+        #we handle parsing_types in a specific way
+        if logit_label == "parsing_types":
             batch_size = logits.size(0)
             # getting predicted heads (to know which labels of the graph which should look at
             pred_heads = predictions_topk_dic["parsing_heads"][:, :, 0]
-            # we extract from the logits only the one of the predicted heads (that are not -1 : useless)
-            logits = logits[(pred_heads != -1).nonzero()[:, 0], (pred_heads != -1).nonzero()[:, 1], pred_heads[pred_heads != -1]]
+            # we extract from the logits only the one of the predicted heads (that are not PAD_ID_LOSS_STANDART : useless)
+            logits = logits[
+                (pred_heads != PAD_ID_LOSS_STANDART).nonzero()[:, 0], (pred_heads != PAD_ID_LOSS_STANDART).nonzero()[:,
+                                                                      1], pred_heads[
+                    pred_heads != PAD_ID_LOSS_STANDART]]
             # we take the argmax label of this heads
             predictions_topk_dic[logit_label] = torch.argsort(logits, dim=-1, descending=True)[:, :topk]
             # only keeping the top 1 prediction
-            #predictions_topk_dic[logit_label] = predictions_topk_dic[logit_label][:, 0]
+            # predictions_topk_dic[logit_label] = predictions_topk_dic[logit_label][:, 0]
             # reshaping
             predictions_topk_dic[logit_label] = predictions_topk_dic[logit_label].view(batch_size, -1, topk)
+        else:
+            predictions_topk_dic[logit_label] = torch.argsort(logits, dim=-1, descending=True)[:, :, :topk]
 
     return predictions_topk_dic
 
