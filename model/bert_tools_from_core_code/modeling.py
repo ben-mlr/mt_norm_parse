@@ -1006,6 +1006,7 @@ class BertMultiTask(BertPreTrainedModel):
             for label_task in self.task_parameters[task]["label"]:
                 # HANDLE HERE MULTI MODAL TASKS
                 if label_task in labels:
+                    pdb.set_trace()
                     loss_dict[label_task] = self.get_loss(self.task_parameters[task]["loss"], label_task, self.num_labels_dic, labels, logits_dict, task)
         # thrid output is for potential attention weights
         return logits_dict, loss_dict, None
@@ -1184,7 +1185,12 @@ class BertForMaskedLM(BertPreTrainedModel):
                 "ERROR : you provided labels for normalization and" \
                 " self.mask_n_predictor : so you should provide labels_n_mask_prediction"
             total_ponderation = 90
-            loss_fct_masks_pred = CrossEntropyLoss(ignore_index=-1, weight=torch.Tensor([5/total_ponderation, 20/total_ponderation,20/total_ponderation,20/total_ponderation,20/total_ponderation]))
+            weight = torch.Tensor(
+                [5 / total_ponderation, 20 / total_ponderation, 20 / total_ponderation, 20 / total_ponderation,
+                 20 / total_ponderation])
+            if logits_n_mask_prediction.is_cuda:
+                weight = weight.cuda()
+            loss_fct_masks_pred = CrossEntropyLoss(ignore_index=-1, weight=weight)
             pdb.set_trace()
             loss_dict["loss_task_n_mask_prediction"] = loss_fct_masks_pred(logits_n_mask_prediction.view(-1, self.num_labels_n_mask), labels_n_masks.view(-1))
 

@@ -287,11 +287,7 @@ def epoch_run(batchIter, tokenizer,
                 out_bpe_tokenized = None
                 # TODO : should have a task specific input_mask and head_masks : only considering word level tasks and bpe level tasks for now
                 input_mask = get_mask_input(input_tokens_tensor, use_gpu)
-                head_masks, input_tokens_tensor, token_type_ids, label_per_task = get_label_per_bpe(args.tasks, batch,
-                                                                                                    input_tokens_tensor,
-                                                                                                    input_alignement_with_raw,
-                                                                                                    use_gpu,
-                                                                                                    tasks_parameters=TASKS_PARAMETER)
+                head_masks, input_tokens_tensor, token_type_ids, label_per_task = get_label_per_bpe(args.tasks, batch, input_tokens_tensor, input_alignement_with_raw, use_gpu, tasks_parameters=TASKS_PARAMETER)
                 if not args.multitask:
                     print("WARNING (epoch_run_fine_tuning_bert.py) head_masks is ignore in --0 multitask")
                     print("WARNING (epoch_run_fine_tuning_bert.py) input masks is now pading only : "
@@ -623,22 +619,21 @@ def epoch_run(batchIter, tokenizer,
                 logits_dic, loss_dic, _ = model(input_tokens_tensor, token_type_ids, labels=label_per_task,
                                                 head_masks=head_masks,
                                                 attention_mask=input_mask)
-                pdb.set_trace()
                 if len(list(loss_dic.keys() & set(TASKS_PARAMETER.keys()))) != len(loss_dic.keys()):
                     # it means a given task has several set of labels (e.g parsing)
                     # should do same for logits
                     pass
 
                 predictions_topk_dic = get_prediction(logits_dic, topk=topk)
-                pdb.set_trace()
+
                 output_tokens_tensor_aligned_dic = get_aligned_output(label_per_task, args.tasks)
-                pdb.set_trace()
+
                 source_preprocessed, label_dic, predict_dic = get_bpe_string(predictions_topk_dic,
                                                                              output_tokens_tensor_aligned_dic,
                                                                              input_tokens_tensor, topk, tokenizer,
                                                                              task_to_label_dictionary, null_str,
                                                                              null_token_index, verbose)
-                pdb.set_trace()
+
                 src_detokenized, label_detokenized_dic, predict_detokenize_dic = get_detokenized_str(source_preprocessed,
                                                                                                      input_alignement_with_raw,
                                                                                                      label_dic,
