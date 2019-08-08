@@ -466,13 +466,9 @@ def run(args,
                         print("LOSS TEST", loss_test)
                     except Exception as e:
                         #raise(e)
-                        print("ERROR {} test_path {} , heuristic {} , gold error {} , norm2noise {} ".format(e,
-                                                                                                             test,
-                                                                                                             heuristic_test,
-                                                                                                             gold_error,
-                                                                                                             norm_2_noise_eval
-                                                                                                             ))
+                        print("ERROR (epoch_run test) {} test_path {} , heuristic {} , gold error {} , norm2noise {} ".format(e, test, heuristic_test, gold_error, norm_2_noise_eval))
                         perf_report_test = []
+                        raise(e)
                     print("PERFORMANCE TEST on data  {} is {} ".format(label_data, perf_report_test))
                     print("DATA WRITTEN {}".format(end_predictions))
                     if writer is not None:

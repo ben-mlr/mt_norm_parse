@@ -386,7 +386,7 @@ if __name__ == "__main__":
                                                                                  "edit_prediction": 0}],
                                                 write_to_dir=RUN_SCRIPTS_DIR)
 
-          FINE_TUNE_BERT = False
+          FINE_TUNE_BERT = True 
           if FINE_TUNE_BERT:
               epochs = 1
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
@@ -398,7 +398,7 @@ if __name__ == "__main__":
                                                   bert_module_ls=["mlm"],
                                                   append_n_mask_ls=[0],
                                                   #norm_2_noise_training_ls=[0., 1.],
-                                                  lr_ls=[0.00005, 0.00001],
+                                                  lr_ls=[0.00001],
                                                   #lr_ls=[OrderedDict([("bert", 1e-5), ("classifier_task_2", 1e-4), ("classifier_task_1", 1e-5)]),
                                                   #       OrderedDict([("bert", 5e-6), ("classifier_task_2", 1e-4), ("classifier_task_1", 1e-5)]),
                                                   #       OrderedDict([("bert", 1e-5), ("classifier_task_2", 1e-3), ("classifier_task_1", 1e-5)])],
@@ -411,7 +411,7 @@ if __name__ == "__main__":
                                                   #lr_ls=[OrderedDict([("bert", "0.00001"), ("classifier", "0.0001")]),
                                                   #       OrderedDict([("bert", "0.00001"), ("classifier", "0.00001")])],
                                                   tasks_ls=[["parsing"] for _ in range(1)],#[["pos"], ["normalize", "pos"]],#, ["normalize"]],
-                                                  fine_tuning_strategy_ls=["standart"],
+                                                  fine_tuning_strategy_ ls=["standart"],
                                                   dropout_classifier_ls=[0.0],
                                                   multitask_ls=[1],
                                                   dropout_input_bpe_ls=[0.0], layer_wise_attention_ls=[0],
@@ -536,7 +536,7 @@ if __name__ == "__main__":
                                                   mode_word_encoding_ls=None,
                                                   dropout_input_ls=None, multi_task_loss_ponderation_ls=None,
                                                   scale_ls=[1])
-          BERT_NORMALIZATION = True
+          BERT_NORMALIZATION = False
           if BERT_NORMALIZATION:
               epochs = 2
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",

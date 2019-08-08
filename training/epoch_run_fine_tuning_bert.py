@@ -287,7 +287,8 @@ def epoch_run(batchIter, tokenizer,
                 out_bpe_tokenized = None
                 # TODO : should have a task specific input_mask and head_masks : only considering word level tasks and bpe level tasks for now
                 input_mask = get_mask_input(input_tokens_tensor, use_gpu)
-                head_masks, input_tokens_tensor, token_type_ids, label_per_task = get_label_per_bpe(args.tasks, batch, input_tokens_tensor, input_alignement_with_raw, use_gpu, tasks_parameters=TASKS_PARAMETER)
+                head_masks, input_tokens_tensor, token_type_ids, label_per_task = get_label_per_bpe(args.tasks, batch, input_tokens_tensor,
+                                                                                                    input_alignement_with_raw, use_gpu, tasks_parameters=TASKS_PARAMETER)
                 if not args.multitask:
                     print("WARNING (epoch_run_fine_tuning_bert.py) head_masks is ignore in --0 multitask")
                     print("WARNING (epoch_run_fine_tuning_bert.py) input masks is now pading only : "
@@ -609,7 +610,8 @@ def epoch_run(batchIter, tokenizer,
                     # NB : maybe factorize with predictions
                     assert len(set(args.tasks) & set(["parsing", "pos"])) == len(args.tasks), \
                         "ERROR need to handle tasks agnostic pad index for allowing other tasks {} ".format(args.tasks)
-                    label_per_task[label][label_per_task[label] == PAD_ID_TAG] = PAD_ID_LOSS_STANDART
+                    if label != "parsing_heads":
+                        label_per_task[label][label_per_task[label] == PAD_ID_TAG] = PAD_ID_LOSS_STANDART
                     # we do the token counting using labels
                     n_tokens_counter_per_task[label] += (label_per_task[label] != PAD_ID_LOSS_STANDART).sum().item()
                     n_tokens_counter_current_per_task[label] = (label_per_task[label] != PAD_ID_LOSS_STANDART).sum().item()

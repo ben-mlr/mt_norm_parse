@@ -979,7 +979,8 @@ class BertMultiTask(BertPreTrainedModel):
                 # e.g : for parsing : self.head["parsing"] = BertGraphHead
                 self.head[task] = eval(self.task_parameters[task]["head"])(config, num_labels=self.num_labels_dic[num_label])
             else:
-                self.head[task] = eval(self.task_parameters[task]["head"])(config, num_labels=self.num_labels_dic["pos"], dropout_classifier=0.1)
+                self.head[task] = eval(self.task_parameters[task]["head"])(config, num_labels=self.num_labels_dic["pos"],
+                                                                           dropout_classifier=0.1)
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None, head_masks=None):
         if labels is None:
@@ -1002,7 +1003,8 @@ class BertMultiTask(BertPreTrainedModel):
             n_pred = len(list(logits_dict[task]))
             assert n_pred == len(self.task_parameters[task]["label"]), \
                 "ERROR : not as many labels as prediction for task {} : {} vs {} ".format(task, self.task_parameters[task]["label"], logits_dict[task])
-            logits_dict = self.rename_multi_modal_task_logits(labels=self.task_parameters[task]["label"], logits_dict=logits_dict, task=task, n_pred=n_pred)
+            logits_dict = self.rename_multi_modal_task_logits(labels=self.task_parameters[task]["label"],
+                                                              logits_dict=logits_dict, task=task, n_pred=n_pred)
             for label_task in self.task_parameters[task]["label"]:
                 # HANDLE HERE MULTI MODAL TASKS
                 if label_task in labels:
@@ -1023,9 +1025,14 @@ class BertMultiTask(BertPreTrainedModel):
             gold = labels["parsing_types"][labels["parsing_heads"] != PAD_ID_LOSS_STANDART]
             # pred logits (after removing -1) on the gold heads
             pdb.set_trace()
-            pred = logits_dict["parsing_types"][(labels["parsing_heads"] != PAD_ID_LOSS_STANDART).nonzero()[:, 0], (labels["parsing_heads"] != PAD_ID_LOSS_STANDART).nonzero()[:, 1], labels["parsing_heads"][labels["parsing_heads"] != PAD_ID_LOSS_STANDART]]
+            pred = logits_dict["parsing_types"][(labels["parsing_heads"] != PAD_ID_LOSS_STANDART).nonzero()[:, 0],
+                                                (labels["parsing_heads"] != PAD_ID_LOSS_STANDART).nonzero()[:, 1], labels["parsing_heads"][labels["parsing_heads"] != PAD_ID_LOSS_STANDART]]
             # remark : in the way it's coded for paring : the padding is already removed (so ignore index is null)
-            loss = loss_func(pred, gold)
+            try:
+                loss = loss_func(pred, gold)
+            except Exception as e:
+                print("ERROR pred : {} gold {} : parsing heads origin {)  ".format(pred, gold, labels["parsing_heads"]))
+                raise(e)
             pdb.set_trace()
             print("LOSS PARSING TYPES : to validate ")
         return loss

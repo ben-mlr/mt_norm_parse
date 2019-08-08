@@ -16,6 +16,7 @@ def get_mask_input(input_tokens_tensor, use_gpu):
 # as CLS is appended at the begining of each sentences : we need to adjust the labels for it
 CLS_ADJUST = 1
 
+
 def get_bpe_label_word_level_task(labels, batch, input_tokens_tensor, input_alignement_with_raw, use_gpu, graph_labels=False):
     output_tokens_tensor = np.array(labels.cpu())
     new_input = np.array(input_tokens_tensor.cpu())
@@ -145,7 +146,6 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
                 assert tasks_parameters[task]["prediction_level"] == "word", "ERROR only word level task supported here so far"
                 if tasks_parameters[task]["prediction_level"] == "word":
                     pdb.set_trace()
-                    print("TASK", task_batch_name)
                     output_tokens_tensor, head_mask, input_tokens_tensor = get_bpe_label_word_level_task(task_batch, batch, input_tokens_tensor,
                                                                                                          input_alignement_with_raw, use_gpu,
                                                                                                          graph_labels=bool("parsing_heads" == task_batch_name))
