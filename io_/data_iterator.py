@@ -1,4 +1,4 @@
-from env.importing import *
+from env.importing import torch, tqdm, Variable, pdb
 from env.models_dir import BERT_MODEL_DIC
 from env.project_variables import DEV, LIU_DEV
 

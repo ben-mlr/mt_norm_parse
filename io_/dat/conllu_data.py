@@ -1,9 +1,9 @@
-from env.importing import *
+from env.importing import os, codecs, torch, np, Variable
 
 from io_.info_print import printing
 from .constants import MAX_CHAR_LENGTH, NUM_CHAR_PAD, PAD_CHAR, PAD_POS, PAD_TYPE, ROOT_CHAR, ROOT_POS, PAD, \
   ROOT_TYPE, END_CHAR, END_POS, END_TYPE, _START_VOCAB, ROOT, PAD_ID_WORD, PAD_ID_CHAR, PAD_ID_TAG, DIGIT_RE, CHAR_START_ID, CHAR_START, CHAR_END_ID, PAD_ID_CHAR, PAD_ID_NORM_NOT_NORM, END,\
-  MEAN_RAND_W2V, SCALE_RAND_W2V, PAD_ID_EDIT
+  MEAN_RAND_W2V, SCALE_RAND_W2V, PAD_ID_EDIT, PAD_ID_HEADS
 from env.project_variables import W2V_LOADED_DIM, MAX_VOCABULARY_SIZE_WORD_DIC
 from .conllu_reader import CoNLLReader
 from .dictionary import Dictionary
@@ -554,7 +554,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
         except:
             printing("WARNING : ASSIGNING 1 to head id cause hids is {} ".format(hids), verbose_level=2, verbose=verbose)
             hid_inputs[i, :inst_size] = 1
-        hid_inputs[i, inst_size:] = PAD_ID_TAG
+        hid_inputs[i, inst_size:] = PAD_ID_HEADS
       #  hid_inputs[i, :0] = None
       #  hid_inputs[i, inst_size:] = None
       masks_inputs[i, :inst_size] = 1.0

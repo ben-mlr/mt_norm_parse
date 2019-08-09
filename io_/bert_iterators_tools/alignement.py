@@ -1,4 +1,5 @@
-from env.importing import *
+
+from env.importing import torch
 from io_.info_print import printing
 from io_.dat.constants import NULL_STR_TO_SHOW, TOKEN_BPE_BERT_START, TOKEN_BPE_BERT_SEP, PAD_POS, PAD_ID_BERT
 
@@ -200,7 +201,7 @@ def realigne_multi(ls_sent_str, input_alignement_with_raw, null_str, mask_str, t
                     else:
                         former_token += token
             elif "pos" == task or task.startswith("parsing"):
-                # we just  ignore token
+                # we just ignore bpe that are not first bpe of tokens
                 if index == former_index:
                     pass
             else:

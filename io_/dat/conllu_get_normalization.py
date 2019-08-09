@@ -1,6 +1,6 @@
-from env.importing import *
-from io_.info_print import printing
 
+from io_.info_print import printing
+from env.importing import re
 
 def get_normalized_token(norm_field, n_exception, verbose, predict_mode_only=False):
 

@@ -31,22 +31,28 @@ def get_prediction(logits_dic, topk):
     return predictions_topk_dic
 
 
-def get_bpe_string(predictions_topk_dic, output_tokens_tensor_aligned_dic, input_tokens_tensor, topk,
+def get_bpe_string(predictions_topk_dic,
+                   input_alignement_with_raw,
+                   output_tokens_tensor_aligned_dic, input_tokens_tensor, topk,
                    tokenizer, task_to_label_dictionary, null_str, null_token_index, verbose):
 
     predict_dic = OrderedDict()
     label_dic = OrderedDict()
 
     for label in predictions_topk_dic:
-
+        if label == "parsing_heads":
+            #pdb.set_trace()
+            pass
         sent_ls_top = from_bpe_token_to_str(predictions_topk_dic[label], topk, tokenizer=tokenizer,
                                             pred_mode=True, label_dictionary=task_to_label_dictionary[label],
                                             get_string=False, label=label,
                                             null_token_index=null_token_index, null_str=null_str)
+
         gold = from_bpe_token_to_str(output_tokens_tensor_aligned_dic[label], topk, tokenizer=tokenizer,
                                      label_dictionary=task_to_label_dictionary[label], pred_mode=False,
                                      get_string=False, label=label, null_token_index=null_token_index,
                                      null_str=null_str)
+
 
         predict_dic[label] = sent_ls_top
         label_dic[label] = gold
@@ -73,10 +79,10 @@ def get_detokenized_str(source_preprocessed, input_alignement_with_raw, label_di
                                                 remove_mask_str=remove_mask_str_prediction)
     for label in label_dic:
         label_detokenized_dic[label] = alignement.realigne_multi(label_dic[label], input_alignement_with_raw,
-                                                                remove_null_str=True,
-                                                                null_str=null_str,
-                                                                task=label,
-                                                                mask_str=MASK_BERT)
+                                                                 remove_null_str=True,
+                                                                 null_str=null_str,
+                                                                 task=label,
+                                                                 mask_str=MASK_BERT)
 
         #label_detokenized_dic[task] = label_detokenized_dic[task][0]
         if label == "pos" or label.startswith("parsing"):
@@ -93,10 +99,11 @@ def get_detokenized_str(source_preprocessed, input_alignement_with_raw, label_di
     return src_detokenized, label_detokenized_dic, predict_detokenize_dic
 
 
-def get_aligned_output(label_per_task, tasks):
+def get_aligned_output(label_per_task):
     output_tokens_tensor_aligned_dict = OrderedDict()
     for label in label_per_task:
-        if label != "normalize":
-            output_tokens_tensor_aligned_dict[label] = label_per_task[label ]
+        if label != "normalize" :
+            output_tokens_tensor_aligned_dict[label] = label_per_task[label]
+
 
     return output_tokens_tensor_aligned_dict

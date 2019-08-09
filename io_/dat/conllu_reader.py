@@ -4,7 +4,8 @@ from io_.info_print import printing
 from io_.dat.conllu_get_normalization import get_normalized_token
 from env.project_variables import AVAILABLE_TASKS
 from env.tasks_settings import TASKS_PARAMETER
-from env.importing import *
+from env.importing import sys, os, codecs
+#from env.importing import *
 from env.project_variables import PROJECT_PATH
 
 

@@ -293,7 +293,6 @@ def epoch_run(batchIter, tokenizer,
                     print("WARNING (epoch_run_fine_tuning_bert.py) head_masks is ignore in --0 multitask")
                     print("WARNING (epoch_run_fine_tuning_bert.py) input masks is now pading only : "
                       "we use loss to mask unwanted bpe token, it should be fine in TokenClassiciation")
-                pdb.set_trace()
                 dimension_check_label(label_per_task, input_tokens_tensor)
                 if "pos" in args.tasks:
                     output_tokens_tensor_aligned = label_per_task["pos"]
@@ -423,7 +422,6 @@ def epoch_run(batchIter, tokenizer,
                         prediction_n_mask = torch.argsort(logits["logits_n_mask_prediction"],
                                                           dim=-1, descending=True)[:, :, 0]
                         # TODO : extend  input_tokens_tensor based on prediction_n_mask : append masks
-                        pdb.set_trace()
                         pred_inputs, extended_input_alignement_with_raw = extend_input(prediction_n_mask, input_tokens_tensor,
                                                                                        input_alignement_with_raw, mask_token_index, use_gpu)
 
@@ -460,7 +458,6 @@ def epoch_run(batchIter, tokenizer,
                         sent_ls_pred_n_masks_top = from_bpe_token_to_str(pred_inputs, topk, tokenizer=tokenizer, pred_mode=False,
                                                                          pos_dictionary=pos_dictionary,
                                                                          null_token_index=null_token_index, null_str=null_str)
-                        pdb.set_trace()
 
                         pred_n_masks_detokenized_topk.append(alignement.realigne(sent_ls_pred_n_masks_top,
                                                                                  extended_input_alignement_with_raw,
@@ -534,7 +531,6 @@ def epoch_run(batchIter, tokenizer,
                                                                n_tokens_dic=n_tokens_dic["n_masks_pred"],
                                                                n_sents_dic=n_sents_dic["n_masks_pred"])
                             # token based on predicted masks
-                            pdb.set_trace()
                             perf_detok_prediction_on_n_mask, skipping_n_mask, _ = \
                                 overall_word_level_metric_measure(gold_detokenized,
                                                                   pred_n_masks_detokenized_topk, topk=1,
@@ -544,7 +540,6 @@ def epoch_run(batchIter, tokenizer,
                                                                   reference_word_dic=reference_word_dic,
                                                                   compute_intersection_score=False,
                                                                   src_detokenized=src_detokenized)
-                            pdb.set_trace()
                             score_dic["normalize_pred"], n_tokens_dic["normalize_pred"], n_sents_dic["normalize_pred"] = \
                                 accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
                                                                sample_ls=samples_per_task_reporting["normalize_pred"],
@@ -552,7 +547,6 @@ def epoch_run(batchIter, tokenizer,
                                                                score_dic=score_dic["normalize_pred"],
                                                                n_tokens_dic=n_tokens_dic["normalize_pred"],
                                                                n_sents_dic=n_sents_dic["normalize_pred"])
-                            pdb.set_trace()
                             evaluated_task.append("normalize_pred")
                             evaluated_task.append("n_masks_pred")
 
@@ -603,7 +597,6 @@ def epoch_run(batchIter, tokenizer,
                 # - factorize   masking
                 assert "normalize" not in args.tasks, "ERROR : input and output not supported yet for 'normalize' " \
                                                       "task in this setting "
-                pdb.set_trace()
                 for label in label_per_task:
                     # make mask for the loss padding
                     # TODO handle task specific index pad
@@ -617,25 +610,23 @@ def epoch_run(batchIter, tokenizer,
                     n_tokens_counter_current_per_task[label] = (label_per_task[label] != PAD_ID_LOSS_STANDART).sum().item()
                 # TODO : handle in a more standart way
                 n_tokens_counter_per_task["all"] += n_tokens_counter_current_per_task[label]
-                pdb.set_trace()
-                logits_dic, loss_dic, _ = model(input_tokens_tensor, token_type_ids, labels=label_per_task,
-                                                head_masks=head_masks,
-                                                attention_mask=input_mask)
+                logits_dic, loss_dic, _ = model(input_tokens_tensor, token_type_ids, labels=label_per_task, head_masks=head_masks, attention_mask=input_mask)
                 if len(list(loss_dic.keys() & set(TASKS_PARAMETER.keys()))) != len(loss_dic.keys()):
                     # it means a given task has several set of labels (e.g parsing)
                     # should do same for logits
                     pass
 
                 predictions_topk_dic = get_prediction(logits_dic, topk=topk)
-
-                output_tokens_tensor_aligned_dic = get_aligned_output(label_per_task, args.tasks)
-
+                output_tokens_tensor_aligned_dic = get_aligned_output(label_per_task)
+                #pdb.set_trace()
+                # for parsing heads will leave heads untouched
                 source_preprocessed, label_dic, predict_dic = get_bpe_string(predictions_topk_dic,
+                                                                             input_alignement_with_raw,
                                                                              output_tokens_tensor_aligned_dic,
                                                                              input_tokens_tensor, topk, tokenizer,
                                                                              task_to_label_dictionary, null_str,
                                                                              null_token_index, verbose)
-
+                # for parsing and tagging : will simply remove non-first bpe of each token
                 src_detokenized, label_detokenized_dic, predict_detokenize_dic = get_detokenized_str(source_preprocessed,
                                                                                                      input_alignement_with_raw,
                                                                                                      label_dic,
@@ -643,7 +634,6 @@ def epoch_run(batchIter, tokenizer,
                                                                                                      null_str,
                                                                                                      args.tasks,
                                                                                                      remove_mask_str_prediction)
-                pdb.set_trace()
                 for label in label_detokenized_dic:
                     perf_prediction, skipping, _samples = overall_word_level_metric_measure(label_detokenized_dic[label],
                                                                                             predict_detokenize_dic[label],
@@ -654,12 +644,8 @@ def epoch_run(batchIter, tokenizer,
                                                                                             src_detokenized=src_detokenized)
 
                     score_dic[label], n_tokens_dic[label], n_sents_dic[label] = \
-                        accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
-                                                       sample_ls=_samples,
-                                                       dic_prediction_score=perf_prediction,
-                                                       score_dic=score_dic[label],
-                                                       n_tokens_dic=n_tokens_dic[label],
-                                                       n_sents_dic=n_sents_dic[label])
+                        accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=_samples, dic_prediction_score=perf_prediction,
+                                                       score_dic=score_dic[label], n_tokens_dic=n_tokens_dic[label], n_sents_dic=n_sents_dic[label])
                     evaluated_task.append(label)
 
                 if writing_pred:

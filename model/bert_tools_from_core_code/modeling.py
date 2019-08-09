@@ -1008,7 +1008,6 @@ class BertMultiTask(BertPreTrainedModel):
             for label_task in self.task_parameters[task]["label"]:
                 # HANDLE HERE MULTI MODAL TASKS
                 if label_task in labels:
-                    pdb.set_trace()
                     loss_dict[label_task] = self.get_loss(self.task_parameters[task]["loss"], label_task, self.num_labels_dic, labels, logits_dict, task)
         # thrid output is for potential attention weights
         return logits_dict, loss_dict, None
@@ -1024,7 +1023,6 @@ class BertMultiTask(BertPreTrainedModel):
             # gold label after removing 0 gold
             gold = labels["parsing_types"][labels["parsing_heads"] != PAD_ID_LOSS_STANDART]
             # pred logits (after removing -1) on the gold heads
-            pdb.set_trace()
             pred = logits_dict["parsing_types"][(labels["parsing_heads"] != PAD_ID_LOSS_STANDART).nonzero()[:, 0],
                                                 (labels["parsing_heads"] != PAD_ID_LOSS_STANDART).nonzero()[:, 1], labels["parsing_heads"][labels["parsing_heads"] != PAD_ID_LOSS_STANDART]]
             # remark : in the way it's coded for paring : the padding is already removed (so ignore index is null)
@@ -1033,7 +1031,6 @@ class BertMultiTask(BertPreTrainedModel):
             except Exception as e:
                 print("ERROR pred : {} gold {} : parsing heads origin {)  ".format(pred, gold, labels["parsing_heads"]))
                 raise(e)
-            pdb.set_trace()
             print("LOSS PARSING TYPES : to validate ")
         return loss
 
@@ -1198,7 +1195,6 @@ class BertForMaskedLM(BertPreTrainedModel):
             if logits_n_mask_prediction.is_cuda:
                 weight = weight.cuda()
             loss_fct_masks_pred = CrossEntropyLoss(ignore_index=-1, weight=weight)
-            pdb.set_trace()
             loss_dict["loss_task_n_mask_prediction"] = loss_fct_masks_pred(logits_n_mask_prediction.view(-1, self.num_labels_n_mask), labels_n_masks.view(-1))
 
         if self.classifier_task_2 is not None:

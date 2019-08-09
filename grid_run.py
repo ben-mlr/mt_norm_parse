@@ -388,7 +388,7 @@ if __name__ == "__main__":
 
           FINE_TUNE_BERT = True 
           if FINE_TUNE_BERT:
-              epochs = 1
+              epochs = 20
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,  
                                                   grid_label=LABEL_GRID,
@@ -411,7 +411,7 @@ if __name__ == "__main__":
                                                   #lr_ls=[OrderedDict([("bert", "0.00001"), ("classifier", "0.0001")]),
                                                   #       OrderedDict([("bert", "0.00001"), ("classifier", "0.00001")])],
                                                   tasks_ls=[["parsing"] for _ in range(1)],#[["pos"], ["normalize", "pos"]],#, ["normalize"]],
-                                                  fine_tuning_strategy_ ls=["standart"],
+                                                  fine_tuning_strategy_ls=["standart"],
                                                   dropout_classifier_ls=[0.0],
                                                   multitask_ls=[1],
                                                   dropout_input_bpe_ls=[0.0], layer_wise_attention_ls=[0],

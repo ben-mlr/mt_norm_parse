@@ -1,5 +1,5 @@
-from env.importing import *
-
+#from env.importing import *
+from env.importing import codecs
 
 class CoNLLWriter(object):
   def __init__(self, word_dictionary, char_dictionary, pos_dictionary, type_dictionary):
