@@ -635,7 +635,6 @@ def epoch_run(batchIter, tokenizer,
                                                                                                      args.tasks,
                                                                                                      remove_mask_str_prediction)
                 for label in label_detokenized_dic:
-
                     perf_prediction, skipping, _samples = overall_word_level_metric_measure(label_detokenized_dic[label],
                                                                                             predict_detokenize_dic[label],
                                                                                             topk, metric=metric, samples=samples,
@@ -643,6 +642,10 @@ def epoch_run(batchIter, tokenizer,
                                                                                             reference_word_dic=reference_word_dic,
                                                                                             compute_intersection_score=compute_intersection_score,
                                                                                             src_detokenized=src_detokenized)
+                    print("PREDICTION epoch {} task {} score all {}/{} total  gold {} pred {}".format(epoch, label,
+                                                                                                      perf_prediction["sum"]["all"]["score"],
+                                                                                                      perf_prediction["sum"]["all"]["n_tokens"],
+                                                                                             label_detokenized_dic[label], predict_detokenize_dic[label]))
 
                     score_dic[label], n_tokens_dic[label], n_sents_dic[label] = \
                         accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=_samples, dic_prediction_score=perf_prediction,

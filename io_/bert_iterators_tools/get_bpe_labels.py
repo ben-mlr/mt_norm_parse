@@ -14,7 +14,7 @@ def get_mask_input(input_tokens_tensor, use_gpu):
 
 
 # as CLS is appended at the begining of each sentences : we need to adjust the labels for it
-CLS_ADJUST = 1
+CLS_ADJUST = 0
 
 
 def get_bpe_label_word_level_task(labels, batch, input_tokens_tensor, input_alignement_with_raw, use_gpu, graph_labels=False):
@@ -110,7 +110,7 @@ def get_bpe_label_word_level_task(labels, batch, input_tokens_tensor, input_alig
                 # the new label must be equal to the old one at the corresponding position + 1 + the number of non-first-bpe-token (original indexing of the label)
                 if output_tokens_tensor_new[sent][ind] not in [ROOT_HEADS_INDEX+1, END_HEADS_INDEX, PAD_ID_HEADS]:
                     try:
-                        assert output_tokens_tensor_new[sent][ind] == labels[sent, input_alignement_with_raw[sent][ind]]+1+cumulate_shift[sent][labels[sent, input_alignement_with_raw[sent][ind]]], \
+                        assert output_tokens_tensor_new[sent][ind] == labels[sent, input_alignement_with_raw[sent][ind]]+CLS_ADJUST+cumulate_shift[sent][labels[sent, input_alignement_with_raw[sent][ind]]], \
                         "ERROR sent {} ind word {} " \
                         "new {} and old {} cumulted {} ".format(sent, ind, output_tokens_tensor_new[sent][ind],
                                                             labels[sent, input_alignement_with_raw[sent][ind]], cumulate_shift[sent][ind])
