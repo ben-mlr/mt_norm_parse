@@ -998,7 +998,13 @@ class BertMultiTask(BertPreTrainedModel):
                                        attention_mask=attention_mask,
                                        output_all_encoded_layers=self.layer_wise_attention is not None)
         for task in self.tasks:
-            logits_dict[task] = self.head[task](sequence_output, head_mask=head_masks.get(task, None))
+            # we don't use mask for parsing heads (cf. test performed below : the -1 already ignore the heads we don't want)
+            # NB : head_masks for parsing only applies to heads not types
+            head_masks_task = head_masks.get(task, None) if task != "parsing" else None
+            # NB : head_mask means masks specific the the module heads (nothing related to parsing !! )
+            logits_dict[task] = self.head[task](sequence_output, head_mask=head_masks_task)
+            # test performed : (logits_dict[task][0][1,2,:20]==float('-inf'))==(labels["parsing_heads"][1,:20]==-1)
+            pdb.set_trace()
             # handle several labels at output (e.g  parsing)
             n_pred = len(list(logits_dict[task]))
             assert n_pred == len(self.task_parameters[task]["label"]), \
@@ -1019,6 +1025,7 @@ class BertMultiTask(BertPreTrainedModel):
             loss = loss_func(logits_dict[label_task].view(-1, num_label_dic[task]), labels[label_task].view(-1))
         elif label_task == "parsing_heads":
             loss = loss_func(logits_dict[label_task], labels[label_task])
+            print("DEBUG LOSS HEADS {}".format(loss))
         elif label_task == "parsing_types":
             # gold label after removing 0 gold
             gold = labels["parsing_types"][labels["parsing_heads"] != PAD_ID_LOSS_STANDART]
