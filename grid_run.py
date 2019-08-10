@@ -388,7 +388,7 @@ if __name__ == "__main__":
 
           FINE_TUNE_BERT = True 
           if FINE_TUNE_BERT:
-              epochs = 20
+              epochs = 10
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,  
                                                   grid_label=LABEL_GRID,

@@ -635,6 +635,7 @@ def epoch_run(batchIter, tokenizer,
                                                                                                      args.tasks,
                                                                                                      remove_mask_str_prediction)
                 for label in label_detokenized_dic:
+
                     perf_prediction, skipping, _samples = overall_word_level_metric_measure(label_detokenized_dic[label],
                                                                                             predict_detokenize_dic[label],
                                                                                             topk, metric=metric, samples=samples,
@@ -646,6 +647,7 @@ def epoch_run(batchIter, tokenizer,
                     score_dic[label], n_tokens_dic[label], n_sents_dic[label] = \
                         accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=_samples, dic_prediction_score=perf_prediction,
                                                        score_dic=score_dic[label], n_tokens_dic=n_tokens_dic[label], n_sents_dic=n_sents_dic[label])
+                    pdb.set_trace()
                     evaluated_task.append(label)
 
                 if writing_pred:

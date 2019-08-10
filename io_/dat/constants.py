@@ -11,6 +11,9 @@ PAD_CHAR = u"_PAD_CHAR"
 ROOT = u"_ROOT"
 ROOT_POS = u"_ROOT_POS"
 ROOT_TYPE = u"_<ROOT>"
+# NB : those two following variables were designed for ROOT that have no meaning in terms of parsing
+ROOT_HEADS_INDEX = -1
+END_HEADS_INDEX = -1
 ROOT_CHAR = u"_ROOT_CHAR"
 END = u"_END"
 END_POS = u"_END_POS"
@@ -60,4 +63,6 @@ NUM_LABELS_N_MASKS = 5
 
 PRINTINT_OUT_TOKEN_UNK = "£" # needs to be len 1 so chose this one
 
-SPECIAL_TOKEN_LS = [ROOT_CHAR, END_CHAR, ROOT, ROOT_POS, END_POS, END, TOKEN_BPE_BERT_START, TOKEN_BPE_BERT_SEP, -1]
+HEADS_FOR_SPECIAL_TOKEN_PARSING = 0
+print("WARNING : Reminder : for dependancy parsing CLS and SEQ symbol of BERT points to {} (bpe) token ".format(HEADS_FOR_SPECIAL_TOKEN_PARSING))
+SPECIAL_TOKEN_LS = [ROOT_CHAR, END_CHAR, ROOT, ROOT_POS, END_POS, END, TOKEN_BPE_BERT_START, TOKEN_BPE_BERT_SEP, PAD_ID_LOSS_STANDART, ROOT_TYPE, END_TYPE, HEADS_FOR_SPECIAL_TOKEN_PARSING ]

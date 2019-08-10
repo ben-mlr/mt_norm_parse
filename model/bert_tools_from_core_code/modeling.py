@@ -1004,7 +1004,6 @@ class BertMultiTask(BertPreTrainedModel):
             # NB : head_mask means masks specific the the module heads (nothing related to parsing !! )
             logits_dict[task] = self.head[task](sequence_output, head_mask=head_masks_task)
             # test performed : (logits_dict[task][0][1,2,:20]==float('-inf'))==(labels["parsing_heads"][1,:20]==-1)
-            pdb.set_trace()
             # handle several labels at output (e.g  parsing)
             n_pred = len(list(logits_dict[task]))
             assert n_pred == len(self.task_parameters[task]["label"]), \

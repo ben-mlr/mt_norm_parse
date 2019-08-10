@@ -1,5 +1,5 @@
 from .ioutils import DependencyInstance, Sentence
-from .constants import DIGIT_RE, MAX_CHAR_LENGTH, NUM_CHAR_PAD, ROOT, ROOT_CHAR, ROOT_POS, ROOT_TYPE, PAD, END_CHAR, END_POS, END_TYPE, END
+from .constants import DIGIT_RE, MAX_CHAR_LENGTH, NUM_CHAR_PAD, ROOT, ROOT_CHAR, ROOT_POS, ROOT_TYPE, PAD, END_CHAR, END_POS, END_TYPE, END, ROOT_HEADS_INDEX, END_HEADS_INDEX
 from io_.info_print import printing
 from io_.dat.conllu_get_normalization import get_normalized_token
 from env.project_variables import AVAILABLE_TASKS
@@ -118,7 +118,7 @@ class CoNLLReader(object):
 
       types.append(ROOT_TYPE)
       type_ids.append(self.__type_dictionary.get_index(ROOT_TYPE))
-      heads.append(0)
+      heads.append(ROOT_HEADS_INDEX)
 
     for tokens in lines:
 
@@ -223,7 +223,7 @@ class CoNLLReader(object):
       xpos_ids.append(self.__xpos_dictionary.get_index(END_POS))
       types.append(END_TYPE)
       type_ids.append(self.__type_dictionary.get_index(END_TYPE))
-      heads.append(0)
+      heads.append(END_HEADS_INDEX)
     return DependencyInstance(Sentence(words, word_ids, char_seqs,
                                        char_id_seqs, [lines, raw_text],
                                        word_norm=norm_words,

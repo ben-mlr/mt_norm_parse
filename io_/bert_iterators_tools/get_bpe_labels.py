@@ -1,6 +1,6 @@
 
-from env.importing import pdb, OrderedDict, np, torch, np
-from io_.dat.constants import  PAD_ID_BERT, PAD_ID_TAG, PAD_ID_HEADS
+from env.importing import pdb, OrderedDict, np, torch, time
+from io_.dat.constants import  PAD_ID_BERT, PAD_ID_TAG, PAD_ID_HEADS, ROOT_HEADS_INDEX, END_HEADS_INDEX
 
 
 def get_mask_input(input_tokens_tensor, use_gpu):
@@ -24,7 +24,7 @@ def get_bpe_label_word_level_task(labels, batch, input_tokens_tensor, input_alig
     new_input = [[inp for inp in sent] + [PAD_ID_BERT for _ in range(len_max - len(sent))] for sent
                  in new_input]
     # we mask bpe token that have been split (we don't mask the first bpe token of each word)
-    padding = PAD_ID_HEADS if graph_labels else PAD_ID_BERT
+    padding = PAD_ID_BERT
     _input_mask = [[0 if new_input[ind_sent][ind_tok] == padding or input_alignement_with_raw[ind_sent][ind_tok-1] ==
                          input_alignement_with_raw[ind_sent][ind_tok] else 1 for ind_tok in range(len(new_input[ind_sent]))] for ind_sent in range(len(new_input))]
     if graph_labels:
@@ -46,7 +46,7 @@ def get_bpe_label_word_level_task(labels, batch, input_tokens_tensor, input_alig
         def test_get_cumulated_non_first_bpe_counter():
             assert [0, 0, 0, 1, 1, 1, 3, 3, 3, 5, 5, 5] == get_cumulated_non_first_bpe_counter([0, 1,2 ,2 ,3, 4, 5, 5, 5, 6, 7, 8, 8, 8, 9, 10 ,11, 1000])
             assert [0, 0, 0, 1, 1, 1, 3, 3, 3, 5, 5, 5] == get_cumulated_non_first_bpe_counter([0, 1, 2, 2, 3, 4, 5, 5, 5, 6, 7, 8, 8, 8, 9, 10, 11])
-            print("TEST passed ")
+            #print("TEST passed ")
         test_get_cumulated_non_first_bpe_counter()
 
         cumulate_shift = [get_cumulated_non_first_bpe_counter(input_alignement_with_raw[ind_sent]) for ind_sent in range(len(input_alignement_with_raw))]
@@ -67,14 +67,16 @@ def get_bpe_label_word_level_task(labels, batch, input_tokens_tensor, input_alig
                 if graph_labels:
                     # as CLS is appended at the begining of each sentences : we need to adjust the labels for it
                     # TODO : !! cumulated is indexed by bpe tokenized sequence : label is indexed by original index : should get cumulated[lnew_index_label]
-                    if cumulate_shift[ind_sent][label] > 0:
+                    # CLS and SEQ points to the first token indexed by -1 so become 1
+                    #pdb.set_trace()
+                    if label not in [ROOT_HEADS_INDEX, END_HEADS_INDEX] and cumulate_shift[ind_sent][label] > 0:
                         label += cumulate_shift[ind_sent][label]
                         #pdb.set_trace()
                     label += CLS_ADJUST
             except Exception as e:
                 try:
                     assert input_alignement_with_raw[ind_sent][ind_tok] == 1000, "ERROR we should have reached the end of get labels also "
-                    label = PAD_ID_HEADS # output_tokens_tensor[ind_sent, output_tokens_tensor.shape[1] - 1]
+                    label = PAD_ID_TAG if not graph_labels else PAD_ID_HEADS # output_tokens_tensor[ind_sent, output_tokens_tensor.shape[1] - 1]
                 except Exception as f:
                     print("ERROR (get_bpe_labels): we reached the end of output labels but input is not done ! ", f)
                     print("ERROR ind_send:{} ind_tok {} shift {} output_tokens_tensor {} alignement {} -  {}".format(ind_sent, ind_tok, shift, output_tokens_tensor,
@@ -106,7 +108,7 @@ def get_bpe_label_word_level_task(labels, batch, input_tokens_tensor, input_alig
             for _ in range(5):
                 ind = np.random.choice(range(ind_max))
                 # the new label must be equal to the old one at the corresponding position + 1 + the number of non-first-bpe-token (original indexing of the label)
-                if output_tokens_tensor_new[sent][ind]!=-1:
+                if output_tokens_tensor_new[sent][ind] not in [ROOT_HEADS_INDEX+1, END_HEADS_INDEX, PAD_ID_HEADS]:
                     try:
                         assert output_tokens_tensor_new[sent][ind] == labels[sent, input_alignement_with_raw[sent][ind]]+1+cumulate_shift[sent][labels[sent, input_alignement_with_raw[sent][ind]]], \
                         "ERROR sent {} ind word {} " \
@@ -115,10 +117,13 @@ def get_bpe_label_word_level_task(labels, batch, input_tokens_tensor, input_alig
                     except AssertionError as e:
                         print(e)
                         pdb.set_trace()
-                    print("TEST passed for sent {} word {}".format(sent, ind))
+                    #print("TEST passed for sent {} word {}".format(sent, ind))
 
     if graph_labels:
+        pass
+        start_time = time.time()
         sanity_test_parsing_label(labels, output_tokens_tensor_new, input_alignement_with_raw, cumulate_shift)
+        print("TIME TEST", time.time()-start_time)
 
     output_tokens_tensor = torch.Tensor(output_tokens_tensor_new).long()
     head_mask = torch.Tensor(_input_mask).long()
