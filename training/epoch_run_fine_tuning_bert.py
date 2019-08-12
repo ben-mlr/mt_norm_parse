@@ -433,7 +433,8 @@ def epoch_run(batchIter, tokenizer,
                                                         pred_mode=True, pos_dictionary=pos_dictionary,
                                                         null_token_index=null_token_index, null_str=null_str)
 
-                    gold = from_bpe_token_to_str(output_tokens_tensor_aligned, topk, tokenizer=tokenizer, pos_dictionary=pos_dictionary,
+                    gold = from_bpe_token_to_str(output_tokens_tensor_aligned, topk, tokenizer=tokenizer,
+                                                 pos_dictionary=pos_dictionary,
                                                  pred_mode=False, null_token_index=null_token_index, null_str=null_str)
                     source_preprocessed = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer,
                                                                 pos_dictionary=pos_dictionary,
@@ -560,7 +561,6 @@ def epoch_run(batchIter, tokenizer,
                                                            score_dic=score_dic["n_masks_pred"], n_tokens_dic=n_tokens_dic["n_masks_pred"], n_sents_dic=n_sents_dic["n_masks_pred"])
                             evaluated_task.append("n_masks_pred")
 
-
                         evaluated_task.append(predicted_task)
                         perf_prediction, skipping, _samples = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk, topk,
                                                                                                 metric=metric, samples=samples,
@@ -586,7 +586,6 @@ def epoch_run(batchIter, tokenizer,
 
                     print_align_bpe(source_preprocessed, gold, input_alignement_with_raw, labels_n_mask_prediction,
                                     verbose=verbose, verbose_level=4)
-
             # multitask :
             elif args.multitask:
                 #   - for all word level tasks : normalization, tagging, edit, parsing :
@@ -595,8 +594,7 @@ def epoch_run(batchIter, tokenizer,
                 # HANDLE THE CASE FOR WHICH ONLY PREDICTION
                 # TODO:
                 # - factorize   masking
-                assert "normalize" not in args.tasks, "ERROR : input and output not supported yet for 'normalize' " \
-                                                      "task in this setting "
+                assert "normalize" not in args.tasks, "ERROR : input and output not supported yet for 'normalize' task in this setting "
                 for label in label_per_task:
                     # make mask for the loss padding
                     # TODO handle task specific index pad
@@ -607,7 +605,9 @@ def epoch_run(batchIter, tokenizer,
                         label_per_task[label][label_per_task[label] == PAD_ID_TAG] = PAD_ID_LOSS_STANDART
                     # we do the token counting using labels
                     n_tokens_counter_per_task[label] += (label_per_task[label] != PAD_ID_LOSS_STANDART).sum().item()
+                    # NB : do you account for CLS and SEQ HERE ?
                     n_tokens_counter_current_per_task[label] = (label_per_task[label] != PAD_ID_LOSS_STANDART).sum().item()
+                    #pdb.set_trace()
                 # TODO : handle in a more standart way
                 n_tokens_counter_per_task["all"] += n_tokens_counter_current_per_task[label]
                 logits_dic, loss_dic, _ = model(input_tokens_tensor, token_type_ids, labels=label_per_task, head_masks=head_masks, attention_mask=input_mask)
@@ -642,15 +642,18 @@ def epoch_run(batchIter, tokenizer,
                                                                                             reference_word_dic=reference_word_dic,
                                                                                             compute_intersection_score=compute_intersection_score,
                                                                                             src_detokenized=src_detokenized)
-                    print("PREDICTION epoch {} task {} score all {}/{} total  gold {} pred {}".format(epoch, label,
+                    print("PREDICTION epoch {} task {} score all {}/{} total  gold {} gold token {} pred {} pred token {} ".format(epoch, label,
                                                                                                       perf_prediction["sum"]["all"]["score"],
                                                                                                       perf_prediction["sum"]["all"]["n_tokens"],
-                                                                                             label_detokenized_dic[label], predict_detokenize_dic[label]))
+                                                                                                      label_detokenized_dic[label],
+                                                                                                      output_tokens_tensor_aligned_dic[label],
+                                                                                                      predict_detokenize_dic[label],
+                                                                                                      predictions_topk_dic[label][:, :, 0]))
 
                     score_dic[label], n_tokens_dic[label], n_sents_dic[label] = \
                         accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=_samples, dic_prediction_score=perf_prediction,
                                                        score_dic=score_dic[label], n_tokens_dic=n_tokens_dic[label], n_sents_dic=n_sents_dic[label])
-                    pdb.set_trace()
+                    #pdb.set_trace()
                     evaluated_task.append(label)
 
                 if writing_pred:

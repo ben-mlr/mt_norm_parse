@@ -96,6 +96,10 @@ AVAILABLE_WORD_LEVEL_LABELLING_MODE = ["word", "pos", "norm_not_norm"]
 
 # DATASETS proportion_pred_train_ls
 
+
+EWT_DEMO_LABEL, EWT_DEMO = "ewt-ud-train-demo", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en_lines-ud-train-demo.conllu")
+
+
 TRAINING_LABEL, TRAINING = "en-ud-train", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-train.conllu")
 TRAINING_DEMO_LABEL, TRAINING_DEMO = "en-ud-train_demo", os.path.join(PROJECT_PATH, "../parsing/normpar/data/en-ud-train_demo.conllu")
 
@@ -345,7 +349,9 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 CODE_MIXED_RAW_CUT_TEST: CODE_MIXED_RAW_TEST_CUT_LABEL,
                 CODE_MIXED_RAW_CUT_DEV: CODE_MIXED_RAW_CUT_DEV_LABEL,
 
-                EMNLP12_DIC: EMNLP12_DIC_LABEL
+                EMNLP12_DIC: EMNLP12_DIC_LABEL,
+
+                EWT_DEMO: EWT_DEMO_LABEL
                 }
 
 

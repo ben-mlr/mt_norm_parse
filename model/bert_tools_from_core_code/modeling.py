@@ -1024,7 +1024,10 @@ class BertMultiTask(BertPreTrainedModel):
             loss = loss_func(logits_dict[label_task].view(-1, num_label_dic[task]), labels[label_task].view(-1))
         elif label_task == "parsing_heads":
             loss = loss_func(logits_dict[label_task], labels[label_task])
+            print("DEBUG PRED HEADS pred {} gold {}".format(torch.argsort(logits_dict[label_task], dim=-1, descending=True)[:, :1], labels[label_task]))
             print("DEBUG LOSS HEADS {}".format(loss))
+            if loss < 1e-3:
+                pdb.set_trace()
         elif label_task == "parsing_types":
             # gold label after removing 0 gold
             gold = labels["parsing_types"][labels["parsing_heads"] != PAD_ID_LOSS_STANDART]
@@ -1032,8 +1035,13 @@ class BertMultiTask(BertPreTrainedModel):
             pred = logits_dict["parsing_types"][(labels["parsing_heads"] != PAD_ID_LOSS_STANDART).nonzero()[:, 0],
                                                 (labels["parsing_heads"] != PAD_ID_LOSS_STANDART).nonzero()[:, 1], labels["parsing_heads"][labels["parsing_heads"] != PAD_ID_LOSS_STANDART]]
             # remark : in the way it's coded for paring : the padding is already removed (so ignore index is null)
+
             try:
                 loss = loss_func(pred, gold)
+                print("DEBUG PRED TYPES pred {} gold {}".format(torch.argsort(pred, dim=-1, descending=True)[:, :1], gold))
+                print("DEBUG LOSS TYPES {}".format(loss))
+                #pdb.set_trace()
+
             except Exception as e:
                 print("ERROR pred : {} gold {} : parsing heads origin {)  ".format(pred, gold, labels["parsing_heads"]))
                 raise(e)

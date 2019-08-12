@@ -123,7 +123,7 @@ def get_bpe_label_word_level_task(labels, batch, input_tokens_tensor, input_alig
         pass
         start_time = time.time()
         sanity_test_parsing_label(labels, output_tokens_tensor_new, input_alignement_with_raw, cumulate_shift)
-        print("TIME TEST", time.time()-start_time)
+        #print("TIME TEST", time.time()-start_time)
 
     output_tokens_tensor = torch.Tensor(output_tokens_tensor_new).long()
     head_mask = torch.Tensor(_input_mask).long()
