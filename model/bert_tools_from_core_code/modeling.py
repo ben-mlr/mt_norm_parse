@@ -1023,8 +1023,11 @@ class BertMultiTask(BertPreTrainedModel):
         if not label_task.startswith("parsing"):
             loss = loss_func(logits_dict[label_task].view(-1, num_label_dic[task]), labels[label_task].view(-1))
         elif label_task == "parsing_heads":
-            loss = loss_func(logits_dict[label_task], labels[label_task])
-            print("DEBUG PRED HEADS pred {} gold {}".format(torch.argsort(logits_dict[label_task], dim=-1, descending=True)[:, :1], labels[label_task]))
+            #loss = loss_func(logits_dict[label_task], labels[label_task])
+            # trying alternative way for loss
+            loss = CrossEntropyLoss(ignore_index=-1, reduction="mean")(logits_dict[label_task].view(-1, logits_dict[label_task].size(2)), labels[label_task].view(-1))
+            # other possibilities is to do log softmax then L1 loss (lead to other results)
+            print("DEBUG PRED HEADS pred {} gold {}".format(torch.argsort(logits_dict[label_task], dim=-1, descending=True)[:,:, :1], labels[label_task]))
             print("DEBUG LOSS HEADS {}".format(loss))
             if loss < 1e-3:
                 pdb.set_trace()

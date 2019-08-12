@@ -46,7 +46,7 @@ TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact
                    "parsing": {
                        "normalization": False,
                        "default_metric": None,
-                       "eval_metrics": [["LAS"], ["UAS"]],
+                       "eval_metrics": [["accuracy-exact-parsing_heads"], ["accuracy-exact-parsing_types"]],
                        "head": "BertGraphHead",
                        "label": ["parsing_heads", "parsing_types"],
                        "prediction_level": "word",
