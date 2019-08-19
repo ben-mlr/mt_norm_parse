@@ -388,11 +388,11 @@ if __name__ == "__main__":
 
           FINE_TUNE_BERT = True 
           if FINE_TUNE_BERT:
-              epochs = 1
+              epochs = 5
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,  
                                                   grid_label=LABEL_GRID,
-                                                  batch_size_ls=[6],
+                                                  batch_size_ls=[12],
                                                   #checkpoint_dir_ls=["'"+os.path.join(CHECKPOINT_BERT_DIR, "9535768-B-45690-9535768-B-model_0/9535768-B-45690-9535768-B-model_0-epbest-checkpoint.pt")+"'"],#["'"+os.path.join(CHECKPOINT_BERT_DIR,"checkpoints", "bert", "9372042-B-6ccaa-9372042-B-model_0/9372042-B-6ccaa-9372042-B-model_0-epbest-checkpoint.pt")+"'"],
                                                   gpu_mode="random",
                                                   bert_module_ls=["mlm"],
@@ -410,7 +410,7 @@ if __name__ == "__main__":
                                                   #                     ["normed", "0.75"],["normed", "1."]],#[None,,
                                                   #lr_ls=[OrderedDict([("bert", "0.00001"), ("classifier", "0.0001")]),
                                                   #       OrderedDict([("bert", "0.00001"), ("classifier", "0.00001")])],
-                                                  tasks_ls=[["parsing"] for _ in range(1)],#[["pos"], ["normalize", "pos"]],#, ["normalize"]],
+                                                  tasks_ls=[[["pos"]], [["parsing"]], [["parsing", "pos"]]],#[["pos"], ["normalize", "pos"]],#, ["normalize"]],
                                                   fine_tuning_strategy_ls=["standart"],
                                                   dropout_classifier_ls=[0.0],
                                                   multitask_ls=[1],
@@ -427,7 +427,7 @@ if __name__ == "__main__":
                                                   #train_path=[[LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED]], dev_path=[[LIU_DEV]],
                                                   #train_path=[[CODE_MIXED_RAW_TRAIN_SMALL]], dev_path=[[CODE_MIXED_RAW_CUT_DEV]],
                                                   #train_path=[[EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV]],
-                                                  train_path=[[EWT_DEMO]], dev_path=[[EWT_DEMO]],
+                                                  train_path=[[EWT_DEMO] for _ in range(2)], dev_path=[[EWT_DEMO] for _ in range(2)],
                                                   #train_path=[[EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV]],
                                                   #train_path=[[AUGMENTED_LEX_DIC[n_sent]] for n_sent in [80, 100, 120, 150, 250, 350]],
                                                   #dev_path=[[LIU_DEV] for n_sent in [80, 100, 120,150,250,350]],
@@ -436,7 +436,7 @@ if __name__ == "__main__":
                                                   #test_paths=[[[LIU_DEV], [DEV], [TEST], [LEX_TEST], [LEX_DEV_SPLIT_2], [LEX_TRAIN]]],# for _ in [80, 100, 120,150,250,350]],
                                                   #test_paths=[[[LEX_TRAIN_SPLIT_2], [LEX_DEV_SPLIT_2], [LEX_TEST]]],# [[LEX_TRAIN_SPLIT_2], [LEX_DEV_SPLIT_2], [LEX_TEST]]],
                                                   #test_paths=[[[EWT_DEV], [EN_LINES_EWT_TRAIN], [EWT_TEST], [DEV], [TEST]], [[LEX_TEST, EWT_DEV], [LIU_DEV, EWT_TEST], [DEV,  DEV], [TEST, TEST]]],
-                                                  test_paths=[[[EWT_DEMO]]],# [EWT_DEV], [EWT_TEST], [EN_LINES_EWT_TRAIN]]],
+                                                  test_paths=[[[EWT_DEMO]] for _ in range(2)],# [EWT_DEV], [EWT_TEST], [EN_LINES_EWT_TRAIN]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,

@@ -168,7 +168,9 @@ def epoch_run(batchIter, tokenizer,
 
     agg_func_ls = ["sum"]
 
-    score_dic, n_tokens_dic, n_sents_dic = init_score_token_sent_dict(samples_per_task_reporting, args.tasks, agg_func_ls, compute_intersection_score, task_settings=TASKS_PARAMETER)
+    score_dic, n_tokens_dic, n_sents_dic = init_score_token_sent_dict(samples_per_task_reporting, [task for tasks in args.tasks for task in tasks],
+                                                                      agg_func_ls, compute_intersection_score,
+                                                                      task_settings=TASKS_PARAMETER)
 
     _samples_per_task_reporting = list(samples_per_task_reporting.keys())+["all"]
     n_tokens_counter_per_task = OrderedDict((a, 0) for a in _samples_per_task_reporting)
@@ -597,9 +599,9 @@ def epoch_run(batchIter, tokenizer,
                 for label in label_per_task:
                     # make mask for the loss padding
                     # TODO handle task specific index pad
-                    # NB : maybe factorize with predictions
-                    assert len(set(args.tasks) & set(["parsing", "pos"])) == len(args.tasks), \
-                        "ERROR need to handle tasks agnostic pad index for allowing other tasks {} ".format(args.tasks)
+                    # NB : maybe factorize with prediction
+                    #assert len(set(args.tasks) & set(["parsing", "pos"])) == len(args.tasks), \
+                    #    "ERROR need to handle tasks agnostic pad index for allowing other tasks {} ".format(args.tasks)
                     if label != "parsing_heads":
                         label_per_task[label][label_per_task[label] == PAD_ID_TAG] = PAD_ID_LOSS_STANDART
                     # we do the token counting using labels
@@ -654,7 +656,6 @@ def epoch_run(batchIter, tokenizer,
                                                        dic_prediction_score=perf_prediction,
                                                        score_dic=score_dic[label], n_tokens_dic=n_tokens_dic[label],
                                                        n_sents_dic=n_sents_dic[label])
-                    pdb.set_trace()
                     evaluated_task.append(label)
 
                 if writing_pred:

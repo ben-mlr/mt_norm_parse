@@ -1,4 +1,4 @@
-from env.importing import os, codecs, torch, np, Variable
+from env.importing import os, codecs, torch, np, Variable, pdb
 
 from io_.info_print import printing
 from .constants import MAX_CHAR_LENGTH, NUM_CHAR_PAD, PAD_CHAR, PAD_POS, PAD_TYPE, ROOT_CHAR, ROOT_POS, PAD, \
@@ -148,17 +148,16 @@ def create_dict(dict_path, train_path, dev_path, test_path, tasks,
   # read training file add to Vocab directly except for words (not word_norm)
   # ## for which we need filtering so we add them to vocab()
 
-  if isinstance(train_path, list):
-    assert tasks is not None, "ERROR : we need tasks information along with dataset to know how to commute label dictionary"
-  else:
-    train_path = [train_path]
+  assert isinstance(train_path, list)
+  assert tasks is not None, "ERROR : we need tasks information along with dataset to know how to commute label dictionary"
 
-  for train_dir, task in zip(train_path, tasks):
-    printing("VOCABULARY : computing dictionary for word, char on {} for task {} ", var=[train_dir, task], verbose=verbose, verbose_level=1)
-    if task in ["normalize", "all"]:
-      printing("VOCABULARY : computing dictionary for normalized word also {} ", var=[train_dir, task], verbose=verbose, verbose_level=1)
-    elif task in ["pos", "all"]:
-      printing("VOCABULARY : computing dictionary for pos word also ", verbose=verbose, verbose_level=1)
+  for train_dir, simultaneous_task_ls in zip(train_path, tasks):
+    printing("VOCABULARY : computing dictionary for word, char on {} for task {} ", var=[train_dir, simultaneous_task_ls], verbose=verbose, verbose_level=1)
+    if len(set(simultaneous_task_ls) & set(["normalize", "all"])) > 0:
+      printing("VOCABULARY : computing dictionary for normalized word also {} ", var=[train_dir, simultaneous_task_ls], verbose=verbose, verbose_level=1)
+    # NB if pos OR parsing is here we actually compte the Dictionary for pos AND parsing
+    elif len(set(simultaneous_task_ls) & set(["pos", "parsing", "all"])) > 0:
+      printing("VOCABULARY : computing dictionary for pos and/or parsing word also ", verbose=verbose, verbose_level=1)
     with codecs.open(train_dir, 'r', 'utf-8', errors='ignore') as file:
       li = 0
       for line in file:
@@ -179,11 +178,11 @@ def create_dict(dict_path, train_path, dev_path, test_path, tasks,
         #if pos_specific_data_set is None:
         # otherwise : pos-dictionary will be build with pos_specific_data_set
         #  pos_dictionary.add(pos)
-        if task in ["all", "pos", "parsing"]:
+        if len(set(simultaneous_task_ls) & set(["all", "pos", "parsing"]))>0:
           pos_dictionary.add(pos)
           xpos_dictionary.add(xpos)
           type_dictionary.add(typ)
-        if word_normalization and task in ["normalize", "all"]:
+        if word_normalization and len(set(simultaneous_task_ls) & set(["normalize", "all"])) > 0:
           token_norm, _ = get_normalized_token(tokens[9], 0, verbose=verbose)
           if case == "lower":
             token_norm = token_norm.lower()

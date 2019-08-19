@@ -8,7 +8,8 @@ def get_multi_task_bert_model(args, model_dir, vocab_size, voc_pos_size, debug, 
         # TODO vocab_size should be loaded from args.json
         # TEMPORARY : should eventually keep only : model = make_bert_multitask()
         if args.multitask:
-            model = make_bert_multitask(pretrained_model_dir=model_dir, tasks=args.tasks, num_labels_per_task=num_labels_per_task)
+            # we flatten the tasks to make the model (we don't need to know if tasks are simulateneaous or not )
+            model = make_bert_multitask(pretrained_model_dir=model_dir, tasks=[task for tasks in args.tasks for task in tasks], num_labels_per_task=num_labels_per_task)
         else:
             model = get_bert_token_classification(pretrained_model_dir=model_dir,
                                                   vocab_size=vocab_size,
@@ -16,7 +17,7 @@ def get_multi_task_bert_model(args, model_dir, vocab_size, voc_pos_size, debug, 
                                                   freeze_layer_prefix_ls=args.freeze_layer_prefix_ls,
                                                   dropout_classifier=args.dropout_classifier,
                                                   dropout_bert=args.dropout_bert,
-                                                  tasks=args.tasks,
+                                                  tasks=[task for tasks in args.tasks for task in tasks],
                                                   voc_pos_size=voc_pos_size,
                                                   bert_module=args.bert_module,
                                                   layer_wise_attention=args.layer_wise_attention,

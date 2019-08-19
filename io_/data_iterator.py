@@ -165,26 +165,38 @@ def sampling_proportion(task_n_sent, total_n_sents):
     return task_n_sent/total_n_sents*100
 
 
+def does_one_task_require_normalization(simultaneaous_task_ls):
+    normalization_in_reader = False
+    for task in simultaneaous_task_ls:
+        if TASKS_PARAMETER[task]["normalization"]:
+            normalization_in_reader = True
+            break
+    return normalization_in_reader
+
 def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_dictionary,
                  pos_dictionary, xpos_dictionary, type_dictionary,
                  use_gpu,
                  norm_not_norm=False,
                  word_decoder=False, must_get_norm=True,
-                 simultanuous_training=False, bucket=True,max_char_len=None,
+                 bucket=True,max_char_len=None,
                  add_start_char=1, add_end_char=1, symbolic_end=True, symbolic_root=True,
                  verbose=1):
 
     readers = {}
+    simultanuous_training = False #depreciated
     #assert not simultanuous_training, "ERROR : so far : "
     assert "all" not in tasks, "ERROR not supported yet (pb for simultanuous training..) "
     if not "all" in tasks and not simultanuous_training:
         try:
             assert len(tasks) == len(datasets), "ERROR : as simultanuous_training is {} : " \
-                                            "we need 1 dataset per task but have only {} for task {} ".format(simultanuous_training, datasets, tasks)
+                                                "we need 1 dataset per task but have only {} for task {} ".format(simultanuous_training, datasets, tasks)
+
         except Exception as e:
+            pdb.set_trace()
             datasets = [datasets[0] for _ in tasks]
             # SHOULD NOT DO THAT !!
             print("WARNING : duplicating readers", e)
+
     elif not simultanuous_training:
         assert len(tasks) == 1, "ERROR : if all should have only all nothing else"
         printing("TRAINING : MultiTask Iterator wit task 'all' ", verbose_level=1, verbose=verbose)
@@ -193,27 +205,32 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
                  verbose_level=1, verbose=verbose)
         raise(Exception("Not supported yet --> should handle the loop "))
 
-    for task, data in zip(tasks, datasets):
+    for simul_task, data in zip(tasks, datasets):
+        if "normalize" in simul_task:
+            printing("WARNING : replacing {} with {}", var=[simul_task, ["normalize", "norm_not_norm"]],
+                     verbose=verbose, verbose_level=1)
+            simul_task = ["normalize", "norm_not_norm"]
 
-        if task == "normalize":
-            tasks = ["normalize", "norm_not_norm"]
-        else:
-            tasks = [task]
         print("WARNING : data_iterator : None hardcdoed for max_char_len")
-        readers[task] = conllu_data.read_data_to_variable(data, word_dictionary, char_dictionary,
-                                                          pos_dictionary,
-                                                          xpos_dictionary, type_dictionary,
-                                                          use_gpu=use_gpu,
-                                                          word_decoder=word_decoder,
-                                                          symbolic_end=symbolic_end, symbolic_root=symbolic_root,
-                                                          dry_run=0, lattice=False,
-                                                          normalization=TASKS_PARAMETER[task]["normalization"],
-                                                          bucket=bucket,
-                                                          add_start_char=add_start_char,
-                                                          add_end_char=add_end_char, tasks=tasks,
-                                                          max_char_len=None,
-                                                          must_get_norm=must_get_norm,
-                                                          word_norm_dictionary=word_dictionary_norm, verbose=verbose)
+        normalization_in_reader = False
+
+        normalization_in_reader = does_one_task_require_normalization(simul_task)
+        # 1 reader per simultaneously trained task
+        readers[",".join(simul_task)] = conllu_data.read_data_to_variable(data, word_dictionary, char_dictionary,
+                                                                          pos_dictionary,
+                                                                          xpos_dictionary, type_dictionary,
+                                                                          use_gpu=use_gpu,
+                                                                          word_decoder=word_decoder,
+                                                                          symbolic_end=symbolic_end, symbolic_root=symbolic_root,
+                                                                          dry_run=0, lattice=False,
+                                                                          normalization=normalization_in_reader,
+                                                                          bucket=bucket,
+                                                                          add_start_char=add_start_char,
+                                                                          add_end_char=add_end_char, tasks=simul_task,
+                                                                          max_char_len=None,
+                                                                          must_get_norm=must_get_norm,
+                                                                          word_norm_dictionary=word_dictionary_norm,
+                                                                          verbose=verbose)
 
     return readers
 
@@ -235,56 +252,63 @@ def data_gen_multi_task_sampling_batch(tasks, readers, word_dictionary, char_dic
     end_task_flag = {}
     n_sents_per_task_dataset_cumul = {}
     cumul_n_sent = 0
-    for task in tasks:
-        iterator[task] = data_gen_conllu(data=readers[task], word_dictionary=word_dictionary, task_info=task,
-                                         char_dictionary=char_dictionary, pos_dictionary=pos_dictionary,
-                                         word_dictionary_norm=word_dictionary_norm,
-                                         batch_size=batch_size, extend_n_batch=extend_n_batch,
-                                         get_batch_mode=get_batch_mode, dropout_input=dropout_input,
-                                         padding=padding,
-                                         print_raw=print_raw, normalization=TASKS_PARAMETER[task]["normalization"],
-                                         verbose=verbose)
-        end_task_flag[task] = False
-        cumul_n_sent += readers[task][-1]
-        n_sents_per_task_dataset_cumul[task] = cumul_n_sent
-    n_sents_per_task_dataset_cumul["all"] = n_sents_per_task_dataset_cumul[tasks[-1]]
-    printing("TRAINING : MultiTask batch sampling iterator {} cumulated n_sent   ", var=[n_sents_per_task_dataset_cumul], verbose_level=1, verbose=verbose)
+    for simult_task in tasks:
+        needs_normalization = does_one_task_require_normalization(simult_task)
+        iterator[",".join(simult_task)] = data_gen_conllu(data=readers[",".join(simult_task)], word_dictionary=word_dictionary, task_info=",".join(simult_task),
+                                                          char_dictionary=char_dictionary, pos_dictionary=pos_dictionary,
+                                                          word_dictionary_norm=word_dictionary_norm,
+                                                          batch_size=batch_size, extend_n_batch=extend_n_batch,
+                                                          get_batch_mode=get_batch_mode, dropout_input=dropout_input,
+                                                          padding=padding,
+                                                          print_raw=print_raw, normalization=needs_normalization,
+                                                          verbose=verbose)
+        end_task_flag[",".join(simult_task)] = False
+        cumul_n_sent += readers[",".join(simult_task)][-1]
+        n_sents_per_task_dataset_cumul[",".join(simult_task)] = cumul_n_sent
+    n_sents_per_task_dataset_cumul["all"] = n_sents_per_task_dataset_cumul[",".join(tasks[-1])]
+    printing("TRAINING : MultiTask batch sampling iterator {} cumulated n_sent   ",
+             var=[n_sents_per_task_dataset_cumul], verbose_level=1, verbose=verbose)
     batch_iter = 0
     while True:
         n_sent_start = 0
         random_sample_id = np.random.randint(0, 100)
-        for ind, task in enumerate(tasks):
-            if sampling_proportion(n_sent_start, n_sents_per_task_dataset_cumul["all"]) < random_sample_id < sampling_proportion(n_sents_per_task_dataset_cumul[task], n_sents_per_task_dataset_cumul["all"]) and not end_task_flag[task]:
+        for ind, simult_task in enumerate(tasks):
+            simult_task = ",".join(simult_task)
+            if sampling_proportion(n_sent_start, n_sents_per_task_dataset_cumul["all"]) < random_sample_id < sampling_proportion(n_sents_per_task_dataset_cumul[simult_task], n_sents_per_task_dataset_cumul["all"]) and not end_task_flag[simult_task]:
                 try:
-                    batch, order = iterator[task].__next__()
-                    sanity_check_batch_label(task, batch, verbose=verbose)
+                    batch, order = iterator[simult_task].__next__()
+                    sanity_check_batch_label(simult_task, batch, verbose=verbose)
                     batch_iter += 1
                     yield batch
                 except StopIteration:
-                    end_task_flag[task] = True
-                    printing("ITERATOR END {} ", var=[task], verbose_level=1, verbose=verbose)
+                    end_task_flag[simult_task] = True
+                    printing("ITERATOR END {} ", var=[simult_task], verbose_level=1, verbose=verbose)
                     break
             else:
-                n_sent_start = n_sents_per_task_dataset_cumul[task]
+                n_sent_start = n_sents_per_task_dataset_cumul[simult_task]
         if sum(end_task_flag.values()) == len(tasks):
             break
 
 
 def sanity_check_batch_label(task, batch, verbose=1):
     # NB : we can do this if elif only because we don't do simulatnuous stuff
-    if task in ["all", "normalize"]:
-        assert batch.output_seq is not None, "ERROR checking normalization output seq"
-    elif task in ["all", "pos"]:
-        assert batch.pos is not None, "ERROR checking pos "
-    elif task in ["all", "norm_not_norm"]:
-        assert batch.output_norm_not_norm is not None, "ERROR checking norm_not_norm"
-    elif task in ["all", "edit_prediction"]:
-        assert batch.edit is not None, "ERROR edit batch was found None "
-    elif task in ["all", "parsing"]:
-        assert batch.parsing_heads is not None, "ERROR : heads were not found in batch "
-        assert batch.parsing_types is not None, "ERROR : types were not found in batch "
-    else:
-        raise(Exception("task provided {} could not be checked".format(task)))
+
+    tasks = task.split(",")
+
+    for task in tasks:
+        if task in ["all", "normalize"]:
+            assert batch.output_seq is not None, "ERROR checking normalization output seq"
+        elif task in ["all", "pos"]:
+            assert batch.pos is not None, "ERROR checking pos "
+        elif task in ["all", "norm_not_norm"]:
+            assert batch.output_norm_not_norm is not None, "ERROR checking norm_not_norm"
+        elif task in ["all", "edit_prediction"]:
+            assert batch.edit is not None, "ERROR edit batch was found None "
+        elif task in ["all", "parsing"]:
+            assert batch.parsing_heads is not None, "ERROR : heads were not found in batch "
+            assert batch.parsing_types is not None, "ERROR : types were not found in batch "
+        else:
+            raise(Exception("task provided {} could not be checked".format(task)))
     #printing("BATCH CHECKED ", verbose=verbose, verbose_level=1)
 
 

@@ -44,12 +44,16 @@ def run(args,
     :return:
     """
     assert run_mode in ["train", "test"], "ERROR run mode {} corrupted ".format(run_mode)
+    assert early_stoppin_metric is not None, "ERROR : assert early_stoppin_metric should be defined "
     printing("MODEL : RUNNING IN {} mode", var=[run_mode], verbose=verbose, verbose_level=1)
     printing("WARNING : casing was set to {} (this should be consistent at train and test)", var=[case], verbose=verbose, verbose_level=1)
     use_gpu_hardcoded_readers = False
     printing("WARNING use_gpu_hardcoded_readers hardcoded for readers set to {}", var=[use_gpu_hardcoded_readers],
              verbose=verbose, verbose_level=1)
-
+    if len(args.tasks) == 1:
+        printing("INFO : MODEL : 1 set of simultaneous tasks {}".format(args.tasks), verbose=verbose, verbose_level=1)
+        #args.tasks = args.tasks[0]
+    # to be remove
     if early_stoppin_metric is None:
         if "pos" in args.tasks:
             early_stoppin_metric = "accuracy-exact-pos"
@@ -66,7 +70,7 @@ def run(args,
         assert len(args.tasks) == len(args.train_path), "ERROR args.tasks is {} but train path are {}".format(args.tasks, args.train_path)
         assert len(args.dev_path) == len(args.train_path)
     except Exception as e:
-        print(e)
+        print("WARNING", e)
     if run_mode == "test":
         assert args.test_paths is not None and isinstance(args.test_paths, list)
     if args.test_paths is not None:
@@ -128,8 +132,8 @@ def run(args,
                               case=case,
                               add_start_char=1 if run_mode == "train" else None,
                               verbose=1)
-
-    num_labels_per_task, task_to_label_dictionary = get_vocab_size_and_dictionary_per_task(args.tasks, pos_dictionary=pos_dictionary, type_dictionary=type_dictionary)
+    # we flatten the tasks
+    num_labels_per_task, task_to_label_dictionary = get_vocab_size_and_dictionary_per_task([task for tasks in args.tasks for task in tasks], pos_dictionary=pos_dictionary, type_dictionary=type_dictionary)
     voc_pos_size = num_labels_per_task["pos"] if "pos" in args.tasks else None
     if voc_pos_size is not None:
         printing("MODEL : voc_pos_size defined as {}", var=voc_pos_size,  verbose_level=1, verbose=verbose)
@@ -144,7 +148,9 @@ def run(args,
     tokenizer = BertTokenizer.from_pretrained(voc_tokenizer)
     assert tokenizer is not None, "ERROR : tokenizer is None , voc_tokenizer failed to be loaded {}".format(voc_tokenizer)
     if run_mode == "train":
-        readers_train = readers_load(datasets=args.train_path, tasks=args.tasks, word_dictionary=word_dictionary,
+        readers_train = readers_load(datasets=args.train_path,
+                                     tasks=args.tasks,
+                                     word_dictionary=word_dictionary,
                                      word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
                                      pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
                                      type_dictionary=type_dictionary, use_gpu=use_gpu_hardcoded_readers ,
@@ -317,7 +323,7 @@ def run(args,
         for test_path in args.test_paths:
             assert len(test_path) == len(args.tasks), "ERROR test_path {} args.tasks {}".format(test_path, args.tasks)
             for test, task_to_eval in zip(test_path, args.tasks):
-                label_data = REPO_DATASET.get(test, "test")+"-"+task_to_eval
+                label_data = REPO_DATASET.get(test, "test")+"-"+",".join(task_to_eval)
                 if len(extra_label_for_prediction) > 0:
                     label_data += "-" + extra_label_for_prediction
                 readers_test = readers_load(datasets=[test],

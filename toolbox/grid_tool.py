@@ -237,8 +237,12 @@ def grid_param_label_generate(param,
       if _args != "tasks" and _args not in ["train_path", "dev_path", "test_path"]:
         dic_grid[_args] = args_avail[args+"_ls"]
       elif _args == "tasks":
-        assert len(list(set(eval(_args+"_ls")[0]) & set(["normalize", "pos", "parsing"]))) > 0, \
-          "ERROR : only normalize, pos supported so far {}".format(eval(_args+"_ls"))
+        import pdb
+
+        for task_grid in eval(_args+"_ls"):
+          for simultaneous_task in task_grid:
+            #pdb.set_trace()
+            assert set(simultaneous_task.split(",")).issubset(["normalize", "pos", "parsing"]), "ERROR : only normalize, pos supported so far {}".format(eval(_args+"_ls"))
         #dic_grid[_args] = args_avail[_args + "_ls"]
 
     def sanity_check_args(py_script, dic_grid, train_ls, dev_ls, test_ls, tasks_ls):
@@ -253,7 +257,9 @@ def grid_param_label_generate(param,
         assert len(tasks_ls) == len(dev_ls), "ERROR : GRID search : should have as many task(s for multitask) than dev_path ls"
         assert len(tasks_ls) == len(test_ls), "ERROR : should have as many task(s for multitask) than test ls "
         for train_sets, dev_sets, test_sets_ls, tasks in zip(train_ls, dev_ls, test_ls, tasks_ls):
+          # tasks is now a list of list
           try:
+            assert isinstance(tasks, list) and isinstance(tasks[0], list), "ERROR tasks should corresponds to a list of simultanesous tasks (list) to run "
             assert len(train_sets) == len(tasks), "ERROR : we should have one training set per task (no simulatnuous " \
                                                   "training allowed for now but have tasks:{} and train_path:{}".format(tasks, train_sets)
             assert len(dev_sets) == len(tasks), "ERROR : we should have one dev set per task (no simulatnuous " \
@@ -438,7 +444,8 @@ def grid_param_label_generate(param,
     metric_add_ls = []
     for tasks in tasks_ls:
       for task in tasks:
-        metric_add_ls.extend(TASKS_2_METRICS_STR[task])
+        for _task in task.split(","):
+          metric_add_ls.extend(TASKS_2_METRICS_STR[_task])
     metric_add = " ".join(list(set(metric_add_ls)))
     print("{} {}".format(REPORT_FLAG_VARIABLES_EXPAND_STR, metric_add))
     print("{} {} SEED".format(REPORT_FLAG_VARIABLES_ENRICH_STR, to_enrich))

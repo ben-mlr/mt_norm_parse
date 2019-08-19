@@ -860,8 +860,8 @@ class BertTokenHead(nn.Module):
         self.dropout = nn.Dropout(dropout_classifier) if dropout_classifier is not None else None
         #self.apply(self.init_bert_weights)
 
-    def forward(self, x, attention_mask=None):
-        assert attention_mask is None, "ERROR : not need of active logits only : handled in the loss for training " \
+    def forward(self, x, head_mask=None):
+        assert head_mask is None, "ERROR : not need of active logits only : handled in the loss for training " \
                                        "attention_mask"
         x = self.dropout(x)
         logits = self.classifier(x)
@@ -999,7 +999,7 @@ class BertMultiTask(BertPreTrainedModel):
         for task in self.tasks:
             # we don't use mask for parsing heads (cf. test performed below : the -1 already ignore the heads we don't want)
             # NB : head_masks for parsing only applies to heads not types
-            head_masks_task = head_masks.get(task, None) if task != "parsing" else None
+            head_masks_task = None#head_masks.get(task, None) if task != "parsing" else None
             # NB : head_mask means masks specific the the module heads (nothing related to parsing !! )
             logits_dict[task] = self.head[task](sequence_output, head_mask=head_masks_task)
             # test performed : (logits_dict[task][0][1,2,:20]==float('-inf'))==(labels["parsing_heads"][1,:20]==-1)

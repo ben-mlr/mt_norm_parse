@@ -102,9 +102,9 @@ def eval_parsing(predicted_path, gold_path, list_score=None):
 
 
 if __name__ == "__main__":
-    dir = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/env/../checkpoints/bert/a30a8-B-84f09-a30a8-B-model_0/predictions/"
-    predicted_path = os.path.join(dir, "LAST_ep-prediction-ewt-ud-train-demo-parsing-.conll")
-    gold_path = os.path.join(dir, "LAST_ep-gold--ewt-ud-train-demo-parsing-.conll")
+    dir = "/Users/bemuller/Documents/Work/INRIA/dev/mt_norm_parse/checkpoints/bert/9603900-B-8eeef-9603900-B-model_0/predictions/"
+    gold_path= os.path.join(dir, "LAST_ep-gold--ewt_test-parsing-.conll")
+    predicted_path  = os.path.join(dir, "LAST_ep-prediction-ewt_test-parsing-.conll")
 
     eval_parsing(predicted_path=predicted_path, gold_path=gold_path, list_score=["LAS", "UAS"])
-
+    # NB : consistent with reported scores for heads and types

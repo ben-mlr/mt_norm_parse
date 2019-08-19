@@ -5,9 +5,12 @@ from test_._test_early_stoping import sanity_check_early_stop_metric
 
 def get_early_stopping_metric(tasks, verbose, main_task=None, early_stoppin_metric=None):
     if main_task is None:
-        printing("INFO : default main task provided is the first of the list {} ", var=[tasks],
+        printing("INFO : default main task provided is the first of the first list {} ", var=[tasks],
                  verbose=verbose, verbose_level=1)
-        main_task = tasks[0]
+        if isinstance(tasks[0], list):
+            main_task = tasks[0][0]
+        else:
+            main_task = tasks[0]
 
     if early_stoppin_metric is None:
         early_stoppin_metric = TASKS_PARAMETER[main_task]["eval_metrics"][0][0]

@@ -1,5 +1,5 @@
 #from env.importing import *
-from env.importing import os
+from env.importing import os, pdb
 from toolbox.grid_tool import is_arg_available
 
 from env.project_variables import PROJECT_PATH
@@ -48,7 +48,16 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
     :return:
     """
     printing("GRID RUN : INFO : we are iterating on zip(train_ls, dev_ls, test_ls, tasks ) a grid of all other parameters ls ", verbose_level=1, verbose=1)
+
+    assert isinstance(test_paths, list) and isinstance(test_paths[0], list) and isinstance(test_paths[0][0], list),"ERROR : test_paths corrupted : should be 1 list of list per model (a list of dataset per simultaneous task to evaluate)"
+    if multitask_ls[0] == 1 and len(multitask_ls) == 1:
+        assert isinstance(tasks_ls, list) and isinstance(tasks_ls[0], list) and isinstance(tasks_ls[0][0], list), "ERROR : tasks_ls corrupted : should be 1 list of list per model (a list of tasks : task within same lst are run simultanesously)"
+    else:
+        print("WARNING : multitask is 0 : should solve some bugs ! ")
+
     test_paths = [[",".join(path) for path in test_path_grid] for test_path_grid in test_paths]
+    tasks_ls = [[",".join(task_simultaneous) for task_simultaneous in task_simultaneous_grid] for task_simultaneous_grid in tasks_ls]
+
     if write_to_dir is not None:
         script_dir = os.path.join(write_to_dir, "{}-run.sh".format(overall_label))
     warmup_desc = "warmup" if warmup else ""

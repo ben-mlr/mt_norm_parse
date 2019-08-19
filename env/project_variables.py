@@ -90,7 +90,7 @@ TASKS_2_METRICS_STR = {"all": ["accuracy-exact-normalize", "accuracy-normalize",
                        "norm_not_norm": ["IoU-pred-normed","recall-norm_not_norm","accuracy-norm_not_norm","IoU-pred-need_norm","precision-norm_not_norm"]}
 # "InV-accuracy-normalize", "OOV-accuracy-normalize"
 AVAILABLE_OPTIMIZER = ["adam", "bahdanu-adadelta", "SGD"]
-MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE = ["uniform", "normalization_100", "pos_100","all","pos", "normalize", "norm_not_norm"]
+MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE = ["uniform", "normalization_100", "pos_100","all", "pos", "normalize", "norm_not_norm"]
 DEFAULT_SCORING_FUNCTION = "exact_match"
 AVAILABLE_WORD_LEVEL_LABELLING_MODE = ["word", "pos", "norm_not_norm"]
 

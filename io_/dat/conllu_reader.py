@@ -197,6 +197,9 @@ class CoNLLReader(object):
       xpostags.append(xpos)
       pos_ids.append(self.__pos_dictionary.get_index(pos))
       xpos_ids.append(self.__xpos_dictionary.get_index(xpos))
+      if "parsing" in tasks:
+        assert head != "_", "ERROR : head not found for line {} while tasks is {}".format(lines, tasks)
+        assert type != "_", "ERROR : type not found for line {} while tasks is {}".format(lines, tasks)
       head = tokens[6]
       type = tokens[7]
       types.append(type)

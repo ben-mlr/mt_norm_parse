@@ -33,6 +33,8 @@ def parse_argument_dictionary(argument_as_string, hyperparameter="multi_task_los
                     assert match is not None, "ERROR : pattern {} not found in argument_as_string {}  ".format(pattern,  arg)
                     print("--> ", match.group(1),match.group(2) )
                     dic[match.group(1)] = float(match.group(2))
+        elif hyperparameter == "tasks":
+            argument_as_string = [task_simultaneous.split(",") for task_simultaneous in argument_as_string]
 
         return dic
 
