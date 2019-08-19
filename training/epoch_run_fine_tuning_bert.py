@@ -113,7 +113,7 @@ def epoch_run(batchIter, tokenizer,
         label_heuristic += "-"+"_".join(args.heuristic_ls)
     if norm_2_noise_eval:
         label_heuristic += "-noise_generation"
-    print("HEURISTIC", args.heuristic_ls, label_heuristic)
+    printing("INFO : HEURISTIC used {} {}", var=[args.heuristic_ls, label_heuristic], verbose=verbose, verbose_level=1)
     if args.masking_strategy is not None:
         if "start_stop" not in args.masking_strategy:
             assert "normalize" in args.tasks, "SO FAR : inconsistency between task {} and masking strategy {}".format(args.tasks, args.masking_strategy)
@@ -291,8 +291,7 @@ def epoch_run(batchIter, tokenizer,
                                                                                                     input_alignement_with_raw, use_gpu, tasks_parameters=TASKS_PARAMETER)
                 if not args.multitask:
                     print("WARNING (epoch_run_fine_tuning_bert.py) head_masks is ignore in --0 multitask")
-                    print("WARNING (epoch_run_fine_tuning_bert.py) input masks is now pading only : "
-                      "we use loss to mask unwanted bpe token, it should be fine in TokenClassiciation")
+                    print("WARNING (epoch_run_fine_tuning_bert.py) input masks is now pading only : we use loss to mask unwanted bpe token, it should be fine in TokenClassiciation")
                 dimension_check_label(label_per_task, input_tokens_tensor)
                 if "pos" in args.tasks:
                     output_tokens_tensor_aligned = label_per_task["pos"]
@@ -728,7 +727,9 @@ def epoch_run(batchIter, tokenizer,
     printing("END EPOCH {} mode, iterated {} on pos {} on normalisation ", var=[mode, n_task_pos_sanity, n_task_normalize_sanity], verbose_level=1, verbose=verbose)
     try:
         if early_stoppin_metric is not None:
-            assert early_stoppin_metric_val is not None, "ERROR : early_stoppin_metric_val should have been found but was not {} sample metric {} not found in {} (NB : MIGHT ALSO BECAUSE THE PERF DID NOT DECREASED AT ALL ) ".format(early_stoppin_metric, subsample_early_stoping_metric_val, reports)
+            assert early_stoppin_metric_val is not None, \
+                "ERROR : early_stoppin_metric_val should have been found but was not {} sample metric {}" \
+                " not found in {} (NB : MIGHT ALSO BECAUSE THE PERF DID NOT DECREASED AT ALL ) ".format(early_stoppin_metric, subsample_early_stoping_metric_val, reports)
     except Exception as e:
         print(e)
     if early_stoppin_metric_val is None:

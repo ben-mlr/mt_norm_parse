@@ -103,10 +103,8 @@ def overall_word_level_metric_measure(task_label,
             # handling with LAS specificity ; a types is correct iif its label is correct and its head is correct
             if task_label == "parsing_types":
                 gold_token_to_score = gold_token if gold_sent_ls_dict["parsing_heads"][gold_ind_sent][ind_word] == pred_sent_ls_topk_dict["parsing_heads"][0][gold_ind_sent][ind_word] else "ZERO-ING-SCORE-TYPES-AS-HEADS-IS-UNCORRECT"
-                pdb.set_trace()
-                if gold_sent_ls_dict["parsing_heads"][gold_ind_sent][ind_word] != pred_sent_ls_topk_dict["parsing_heads"][0][gold_ind_sent][ind_word] and gold_token_to_score == topk_word_pred[0]:
-                    print("EXCLUDING CORRECT LABELS BECAUSE OF HEADS")
-                    pdb.set_trace()
+                #if gold_sent_ls_dict["parsing_heads"][gold_ind_sent][ind_word] != pred_sent_ls_topk_dict["parsing_heads"][0][gold_ind_sent][ind_word] and gold_token_to_score == topk_word_pred[0]:
+                #    print("EXCLUDING CORRECT LABELS BECAUSE OF HEADS")
             else:
                 gold_token_to_score = gold_token
             score_sent.append(word_level_scoring(metric=metric, gold=gold_token_to_score,topk_pred=topk_word_pred, topk=topk))

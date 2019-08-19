@@ -933,8 +933,7 @@ class BertGraphHead(nn.Module):
             # set the scores that exceed the length of each sentence to -inf
             head_mask = head_mask.byte()
             s_heads.masked_fill_(~head_mask.unsqueeze(1), float('-inf'))
-        else:
-            print("MODEL : ignoring mask ")
+
 
         return s_heads, s_labels
 

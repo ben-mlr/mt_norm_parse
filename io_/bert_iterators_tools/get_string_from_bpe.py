@@ -104,5 +104,5 @@ def get_aligned_output(label_per_task):
         if label != "normalize" :
             output_tokens_tensor_aligned_dict[label] = label_per_task[label]
 
-
     return output_tokens_tensor_aligned_dict
+
