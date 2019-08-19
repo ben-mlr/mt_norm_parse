@@ -4,14 +4,15 @@ from env.default_hyperparameters import *
 from env.project_variables import MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE, DIC_ARGS, AVAILABLE_TASKS
 
 
-def parse_argument_dictionary(argument_as_string, hyperparameter="multi_task_loss_ponderation", verbose=1):
+def parse_argument_dictionary(argument_as_string, tasks=None, hyperparameter="multi_task_loss_ponderation", verbose=1):
     assert hyperparameter in DIC_ARGS, "ERROR only supported"
     if argument_as_string in MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE:
         return argument_as_string
     else:
         dic = OrderedDict()
         if hyperparameter == "multi_task_loss_ponderation":
-            for task in AVAILABLE_TASKS:
+            assert tasks is not None
+            for task in tasks:
                 if task != "all":
                     pattern = "{}=([^=]*),".format(task)
                     match = re.search(pattern, argument_as_string)
