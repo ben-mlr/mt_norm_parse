@@ -467,12 +467,12 @@ def epoch_run(batchIter, tokenizer,
                                                                                  remove_mask_str=True,
                                                                                  remove_extra_predicted_token=True,
                                                                                  null_str=null_str, mask_str=MASK_BERT))
-                        print("DEBUG (training/epoch_run_fine_tuning_bert.py) INPUT input_tokens_tensor {} "
+                        printing("DEBUG (training/epoch_run_fine_tuning_bert.py) INPUT input_tokens_tensor {} "
                               "\n DEBUG : prediction_n_mask {}  PRED "
                               "\n_masks predicted inputs {}  "
                               "\n DEBUG : pred inputs as str  {} "
                               "\n DEBUG : aligned pred_input {} "
-                              "\n DEBUG : labels n masks {} ".format(input_tokens_tensor, prediction_n_mask, pred_inputs, sent_ls_pred_n_masks_top, pred_n_masks_detokenized_topk, labels_n_mask_prediction))
+                              "\n DEBUG : labels n masks {} ".format(input_tokens_tensor, prediction_n_mask, pred_inputs, sent_ls_pred_n_masks_top, pred_n_masks_detokenized_topk, labels_n_mask_prediction), verbose_level="pred", verbose=verbose)
 
                     for sent_ls in sent_ls_top:
                         pred_detokenized_topk.append(alignement.realigne(sent_ls, input_alignement_with_raw,
@@ -607,7 +607,6 @@ def epoch_run(batchIter, tokenizer,
                     n_tokens_counter_per_task[label] += (label_per_task[label] != PAD_ID_LOSS_STANDART).sum().item()
                     # NB : do you account for CLS and SEQ HERE ?
                     n_tokens_counter_current_per_task[label] = (label_per_task[label] != PAD_ID_LOSS_STANDART).sum().item()
-                    #pdb.set_trace()
                 # TODO : handle in a more standart way
                 n_tokens_counter_per_task["all"] += n_tokens_counter_current_per_task[label]
                 logits_dic, loss_dic, _ = model(input_tokens_tensor, token_type_ids, labels=label_per_task, head_masks=head_masks, attention_mask=input_mask)
@@ -618,7 +617,6 @@ def epoch_run(batchIter, tokenizer,
 
                 predictions_topk_dic = get_prediction(logits_dic, topk=topk)
                 output_tokens_tensor_aligned_dic = get_aligned_output(label_per_task)
-                #pdb.set_trace()
                 # for parsing heads will leave heads untouched
                 source_preprocessed, label_dic, predict_dic = get_bpe_string(predictions_topk_dic,
                                                                              input_alignement_with_raw,
@@ -635,25 +633,29 @@ def epoch_run(batchIter, tokenizer,
                                                                                                      args.tasks,
                                                                                                      remove_mask_str_prediction)
                 for label in label_detokenized_dic:
-                    perf_prediction, skipping, _samples = overall_word_level_metric_measure(label_detokenized_dic[label],
-                                                                                            predict_detokenize_dic[label],
-                                                                                            topk, metric=metric, samples=samples,
+
+                    perf_prediction, skipping, _samples = overall_word_level_metric_measure(task_label=label,
+                                                                                            gold_sent_ls_dict=label_detokenized_dic,
+                                                                                            pred_sent_ls_topk_dict=predict_detokenize_dic,
+                                                                                            topk=topk,
+                                                                                            metric=metric,
+                                                                                            samples=samples,
                                                                                             agg_func_ls=agg_func_ls,
                                                                                             reference_word_dic=reference_word_dic,
                                                                                             compute_intersection_score=compute_intersection_score,
                                                                                             src_detokenized=src_detokenized)
-                    print("PREDICTION epoch {} task {} score all {}/{} total  gold {} gold token {} pred {} pred token {} ".format(epoch, label,
-                                                                                                      perf_prediction["sum"]["all"]["score"],
-                                                                                                      perf_prediction["sum"]["all"]["n_tokens"],
-                                                                                                      label_detokenized_dic[label],
-                                                                                                      output_tokens_tensor_aligned_dic[label],
-                                                                                                      predict_detokenize_dic[label],
-                                                                                                      predictions_topk_dic[label][:, :, 0]))
+
+                    printing("PREDICTION epoch {} task {} score all {}/{} total "
+                             "gold {} gold token {} pred {} pred token {} ",
+                             var=[epoch, label, perf_prediction["sum"]["all"]["score"], perf_prediction["sum"]["all"]["n_tokens"], label_detokenized_dic[label], output_tokens_tensor_aligned_dic[label], predict_detokenize_dic[label], predictions_topk_dic[label][:, :, 0]],
+                             verbose=verbose, verbose_level="pred")
 
                     score_dic[label], n_tokens_dic[label], n_sents_dic[label] = \
-                        accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=_samples, dic_prediction_score=perf_prediction,
-                                                       score_dic=score_dic[label], n_tokens_dic=n_tokens_dic[label], n_sents_dic=n_sents_dic[label])
-                    #pdb.set_trace()
+                        accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=_samples,
+                                                       dic_prediction_score=perf_prediction,
+                                                       score_dic=score_dic[label], n_tokens_dic=n_tokens_dic[label],
+                                                       n_sents_dic=n_sents_dic[label])
+                    pdb.set_trace()
                     evaluated_task.append(label)
 
                 if writing_pred:

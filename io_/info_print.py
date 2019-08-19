@@ -2,7 +2,7 @@ from env.importing import Iterable, sys
 VERBOSE_1_LOG_EVERY_x_BATCH = 25
 DEBUG = False
 
-LOGGING_SPECIFIC_INFO_AVAILABLE = ["cuda", "raw_data", "alignement", "mask"]
+LOGGING_SPECIFIC_INFO_AVAILABLE = ["cuda", "raw_data", "alignement", "mask", "pred"]
 
 
 def printing(message, verbose, verbose_level, var=None):

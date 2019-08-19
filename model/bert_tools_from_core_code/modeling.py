@@ -1027,8 +1027,8 @@ class BertMultiTask(BertPreTrainedModel):
             # trying alternative way for loss
             loss = CrossEntropyLoss(ignore_index=-1, reduction="mean")(logits_dict[label_task].view(-1, logits_dict[label_task].size(2)), labels[label_task].view(-1))
             # other possibilities is to do log softmax then L1 loss (lead to other results)
-            print("DEBUG PRED HEADS pred {} gold {}".format(torch.argsort(logits_dict[label_task], dim=-1, descending=True)[:,:, :1], labels[label_task]))
-            print("DEBUG LOSS HEADS {}".format(loss))
+            #print("DEBUG PRED HEADS pred {} gold {}".format(torch.argsort(logits_dict[label_task], dim=-1, descending=True)[:,:, :1], labels[label_task]))
+            #print("DEBUG LOSS HEADS {}".format(loss))
             if loss < 1e-3:
                 pdb.set_trace()
         elif label_task == "parsing_types":
@@ -1041,14 +1041,13 @@ class BertMultiTask(BertPreTrainedModel):
 
             try:
                 loss = loss_func(pred, gold)
-                print("DEBUG PRED TYPES pred {} gold {}".format(torch.argsort(pred, dim=-1, descending=True)[:, :1], gold))
-                print("DEBUG LOSS TYPES {}".format(loss))
+                #print("DEBUG PRED TYPES pred {} gold {}".format(torch.argsort(pred, dim=-1, descending=True)[:, :1], gold))
+                #print("DEBUG LOSS TYPES {}".format(loss))
                 #pdb.set_trace()
 
             except Exception as e:
                 print("ERROR pred : {} gold {} : parsing heads origin {)  ".format(pred, gold, labels["parsing_heads"]))
                 raise(e)
-            print("LOSS PARSING TYPES : to validate ")
         return loss
 
     @staticmethod

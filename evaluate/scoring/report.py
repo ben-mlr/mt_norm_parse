@@ -4,8 +4,10 @@ from env.importing import pdb
 AVAILABLE_EVALUATION_SAMPLE_FILTER = ["all"]
 
 
-def overall_word_level_metric_measure(gold_sent_ls,
-                                      pred_sent_ls_topk, topk,
+def overall_word_level_metric_measure(task_label,
+                                      gold_sent_ls_dict,
+                                      pred_sent_ls_topk_dict,
+                                      topk,
                                       metric="exact_match",
                                       samples=None,
                                       src_detokenized=None,
@@ -23,12 +25,18 @@ def overall_word_level_metric_measure(gold_sent_ls,
         samples = ["all"]
     if agg_func_ls is None:
         agg_func_ls = ["sum"]
-
+    if task_label == "parsing_types":
+        assert "parsing_heads" in gold_sent_ls_dict and "parsing_heads" in pred_sent_ls_topk_dict, \
+            "ERROR : to compute the score of parsing_types : parsing_heads is required "
     assert isinstance(samples, list)
     assert len(set(samples) & set(AVAILABLE_EVALUATION_SAMPLE_FILTER)) > 0, \
         "ERROR : one of the samples in {} not supported {}".format(samples, AVAILABLE_EVALUATION_SAMPLE_FILTER)
 
     assert isinstance(agg_func_ls, list)
+
+    pred_sent_ls_topk = pred_sent_ls_topk_dict[task_label]
+    gold_sent_ls = gold_sent_ls_dict[task_label]
+
     assert len(pred_sent_ls_topk) == topk, "ERROR topk not consistent with prediction list ".format(len(pred_sent_ls_topk), topk)
     overall_score_ls_sent = []
     intersected_samples = []
@@ -83,7 +91,8 @@ def overall_word_level_metric_measure(gold_sent_ls,
         if src_detokenized is not None and samples[0] != "all" and len(samples) > 1:
             # otherise we don't need src_detokenized
             assert len(gold_sent) == len(src_detokenized[gold_ind_sent]),\
-                "ERROR src_detokenized {} and gold_sent_ls for sent {} have different length ".format(gold_sent, src_detokenized[gold_ind_sent])
+                "ERROR src_detokenized {} and gold_sent_ls for sent {} have different length ".format(gold_sent,
+                                                                                                      src_detokenized[gold_ind_sent])
 
         score_sent = []
         filter_sent = {_sample: [] for _sample in samples}
@@ -91,7 +100,16 @@ def overall_word_level_metric_measure(gold_sent_ls,
         for ind_word in range(len(gold_sent)):
             gold_token = gold_sent[ind_word]
             topk_word_pred = [pred_sent_ls_topk[top][gold_ind_sent][ind_word] for top in range(topk)]
-            score_sent.append(word_level_scoring(metric=metric, gold=gold_token, topk_pred=topk_word_pred, topk=topk))
+            # handling with LAS specificity ; a types is correct iif its label is correct and its head is correct
+            if task_label == "parsing_types":
+                gold_token_to_score = gold_token if gold_sent_ls_dict["parsing_heads"][gold_ind_sent][ind_word] == pred_sent_ls_topk_dict["parsing_heads"][0][gold_ind_sent][ind_word] else "ZERO-ING-SCORE-TYPES-AS-HEADS-IS-UNCORRECT"
+                pdb.set_trace()
+                if gold_sent_ls_dict["parsing_heads"][gold_ind_sent][ind_word] != pred_sent_ls_topk_dict["parsing_heads"][0][gold_ind_sent][ind_word] and gold_token_to_score == topk_word_pred[0]:
+                    print("EXCLUDING CORRECT LABELS BECAUSE OF HEADS")
+                    pdb.set_trace()
+            else:
+                gold_token_to_score = gold_token
+            score_sent.append(word_level_scoring(metric=metric, gold=gold_token_to_score,topk_pred=topk_word_pred, topk=topk))
             for ind_sample, _sample in enumerate(samples):
                 try:
                     src = src_detokenized[gold_ind_sent][ind_word] if _sample != "all" and not _sample.startswith("n_masks") else None
@@ -99,8 +117,7 @@ def overall_word_level_metric_measure(gold_sent_ls,
                     print("ERROR (scoring/report) handling src {} index ({},{}) ".format(src_detokenized, gold_ind_sent, ind_word), e)
                     pdb.set_trace()
                 filter_sent[_sample].append(word_level_filter(sample=_sample, gold=gold_token, topk_pred=topk_word_pred,
-                                                              topk=topk, src=src,
-                                                              word_reference_dic_ls=reference_word_dic))
+                                                              topk=topk, src=src, word_reference_dic_ls=reference_word_dic))
 
             if compute_intersection_score:
                 for ind_sample, _sample in enumerate(sample_to_intersesct):

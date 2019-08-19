@@ -1,6 +1,7 @@
 from env.importing import pdb
 from io_.dat.constants import SPECIAL_TOKEN_LS
 
+
 def word_level_scoring(metric, gold, topk_pred, topk):
     """
     compare a gold string and a list of candidate
