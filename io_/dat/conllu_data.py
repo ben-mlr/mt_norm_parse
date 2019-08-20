@@ -110,7 +110,7 @@ def create_dict(dict_path, train_path, dev_path, test_path, tasks,
   TODO : to be tested : test based on a given conll --> vocab word is correct
       in regard to min_occurence and that the created matrix is correct also   (index --> vetor correct
   """
-  printing("WARNING : CASING IS {} for dictionary ", var=case, verbose=verbose, verbose_level=1)
+  printing("WARNING : CASING IS {} for dictionary ", var=[case], verbose=verbose, verbose_level=1)
   default_value = True
   if word_embed_dict is None:
     word_embed_dict = {}

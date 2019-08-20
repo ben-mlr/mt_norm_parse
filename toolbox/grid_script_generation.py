@@ -50,7 +50,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
     printing("GRID RUN : INFO : we are iterating on zip(train_ls, dev_ls, test_ls, tasks ) a grid of all other parameters ls ", verbose_level=1, verbose=1)
 
     assert isinstance(test_paths, list) and isinstance(test_paths[0], list) and isinstance(test_paths[0][0], list),"ERROR : test_paths corrupted : should be 1 list of list per model (a list of dataset per simultaneous task to evaluate)"
-    if multitask_ls[0] == 1 and len(multitask_ls) == 1:
+    if multitask_ls is not None and multitask_ls[0] == 1 and len(multitask_ls) == 1:
         assert isinstance(tasks_ls, list) and isinstance(tasks_ls[0], list) and isinstance(tasks_ls[0][0], list), "ERROR : tasks_ls corrupted : should be 1 list of list per model (a list of tasks : task within same lst are run simultanesously)"
     else:
         print("WARNING : multitask is 0 : should solve some bugs ! ")

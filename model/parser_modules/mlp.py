@@ -2,7 +2,9 @@
 
 from model.parser_modules.dropout import SharedDropout
 
-import torch.nn as nn
+
+from env.importing import nn
+#import torch.nn as nn
 
 
 class MLP(nn.Module):

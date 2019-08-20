@@ -66,7 +66,7 @@ def epoch_run(batchIter, tokenizer,
     if args.multitask:
         assert task_to_label_dictionary is not None, "ERROR : task_to_label_dictionary should be defined "
     if not args.multitask:
-        assert ("pos" in args.tasks or "normalize" in args.tasks) and "parsing" not in args.tasks, \
+        assert ("pos" in args.tasks[0] or "normalize" in args.tasks[0]), \
             "ERROR : in --multitask 0 mode only normalize and pos supported bu {} tasks passed ".format(args.tasks)
     if samples_per_task_reporting is None:
         samples_per_task_reporting = SAMPLES_PER_TASK_TO_REPORT
@@ -116,7 +116,7 @@ def epoch_run(batchIter, tokenizer,
     printing("INFO : HEURISTIC used {} {}", var=[args.heuristic_ls, label_heuristic], verbose=verbose, verbose_level=1)
     if args.masking_strategy is not None:
         if "start_stop" not in args.masking_strategy:
-            assert "normalize" in args.tasks, "SO FAR : inconsistency between task {} and masking strategy {}".format(args.tasks, args.masking_strategy)
+            assert "normalize" in args.tasks[0], "SO FAR : inconsistency between task {} and masking strategy {}".format(args.tasks, args.masking_strategy)
         if isinstance(args.masking_strategy, list):
             assert len(args.masking_strategy) <= 2, \
                 "first element should be strategy, second should be portion or first element only ".format(args.masking_strategy)
@@ -205,7 +205,7 @@ def epoch_run(batchIter, tokenizer,
             task_pos_is = len(batch.raw_output[0]) == 0
             # only one task supported at a time per batch so far based on the input batch
             task_normalize_is = not task_pos_is
-            task_pos_is = "pos" in args.tasks and len(args.tasks) == 1
+            task_pos_is = False#"pos" in args.tasks and len(args.tasks) == 1
             if task_pos_is:
                print("WARNING : task_pos_is  {} ".format(task_pos_is))
             # case the batches if case is 'lower'
@@ -285,7 +285,7 @@ def epoch_run(batchIter, tokenizer,
                 printing("DATA dim : {} input {} output ", var=[input_tokens_tensor.size(), output_tokens_tensor.size()],
                          verbose_level=2, verbose=verbose)
 
-            if args.multitask or "pos" in args.tasks:
+            if args.multitask:
                 out_bpe_tokenized = None
                 # TODO : should have a task specific input_mask and head_masks : only considering word level tasks and bpe level tasks for now
                 input_mask = get_mask_input(input_tokens_tensor, use_gpu)
@@ -295,8 +295,8 @@ def epoch_run(batchIter, tokenizer,
                     print("WARNING (epoch_run_fine_tuning_bert.py) head_masks is ignore in --0 multitask")
                     print("WARNING (epoch_run_fine_tuning_bert.py) input masks is now pading only : we use loss to mask unwanted bpe token, it should be fine in TokenClassiciation")
                 dimension_check_label(label_per_task, input_tokens_tensor)
-                if "pos" in args.tasks:
-                    output_tokens_tensor_aligned = label_per_task["pos"]
+                #if "pos" in args.tasks:
+                #    output_tokens_tensor_aligned = label_per_task["pos"]
 
                 # NB : we use the aligned input with the
             # logging
@@ -374,18 +374,18 @@ def epoch_run(batchIter, tokenizer,
             elif args.multitask:
                 assert args.masking_strategy is None, "ERROR : {} not supported in multitask mode ".format(args.masking_strategy)
             if not args.multitask:
-                assert len(args.tasks) == 1 and ("pos" in args.tasks or "normalize" in args.tasks), \
-                    "ERROR : as args.multitask False mode only pos or normalize " \
+                assert len(args.tasks) == 1 and ("normalize" in args.tasks[0]), \
+                    "ERROR : as args.multitask False mode only pos or normalize (pos now supported in args.multitask ONLY) " \
                     "supported (single) task while we have {} ".format(args.multitask)
                 # is meant to be completely removed
                 feeding_the_model_with_label[feeding_the_model_with_label == 0] = -1
                 assert len(args.tasks) == 1, "ERROR : when args.multitask not True : only allowing one task at the time "
                 loss_dic, layer_wise_weights = model(input_ids=input_tokens_tensor,
                                                      token_type_ids=token_type_ids, attention_mask=input_mask,
-                                                     labels=feeding_the_model_with_label if "normalize" in args.tasks else None,
+                                                     labels=feeding_the_model_with_label if "normalize" in args.tasks[0] else None,
                                                      labels_n_masks=labels_n_mask_prediction,
                                                      #input_token_mask=input_token_mask,
-                                                     labels_task_2=output_tokens_tensor_aligned if "pos" in args.tasks else None,
+                                                     labels_task_2=output_tokens_tensor_aligned if "pos" in args.tasks[0] else None,
                                                      aggregating_bert_layer_mode=args.aggregating_bert_layer_mode,
                                                      mask_token_index=mask_token_index,
                                                      multi_task_loss_ponderation=args.multi_task_loss_ponderation)
@@ -412,7 +412,7 @@ def epoch_run(batchIter, tokenizer,
                                                        mask_token_index=mask_token_index,
                                                        multi_task_loss_ponderation=args.multi_task_loss_ponderation)
 
-                    predicted_task = "pos" if task_pos_is else "normalize"
+                    predicted_task = "normalize"
                     logits_task_label = MULTITASK_BERT_LABELS_MLM_HEAD[predicted_task]
 
                     # add prediction n_masks -->
@@ -447,11 +447,9 @@ def epoch_run(batchIter, tokenizer,
                                                           # normalize means we deal wiht bpe input not pos
                                                           mask_str=MASK_BERT, remove_mask_str=remove_mask_str_prediction)
                     gold_detokenized = alignement.realigne(gold, input_alignement_with_raw, remove_null_str=True,
-                                                           null_str=null_str, tasks=args.tasks, mask_str=MASK_BERT)
+                                                           null_str=null_str, tasks=args.tasks[0], mask_str=MASK_BERT)
 
-                    if task_pos_is:
-                        # we remove padding here based on src that is correctly padded
-                        gold_detokenized = [gold_sent[:len(src_sent)] for gold_sent, src_sent in zip(gold_detokenized, src_detokenized)]
+
                     pred_detokenized_topk = []
                     pred_n_masks_detokenized_topk = []
 
@@ -464,7 +462,7 @@ def epoch_run(batchIter, tokenizer,
                         pred_n_masks_detokenized_topk.append(alignement.realigne(sent_ls_pred_n_masks_top,
                                                                                  extended_input_alignement_with_raw,
                                                                                  remove_null_str=True,
-                                                                                 tasks=args.tasks,
+                                                                                 tasks=args.tasks[0],
                                                                                  remove_mask_str=True,
                                                                                  remove_extra_predicted_token=True,
                                                                                  null_str=null_str, mask_str=MASK_BERT))
@@ -478,7 +476,7 @@ def epoch_run(batchIter, tokenizer,
                     for sent_ls in sent_ls_top:
                         pred_detokenized_topk.append(alignement.realigne(sent_ls, input_alignement_with_raw,
                                                                          remove_null_str=True,
-                                                                         tasks=args.tasks, remove_extra_predicted_token=True,
+                                                                         tasks=args.tasks[0], remove_extra_predicted_token=True,
                                                                          null_str=null_str, mask_str=MASK_BERT)
                                                      )
 
@@ -563,7 +561,10 @@ def epoch_run(batchIter, tokenizer,
                             evaluated_task.append("n_masks_pred")
 
                         evaluated_task.append(predicted_task)
-                        perf_prediction, skipping, _samples = overall_word_level_metric_measure(gold_detokenized, pred_detokenized_topk, topk,
+                        perf_prediction, skipping, _samples = overall_word_level_metric_measure(task_label=predicted_task,
+                                                                                                gold_sent_ls_dict={predicted_task:gold_detokenized},
+                                                                                                pred_sent_ls_topk_dict={predicted_task:pred_detokenized_topk},
+                                                                                                topk=topk,
                                                                                                 metric=metric, samples=samples,
                                                                                                 agg_func_ls=agg_func_ls,
                                                                                                 reference_word_dic=reference_word_dic,
@@ -578,6 +579,7 @@ def epoch_run(batchIter, tokenizer,
                     except Exception as e:
                         skip_score += 1
                         print("SKIPPED {} evaluation current error : {} ".format(skip_score, e))
+                        raise(e)
                     skipping_evaluated_batch += skipping
 
                     if print_pred:
@@ -595,7 +597,7 @@ def epoch_run(batchIter, tokenizer,
                 # HANDLE THE CASE FOR WHICH ONLY PREDICTION
                 # TODO:
                 # - factorize   masking
-                assert "normalize" not in args.tasks, "ERROR : input and output not supported yet for 'normalize' task in this setting "
+                assert "normalize" not in args.tasks[0], "ERROR : input and output not supported yet for 'normalize' task in this setting "
                 for label in label_per_task:
                     # make mask for the loss padding
                     # TODO handle task specific index pad

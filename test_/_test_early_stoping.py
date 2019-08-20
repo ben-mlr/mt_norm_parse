@@ -1,6 +1,8 @@
 
 def sanity_check_early_stop_metric(early_stoppin_metric, task_parameter_setting, tasks):
     for task in tasks:
+        if not isinstance(task, list):
+            task = [task]
         for _task in task:
             for metrics in task_parameter_setting[_task]["eval_metrics"]:
                 test = (early_stoppin_metric in metrics)

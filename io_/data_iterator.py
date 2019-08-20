@@ -208,9 +208,10 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
 
     for simul_task, data in zip(tasks, datasets):
         if "normalize" in simul_task:
-            printing("WARNING : replacing {} with {}", var=[simul_task, ["normalize", "norm_not_norm"]],
-                     verbose=verbose, verbose_level=1)
-            simul_task = ["normalize", "norm_not_norm"]
+            pass
+            #printing("WARNING : replacing {} with {}", var=[simul_task, ["normalize", "norm_not_norm"]],
+            #         verbose=verbose, verbose_level=1)
+            #simul_task = ["normalize", "norm_not_norm"]
 
         print("WARNING : data_iterator : None hardcdoed for max_char_len")
         normalization_in_reader = False

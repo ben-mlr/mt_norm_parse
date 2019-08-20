@@ -14,8 +14,8 @@ if __name__ == "__main__":
 
     args.lr = parse_argument_dictionary(params["lr"], hyperparameter="lr")
 
-    if args.multitask:
-        args.tasks = [task_simul.split(",") for task_simul in args.tasks]
+    #if args.multitask:
+    args.tasks = [task_simul.split(",") for task_simul in args.tasks]
         #args.multi_task_loss_ponderation = OrderedDict([("pos", 1), ("loss_task_2", 1),
         #                                                ("loss_task_n_mask_prediction", 1),
         #                                                ("parsing_types", 1), ("parsing_heads", 1)])
