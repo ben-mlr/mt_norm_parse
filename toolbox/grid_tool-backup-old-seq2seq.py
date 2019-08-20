@@ -205,10 +205,28 @@ def grid_param_label_generate(param,
     if py_script=="train_evaluate_run":
       printing("GRID : {} argument defaulted to {} ", var=[str(def_)[:-6], def_], verbose=0, verbose_level=0)
   # dic_grid will be used for logging (used for reports)
+  if py_script == "train_evaluate_run":
+    dic_grid = {"batch_size": batch_size_ls,# "auxilliary_task_norm_not_norm": auxilliary_task_norm_not_norm_ls,
+                "shared_context": shared_context_ls,
+                "lr": lr_ls, "word_embed_init": word_embed_init_ls, "dir_word_encoder": dir_word_encoder_ls,
+                "char_src_attention": char_src_attention_ls,
+                "dir_sent_encoder": dir_sent_encoder_ls, "gradient_clipping": clipping_ls,
+                "unrolling_word": unrolling_word_ls,
+                "word_decoding": word_decoding_ls, #"auxilliary_task_pos": auxilliary_task_pos_ls,
+                "stable_decoding_state": stable_decoding_state_ls,
+                "word_embedding_projected_dim": word_embedding_projected_dim_ls,
+                "n_layers_sent_cell": n_layers_sent_cell_ls,
+                "word_recurrent_cell_encoder": word_recurrent_cell_encoder_ls,
+                "teacher_force": teacher_force_ls, "proportion_pred_train": proportion_pred_train_ls,
+                "dropout_word_encoder_cell": dropout_word_encoder_cell_ls,
+                "attention_tagging": attention_tagging_ls, "mode_word_encoding": mode_word_encoding_ls,
+                "char_level_embedding_projection_dim": char_level_embedding_projection_dim_ls,
+                "n_layers_word_encoder": n_layers_word_encoder_ls,
+                "multi_task_loss_ponderation": multi_task_loss_ponderation_ls,
+                "tasks": tasks_ls, "dropout_input": dropout_input_ls, "checkpointing_metric": checkpointing_metric_ls,
+                "word_embed": word_embed_ls}
 
-  assert py_script == "train_evaluate_bert_normalizer", "ERROR py_script {} not supported : only train_evaluate_bert_normalizer supported (go to grid_tool-backup-old-seq2seq.py )"
-
-  if py_script == "train_evaluate_bert_normalizer":
+  elif py_script == "train_evaluate_bert_normalizer":
     dic_grid = OrderedDict()
     for args in ARGS_AVAILABLE_PER_MODEL[py_script]:
       _args = args
@@ -275,6 +293,116 @@ def grid_param_label_generate(param,
         params.append(param0.copy())
         labels.append("{}-model_{}".format(grid_label, ind_model))
         ind_model += 1
+  elif py_script == "train_evaluate_run":
+    for batch in batch_size_ls:
+      #for aux in auxilliary_task_norm_not_norm_ls:
+      for lr in lr_ls:
+        for shared_context in shared_context_ls:
+          for scale in scale_ls:
+            if shared_context == "sent":
+              scale_sent_context = 1
+              scale_word = 1
+              scaled_output_dim = 1
+            else:
+              scale_sent_context, scale_word= scale, scale
+              scaled_output_dim = max(int(scale/2), 1) if max(int(scale/2), 1) < 10 else 10
+              scale = 1
+            #for dir_word_encoder in dir_word_encoder_ls:
+              printing("GRID : generating arg specific to {}", var=["train_evaluate_run"], verbose=1, verbose_level=1)
+              for char_src_attention in char_src_attention_ls:
+                #for dir_sent_encoder in dir_sent_encoder_ls:
+                #for clipping in clipping_ls:
+                #for unrolling_word in unrolling_word_ls:
+                for word_decoding in word_decoding_ls:
+                # for auxilliary_task_pos in auxilliary_task_pos_ls:
+                  #for stable_decoding_state in stable_decoding_state_ls:
+                  for word_embed in word_embed_ls:
+                    if not word_embed:
+                      _word_embedding_projected_dim_ls = [None]
+                      _word_embed_init_ls = [None]
+                      _mode_word_encoding_ls = ["cat"]
+                      printing("GRID WARNING as word_embed False : argument word_embed projection, "
+                               "initialization argument mode word cat cause no word embed", verbose=1, verbose_level=1)
+                    else:
+                      _word_embed_init_ls = word_embed_init_ls
+                      _word_embedding_projected_dim_ls = word_embedding_projected_dim_ls
+                      _mode_word_encoding_ls = mode_word_encoding_ls
+                    for word_embed_init in _word_embed_init_ls:
+                      for word_embedding_projected_dim in _word_embedding_projected_dim_ls:
+                        for n_layers_sent_cell in n_layers_sent_cell_ls:
+                          for proportion_pred_train in proportion_pred_train_ls:
+                            #for tasks in tasks_ls:
+                            for teacher_force in teacher_force_ls:
+                              for word_recurrent_cell_encoder in word_recurrent_cell_encoder_ls:
+                                for dropout_word_encoder_cell in dropout_word_encoder_cell_ls:
+                                  for attention_tagging in attention_tagging_ls:
+                                    #for n_layers_word_encoder in n_layers_word_encoder_ls:
+                                    #for char_level_embedding_projection_dim in char_level_embedding_projection_dim_ls:
+                                    for mode_word_encoding in _mode_word_encoding_ls:
+                                      for multi_task_loss_ponderation in multi_task_loss_ponderation_ls:
+                                        for dropout_input in dropout_input_ls:
+                                          for tasks, train, dev, test, checkpointing_metric in zip(tasks_ls, train_ls, dev_ls, test_ls, checkpointing_metric_ls):
+                                            param0 = param.copy()
+                                            ind_model += 1
+
+                                            param0["train_path"] = train
+                                            param0["dev_path"] = dev
+                                            param0["test_path"] = test
+                                            param0["checkpointing_metric"] = checkpointing_metric
+                                            param0["scoring_func"] = scoring_func
+                                            param0["batch_size"] = batch
+                                            param0["mode_word_encoding"] = mode_word_encoding
+                                            param0["char_level_embedding_projection_dim"] = char_level_embedding_projection_dim_ls[0]
+                                            #param0["auxilliary_task_norm_not_norm"] = aux
+                                            param0["shared_context"] = shared_context
+                                            param0["word_recurrent_cell_encoder"] = word_recurrent_cell_encoder
+                                            param0["lr"] = lr
+                                            param0["word_embed_init"] = word_embed_init
+                                            param0["dropout_word_encoder_cell"] = dropout_word_encoder_cell
+                                            param0["hidden_size_encoder"] = int(param0["hidden_size_encoder"] * scale *scale_word)
+                                            param0["hidden_size_sent_encoder"] = int(param0["hidden_size_sent_encoder"] * scale * scale_sent_context)
+                                            param0["hidden_size_decoder"] = int(param0["hidden_size_decoder"] * scale)
+                                            param0["output_dim"] *= int(scale * scaled_output_dim) + 1
+                                            param0["dir_word_encoder"] = dir_word_encoder_ls[0]
+                                            param0["char_src_attention"] = char_src_attention
+                                            param0["unrolling_word"] = unrolling_word_ls[0]
+                                            param0["dir_sent_encoder"] = dir_sent_encoder_ls[0]
+                                            param0["n_layers_sent_cell"] = n_layers_sent_cell
+                                            param0["gradient_clipping"] = clipping_ls[0]
+                                            param0["teacher_force"] = teacher_force
+                                            param0["word_decoding"] = word_decoding
+                                            param0["char_decoding"] = not word_decoding
+                                            #param0["auxilliary_task_pos"] = auxilliary_task_pos
+                                            param0["dense_dim_auxilliary_pos"] = 0 #if not "pos" in tasks else 0
+                                            param0["dense_dim_auxilliary_pos_2"] = 0 #if not "pos" in tasks else 100
+
+                                            param0["stable_decoding_state"] = stable_decoding_state_ls[0]
+                                            param0["init_context_decoder"] = not param0["stable_decoding_state"]
+                                            param0["activation_char_decoder"] = "nn.LeakyReLU"
+                                            param0["activation_word_decoder"] = "nn.LeakyReLU"
+                                            param0["tasks"] = tasks
+                                            # default
+                                            #param0["dropout_bridge"] = 0.1
+                                            param0["word_embed"] = word_embed
+                                            if word_embed_init is not None and word_embed:
+                                              param0["word_embedding_dim"] = REPO_W2V[word_embed_init]["dim"]
+                                            elif word_embed:
+                                              param0["word_embedding_dim"] = 300
+                                            else:
+                                              param0["word_embedding_dim"] = 0
+                                            param0["dense_dim_word_pred"] = 300 if word_decoding else None
+                                            param0["dense_dim_word_pred_2"] = 300 if word_decoding else None
+                                            param0["dense_dim_word_pred_3"] = 100 if word_decoding else None
+                                            param0["word_embedding_projected_dim"] = word_embedding_projected_dim if param0["word_embed"] else None
+                                            param0["proportion_pred_train"] = proportion_pred_train
+                                            param0["gpu"] = get_gpu_id(gpu_mode, gpus_ls, 1)
+                                            param0["attention_tagging"] = attention_tagging
+                                            param0["n_layers_word_encoder"] = n_layers_word_encoder_ls[0]
+                                            param0["multi_task_loss_ponderation"] = multi_task_loss_ponderation
+                                            param0["dropout_input"] = dropout_input
+
+                                            params.append(param0)
+                                            labels.append("{}-model_{}".format(grid_label, ind_model))
 
   KEEP_ONLY_REMOVE = ["multi_task_loss_ponderation"]
 
