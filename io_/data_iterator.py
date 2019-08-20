@@ -173,6 +173,7 @@ def does_one_task_require_normalization(simultaneaous_task_ls):
             break
     return normalization_in_reader
 
+
 def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_dictionary,
                  pos_dictionary, xpos_dictionary, type_dictionary,
                  use_gpu,

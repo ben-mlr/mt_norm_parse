@@ -97,6 +97,26 @@ def write_args(dir, model_id, checkpoint_dir=None,
     printing("MODEL args.json {} written {} ".format(info, args_dir), verbose_level=1, verbose=verbose)
     return args_dir
 
+from env.project_variables import REPO_DATASET
+
+from env.data_dir import get_code_data
+
+
+def get_dataset_label(dataset_dir_ls, default):
+    if dataset_dir_ls is None:
+        return None
+
+    if REPO_DATASET.get(dataset_dir_ls[0], None) is None:
+        try:
+            label = "|".join([get_code_data(path) for _, path in enumerate(dataset_dir_ls)])
+        except:
+            printing("REPORT : dataset name of directory {} not found as UD so using default ", var=[dataset_dir_ls], verbose=1, verbose_level=1)
+            label = "|".join([REPO_DATASET.get(path, "{}_{}".format(default, i)) for i, path in enumerate(dataset_dir_ls)])
+    else:
+        label = "|".join([REPO_DATASET.get(path, "{}_{}".format(default, i)) for i, path in enumerate(dataset_dir_ls)])
+
+    return label
+
 
 def get_hyperparameters_dict(args, case, random_iterator_train, seed, verbose):
 

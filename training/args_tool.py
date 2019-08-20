@@ -13,11 +13,18 @@ def parse_argument_dictionary(argument_as_string, tasks=None, hyperparameter="mu
         if hyperparameter == "multi_task_loss_ponderation":
             assert tasks is not None
             for task in tasks:
-                if task != "all":
+                if task != "all" and task != "parsing":
                     pattern = "{}=([^=]*),".format(task)
                     match = re.search(pattern, argument_as_string)
                     assert match is not None, "ERROR : pattern {} not found for task {} in argument_as_string {}  ".format(pattern, task, argument_as_string)
                     dic[task] = eval(match.group(1))
+                elif task != "all":
+                    for sub in ["parsing_heads", "parsing_types"]:
+                        pattern = "{}=([^=]*),".format(sub)
+                        match = re.search(pattern, argument_as_string)
+                        assert match is not None, "ERROR : pattern {} not found for task {} in argument_as_string {}  ".format(
+                            pattern, task, argument_as_string)
+                        dic[sub] = eval(match.group(1))
             printing("SANITY CHECK : multi_task_loss_ponderation {} ", var=[argument_as_string],
                      verbose_level=1, verbose=verbose)
         elif hyperparameter == "lr":

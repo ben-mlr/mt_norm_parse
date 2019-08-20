@@ -11,7 +11,7 @@ from io_.data_iterator import readers_load, conllu_data, data_gen_multi_task_sam
 #import model.bert_tools_from_core_code.tokenization as bert_tok
 from model.bert_tools_from_core_code.tokenization import BertTokenizer
 from training.epoch_run_fine_tuning_bert import epoch_run
-from toolbox.report_tools import write_args, get_hyperparameters_dict
+from toolbox.report_tools import write_args, get_hyperparameters_dict, get_dataset_label
 from toolbox.pred_tools.heuristics import get_letter_indexes
 from model.bert_tools_from_core_code.get_model import get_multi_task_bert_model
 from training.bert_normalize.multi_task_tools import get_vocab_size_and_dictionary_per_task
@@ -79,9 +79,10 @@ def run(args,
     if run_mode == "train":
         printing("CHECKPOINTING info : saving model every {}", var=saving_every_epoch, verbose=verbose, verbose_level=1)
     use_gpu = use_gpu_(use_gpu=None, verbose=verbose)
-
-    train_data_label = "|".join([REPO_DATASET.get(_train_path, "train_{}".format(i)) for i, _train_path in enumerate(args.train_path)])
-    dev_data_label = "|".join([REPO_DATASET.get(_dev_path, "dev_{}".format(i)) for i, _dev_path in enumerate(args.dev_path)]) if args.dev_path is not None else None
+    train_data_label = get_dataset_label(args.train_path,default="train")
+    dev_data_label = get_dataset_label(args.train_path, default="dev")
+    #train_data_label = "|".join([REPO_DATASET.get(_train_path, "train_{}".format(i)) for i, _train_path in enumerate(args.train_path)])
+    #dev_data_label = "|".join([REPO_DATASET.get(_dev_path, "dev_{}".format(i)) for i, _dev_path in enumerate(args.dev_path)]) if args.dev_path is not None else None
 
     if not debug:
         pdb.set_trace = lambda: None
@@ -323,7 +324,8 @@ def run(args,
         for test_path in args.test_paths:
             assert len(test_path) == len(args.tasks), "ERROR test_path {} args.tasks {}".format(test_path, args.tasks)
             for test, task_to_eval in zip(test_path, args.tasks):
-                label_data = REPO_DATASET.get(test, "test")+"-"+",".join(task_to_eval)
+                label_data = get_dataset_label(test, default="test")
+                #REPO_DATASET.get(test, "test")+"-"+",".join(task_to_eval)
                 if len(extra_label_for_prediction) > 0:
                     label_data += "-" + extra_label_for_prediction
                 readers_test = readers_load(datasets=[test],

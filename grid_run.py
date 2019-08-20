@@ -5,7 +5,7 @@ from io_.info_print import printing
 from training.train_eval import train_eval
 from toolbox.grid_tool import grid_param_label_generate, get_experimented_tasks
 from env.project_variables import *
-
+from env.data_dir import get_dir_data
 from toolbox.git_related import get_commit_id
 from tracking.reporting_google_sheet import update_status, append_reporting_sheet
 from toolbox.grid_script_generation import script_generation
@@ -388,9 +388,11 @@ if __name__ == "__main__":
 
           FINE_TUNE_BERT = True 
           if FINE_TUNE_BERT:
-              epochs = 100
+              epochs = 1
+              lang_iter = ["en_ewt", "tr_imst"]
+              demo_data = True
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
-                                                  init_param=None,  
+                                                  init_param=None,
                                                   grid_label=LABEL_GRID,
                                                   batch_size_ls=[12],
                                                   #checkpoint_dir_ls=["'"+os.path.join(CHECKPOINT_BERT_DIR, "9535768-B-45690-9535768-B-model_0/9535768-B-45690-9535768-B-model_0-epbest-checkpoint.pt")+"'"],#["'"+os.path.join(CHECKPOINT_BERT_DIR,"checkpoints", "bert", "9372042-B-6ccaa-9372042-B-model_0/9372042-B-6ccaa-9372042-B-model_0-epbest-checkpoint.pt")+"'"],
@@ -398,7 +400,7 @@ if __name__ == "__main__":
                                                   bert_module_ls=["mlm"],
                                                   append_n_mask_ls=[0],
                                                   #norm_2_noise_training_ls=[0., 1.],
-                                                  lr_ls=[0.00001],## 0.000075,0.000025],
+                                                  lr_ls=[0.00001],  ## 0.000075,0.000025],
                                                   #lr_ls=[OrderedDict([("bert", 1e-5), ("classifier_task_2", 1e-4), ("classifier_task_1", 1e-5)]),
                                                   #       OrderedDict([("bert", 5e-6), ("classifier_task_2", 1e-4), ("classifier_task_1", 1e-5)]),
                                                   #       OrderedDict([("bert", 1e-5), ("classifier_task_2", 1e-3), ("classifier_task_1", 1e-5)])],
@@ -406,11 +408,13 @@ if __name__ == "__main__":
                                                   #       OrderedDict([("bert", 1e-5), ("classifier", 0.001)]),
                                                   #       OrderedDict([("bert", 1e-5), ("classifier", 1e-5)])],
                                                   #masking_strategy_ls=[["mlm", "0"]],# ["mlm", "1"], ["norm_mask_variable", "0"]],
-                                                  masking_strategy_ls=[None],#[["mlm", "0"], None],#[["mlm_need_norm", "0.5"], ["mlm", "0"],],# ["norm_mask", "0.5"],["norm_mask", "0.25"], ["norm_mask_variable", "0"]],#, ["mlm", "1"], ["mlm", "0"]],
+                                                  masking_strategy_ls=[None],  #[["mlm", "0"], None],#[["mlm_need_norm", "0.5"], ["mlm", "0"],],# ["norm_mask", "0.5"],["norm_mask", "0.25"], ["norm_mask_variable", "0"]],#, ["mlm", "1"], ["mlm", "0"]],
                                                   #                     ["normed", "0.75"],["normed", "1."]],#[None,,
                                                   #lr_ls=[OrderedDict([("bert", "0.00001"), ("classifier", "0.0001")]),
                                                   #       OrderedDict([("bert", "0.00001"), ("classifier", "0.00001")])],
-                                                  tasks_ls=[[["pos"]], [["parsing"]], [["parsing", "pos"]]],#[["pos"], ["normalize", "pos"]],#, ["normalize"]],
+                                                  #tasks_ls=[[["pos"]], [["parsing"]], [["parsing", "pos"]]],
+                                                  # [["pos"], ["normalize", "pos"]],#, ["normalize"]],
+                                                  tasks_ls=[[["parsing"]] for _ in range(2)],  #[["pos"], ["normalize", "pos"]],#, ["normalize"]],
                                                   fine_tuning_strategy_ls=["standart"],
                                                   dropout_classifier_ls=[0.0],
                                                   multitask_ls=[1],
@@ -427,7 +431,7 @@ if __name__ == "__main__":
                                                   #train_path=[[LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED]], dev_path=[[LIU_DEV]],
                                                   #train_path=[[CODE_MIXED_RAW_TRAIN_SMALL]], dev_path=[[CODE_MIXED_RAW_CUT_DEV]],
                                                   #train_path=[[EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV]],
-                                                  train_path=[[EN_LINES_EWT_TRAIN] for _ in range(3)], dev_path=[[EWT_DEV] for _ in range(3)],
+                                                  train_path=[[get_dir_data("train", lang, demo=demo_data)] for lang in lang_iter], dev_path=[[get_dir_data("dev", lang, demo=demo_data)] for lang in lang_iter],
                                                   #train_path=[[EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV]],
                                                   #train_path=[[AUGMENTED_LEX_DIC[n_sent]] for n_sent in [80, 100, 120, 150, 250, 350]],
                                                   #dev_path=[[LIU_DEV] for n_sent in [80, 100, 120,150,250,350]],
@@ -436,13 +440,13 @@ if __name__ == "__main__":
                                                   #test_paths=[[[LIU_DEV], [DEV], [TEST], [LEX_TEST], [LEX_DEV_SPLIT_2], [LEX_TRAIN]]],# for _ in [80, 100, 120,150,250,350]],
                                                   #test_paths=[[[LEX_TRAIN_SPLIT_2], [LEX_DEV_SPLIT_2], [LEX_TEST]]],# [[LEX_TRAIN_SPLIT_2], [LEX_DEV_SPLIT_2], [LEX_TEST]]],
                                                   #test_paths=[[[EWT_DEV], [EN_LINES_EWT_TRAIN], [EWT_TEST], [DEV], [TEST]], [[LEX_TEST, EWT_DEV], [LIU_DEV, EWT_TEST], [DEV,  DEV], [TEST, TEST]]],
-                                                  test_paths=[[[EWT_DEV], [EWT_TEST], [EN_LINES_EWT_TRAIN]] for _ in range(3)],# [EWT_DEV], [EWT_TEST], [EN_LINES_EWT_TRAIN]]],
+                                                  test_paths=[[[get_dir_data("test", lang, demo=demo_data)], [get_dir_data("dev", lang, demo=demo_data)], [get_dir_data("train", lang, demo=demo_data)]] for lang in lang_iter],  # [EWT_DEV], [EWT_TEST], [EN_LINES_EWT_TRAIN]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
                                                   gpus_ls=gpu_ls,
                                                   write_to_dir=RUN_SCRIPTS_DIR, description_comment=description_comment,
-                                                  bert_model_ls=["cased"], initialize_bpe_layer_ls=[1],
+                                                  bert_model_ls=["bert_base_multilingual_cased"], initialize_bpe_layer_ls=[1],
                                                   word_recurrent_cell_encoder_ls=None, dropout_word_encoder_cell_ls=None,
                                                   stable_decoding_state_ls=None,
                                                   word_decoding_ls=None, word_embed_ls=None, dir_sent_encoder_ls=None,
@@ -456,8 +460,7 @@ if __name__ == "__main__":
                                                   n_layers_word_encoder_ls=None,
                                                   unrolling_word_ls=None, scoring_func=None, mode_word_encoding_ls=None,
                                                   dropout_input_ls=None,
-                                                  multi_task_loss_ponderation_ls=[OrderedDict([("pos", 0.5), ("parsing_types", 1), ("parsing_heads", 1)]),
-                                                                                  OrderedDict([("pos", 0.2), ("parsing_types", 1), ("parsing_heads", 1)])],
+                                                  multi_task_loss_ponderation_ls=[OrderedDict([("pos", 0.5), ("parsing_types", 1), ("parsing_heads", 1)])],#OrderedDict([("pos", 0.2), ("parsing_types", 1), ("parsing_heads", 1)])],
                                                   scale_ls=[1])
                                 # arguments that are specific to script generation
 
