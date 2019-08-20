@@ -324,7 +324,7 @@ def run(args,
         for test_path in args.test_paths:
             assert len(test_path) == len(args.tasks), "ERROR test_path {} args.tasks {}".format(test_path, args.tasks)
             for test, task_to_eval in zip(test_path, args.tasks):
-                label_data = get_dataset_label(test, default="test")
+                label_data = get_dataset_label([test], default="test")
                 #REPO_DATASET.get(test, "test")+"-"+",".join(task_to_eval)
                 if len(extra_label_for_prediction) > 0:
                     label_data += "-" + extra_label_for_prediction
