@@ -307,7 +307,7 @@ class CoNLLReader(object):
                                        word_piece_lemmas=word_piece_lemmas,
                                        word_piece_raw_tokens_aligned=word_piece_raw_tokens_aligned,
                                        word_piece_raw_tokens=word_piece_raw_tokens,
-                                       word_piece_words=word_piece_words,
+                                       word_piece_words=word_piece_words, is_mwe=is_mwe,
                                        char_norm_seq=char_norm_str_seq),
                               postags, pos_ids, xpostags, xpos_ids, lemmas, lemma_ids, heads, types, type_ids)
 

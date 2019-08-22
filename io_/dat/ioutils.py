@@ -96,8 +96,9 @@ class Sentence(object):
   def __init__(self, words, word_ids,
                char_seqs, char_id_seqs, lines,
                word_norm=None, word_norm_ids=None,
-               char_norm_seq=None, char_norm_ids_seq=None,
-               word_piece_raw_tokens_aligned=None, word_piece_raw_tokens=None, word_piece_words=None, word_piece_lemmas=None
+               char_norm_seq=None, char_norm_ids_seq=None, is_mwe=None,
+               word_piece_raw_tokens_aligned=None, word_piece_raw_tokens=None,
+               word_piece_words=None, word_piece_lemmas=None
 
                ):
     self.words = words
@@ -109,10 +110,11 @@ class Sentence(object):
     self.char_norm_ids_seq = char_norm_ids_seq
     self.word_norm = word_norm
     self.word_norm_ids = word_norm_ids
-    self.word_piece_raw_tokens_aligned = word_piece_raw_tokens_aligned
-    self.word_piece_raw_tokens = word_piece_raw_tokens
-    self.word_piece_words = word_piece_words
-    self.word_piece_lemmas = word_piece_lemmas
+    self.word_piece_raw_tokens_aligned = word_piece_raw_tokens_aligned if len(word_piece_raw_tokens_aligned)>0 else None
+    self.word_piece_raw_tokens = word_piece_raw_tokens if len(word_piece_raw_tokens)>0 else None
+    self.word_piece_words = word_piece_words if len(word_piece_words)>0 else None
+    self.word_piece_lemmas = word_piece_lemmas if len(word_piece_lemmas)>0 else None
+    self.is_mwe = is_mwe if len(is_mwe) > 0 else None
 
   def length(self):
     return len(self.words)

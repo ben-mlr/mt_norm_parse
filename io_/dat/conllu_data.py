@@ -374,8 +374,12 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
     sent = inst.sentence
     for bucket_id, bucket_size in enumerate(_buckets):
       if inst_size < bucket_size or bucket_id == last_bucket_id:
+        #pdb.set_trace()
         data[bucket_id].append([sent.word_ids, sent.word_norm_ids, sent.char_id_seqs, sent.char_norm_ids_seq, inst.pos_ids, inst.heads, inst.type_ids,
-                                counter, sent.words, sent.word_norm, sent.raw_lines, inst.xpos_ids])
+                                counter, sent.words, sent.word_norm, sent.raw_lines, inst.xpos_ids,
+                                sent.word_piece_lemmas, sent.word_piece_raw_tokens_aligned,
+                                sent.word_piece_raw_tokens, sent.word_piece_words,
+                                sent.is_mwe])
         max_char_len = max([len(char_seq) for char_seq in sent.char_seqs])
         if normalization:
           max_char_norm_len = max([len(char_norm_seq) for char_norm_seq in sent.char_norm_ids_seq])
@@ -476,7 +480,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
     for i, inst in enumerate(data[bucket_id]):
       ss[bucket_id] += 1
       ss1[bucket_id] = bucket_length
-      wids, wids_norm, cid_seqs, cid_norm_seqs, pids, hids, tids, orderid, word_raw, normalized_str, lines, xpids = inst
+      wids, wids_norm, cid_seqs, cid_norm_seqs, pids, hids, tids, orderid, word_raw, normalized_str, lines, xpids, word_piece_lemmas, word_piece_raw_tokens_aligned, word_piece_raw_tokens, word_piece_words, is_mwe = inst
       # TODO : have to handle case were wids is null
       assert len(cid_seqs) == len(wids), "ERROR cid_seqs {} and wids {} are different len".format(cid_seqs, wids)
       if len(wids_norm) > 0 and normalization:
