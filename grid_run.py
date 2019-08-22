@@ -342,58 +342,15 @@ if __name__ == "__main__":
                                                   gpus_ls=gpu_ls, gpu_mode="random",
                                                   write_to_dir=RUN_SCRIPTS_DIR, description_comment=description_comment)
 
-          POS_ABLATION = False
-          if POS_ABLATION:
-            epochs = 150
-            train_path = [[EN_LINES_EWT_TRAIN]]#,[EN_LINES_EWT_TRAIN]]#[DEMO, DEMO]#
-            dev_path = [[EWT_DEV]]#,[EWT_DEV]]#train_path#
-            test_paths = [[[EWT_DEV, TEST]]]#[[[EWT_DEV, EWT_TEST, DEV, TEST]], [[EWT_DEV, EWT_TEST, DEV, TEST]]]#,[[EWT_DEV, EWT_TEST, DEV, TEST]]]
-            dir_script, row = script_generation(grid_label=LABEL_GRID,
-                                                train_path=train_path, dev_path=dev_path,
-                                                test_paths=test_paths, checkpointing_metric_ls=["accuracy-pos"],#"loss-dev-all"],
-                                                init_param=params_dozat,#params_dozat,#params_strong,#params_dozat,
-                                                warmup=test_before_run, test_before_run=test_before_run,
-                                                dir_grid=dir_grid, environment=environment, dir_log=log,
-                                                stable_decoding_state_ls=[0],
-                                                word_decoding_ls=[0],
-                                                epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
-                                                batch_size_ls=[150, 300],
-                                                word_embed_ls=[1],
-                                                dir_sent_encoder_ls=[2], dir_word_encoder_ls=[1],
-                                                n_layers_sent_cell_ls=[2], n_layers_word_encoder_ls=[1],
-                                                lr_ls=[0.001],
-                                                word_embed_init_ls=[None],
-                                                teacher_force_ls=[1],
-                                                word_recurrent_cell_encoder_ls=["LSTM"],
-                                                dropout_word_encoder_cell_ls=[0.33],
-                                                proportion_pred_train_ls=[None],
-                                                shared_context_ls=["sent"],
-                                                word_embedding_projected_dim_ls=[125],
-                                                char_level_embedding_projection_dim_ls=[125],
-                                                mode_word_encoding_ls=["sum"],
-                                                tasks_ls=[["pos"]],
-                                                char_src_attention_ls=[0],
-                                                unrolling_word_ls=[1],
-                                                scale_ls=[1],
-                                                attention_tagging_ls=[1],
-                                                overall_report_dir=dir_grid, overall_label=LABEL_GRID,
-                                                description_comment=description_comment,
-                                                gpu_mode="random",
-                                                gpus_ls=gpu_ls,
-                                                scoring_func="exact_match", dropout_input_ls=[0.33, 0.4],
-                                                multi_task_loss_ponderation_ls=[{"pos": 1, "normalize": 0,
-                                                                                 "norm_not_norm": 0,
-                                                                                 "edit_prediction": 0}],
-                                                write_to_dir=RUN_SCRIPTS_DIR)
 
           FINE_TUNE_BERT = False
           if FINE_TUNE_BERT:
 
-              epochs = 200
-              lang_iter = ["en_lines", "fr_sequoia"]
-              task_to_grid = [["parsing"], ["pos"], ["parsing", "pos"]]
+              epochs = 30
+              lang_iter = ["fr_gsd", "fr_sequoia", "fr_ftb", "fr_partut", "fr_spoken"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
+              task_to_grid = [["parsing"], ["parsing", "pos"]]
               #task_to_grid = [["normalize"]]
-              demo_data = True
+              demo_data = False
 
               tasks_ls = [[task_simul] for task_simul in task_to_grid for _ in lang_iter]
               printing("GRID : running {} lang on {} tasks combinaiton ".format(lang_iter, task_to_grid), verbose=1, verbose_level=1)
@@ -402,13 +359,13 @@ if __name__ == "__main__":
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
-                                                  batch_size_ls=[1],
+                                                  batch_size_ls=[16],
                                                   #checkpoint_dir_ls=["'"+os.path.join(CHECKPOINT_BERT_DIR, "9535768-B-45690-9535768-B-model_0/9535768-B-45690-9535768-B-model_0-epbest-checkpoint.pt")+"'"],#["'"+os.path.join(CHECKPOINT_BERT_DIR,"checkpoints", "bert", "9372042-B-6ccaa-9372042-B-model_0/9372042-B-6ccaa-9372042-B-model_0-epbest-checkpoint.pt")+"'"],
                                                   gpu_mode="random",
                                                   bert_module_ls=["mlm"],
                                                   append_n_mask_ls=[0],
                                                   #norm_2_noise_training_ls=[0., 1.],
-                                                  lr_ls=[0.000005],  ## 0.000075,0.000025],
+                                                  lr_ls=[0.000005],
                                                   #lr_ls=[OrderedDict([("bert", 1e-5), ("classifier_task_2", 1e-4), ("classifier_task_1", 1e-5)]),)])],
                                                   #masking_strategy_ls=[["mlm", "0"]],# ["mlm", "1"], ["norm_mask_variable", "0"]],
                                                   masking_strategy_ls=[None],  #[["mlm", "0"], None],#[["mlm_need_norm", "0.5"], ["mlm", "0"],],# ["norm_mask", "0.5"],["norm_mask", "0.25"], ["norm_mask_variable", "0"]],#, ["mlm", "1"], ["mlm", "0"]],
@@ -434,7 +391,7 @@ if __name__ == "__main__":
                                                   #train_path=[[LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED]], dev_path=[[LIU_DEV]],
                                                   #train_path=[[CODE_MIXED_RAW_TRAIN_SMALL]], dev_path=[[CODE_MIXED_RAW_CUT_DEV]],
                                                   #train_path=[[EWT_DEMO] for _ in range(n_tasks)], dev_path=[[EWT_DEMO] for _ in range(n_tasks)],
-                                                  train_path=[[get_dir_data("train", lang, demo=demo_data)] for _ in range(n_tasks) for lang in lang_iter], dev_path=[[get_dir_data("train", lang, demo=demo_data)] for _ in range(n_tasks) for lang in lang_iter],
+                                                  train_path=[[get_dir_data("train", lang, demo=demo_data)] for _ in range(n_tasks) for lang in lang_iter], dev_path=[[get_dir_data("dev", lang, demo=demo_data)] for _ in range(n_tasks) for lang in lang_iter],
                                                   #train_path=[[EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV]],
                                                   #train_path=[[AUGMENTED_LEX_DIC[n_sent]] for n_sent in [80, 100, 120, 150, 250, 350]],
                                                   #dev_path=[[LIU_DEV] for n_sent in [80, 100, 120,150,250,350]],
@@ -444,14 +401,14 @@ if __name__ == "__main__":
                                                   #test_paths=[[[LEX_TRAIN_SPLIT_2], [LEX_DEV_SPLIT_2], [LEX_TEST]]],# [[LEX_TRAIN_SPLIT_2], [LEX_DEV_SPLIT_2], [LEX_TEST]]],
                                                   #test_paths=[[[EWT_DEV], [EN_LINES_EWT_TRAIN], [EWT_TEST], [DEV], [TEST]], [[LEX_TEST, EWT_DEV], [LIU_DEV, EWT_TEST], [DEV,  DEV], [TEST, TEST]]],
                                                   #test_paths=[[[EWT_DEMO]] for _ in range(n_tasks)],
-                                                  test_paths=[[[get_dir_data("train", lang, demo=demo_data)]] for _ in range(n_tasks) for lang in lang_iter],
+                                                  test_paths=[[[get_dir_data("test", lang, demo=demo_data)], [get_dir_data("dev", lang, demo=demo_data)], [get_dir_data("train", lang, demo=demo_data)]] for _ in range(n_tasks) for lang in lang_iter],
                                                   #test_paths=[[[get_dir_data("test", lang, demo=demo_data)], [get_dir_data("dev", lang, demo=demo_data)], [get_dir_data("train", lang, demo=demo_data)]] for _ in range(n_tasks) for lang in lang_iter],  # [EWT_DEV], [EWT_TEST], [EN_LINES_EWT_TRAIN]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
                                                   gpus_ls=gpu_ls,
                                                   write_to_dir=RUN_SCRIPTS_DIR, description_comment=description_comment,
-                                                  bert_model_ls=["cased"], initialize_bpe_layer_ls=[1],
+                                                  bert_model_ls=["bert_base_multilingual_cased"], initialize_bpe_layer_ls=[1],
                                                   word_recurrent_cell_encoder_ls=None, dropout_word_encoder_cell_ls=None,
                                                   stable_decoding_state_ls=None,
                                                   word_decoding_ls=None, word_embed_ls=None, dir_sent_encoder_ls=None,
@@ -469,13 +426,13 @@ if __name__ == "__main__":
                                                   scale_ls=[1])
                                 # arguments that are specific to script generation
 
-          PRETRAINING = True
+          PRETRAINING = False
           if PRETRAINING:
               epochs = 1
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
-                                                  batch_size_ls=[1],
+                                                  batch_size_ls=[12],
                                                   #checkpoint_dir_ls=["'" + os.path.join(CHECKPOINT_BERT_DIR, "9535768-B-45690-9535768-B-model_0/9535768-B-45690-9535768-B-model_0-epbest-checkpoint.pt") + "'"],
                                                   gpu_mode="random",
                                                   bert_module_ls=["mlm"],  # ["mlm"],
@@ -504,8 +461,8 @@ if __name__ == "__main__":
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   freeze_parameters_ls=[0],
                                                   freeze_layer_prefix_ls_ls=[None],
-                                                  train_path=[[CODE_MIXED_RAW_CUT_TEST]], dev_path=[[CODE_MIXED_RAW_CUT_TEST]],
-                                                  test_paths=[[[CODE_MIXED_RAW_CUT_TEST]]],
+                                                  train_path=[[CODE_MIXED_RAW_TRAIN_SMALL]], dev_path=[[CODE_MIXED_RAW_DEV_SMALL]],
+                                                  test_paths=[[[CODE_MIXED_RAW_TEST_SMALL], [CODE_MIXED_RAW_DEV_SMALL]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
                                                   epochs=epochs if not (

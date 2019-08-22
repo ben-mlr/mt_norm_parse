@@ -1,5 +1,5 @@
 
-from env.importing import torch
+from env.importing import torch, pdb
 from io_.info_print import printing
 from io_.dat.constants import NULL_STR_TO_SHOW, TOKEN_BPE_BERT_START, TOKEN_BPE_BERT_SEP, PAD_POS, PAD_ID_BERT
 
@@ -53,6 +53,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
                 #  one (at least) extra btoken on the src side
                 try:
                     n_to_1_token = _input_alignement_with_raw[_i_input] < _output_alignement_with_raw[_i_output]
+
                 except Exception as e:
                     print(e)
                     print("ERROR {} index input  , len(input) {} , index ouput {} len(output) {} "
@@ -80,8 +81,9 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
                 #print("alignement ", _output_alignement_with_raw, _input_alignement_with_raw)
                 if len(_output_alignement_with_raw) != _i_output:
                     try:
-                        assert _output_alignement_with_raw[_i_output] == 1000, "ERROR : "
+                        assert _output_alignement_with_raw[_i_output] == 1000, "ERROR : _output_alignement_with_raw {}".format(_output_alignement_with_raw)
                     except Exception as e:
+                        pdb.set_trace()
                         raise(e)
                 padded_reached_ind = 1
             if n_to_1_token:

@@ -204,7 +204,7 @@ def epoch_run(batchIter, tokenizer,
             # if no normalization found : should have pos
             task_pos_is = len(batch.raw_output[0]) == 0
             # only one task supported at a time per batch so far based on the input batch
-            task_normalize_is = not task_pos_is
+            task_normalize_is = not args.multitask
             task_pos_is = False#"pos" in args.tasks and len(args.tasks) == 1
             if task_pos_is:
                print("WARNING : task_pos_is  {} ".format(task_pos_is))
@@ -310,12 +310,12 @@ def epoch_run(batchIter, tokenizer,
                 # (we are rejecting batch with at least one 1 to n case # (that we don't want to handle)
                 try:
                     output_tokens_tensor_aligned, input_tokens_tensor_aligned, input_alignement_with_raw, input_mask, _1_to_n_token = \
-                        alignement.aligned_output(input_tokens_tensor, output_tokens_tensor, input_alignement_with_raw,
-                                                  output_alignement_with_raw, mask_token_index=mask_token_index,
-                                                  input_mask=input_mask, use_gpu=use_gpu,
-                                                  null_token_index=null_token_index, verbose=verbose)
-                except:
+                        alignement.aligned_output(input_tokens_tensor, output_tokens_tensor, input_alignement_with_raw, output_alignement_with_raw,
+                                                  mask_token_index=mask_token_index, input_mask=input_mask, use_gpu=use_gpu,null_token_index=null_token_index, verbose=verbose)
+                except Exception as e:
+                    print("ERROR : (epoch_run_fine_tuning_bert.py) alignement.aligned_output failed {}".format(e))
                     pdb.set_trace()
+                    raise(e)
 
                 assert output_tokens_tensor_aligned.size(0) == input_tokens_tensor_aligned.size(0), \
                     "output_tokens_tensor_aligned.size(0) {} input_tokens_tensor.size() {}".format(output_tokens_tensor_aligned.size(), input_tokens_tensor_aligned.size())

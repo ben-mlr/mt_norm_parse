@@ -31,8 +31,7 @@ def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_
                 for ind_sent, (original_sent, normalized_sent) in enumerate(zip(src_ls, pred_ls)):
                     try:
                         assert len(original_sent) == len(normalized_sent), "WARNING : (writer) original_sent len {} {} \n  " \
-                                                                     "normalized_sent len {} {} " \
-                                                                     "".format(len(original_sent), original_sent, len(normalized_sent),normalized_sent)
+                                                                           "normalized_sent len {} {} ".format(len(original_sent), original_sent, len(normalized_sent), normalized_sent)
                     except AssertionError as e:
                         print(e)
                         if len(original_sent) > len(normalized_sent):
