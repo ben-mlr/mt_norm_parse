@@ -177,6 +177,7 @@ def does_one_task_require_normalization(simultaneaous_task_ls):
 def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_dictionary,
                  pos_dictionary, xpos_dictionary, type_dictionary,
                  use_gpu,
+                 bert_tokenizer,
                  norm_not_norm=False,
                  word_decoder=False, must_get_norm=True,
                  bucket=True,max_char_len=None,
@@ -231,6 +232,7 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
                                                                           add_end_char=add_end_char, tasks=simul_task,
                                                                           max_char_len=None,
                                                                           must_get_norm=must_get_norm,
+                                                                          bert_tokenizer=bert_tokenizer,
                                                                           word_norm_dictionary=word_dictionary_norm,
                                                                           verbose=verbose)
 

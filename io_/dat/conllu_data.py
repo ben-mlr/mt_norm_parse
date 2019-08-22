@@ -337,7 +337,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
               normalize_digits=True, word_decoder=False, 
               normalization=False, bucket=False, max_char_len=None,
               symbolic_root=False, symbolic_end=False, dry_run=False, tasks=None,
-              must_get_norm=True,
+              must_get_norm=True, bert_tokenizer=None,
               verbose=0):
   """
   Given vocabularies , data_file :
@@ -360,7 +360,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
   printing('Reading data from %s' % source_path, verbose_level=1, verbose=verbose)
   counter = 0
   reader = CoNLLReader(source_path, word_dictionary, char_dictionary, pos_dictionary, type_dictionary, xpos_dictionary,
-                       max_char_len=max_char_len,
+                       max_char_len=max_char_len, bert_tokenizer=bert_tokenizer,
                        lemma_dictionary=None, word_norm_dictionary=word_norm_dictionary)
   printing("DATA iterator based on {} tasks", var=tasks, verbose_level=1, verbose=verbose)
   inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end,
@@ -405,7 +405,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
                           type_dictionary, max_size=None, normalize_digits=True, symbolic_root=False,word_norm_dictionary=None,
                           symbolic_end=False, use_gpu=False, volatile=False, dry_run=False, lattice=None,
                           verbose=0, normalization=False, bucket=True, word_decoder=False,
-                          tasks=None, max_char_len=None, must_get_norm=True,
+                          tasks=None, max_char_len=None, must_get_norm=True, bert_tokenizer=None,
                           add_end_char=0, add_start_char=0):
   """
   Given data ovject form read_variable creates array-like  variables for character, word, pos, relation, heads ready to be fed to a network
@@ -421,6 +421,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
                                                   normalize_digits=normalize_digits, symbolic_root=symbolic_root,
                                                   word_decoder=word_decoder, tasks=tasks,max_char_len=max_char_len,
                                                   must_get_norm=must_get_norm,
+                                                  bert_tokenizer=bert_tokenizer,
                                                   symbolic_end=symbolic_end, dry_run=dry_run)
 
   max_char_length = max_char_length_dic["max_char_length"]
@@ -591,8 +592,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       #single = single.cuda()
       lengths = lengths.cuda()
 
-    data_variable.append((words, word_norm, chars, chars_norm, word_norm_not_norm, edit, pos, xpos, heads, types,
-                          masks, single, lengths, order_inputs, raw_word_inputs, words_normalized_str, raw_lines))
+    data_variable.append((words, word_norm, chars, chars_norm, word_norm_not_norm, edit, pos, xpos, heads, types, masks, single, lengths, order_inputs, raw_word_inputs, words_normalized_str, raw_lines))
 
   return data_variable, bucket_sizes, _buckets, max_char_length_dic["n_sent"]
 

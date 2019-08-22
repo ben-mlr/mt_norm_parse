@@ -342,13 +342,13 @@ if __name__ == "__main__":
                                                   gpus_ls=gpu_ls, gpu_mode="random",
                                                   write_to_dir=RUN_SCRIPTS_DIR, description_comment=description_comment)
 
-          FINE_TUNE_BERT = False
+          FINE_TUNE_BERT = True
           if FINE_TUNE_BERT:
               epochs = 30
               lang_iter = ["fr_gsd", "fr_sequoia", "fr_ftb", "fr_partut", "fr_spoken"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
               task_to_grid = [["parsing"], ["parsing", "pos"]]
               #task_to_grid = [["normalize"]]
-              demo_data = False
+              demo_data = True
 
               tasks_ls = [[task_simul] for task_simul in task_to_grid for _ in lang_iter]
               printing("GRID : running {} lang on {} tasks combinaiton ".format(lang_iter, task_to_grid), verbose=1, verbose_level=1)
@@ -488,7 +488,7 @@ if __name__ == "__main__":
                                                   mode_word_encoding_ls=None,
                                                   dropout_input_ls=None, multi_task_loss_ponderation_ls=None,
                                                   scale_ls=[1])
-          BERT_NORMALIZATION = True
+          BERT_NORMALIZATION = False
           if BERT_NORMALIZATION:
               epochs = 1
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
@@ -521,7 +521,7 @@ if __name__ == "__main__":
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
                                                   gpus_ls=gpu_ls,
                                                   write_to_dir=RUN_SCRIPTS_DIR,
-                                                  description_comment=description_comment,
+                                                   description_comment=description_comment,
                                                   bert_model_ls=["cased"],
                                                   initialize_bpe_layer_ls=[1],
                                                   word_recurrent_cell_encoder_ls=None, dropout_word_encoder_cell_ls=None,

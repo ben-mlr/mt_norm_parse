@@ -1,10 +1,10 @@
 from .ioutils import DependencyInstance, Sentence
-from .constants import DIGIT_RE, MAX_CHAR_LENGTH, NUM_CHAR_PAD, ROOT, ROOT_CHAR, ROOT_POS, ROOT_TYPE, PAD, END_CHAR, END_POS, END_TYPE, END, ROOT_HEADS_INDEX, END_HEADS_INDEX
+from .constants import DIGIT_RE, MAX_CHAR_LENGTH, NUM_CHAR_PAD, ROOT, ROOT_CHAR, ROOT_POS, ROOT_TYPE, PAD, END_CHAR, END_POS, END_TYPE, END, ROOT_HEADS_INDEX, END_HEADS_INDEX, CLS_BERT, SEP_BERT, MASK_BERT
 from io_.info_print import printing
 from io_.dat.conllu_get_normalization import get_normalized_token
 from env.project_variables import AVAILABLE_TASKS
 from env.tasks_settings import TASKS_PARAMETER
-from env.importing import sys, os, codecs
+from env.importing import sys, os, codecs, pdb, re
 #from env.importing import *
 from env.project_variables import PROJECT_PATH
 
@@ -15,6 +15,7 @@ class CoNLLReader(object):
                char_dictionary, pos_dictionary, type_dictionary, xpos_dictionary,
 
                lemma_dictionary, word_norm_dictionary=None,
+               bert_tokenizer=None,
                case=None,
                max_char_len=MAX_CHAR_LENGTH):
     self.__source_file = codecs.open(file_path, 'r', 'utf-8', errors='ignore')
@@ -29,6 +30,11 @@ class CoNLLReader(object):
 
     self.__type_dictionary = type_dictionary
     self.case = case
+
+    self.bert_tokenizer = bert_tokenizer
+    if bert_tokenizer is not None:
+      printing("INFO Reader : will provide BERT bpe tokens", verbose=1, verbose_level=1)
+
     if max_char_len is None:
       max_char_len = MAX_CHAR_LENGTH
     printing("MODEL : max_char_len set to {} in CoNLLREADER ", var=max_char_len, verbose_level=1, verbose=1)
@@ -60,6 +66,7 @@ class CoNLLReader(object):
     while len(line) > 0 and (len(line.strip()) == 0 or line.strip()[0] == '#'):
       if not len(line.strip()) == 0 and line.strip()[0] == '#':
         raw_text.append(line)
+        id_stop_mwe = 0
       line = self.__source_file.readline()
     
     if len(line) == 0:
@@ -96,6 +103,22 @@ class CoNLLReader(object):
 
     char_norm_id_seqs = []
     char_norm_str_seq = []
+    # 1 per raw token (not 1 per word)
+    is_mwe = [-1]
+    if self.bert_tokenizer is not None:
+      # NB : for the raw tokens we consider the pre-tokenization of the CONLLU format so far
+      word_piece_raw_tokens = self.bert_tokenizer.convert_tokens_to_ids([CLS_BERT])
+      word_piece_raw_tokens_aligned = self.bert_tokenizer.convert_tokens_to_ids([CLS_BERT])
+      word_piece_words = self.bert_tokenizer.convert_tokens_to_ids([CLS_BERT])
+      word_piece_lemmas = self.bert_tokenizer.convert_tokens_to_ids([CLS_BERT])
+      if normalization:
+        word_piece_normalization = self.bert_tokenizer.convert_tokens_to_ids([CLS_BERT])
+    else:
+      word_piece_raw_tokens = []
+      word_piece_raw_tokens_aligned = []
+      word_piece_words = []
+      word_piece_lemmas = []
+      word_piece_normalization = []
 
     if symbolic_root:
       words.append(ROOT)
@@ -123,13 +146,29 @@ class CoNLLReader(object):
     for tokens in lines:
 
       if '-' in tokens[0] or '.' in tokens[0]:
+        matching_mwe_ind = re.match("([0-9]+)-([0-9]+)", tokens[0])
+
+        assert matching_mwe_ind is not None, "ERROR : tokens[0] {} - or . byt did not match mwe pattern".format(tokens[0])
+        is_mwe.append(1)
+
+        mwe = self.bert_tokenizer.tokenize(tokens[1])[0]
+        word_piece_raw_tokens.extend(self.bert_tokenizer.convert_tokens_to_ids(mwe))
+        word_piece_raw_tokens_aligned.extend(self.bert_tokenizer.convert_tokens_to_ids(mwe))
+        id_stop_mwe = eval(matching_mwe_ind.group(2))
+        assert isinstance(id_stop_mwe, int), "ERROR : {} not int while it should".format(id_stop_mwe)
+        id_start_mwe =eval(matching_mwe_ind.group(1))
         continue
-      if len(tokens)<10:
+
+      if len(tokens) < 10:
         sys.stderr.write("Sentence broken for unkwown reasons {} \n {} ".format(tokens, lines))
         if os.environ.get("EXPERIENCE") is not None:
           print("WARNING : WRITING corrupted gold data in {} ".format(os.path.join(os.environ["EXPERIENCE"], "logs/catching_errors.txt")))
           open(os.path.join(os.environ["EXPERIENCE"], "logs/catching_errors.txt"), "a").write("Line broken {} because of tokens {} from {} file \n ".format(lines, tokens,self.__file_path))
         continue
+
+      # mwe labels
+      if eval(tokens[0]) > id_stop_mwe:
+        is_mwe.append(0)
 
       n_exception = 0
       if normalization:
@@ -137,6 +176,10 @@ class CoNLLReader(object):
         normalized_token, n_exception = get_normalized_token(norm_field=tokens[9], n_exception=n_exception,
                                                              predict_mode_only=not must_get_norm,
                                                              verbose=verbose)
+        if self.bert_tokenizer is not None:
+          normalized_token = self.bert_tokenizer.tokenize(normalized_token)[0]
+          word_piece_normalization.extend(self.bert_tokenizer.convert_tokens_to_ids(normalized_token))
+
         if self.case is not None and self.case == "lower":
           normalized_token = normalized_token.lower()
         # extracting normalized words as sequence of characters as string and ids, string and ids
@@ -180,6 +223,25 @@ class CoNLLReader(object):
       #pdb.set_trace()
       #sys.stderr.write("CHAR FILLED \n")
       _word = tokens[1]
+
+      if self.bert_tokenizer is not None:
+        word_piece_words.extend(self.bert_tokenizer.convert_tokens_to_ids(self.bert_tokenizer.tokenize(_word)[0]))
+        # lemmas
+        word_piece_lemmas.extend(self.bert_tokenizer.convert_tokens_to_ids(self.bert_tokenizer.tokenize(tokens[2])[0]))
+        if eval(tokens[0]) > id_stop_mwe:
+          mwe_splits_save = []
+          bert_pre_tokens = self.bert_tokenizer.tokenize(tokens[1])[0]
+          word_piece_raw_tokens.extend(self.bert_tokenizer.convert_tokens_to_ids(bert_pre_tokens))
+          word_piece_raw_tokens_aligned.extend(self.bert_tokenizer.convert_tokens_to_ids(bert_pre_tokens))
+        elif id_start_mwe <= eval(tokens[0]) < id_stop_mwe:
+          mwe_splits_save.append(tokens[1])
+          if eval(tokens[0]) == id_stop_mwe:
+            mwe_splits_save = self.bert_tokenizer.tokenize(mwe_splits_save)[0]
+            n_masks_to_add_in_raw = len(self.bert_tokenizer.convert_tokens_to_ids(mwe_splits_save))-len(self.bert_tokenizer.convert_tokens_to_ids(mwe))
+            assert n_masks_to_add_in_raw >= 0, "ERROR : n_masks_to_add_in_raw should be an int : pb with tokens {} ".format(tokens)
+
+            word_piece_raw_tokens_aligned.extend(self.bert_tokenizer.convert_tokens_to_ids([MASK_BERT for _ in range(n_masks_to_add_in_raw)]))
+
       if self.case is not None and self.case == "lower":
         _word = _word.lower()
       words.append(_word)
@@ -206,6 +268,7 @@ class CoNLLReader(object):
       type_ids.append(self.__type_dictionary.get_index(type))
       heads.append(head)
 
+
     if symbolic_end:
       words.append(END)
       word_ids.append(self.__word_dictionary.get_index(END))
@@ -227,11 +290,24 @@ class CoNLLReader(object):
       types.append(END_TYPE)
       type_ids.append(self.__type_dictionary.get_index(END_TYPE))
       heads.append(END_HEADS_INDEX)
-    return DependencyInstance(Sentence(words, word_ids, char_seqs,
-                                       char_id_seqs, [lines, raw_text],
+      is_mwe.append(-1)
+
+      if self.bert_tokenizer is not None:
+        word_piece_raw_tokens.extend(self.bert_tokenizer.convert_tokens_to_ids([SEP_BERT]))
+        word_piece_raw_tokens_aligned.extend(self.bert_tokenizer.convert_tokens_to_ids([SEP_BERT]))
+        word_piece_words.extend(self.bert_tokenizer.convert_tokens_to_ids([SEP_BERT]))
+        word_piece_lemmas.extend(self.bert_tokenizer.convert_tokens_to_ids([SEP_BERT]))
+        if normalization:
+          word_piece_normalization.extend(self.bert_tokenizer.convert_tokens_to_ids([SEP_BERT]))
+
+    return DependencyInstance(Sentence(words, word_ids, char_seqs,char_id_seqs, [lines, raw_text],
                                        word_norm=norm_words,
                                        word_norm_ids=norm_word_ids,
                                        char_norm_ids_seq=char_norm_id_seqs,
+                                       word_piece_lemmas=word_piece_lemmas,
+                                       word_piece_raw_tokens_aligned=word_piece_raw_tokens_aligned,
+                                       word_piece_raw_tokens=word_piece_raw_tokens,
+                                       word_piece_words=word_piece_words,
                                        char_norm_seq=char_norm_str_seq),
                               postags, pos_ids, xpostags, xpos_ids, lemmas, lemma_ids, heads, types, type_ids)
 

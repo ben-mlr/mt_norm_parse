@@ -20,6 +20,8 @@ def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, scor
     score = None
     n_tokens = 0
     assert isinstance(samples, dict), "ERROR samples : {}".format(samples)
+
+
     for task in list(set(evaluated_task)):
         assert task in samples, "ERROR : task {} was not found in samples dictionary {}".format(task, samples)
         _samples = samples[task]
@@ -71,9 +73,9 @@ def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, scor
 
         # class negative 0 , class positive 1
         # TODO : make that more consistent with user needs !
+
         if "normalize" in tasks:
-            if "all" in _samples and TASKS_PARAMETER["normalize"]["predicted_classes"][0] in _samples \
-                    and TASKS_PARAMETER["normalize"]["predicted_classes"][1] in _samples:
+            if "all" in _samples and TASKS_PARAMETER["normalize"]["predicted_classes"][0] in _samples and TASKS_PARAMETER["normalize"]["predicted_classes"][1] in _samples:
                 # then we can compute all the confusion matrix rate
                 # TODO : factorize with TASKS_2_METRICS_STR
                 for metric_val in ["precision", "f1", "recall", "tnr", "npv", "accuracy"]:
@@ -91,7 +93,7 @@ def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, scor
                                                  token_type="word", report_path_val=None, data_val=data_label)
                     except Exception as e:
                         print(e)
-                        print("REPORT ")
+                        print("REPORT ERROR")
 
                     if early_stoppin_metric is not None:
                         if metric_val == early_stoppin_metric and subsample_early_stoping_metric_val == "rates" +label_heuristic and score is not None:

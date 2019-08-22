@@ -559,12 +559,14 @@ def epoch_run(batchIter, tokenizer,
                         elif task_normalize_is:
                             # we fill it with an empty report for simplifying reporting
                             accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=["all"],
-                                                           dic_prediction_score={agg_func_ls[0]: {"all": {"agg_func": agg_func_ls[0],"metric": "exact_match",
+                                                           dic_prediction_score={agg_func_ls[0]: 
+                                                                                     {"all": {"agg_func": agg_func_ls[0],"metric": "exact_match",
                                                                                      "score": 0, "n_sents": 0, "n_tokens": 0 }}},
                                                            score_dic=score_dic["n_masks_pred"], n_tokens_dic=n_tokens_dic["n_masks_pred"], n_sents_dic=n_sents_dic["n_masks_pred"])
                             evaluated_task.append("n_masks_pred")
 
                         evaluated_task.append(predicted_task)
+
                         perf_prediction, skipping, _samples = overall_word_level_metric_measure(task_label=predicted_task,
                                                                                                 gold_sent_ls_dict={predicted_task:gold_detokenized},
                                                                                                 pred_sent_ls_topk_dict={predicted_task:pred_detokenized_topk},
@@ -574,6 +576,7 @@ def epoch_run(batchIter, tokenizer,
                                                                                                 reference_word_dic=reference_word_dic,
                                                                                                 compute_intersection_score=compute_intersection_score,
                                                                                                 src_detokenized=src_detokenized)
+
                         score_dic[predicted_task], n_tokens_dic[predicted_task], n_sents_dic[predicted_task] = \
                             accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=_samples,
                                                            dic_prediction_score=perf_prediction,

@@ -114,6 +114,7 @@ def overall_word_level_metric_measure(task_label,
                 except Exception as e:
                     print("ERROR (scoring/report) handling src {} index ({},{}) ".format(src_detokenized, gold_ind_sent, ind_word), e)
                     pdb.set_trace()
+
                 filter_sent[_sample].append(word_level_filter(sample=_sample, gold=gold_token, topk_pred=topk_word_pred,
                                                               topk=topk, src=src, word_reference_dic_ls=reference_word_dic))
 
