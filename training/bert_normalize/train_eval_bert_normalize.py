@@ -47,7 +47,6 @@ def train_eval_bert_normalize(args, verbose=1):
     # MLM in multitas mode is temporary and require task_i indexing : that's why we need to rename ponderation dictionary
     if not args.multitask:
         args.multi_task_loss_ponderation = update_multitask_loss_ponderation(args.multi_task_loss_ponderation)
-
     run(args=args, voc_tokenizer=voc_tokenizer, vocab_size=vocab_size, model_dir=model_dir,
         report_full_path_shared=args.overall_report_dir,
         description=description, null_token_index=null_token_index, null_str=NULL_STR,

@@ -1242,9 +1242,11 @@ class BertForMaskedLM(BertPreTrainedModel):
             loss_dict["loss"] = loss_dict["loss_task_1"]+loss_dict["loss_task_n_mask_prediction"]
             # TODO : add weights for the loss
         if labels is not None or labels_task_2 is not None:
-            loss_dict["loss"] = multi_task_loss_ponderation["loss_task_1"] * loss_dict["loss_task_1"] + \
-                                multi_task_loss_ponderation["loss_task_2"] * loss_dict["loss_task_2"] + \
-                                multi_task_loss_ponderation["loss_task_n_mask_prediction"] * loss_dict["loss_task_n_mask_prediction"]
+
+            assert loss_dict.get("loss_task_2") is None or loss_dict.get("loss_task_2") == 0, \
+                "ERROR : task_2 not supported anymore in arg.multitask = 0 "
+            loss_dict["loss"] = multi_task_loss_ponderation["loss_task_1"] * loss_dict["loss_task_1"] + multi_task_loss_ponderation["loss_task_n_mask_prediction"] * loss_dict["loss_task_n_mask_prediction"]
+
             return loss_dict, softmax_weight
         else:
             pred_dict["logits_task_1"] = prediction_scores
@@ -1584,7 +1586,6 @@ class BertForTokenClassification(BertPreTrainedModel):
             loss_fct_masks_pred = CrossEntropyLoss(ignore_index=-1)
             loss_dict["loss_task_n_mask_prediction"] = loss_fct_masks_pred(logits_n_mask_prediction.view(-1, self.num_labels_n_mask),
                                                                            labels_n_mask_prediction.view(-1))
-
 
         # returning
         if labels is not None or labels_task_2 is not None:

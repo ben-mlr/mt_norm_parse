@@ -514,8 +514,11 @@ def epoch_run(batchIter, tokenizer,
                         if task_normalize_is and args.append_n_mask:
                             # Masks
                             perf_prediction_n_mask, skipping_n_mask, _ = \
-                                overall_word_level_metric_measure(labels_n_mask_prediction.tolist(),
-                                                                  [prediction_n_mask.tolist()], topk=1,
+                                overall_word_level_metric_measure(
+                                                                  task_label="n_masks_pred",
+                                                                  gold_sent_ls_dict={"n_masks_pred": labels_n_mask_prediction.tolist()},
+                                                                  pred_sent_ls_topk_dict={"n_masks_pred": [prediction_n_mask.tolist()]},
+                                                                  topk=1,
                                                                   metric=metric,
                                                                   samples=samples_per_task_reporting["n_masks_pred"],
                                                                   agg_func_ls=agg_func_ls,
@@ -532,14 +535,17 @@ def epoch_run(batchIter, tokenizer,
                                                                n_sents_dic=n_sents_dic["n_masks_pred"])
                             # token based on predicted masks
                             perf_detok_prediction_on_n_mask, skipping_n_mask, _ = \
-                                overall_word_level_metric_measure(gold_detokenized,
-                                                                  pred_n_masks_detokenized_topk, topk=1,
-                                                                  metric=metric,
-                                                                  samples=samples_per_task_reporting["normalize_pred"],
-                                                                  agg_func_ls=agg_func_ls,
-                                                                  reference_word_dic=reference_word_dic,
-                                                                  compute_intersection_score=False,
-                                                                  src_detokenized=src_detokenized)
+                                overall_word_level_metric_measure(
+                                                                task_label="normalize_pred",
+                                                                gold_sent_ls_dict={"normalize_pred": gold_detokenized},
+                                                                pred_sent_ls_topk_dict={"normalize_pred": pred_n_masks_detokenized_topk},
+                                                                topk=1,
+                                                                metric=metric,
+                                                                samples=samples_per_task_reporting["normalize_pred"],
+                                                                agg_func_ls=agg_func_ls,
+                                                                reference_word_dic=reference_word_dic,
+                                                                compute_intersection_score=False,
+                                                                src_detokenized=src_detokenized)
                             score_dic["normalize_pred"], n_tokens_dic["normalize_pred"], n_sents_dic["normalize_pred"] = \
                                 accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
                                                                sample_ls=samples_per_task_reporting["normalize_pred"],
@@ -552,11 +558,9 @@ def epoch_run(batchIter, tokenizer,
 
                         elif task_normalize_is:
                             # we fill it with an empty report for simplifying reporting
-                            accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=["all"], dic_prediction_score={agg_func_ls[0]:{"all": {"agg_func": agg_func_ls[0],"metric": "exact_match",
-                                                                                     "score": 0,
-                                                                                     "n_sents": 0,
-                                                                                     "n_tokens": 0
-                                                                                 }}},
+                            accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=["all"],
+                                                           dic_prediction_score={agg_func_ls[0]: {"all": {"agg_func": agg_func_ls[0],"metric": "exact_match",
+                                                                                     "score": 0, "n_sents": 0, "n_tokens": 0 }}},
                                                            score_dic=score_dic["n_masks_pred"], n_tokens_dic=n_tokens_dic["n_masks_pred"], n_sents_dic=n_sents_dic["n_masks_pred"])
                             evaluated_task.append("n_masks_pred")
 

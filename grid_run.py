@@ -342,10 +342,8 @@ if __name__ == "__main__":
                                                   gpus_ls=gpu_ls, gpu_mode="random",
                                                   write_to_dir=RUN_SCRIPTS_DIR, description_comment=description_comment)
 
-
           FINE_TUNE_BERT = False
           if FINE_TUNE_BERT:
-
               epochs = 30
               lang_iter = ["fr_gsd", "fr_sequoia", "fr_ftb", "fr_partut", "fr_spoken"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
               task_to_grid = [["parsing"], ["parsing", "pos"]]
@@ -490,9 +488,9 @@ if __name__ == "__main__":
                                                   mode_word_encoding_ls=None,
                                                   dropout_input_ls=None, multi_task_loss_ponderation_ls=None,
                                                   scale_ls=[1])
-          BERT_NORMALIZATION = False
+          BERT_NORMALIZATION = True
           if BERT_NORMALIZATION:
-              epochs = 30
+              epochs = 1
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
@@ -501,10 +499,11 @@ if __name__ == "__main__":
                                                   gpu_mode="random",
                                                   bert_module_ls=["mlm"],  # ["mlm"],
                                                   append_n_mask_ls=[1],
+                                                  multitask_ls=[0],
                                                   # norm_2_noise_training_ls=[0., 1.],
                                                   lr_ls=[0.00001],
                                                   masking_strategy_ls=[None],
-                                                  tasks_ls=[["normalize"] for _ in range(1)],
+                                                  tasks_ls=[[["normalize"]] for _ in range(1)],
                                                   fine_tuning_strategy_ls=["standart"],
                                                   dropout_classifier_ls=[0.1],
                                                   dropout_input_bpe_ls=[0.0], layer_wise_attention_ls=[0],
