@@ -138,6 +138,7 @@ def run(args,
     voc_pos_size = num_labels_per_task["pos"] if "pos" in args.tasks else None
     if voc_pos_size is not None:
         printing("MODEL : voc_pos_size defined as {}", var=voc_pos_size,  verbose_level=1, verbose=verbose)
+
     model = get_multi_task_bert_model(args, model_dir, vocab_size, voc_pos_size, debug, verbose,
                                       num_labels_per_task=num_labels_per_task)
 

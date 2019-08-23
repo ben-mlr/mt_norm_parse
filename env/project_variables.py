@@ -71,6 +71,9 @@ SAMPLES_PER_TASK_TO_REPORT = {
             "normalize_pred": ["all", "NEED_NORM", "NORMED", "PRED_NEED_NORM", "PRED_NORMED", "InV", "OOV"],
             "parsing_heads": ["all", "InV", "OOV"],
             "parsing_types": ["all", "InV", "OOV"],
+
+            "n_masks_mwe": ["all", "InV", "OOV"],
+            "mwe_detection": ["all", "InV", "OOV"],
 }
 
 edit_rules = ["edit_check-"+ref_list_label+"-"+need_normed_rule for ref_list_label in ["data", "ref", "all"] for need_normed_rule in ["need_normed", "all"]]
@@ -82,12 +85,12 @@ TASKS_2_METRICS_STR = {"all": ["accuracy-exact-normalize", "accuracy-normalize",
                                "npv-normalize", "recall-normalize", "precision-normalize","tnr-normalize", "accuracy-exact-pos",
                                "f1-normalize", "accuracy-exact-n_masks_pred"],
                        "parsing":["accuracy-exact-parsing_heads", "accuracy-exact-parsing_types"],
-                       "normalize": ["accuracy-exact-normalize", "accuracy-normalize", "npv-normalize", "recall-normalize", "precision-normalize",
-                                     "tnr-normalize", "f1-normalize", "accuracy-exact-n_masks_pred",
-                                     "accuracy-exact-normalize_pred"],
+                       "normalize": ["accuracy-exact-normalize", "accuracy-normalize", "npv-normalize", "recall-normalize", "precision-normalize","tnr-normalize", "f1-normalize", "accuracy-exact-n_masks_pred","accuracy-exact-normalize_pred"],
                        "pos": ["accuracy-exact-pos"],
+                       "n_masks_mwe": ["accuracy-n_masks_mwe"],
+                       "mwe_detection": ["accuracy-mwe_detection"],
                        "edit_prediction": [""],
-                       "norm_not_norm": ["IoU-pred-normed","recall-norm_not_norm","accuracy-norm_not_norm","IoU-pred-need_norm","precision-norm_not_norm"]}
+                       "norm_not_norm": ["IoU-pred-normed", "recall-norm_not_norm", "accuracy-norm_not_norm","IoU-pred-need_norm","precision-norm_not_norm"]}
 # "InV-accuracy-normalize", "OOV-accuracy-normalize"
 AVAILABLE_OPTIMIZER = ["adam", "bahdanu-adadelta", "SGD"]
 MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE = ["uniform", "normalization_100", "pos_100","all", "pos", "normalize", "norm_not_norm"]

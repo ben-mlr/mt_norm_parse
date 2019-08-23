@@ -346,7 +346,7 @@ if __name__ == "__main__":
           if FINE_TUNE_BERT:
               epochs = 30
               lang_iter = ["fr_gsd", "fr_sequoia", "fr_ftb", "fr_partut", "fr_spoken"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
-              task_to_grid = [["parsing"], ["parsing", "pos"]]
+              task_to_grid = [["parsing", "n_masks_mwe", "mwe_detection"]]#, ["parsing", "pos"]]
               #task_to_grid = [["normalize"]]
               demo_data = True
 
@@ -420,7 +420,9 @@ if __name__ == "__main__":
                                                   n_layers_word_encoder_ls=None,
                                                   unrolling_word_ls=None, scoring_func=None, mode_word_encoding_ls=None,
                                                   dropout_input_ls=None,
-                                                  multi_task_loss_ponderation_ls=[OrderedDict([("pos", 0.5), ("parsing_types", 1), ("parsing_heads", 1)])],#OrderedDict([("pos", 0.2), ("parsing_types", 1), ("parsing_heads", 1)])],
+                                                  multi_task_loss_ponderation_ls=[OrderedDict([("pos", 0.5),
+                                                                                               ("n_masks_mwe", 1), ("mwe_detection", 1),
+                                                                                               ("parsing_types", 1), ("parsing_heads", 1)])],#OrderedDict([("pos", 0.2), ("parsing_types", 1), ("parsing_heads", 1)])],
                                                   scale_ls=[1])
                                 # arguments that are specific to script generation
 

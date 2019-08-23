@@ -220,11 +220,13 @@ def grid_param_label_generate(param,
         dic_grid[_args] = args_avail[args+"_ls"]
       elif _args == "tasks":
         import pdb
-
         for task_grid in eval(_args+"_ls"):
           for simultaneous_task in task_grid:
             #pdb.set_trace()
-            assert set(simultaneous_task.split(",")).issubset(["normalize", "pos", "parsing"]), "ERROR : only normalize, pos supported so far {}".format(eval(_args+"_ls"))
+            try:
+              assert set(simultaneous_task.split(",")).issubset(["normalize", "pos", "parsing", ""]), "ERROR : only normalize, pos supported so far {}".format(eval(_args+"_ls"))
+            except Exception as e:
+              print("WARNING {}".format(e))
         #dic_grid[_args] = args_avail[_args + "_ls"]
 
     def sanity_check_args(py_script, dic_grid, train_ls, dev_ls, test_ls, tasks_ls):

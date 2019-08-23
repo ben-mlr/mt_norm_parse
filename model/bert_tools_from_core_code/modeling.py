@@ -853,7 +853,7 @@ from model.parser_modules import (CHAR_LSTM, MLP, Biaffine, BiLSTM, IndependentD
 
 
 class BertTokenHead(nn.Module):
-    def __init__(self, config, num_labels, dropout_classifier):
+    def __init__(self, config, num_labels, dropout_classifier=None):
         super(BertTokenHead, self).__init__()
         self.num_labels = num_labels
         self.classifier = nn.Linear(config.hidden_size, self.num_labels)
@@ -863,7 +863,8 @@ class BertTokenHead(nn.Module):
     def forward(self, x, head_mask=None):
         assert head_mask is None, "ERROR : not need of active logits only : handled in the loss for training " \
                                        "attention_mask"
-        x = self.dropout(x)
+        if self.dropout is not None:
+            x = self.dropout(x)
         logits = self.classifier(x)
         # Only keep active parts of the loss
         # NB : the , is mandatory !
@@ -973,13 +974,7 @@ class BertMultiTask(BertPreTrainedModel):
         for i, task in enumerate(tasks):
             assert task in TASKS_PARAMETER, "ERROR : task {} is not in {}".format(task, TASKS_PARAMETER)
             num_label = task if task != "parsing" else "parsing_types"
-            if task != "pos":
-                # TODO : factorize
-                # e.g : for parsing : self.head["parsing"] = BertGraphHead
-                self.head[task] = eval(self.task_parameters[task]["head"])(config, num_labels=self.num_labels_dic[num_label])
-            else:
-                self.head[task] = eval(self.task_parameters[task]["head"])(config, num_labels=self.num_labels_dic["pos"],
-                                                                           dropout_classifier=0.1)
+            self.head[task] = eval(self.task_parameters[task]["head"])(config, num_labels=self.num_labels_dic[num_label])
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None, head_masks=None):
         if labels is None:
@@ -1005,7 +1000,7 @@ class BertMultiTask(BertPreTrainedModel):
             # test performed : (logits_dict[task][0][1,2,:20]==float('-inf'))==(labels["parsing_heads"][1,:20]==-1)
             # handle several labels at output (e.g  parsing)
             n_pred = len(list(logits_dict[task]))
-            assert n_pred == len(self.task_parameters[task]["label"]), \
+            assert n_pred == len(self.task_parameters[task]["label"]),\
                 "ERROR : not as many labels as prediction for task {} : {} vs {} ".format(task, self.task_parameters[task]["label"], logits_dict[task])
             logits_dict = self.rename_multi_modal_task_logits(labels=self.task_parameters[task]["label"],
                                                               logits_dict=logits_dict, task=task, n_pred=n_pred)
@@ -1019,6 +1014,7 @@ class BertMultiTask(BertPreTrainedModel):
 
     @staticmethod
     def get_loss(loss_func, label_task, num_label_dic, labels, logits_dict, task):
+
         if not label_task.startswith("parsing"):
             loss = loss_func(logits_dict[label_task].view(-1, num_label_dic[task]), labels[label_task].view(-1))
         elif label_task == "parsing_heads":

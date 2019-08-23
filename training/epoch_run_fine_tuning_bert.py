@@ -289,7 +289,7 @@ def epoch_run(batchIter, tokenizer,
                 out_bpe_tokenized = None
                 # TODO : should have a task specific input_mask and head_masks : only considering word level tasks and bpe level tasks for now
                 input_mask = get_mask_input(input_tokens_tensor, use_gpu)
-                pdb.set_trace()
+
                 head_masks, input_tokens_tensor, token_type_ids, label_per_task = get_label_per_bpe(args.tasks, batch, input_tokens_tensor,
                                                                                                     input_alignement_with_raw, use_gpu, tasks_parameters=TASKS_PARAMETER)
                 if not args.multitask:
@@ -620,7 +620,10 @@ def epoch_run(batchIter, tokenizer,
                     n_tokens_counter_current_per_task[label] = (label_per_task[label] != PAD_ID_LOSS_STANDART).sum().item()
                 # TODO : handle in a more standart way
                 n_tokens_counter_per_task["all"] += n_tokens_counter_current_per_task[label]
+                pdb.set_trace()
                 logits_dic, loss_dic, _ = model(input_tokens_tensor, token_type_ids, labels=label_per_task, head_masks=head_masks, attention_mask=input_mask)
+                pdb.set_trace()
+
                 if len(list(loss_dic.keys() & set(TASKS_PARAMETER.keys()))) != len(loss_dic.keys()):
                     # it means a given task has several set of labels (e.g parsing)
                     # should do same for logits

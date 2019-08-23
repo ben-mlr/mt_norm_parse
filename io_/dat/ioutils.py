@@ -98,6 +98,7 @@ class SentenceWordPieced(object):
                word_piece_words=None, word_piece_lemmas=None,
                is_mwe=None,
                word_piece_raw_tokens_aligned_index=None, word_piece_words_index=None, word_piece_raw_tokens_index=None,
+               n_masks_to_add_in_raw_label=None,
                is_first_bpe_of_token=None, is_first_bpe_of_norm=None, is_first_bpe_of_words=None):
     # bpe indexes
     self.word_piece_raw_tokens_aligned = word_piece_raw_tokens_aligned if len(word_piece_raw_tokens_aligned) > 0 else None
@@ -107,6 +108,7 @@ class SentenceWordPieced(object):
     self.word_piece_normalization = word_piece_normalization if len(word_piece_normalization) else None
     # is MWE per first bpe tokens
     self.is_mwe = is_mwe if len(is_mwe) > 0 else None
+    self.n_masks_to_add_in_raw_label = n_masks_to_add_in_raw_label if len(n_masks_to_add_in_raw_label) > 0 else None
     # first token of each sequence indicator
     self.is_first_bpe_of_token = is_first_bpe_of_token
     self.is_first_bpe_of_norm = is_first_bpe_of_norm

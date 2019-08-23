@@ -1,4 +1,4 @@
-from env.importing import OrderedDict
+from env.importing import OrderedDict, pdb
 from io_.info_print import printing
 
 
@@ -20,7 +20,16 @@ def get_vocab_size_and_dictionary_per_task(tasks, pos_dictionary=None, type_dict
         assert type_dictionary is not None
         num_labels_per_task["parsing_types"] = len(type_dictionary.instance2index) + 1
         num_labels_per_task["parsing_heads"] = 0
+
         task_to_label_dictionary["parsing_types"] = type_dictionary
         task_to_label_dictionary["parsing_heads"] = "index"
+
+    if "n_masks_mwe" in tasks:
+        num_labels_per_task["n_masks_mwe"] = 3
+        task_to_label_dictionary["n_masks_mwe"] = "index"
+
+    if "mwe_detection" in tasks:
+        num_labels_per_task["mwe_detection"] = 1
+        task_to_label_dictionary["mwe_detection"] = "index"
 
     return num_labels_per_task, task_to_label_dictionary

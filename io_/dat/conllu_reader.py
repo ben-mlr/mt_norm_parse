@@ -120,6 +120,7 @@ class CoNLLReader(object):
     char_norm_str_seq = []
     # 1 per raw token (not 1 per word)
     is_mwe = [-1]
+    n_masks_to_add_in_raw_label = [-1]
     if self.bert_tokenizer is not None:
       # NB : for the raw tokens we consider the pre-tokenization of the CONLLU format so far
       word_piece_words_index = [-1]
@@ -281,6 +282,7 @@ class CoNLLReader(object):
       if self.bert_tokenizer is not None:
         bpe_word = self.bert_tokenizer.tokenize_origin(_word)[0]
         word_piece_words.extend(self.bert_tokenizer.convert_tokens_to_ids(bpe_word))
+
         word_piece_words_index.extend([tokens[0] for _ in bpe_word])
         is_first_bpe_of_words.append(1)
         is_first_bpe_of_words.extend([0 for _ in range(len(bpe_word)-1)])
@@ -302,7 +304,8 @@ class CoNLLReader(object):
 
           is_mwe.append(0)
           is_mwe.extend([-1 for _ in range(len(bert_pre_tokens)-1)])
-
+          n_masks_to_add_in_raw_label.append(0)
+          n_masks_to_add_in_raw_label.extend([-1 for _ in range(len(bert_pre_tokens) - 1)])
           is_first_bpe_of_token.append(1)
           is_first_bpe_of_token.extend([0 for _ in range(len(bert_pre_tokens) - 1)])
         # if we are reading words that are comming within a MWE we save them to know the alignement
@@ -317,6 +320,9 @@ class CoNLLReader(object):
             # we index masks inserted it in the sequence as -1
             word_piece_raw_tokens_aligned_index.extend([-1 for _ in range(n_masks_to_add_in_raw)])
             word_piece_raw_tokens_aligned.extend(self.bert_tokenizer.convert_tokens_to_ids([MASK_BERT for _ in range(n_masks_to_add_in_raw)]))
+
+            n_masks_to_add_in_raw_label.append(n_masks_to_add_in_raw)
+            n_masks_to_add_in_raw_label.extend([-1 for _ in range(len(mwe)-1)])
 
       if self.case is not None and self.case == "lower":
         _word = _word.lower()
@@ -367,6 +373,7 @@ class CoNLLReader(object):
       type_ids.append(self.__type_dictionary.get_index(END_TYPE))
       heads.append(END_HEADS_INDEX)
       is_mwe.append(-1)
+      n_masks_to_add_in_raw_label.append(-1)
 
     if self.bert_tokenizer is not None:
 
@@ -393,7 +400,8 @@ class CoNLLReader(object):
                                                word_piece_normalization=word_piece_normalization,
                                                word_piece_raw_tokens_aligned=word_piece_raw_tokens_aligned,
                                                word_piece_raw_tokens=word_piece_raw_tokens,
-                                               word_piece_words=word_piece_words, is_mwe=is_mwe,
+                                               word_piece_words=word_piece_words,
+                                               is_mwe=is_mwe, n_masks_to_add_in_raw_label=n_masks_to_add_in_raw_label,
                                                word_piece_raw_tokens_aligned_index=word_piece_raw_tokens_aligned_index,
                                                word_piece_words_index=word_piece_words_index,
                                                word_piece_raw_tokens_index=word_piece_raw_tokens_index,
