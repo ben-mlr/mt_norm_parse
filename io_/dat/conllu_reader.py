@@ -1,4 +1,4 @@
-from .ioutils import DependencyInstance, Sentence
+from .ioutils import DependencyInstance, Sentence, SentenceWordPieced
 from .constants import DIGIT_RE, MAX_CHAR_LENGTH, NUM_CHAR_PAD, ROOT, ROOT_CHAR, ROOT_POS, ROOT_TYPE, PAD, END_CHAR, END_POS, END_TYPE, END, ROOT_HEADS_INDEX, END_HEADS_INDEX, CLS_BERT, SEP_BERT, MASK_BERT
 from io_.info_print import printing
 from io_.dat.conllu_get_normalization import get_normalized_token
@@ -18,6 +18,20 @@ class CoNLLReader(object):
                bert_tokenizer=None,
                case=None,
                max_char_len=MAX_CHAR_LENGTH):
+    """
+    NB : naming conventions : we call words : syntactic words , tokens : raw unsegmentd tokens
+    :param file_path:
+    :param word_dictionary:
+    :param char_dictionary:
+    :param pos_dictionary:
+    :param type_dictionary:
+    :param xpos_dictionary:
+    :param lemma_dictionary:
+    :param word_norm_dictionary:
+    :param bert_tokenizer:
+    :param case:
+    :param max_char_len:
+    """
     self.__source_file = codecs.open(file_path, 'r', 'utf-8', errors='ignore')
     self.__file_path = file_path
     self.__word_dictionary = word_dictionary
@@ -49,6 +63,7 @@ class CoNLLReader(object):
               load_everything=False,
               verbose=0):
     line = self.__source_file.readline()
+    n_words = None
     if tasks is None:
       tasks = []
     else:
@@ -107,18 +122,44 @@ class CoNLLReader(object):
     is_mwe = [-1]
     if self.bert_tokenizer is not None:
       # NB : for the raw tokens we consider the pre-tokenization of the CONLLU format so far
+      word_piece_words_index = [-1]
+      word_piece_normalization_index = [-1]
+      word_piece_raw_tokens_index = [-1]
+      word_piece_raw_tokens_aligned_index = [-1]
+      word_piece_lemmas_index = [-1]
+
+      is_first_bpe_of_token = [-1]
+      is_first_bpe_of_words = [-1]
+
       word_piece_raw_tokens = self.bert_tokenizer.convert_tokens_to_ids([CLS_BERT])
       word_piece_raw_tokens_aligned = self.bert_tokenizer.convert_tokens_to_ids([CLS_BERT])
       word_piece_words = self.bert_tokenizer.convert_tokens_to_ids([CLS_BERT])
       word_piece_lemmas = self.bert_tokenizer.convert_tokens_to_ids([CLS_BERT])
       if normalization:
+        is_first_bpe_of_norm = [-1]
         word_piece_normalization = self.bert_tokenizer.convert_tokens_to_ids([CLS_BERT])
+      else:
+        is_first_bpe_of_norm = []
+        word_piece_normalization = []
     else:
+      is_first_bpe_of_norm = []
+      is_first_bpe_of_token = []
+      is_first_bpe_of_words = []
+
       word_piece_raw_tokens = []
+      word_piece_raw_tokens_index = []
+
       word_piece_raw_tokens_aligned = []
+      word_piece_raw_tokens_aligned_index = []
+
       word_piece_words = []
+      word_piece_words_index = []
+
       word_piece_lemmas = []
+      word_piece_lemmas_index = []
+
       word_piece_normalization = []
+      word_piece_normalization_index = []
 
     if symbolic_root:
       words.append(ROOT)
@@ -145,15 +186,25 @@ class CoNLLReader(object):
 
     for tokens in lines:
 
+      # reading a MWE : we append to the raw tokens
       if '-' in tokens[0] or '.' in tokens[0]:
         matching_mwe_ind = re.match("([0-9]+)-([0-9]+)", tokens[0])
 
         assert matching_mwe_ind is not None, "ERROR : tokens[0] {} - or . byt did not match mwe pattern".format(tokens[0])
-        is_mwe.append(1)
-
-        mwe = self.bert_tokenizer.tokenize(tokens[1])[0]
+        mwe = self.bert_tokenizer.tokenize_origin(tokens[1])[0]
         word_piece_raw_tokens.extend(self.bert_tokenizer.convert_tokens_to_ids(mwe))
+        # we add indexes range to highlight MWE
+        word_piece_raw_tokens_index.extend([tokens[0] for _ in mwe])
+
+        is_mwe.append(1)
+        is_mwe.extend([-1 for _ in range(len(mwe)-1)])
+
+        is_first_bpe_of_token.append(1)
+        is_first_bpe_of_token.extend([0 for _ in range(len(mwe)-1)])
+
         word_piece_raw_tokens_aligned.extend(self.bert_tokenizer.convert_tokens_to_ids(mwe))
+        word_piece_raw_tokens_aligned_index.extend([tokens[0] for _ in mwe])
+
         id_stop_mwe = eval(matching_mwe_ind.group(2))
         assert isinstance(id_stop_mwe, int), "ERROR : {} not int while it should".format(id_stop_mwe)
         id_start_mwe =eval(matching_mwe_ind.group(1))
@@ -166,9 +217,8 @@ class CoNLLReader(object):
           open(os.path.join(os.environ["EXPERIENCE"], "logs/catching_errors.txt"), "a").write("Line broken {} because of tokens {} from {} file \n ".format(lines, tokens,self.__file_path))
         continue
 
-      # mwe labels
-      if eval(tokens[0]) > id_stop_mwe:
-        is_mwe.append(0)
+      n_words = tokens[0]
+      # is_mwe labels : 1 label per words (not raw token but tokenized words)
 
       n_exception = 0
       if normalization:
@@ -177,9 +227,13 @@ class CoNLLReader(object):
                                                              predict_mode_only=not must_get_norm,
                                                              verbose=verbose)
         if self.bert_tokenizer is not None:
-          normalized_token = self.bert_tokenizer.tokenize(normalized_token)[0]
-          word_piece_normalization.extend(self.bert_tokenizer.convert_tokens_to_ids(normalized_token))
+          normalized_token = self.bert_tokenizer.tokenize_origin(normalized_token)[0]
 
+          is_first_bpe_of_norm.append(1)
+          is_first_bpe_of_norm.extend([0 for _ in range(len(normalized_token)-1)])
+
+          word_piece_normalization.extend(self.bert_tokenizer.convert_tokens_to_ids(normalized_token))
+          word_piece_normalization_index.extend([tokens[0] for _ in range(normalized_token)])
         if self.case is not None and self.case == "lower":
           normalized_token = normalized_token.lower()
         # extracting normalized words as sequence of characters as string and ids, string and ids
@@ -206,8 +260,8 @@ class CoNLLReader(object):
 
         printing("Normalized word is {} encoded as {} "
                  "normalized character sequence is {} "
-                 "encoded as {} ".format(normalized_token, normalized_token_id, char_norm_str_seq , char_norm_id_seqs),
-                                         verbose_level=6, verbose=verbose)
+                 "encoded as {} ".format(normalized_token, normalized_token_id, char_norm_str_seq,
+                                         char_norm_id_seqs), verbose_level=6, verbose=verbose)
       chars = []
       char_ids = []
 
@@ -225,21 +279,43 @@ class CoNLLReader(object):
       _word = tokens[1]
 
       if self.bert_tokenizer is not None:
-        word_piece_words.extend(self.bert_tokenizer.convert_tokens_to_ids(self.bert_tokenizer.tokenize(_word)[0]))
+        bpe_word = self.bert_tokenizer.tokenize_origin(_word)[0]
+        word_piece_words.extend(self.bert_tokenizer.convert_tokens_to_ids(bpe_word))
+        word_piece_words_index.extend([tokens[0] for _ in bpe_word])
+        is_first_bpe_of_words.append(1)
+        is_first_bpe_of_words.extend([0 for _ in range(len(bpe_word)-1)])
         # lemmas
-        word_piece_lemmas.extend(self.bert_tokenizer.convert_tokens_to_ids(self.bert_tokenizer.tokenize(tokens[2])[0]))
+        bpe_lemma = self.bert_tokenizer.tokenize_origin(tokens[2])[0]
+        word_piece_lemmas_index.extend([tokens[0] for _ in bpe_lemma])
+        word_piece_lemmas.extend(self.bert_tokenizer.convert_tokens_to_ids(bpe_lemma))
+
+        # if we are not in a mwe we add every tokens in raw tokens
         if eval(tokens[0]) > id_stop_mwe:
           mwe_splits_save = []
-          bert_pre_tokens = self.bert_tokenizer.tokenize(tokens[1])[0]
+          bert_pre_tokens = self.bert_tokenizer.tokenize_origin(tokens[1])[0]
+
+          word_piece_raw_tokens_index.extend([tokens[0] for _ in bert_pre_tokens])
           word_piece_raw_tokens.extend(self.bert_tokenizer.convert_tokens_to_ids(bert_pre_tokens))
+
+          word_piece_raw_tokens_aligned_index.extend([tokens[0] for _ in bert_pre_tokens])
           word_piece_raw_tokens_aligned.extend(self.bert_tokenizer.convert_tokens_to_ids(bert_pre_tokens))
-        elif id_start_mwe <= eval(tokens[0]) < id_stop_mwe:
+
+          is_mwe.append(0)
+          is_mwe.extend([-1 for _ in range(len(bert_pre_tokens)-1)])
+
+          is_first_bpe_of_token.append(1)
+          is_first_bpe_of_token.extend([0 for _ in range(len(bert_pre_tokens) - 1)])
+        # if we are reading words that are comming within a MWE we save them to know the alignement
+        # when we reached the end of the MWE we add the numbers of masks necessary
+        # to align bpes of raw sentence and  bpes of tokenized sequence
+        elif id_start_mwe <= eval(tokens[0]) <= id_stop_mwe:
           mwe_splits_save.append(tokens[1])
           if eval(tokens[0]) == id_stop_mwe:
-            mwe_splits_save = self.bert_tokenizer.tokenize(mwe_splits_save)[0]
-            n_masks_to_add_in_raw = len(self.bert_tokenizer.convert_tokens_to_ids(mwe_splits_save))-len(self.bert_tokenizer.convert_tokens_to_ids(mwe))
+            mwe_splits_save = self.bert_tokenizer.tokenize_origin(" ".join(mwe_splits_save))[0]
+            n_masks_to_add_in_raw = len(mwe_splits_save)-len(mwe)
             assert n_masks_to_add_in_raw >= 0, "ERROR : n_masks_to_add_in_raw should be an int : pb with tokens {} ".format(tokens)
-
+            # we index masks inserted it in the sequence as -1
+            word_piece_raw_tokens_aligned_index.extend([-1 for _ in range(n_masks_to_add_in_raw)])
             word_piece_raw_tokens_aligned.extend(self.bert_tokenizer.convert_tokens_to_ids([MASK_BERT for _ in range(n_masks_to_add_in_raw)]))
 
       if self.case is not None and self.case == "lower":
@@ -292,26 +368,53 @@ class CoNLLReader(object):
       heads.append(END_HEADS_INDEX)
       is_mwe.append(-1)
 
-      if self.bert_tokenizer is not None:
-        word_piece_raw_tokens.extend(self.bert_tokenizer.convert_tokens_to_ids([SEP_BERT]))
-        word_piece_raw_tokens_aligned.extend(self.bert_tokenizer.convert_tokens_to_ids([SEP_BERT]))
-        word_piece_words.extend(self.bert_tokenizer.convert_tokens_to_ids([SEP_BERT]))
-        word_piece_lemmas.extend(self.bert_tokenizer.convert_tokens_to_ids([SEP_BERT]))
-        if normalization:
-          word_piece_normalization.extend(self.bert_tokenizer.convert_tokens_to_ids([SEP_BERT]))
+    if self.bert_tokenizer is not None:
 
-    return DependencyInstance(Sentence(words, word_ids, char_seqs,char_id_seqs, [lines, raw_text],
+      is_first_bpe_of_words.append(-1)
+      is_first_bpe_of_token.append(-1)
+      if normalization:
+          is_first_bpe_of_norm.append(-1)
+
+      word_piece_normalization_index.append(-1)
+      word_piece_raw_tokens_index.append(-1)
+      word_piece_raw_tokens_aligned_index.append(-1)
+      word_piece_words_index.append(-1)
+      word_piece_lemmas_index.append(-1)
+
+      word_piece_raw_tokens.extend(self.bert_tokenizer.convert_tokens_to_ids([SEP_BERT]))
+      word_piece_raw_tokens_aligned.extend(self.bert_tokenizer.convert_tokens_to_ids([SEP_BERT]))
+      word_piece_words.extend(self.bert_tokenizer.convert_tokens_to_ids([SEP_BERT]))
+      word_piece_lemmas.extend(self.bert_tokenizer.convert_tokens_to_ids([SEP_BERT]))
+
+      if normalization:
+        word_piece_normalization.extend(self.bert_tokenizer.convert_tokens_to_ids([SEP_BERT]))
+
+      sentence_word_piece = SentenceWordPieced(word_piece_lemmas=word_piece_lemmas,
+                                               word_piece_normalization=word_piece_normalization,
+                                               word_piece_raw_tokens_aligned=word_piece_raw_tokens_aligned,
+                                               word_piece_raw_tokens=word_piece_raw_tokens,
+                                               word_piece_words=word_piece_words, is_mwe=is_mwe,
+                                               word_piece_raw_tokens_aligned_index=word_piece_raw_tokens_aligned_index,
+                                               word_piece_words_index=word_piece_words_index,
+                                               word_piece_raw_tokens_index=word_piece_raw_tokens_index,
+                                               is_first_bpe_of_token=is_first_bpe_of_token,
+                                               is_first_bpe_of_norm=is_first_bpe_of_norm,
+                                               is_first_bpe_of_words=is_first_bpe_of_words)
+      sentence_word_piece.sanity_check_len(normalization=normalization, n_words=n_words)
+    else:
+      sentence_word_piece = None
+
+    return DependencyInstance(Sentence(words, word_ids, char_seqs,char_id_seqs,
+                                       [lines, raw_text],
                                        word_norm=norm_words,
                                        word_norm_ids=norm_word_ids,
                                        char_norm_ids_seq=char_norm_id_seqs,
-                                       word_piece_lemmas=word_piece_lemmas,
-                                       word_piece_raw_tokens_aligned=word_piece_raw_tokens_aligned,
-                                       word_piece_raw_tokens=word_piece_raw_tokens,
-                                       word_piece_words=word_piece_words, is_mwe=is_mwe,
                                        char_norm_seq=char_norm_str_seq),
-                              postags, pos_ids, xpostags, xpos_ids, lemmas, lemma_ids, heads, types, type_ids)
+                              postags, pos_ids, xpostags, xpos_ids, lemmas, lemma_ids, heads, types, type_ids,
+                              sentence_word_piece)
 
 # TODO : add end begin symbol both for character sequence and normalized character sequence
+
 
 
 

@@ -92,14 +92,60 @@ def getOOVWords(word_dictionary, test_path):
   return oov_words
 
 
+class SentenceWordPieced(object):
+  def __init__(self, word_piece_raw_tokens_aligned=None, word_piece_raw_tokens=None,
+               word_piece_normalization=None,
+               word_piece_words=None, word_piece_lemmas=None,
+               is_mwe=None,
+               word_piece_raw_tokens_aligned_index=None, word_piece_words_index=None, word_piece_raw_tokens_index=None,
+               is_first_bpe_of_token=None, is_first_bpe_of_norm=None, is_first_bpe_of_words=None):
+    # bpe indexes
+    self.word_piece_raw_tokens_aligned = word_piece_raw_tokens_aligned if len(word_piece_raw_tokens_aligned) > 0 else None
+    self.word_piece_raw_tokens = word_piece_raw_tokens if len(word_piece_raw_tokens) > 0 else None
+    self.word_piece_words = word_piece_words if len(word_piece_words) > 0 else None
+    self.word_piece_lemmas = word_piece_lemmas if len(word_piece_lemmas) > 0 else None
+    self.word_piece_normalization = word_piece_normalization if len(word_piece_normalization) else None
+    # is MWE per first bpe tokens
+    self.is_mwe = is_mwe if len(is_mwe) > 0 else None
+    # first token of each sequence indicator
+    self.is_first_bpe_of_token = is_first_bpe_of_token
+    self.is_first_bpe_of_norm = is_first_bpe_of_norm
+    self.is_first_bpe_of_words = is_first_bpe_of_words
+    # alignement with UD token
+    self.word_piece_raw_tokens_aligned_index = word_piece_raw_tokens_aligned_index
+    self.word_piece_raw_tokens_index = word_piece_raw_tokens_index
+    self.word_piece_words_index = word_piece_words_index
+
+  def sanity_check_len(self, normalization, n_words):
+
+    assert len(self.is_first_bpe_of_token) == len(self.word_piece_raw_tokens), "ERROR : {} not same len as {}".format(self.is_first_bpe_of_token, self.word_piece_raw_tokens)
+
+    if normalization:
+      assert len(self.is_first_bpe_of_norm) == len(self.word_piece_normalization)
+
+    assert len(self.is_first_bpe_of_words) == len(self.word_piece_words), "ERROR : {} not same len as {}".format(self.is_first_bpe_of_words, self.word_piece_words)
+    ## as many words (syntactic word) as lemmas
+    #assert len(self.word_piece_lemmas) == len(self.word_piece_w), "ERROR : {} not same len as {}".format(self.word_piece_lemmas, self.word_piece_words)
+    # as many words as aligned tokens (MASK were added)
+    assert len(self.word_piece_raw_tokens_aligned) == len(self.word_piece_words), "ERROR : {} not same len as {}".format(len(self.word_piece_raw_tokens_aligned), len(self.word_piece_words))
+    # as many raw tokens as is_mwe
+    assert len(self.word_piece_raw_tokens) == len(self.is_mwe), "ERROR : {} not same len as {}".format(self.word_piece_raw_tokens, self.is_mwe)
+    # check alignement index with 1-hot encoded index
+    assert len(self.word_piece_raw_tokens_aligned_index) == len(self.word_piece_raw_tokens_aligned), "ERROR : {} not same len as {}".format(self.word_piece_raw_tokens_aligned_index, self.word_piece_raw_tokens_aligned)
+    assert len(self.word_piece_raw_tokens_index) == len(self.word_piece_raw_tokens)
+    assert len(self.word_piece_words) == len(self.word_piece_words_index)
+
+    assert eval(n_words) == len([first_word for first_word in self.is_first_bpe_of_words if first_word == 1]), \
+      "ERROR n_words {} while {} first bpe of words".format(n_words, len([first_word for first_word in self.is_first_bpe_of_words if first_word == 1]))
+
+    # could do more checks on n_raw tokens based on data
+
+
 class Sentence(object):
   def __init__(self, words, word_ids,
                char_seqs, char_id_seqs, lines,
                word_norm=None, word_norm_ids=None,
-               char_norm_seq=None, char_norm_ids_seq=None, is_mwe=None,
-               word_piece_raw_tokens_aligned=None, word_piece_raw_tokens=None,
-               word_piece_words=None, word_piece_lemmas=None
-
+               char_norm_seq=None, char_norm_ids_seq=None,
                ):
     self.words = words
     self.word_ids = word_ids
@@ -110,19 +156,16 @@ class Sentence(object):
     self.char_norm_ids_seq = char_norm_ids_seq
     self.word_norm = word_norm
     self.word_norm_ids = word_norm_ids
-    self.word_piece_raw_tokens_aligned = word_piece_raw_tokens_aligned if len(word_piece_raw_tokens_aligned)>0 else None
-    self.word_piece_raw_tokens = word_piece_raw_tokens if len(word_piece_raw_tokens)>0 else None
-    self.word_piece_words = word_piece_words if len(word_piece_words)>0 else None
-    self.word_piece_lemmas = word_piece_lemmas if len(word_piece_lemmas)>0 else None
-    self.is_mwe = is_mwe if len(is_mwe) > 0 else None
 
   def length(self):
     return len(self.words)
 
 
 class DependencyInstance(object):
-  def __init__(self, sentence, postags, pos_ids, xpostags, xpos_ids, lemmas, lemma_ids, heads, types, type_ids):
+  def __init__(self, sentence, postags, pos_ids, xpostags, xpos_ids, lemmas, lemma_ids, heads, types, type_ids,
+               sentence_word_piece=None):
     self.sentence = sentence
+    self.sentence_word_piece = sentence_word_piece
     self.postags = postags
     self.pos_ids = pos_ids
     self.xpostags = xpostags

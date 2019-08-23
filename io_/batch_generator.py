@@ -17,6 +17,7 @@ class MaskBatch(object):
     def __init__(self, input_seq, output_seq,
                  raw_input=None, raw_output=None, types=None, heads=None,
                  output_word=None, pos=None, input_word=None, edit=None,
+                 wordpieces_words=None, wordpieces_raw_aligned_with_words=None, wordpieces_inputs_raw_tokens=None, is_mwe_label=None,
                  output_norm_not_norm=None, pad=PAD_ID_CHAR, verbose=0, timing=False, dropout_input=0.):
 
         self.raw_input = raw_input
@@ -24,6 +25,11 @@ class MaskBatch(object):
 
         self.input_seq = input_seq
         self.input_word = input_word
+
+        self.wordpieces_words = wordpieces_words
+        self.wordpieces_raw_aligned_with_words = wordpieces_raw_aligned_with_words
+        self.wordpieces_inputs_raw_tokens = wordpieces_inputs_raw_tokens
+        self.is_mwe_label = is_mwe_label
 
         # NB : the attributes should be aligned with the task_settings label field
         self.pos = pos

@@ -52,7 +52,9 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                                                              normalization=normalization),
                           disable=disable_tqdm_level(verbose, verbose_level=2)):
 
-            words, word_norm, chars, chars_norm, word_norm_not_norm, edit, pos, xpos, heads, types, \
+            words, word_norm,\
+                wordpieces_words, wordpieces_raw_aligned_with_words, wordpieces_inputs_raw_tokens, is_mwe_label, \
+                chars, chars_norm, word_norm_not_norm, edit, pos, xpos, heads, types, \
                 masks, lengths, order_ids, raw_word_inputs, normalized_str, raw_lines = batch
 
             if not normalization:
@@ -69,11 +71,17 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                                 types=types, heads=heads,
                                 output_word=word_norm, pos=pos, input_word=words, dropout_input=dropout_input,
                                 raw_input=raw_word_inputs, raw_output=normalized_str,
+                                wordpieces_words=wordpieces_words,
+                                wordpieces_raw_aligned_with_words=wordpieces_raw_aligned_with_words,
+                                wordpieces_inputs_raw_tokens=wordpieces_inputs_raw_tokens, is_mwe_label=is_mwe_label,
                                 verbose=verbose), order_ids
             else:
                 yield MaskBatch(chars_norm, chars,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
                                 output_word=word_norm, pos=pos, input_word=words, dropout_input=dropout_input, edit=edit,
                                 types=types, heads=heads,
+                                wordpieces_words=wordpieces_words,
+                                wordpieces_raw_aligned_with_words=wordpieces_raw_aligned_with_words,
+                                wordpieces_inputs_raw_tokens=wordpieces_inputs_raw_tokens, is_mwe_label=is_mwe_label,
                                 raw_input=normalized_str, raw_output=raw_word_inputs,
                                 verbose=verbose), order_ids
 
@@ -83,7 +91,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             # word, char, pos, xpos, heads, types, masks, lengths, morph
             printing("Data : getting {} out of {} batches", var=(ibatch, nbatch+1), verbose=verbose, verbose_level=2)
 
-            word, word_norm, char, chars_norm, word_norm_not_norm, edit, pos, _, heads, types, _, \
+            word, word_norm, wordpieces_words, wordpieces_raw_aligned_with_words, wordpieces_inputs_raw_tokens, is_mwe_label, char, chars_norm, word_norm_not_norm, edit, pos, _, heads, types, _, \
             lenght, order_ids, raw_word_inputs, normalized_str, _ = conllu_data.get_batch_variable(data,
                                                                                                       batch_size=batch_size,
                                                                                                       normalization=normalization,
@@ -119,10 +127,16 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             if NORM2NOISY:
                 print("WARNING !! NORM2NOISY ON ")
                 yield MaskBatch(chars_norm, char, output_word=word_norm, edit=edit, types=types, heads=heads,
+                                wordpieces_words=wordpieces_words,
+                                wordpieces_raw_aligned_with_words=wordpieces_raw_aligned_with_words,
+                                wordpieces_inputs_raw_tokens=wordpieces_inputs_raw_tokens, is_mwe_label=is_mwe_label,
                                 output_norm_not_norm=word_norm_not_norm, dropout_input=dropout_input,
                                 pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose), order_ids
             else:
                 yield MaskBatch(char, chars_norm, output_word=word_norm, edit=edit,
+                                wordpieces_words=wordpieces_words,
+                                wordpieces_raw_aligned_with_words=wordpieces_raw_aligned_with_words,
+                                wordpieces_inputs_raw_tokens=wordpieces_inputs_raw_tokens, is_mwe_label=is_mwe_label,
                                 types=types, heads=heads,
                                 output_norm_not_norm=word_norm_not_norm, dropout_input=dropout_input,
                                 pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose,

@@ -53,7 +53,6 @@ CLS_BERT = "[CLS]"
 NULL_STR = "[SPACE]"
 NULL_STR_TO_SHOW = "_"
 
-
 import re
 DIGIT_RE = re.compile(br"\d")
 

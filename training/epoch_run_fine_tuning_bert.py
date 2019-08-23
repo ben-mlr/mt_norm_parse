@@ -289,6 +289,7 @@ def epoch_run(batchIter, tokenizer,
                 out_bpe_tokenized = None
                 # TODO : should have a task specific input_mask and head_masks : only considering word level tasks and bpe level tasks for now
                 input_mask = get_mask_input(input_tokens_tensor, use_gpu)
+                pdb.set_trace()
                 head_masks, input_tokens_tensor, token_type_ids, label_per_task = get_label_per_bpe(args.tasks, batch, input_tokens_tensor,
                                                                                                     input_alignement_with_raw, use_gpu, tasks_parameters=TASKS_PARAMETER)
                 if not args.multitask:

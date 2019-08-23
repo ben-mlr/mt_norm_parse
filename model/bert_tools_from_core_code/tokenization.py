@@ -94,6 +94,12 @@ class BertTokenizer(object):
         self.max_len = max_len if max_len is not None else int(1e12)
 
     def tokenize_origin(self, text, verbose=1):
+        """
+        tokenizer as impplemented by Hugging Face
+        :param text:
+        :param verbose:
+        :return:
+        """
         split_tokens = []
         alignement_index = []
         basic_tokenization, alignement_with_original_index = self.basic_tokenizer.tokenize(text)
@@ -105,7 +111,14 @@ class BertTokenizer(object):
         return split_tokens, alignement_index
 
     def tokenize(self, text, target=None, aligne=False, verbose=1):
+        """
 
+        :param text:
+        :param target:
+        :param aligne:
+        :param verbose:
+        :return:
+        """
         split_tokens = []
         split_tokens_gold = []
         alignement_index = []

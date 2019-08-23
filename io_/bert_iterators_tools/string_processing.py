@@ -116,8 +116,8 @@ def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu,
     :return:
     """
     all_tokenized_ls = [tokenizer.tokenize_origin(inp,) for inp in list_pretokenized_str]
-
     tokenized_ls = [tup[0] for tup in all_tokenized_ls]
+
     aligned_index = [tup[1] for tup in all_tokenized_ls]
     segments_ids = [[0 for _ in range(len(tokenized))] for tokenized in tokenized_ls]
 
