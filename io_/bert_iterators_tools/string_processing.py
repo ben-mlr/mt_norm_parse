@@ -166,10 +166,10 @@ def from_bpe_token_to_str(bpe_tensor, topk, pred_mode, null_token_index, null_st
 
     predictions_topk_ls = [[[bpe_tensor[sent, word, top].item() if pred_mode else bpe_tensor[sent, word].item() for word in range(bpe_tensor.size(1))] for sent in range(bpe_tensor.size(0))] for top in range(topk)]
 
-    if label == "normalize" or get_string:
+    if label in ["normalize", "mwe_prediction"] or get_string:
         assert tokenizer is not None
-        sent_ls_top = [[tokenizer.convert_ids_to_tokens(sent_bpe, special_extra_token=null_token_index,
-                                                        special_token_string=null_str) for sent_bpe in predictions_topk] for predictions_topk in predictions_topk_ls]
+
+        sent_ls_top = [[tokenizer.convert_ids_to_tokens(sent_bpe, special_extra_token=null_token_index,special_token_string=null_str) for sent_bpe in predictions_topk] for predictions_topk in predictions_topk_ls]
         printing("DATA : bpe string again {}", var=[sent_ls_top], verbose=verbose, verbose_level="raw_data")
 
     elif label == "pos":

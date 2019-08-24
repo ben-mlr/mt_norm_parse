@@ -290,7 +290,9 @@ def epoch_run(batchIter, tokenizer,
                 # TODO : should have a task specific input_mask and head_masks : only considering word level tasks and bpe level tasks for now
                 input_mask = get_mask_input(input_tokens_tensor, use_gpu)
 
-                head_masks, input_tokens_tensor, token_type_ids, label_per_task, input_tokens_tensor_per_task = get_label_per_bpe(args.tasks, batch, input_tokens_tensor, input_alignement_with_raw, use_gpu,  tasks_parameters=TASKS_PARAMETER)
+                head_masks, input_tokens_tensor, token_type_ids, label_per_task, input_tokens_tensor_per_task = get_label_per_bpe(args.tasks, batch, input_tokens_tensor,
+                                                                                                                                  input_alignement_with_raw, use_gpu,
+                                                                                                                                  tasks_parameters=TASKS_PARAMETER)
                 dimension_check_label(label_per_task, input_tokens_tensor)
 
                 # NB : we use the aligned input with the
@@ -606,7 +608,8 @@ def epoch_run(batchIter, tokenizer,
                     # NB : maybe factorize with prediction
                     #assert len(set(args.tasks) & set(["parsing", "pos"])) == len(args.tasks), \
                     #    "ERROR need to handle tasks agnostic pad index for allowing other tasks {} ".format(args.tasks)
-                    if label != "parsing_heads":
+                    # we transform the padded labels according to the loss ignore mask parameters
+                    if label not in ["parsing_heads", "mwe_prediction", "n_masks_mwe", "mwe_detection"]:
                         label_per_task[label][label_per_task[label] == PAD_ID_TAG] = PAD_ID_LOSS_STANDART
                     # we do the token counting using labels
                     n_tokens_counter_per_task[label] += (label_per_task[label] != PAD_ID_LOSS_STANDART).sum().item()
@@ -614,10 +617,8 @@ def epoch_run(batchIter, tokenizer,
                     n_tokens_counter_current_per_task[label] = (label_per_task[label] != PAD_ID_LOSS_STANDART).sum().item()
                 # TODO : handle in a more standart way
                 n_tokens_counter_per_task["all"] += n_tokens_counter_current_per_task[label]
-                pdb.set_trace()
                 logits_dic, loss_dic, _ = model(input_tokens_tensor_per_task, token_type_ids, labels=label_per_task,
                                                 head_masks=head_masks, attention_mask=input_mask)
-                pdb.set_trace()
 
                 if len(list(loss_dic.keys() & set(TASKS_PARAMETER.keys()))) != len(loss_dic.keys()):
                     # it means a given task has several set of labels (e.g parsing)
@@ -625,24 +626,38 @@ def epoch_run(batchIter, tokenizer,
                     pass
 
                 predictions_topk_dic = get_prediction(logits_dic, topk=topk)
-                output_tokens_tensor_aligned_dic = get_aligned_output(label_per_task)
+                pdb.set_trace()
+                assert "normalize" not in args.tasks, "ERROR : following line () was needed apparently for normalize being supported"
+                #output_tokens_tensor_aligned_dic = get_aligned_output(label_per_task)
                 # for parsing heads will leave heads untouched
-                source_preprocessed, label_dic, predict_dic = get_bpe_string(predictions_topk_dic,
-                                                                             input_alignement_with_raw,
-                                                                             output_tokens_tensor_aligned_dic,
-                                                                             input_tokens_tensor, topk, tokenizer,
-                                                                             task_to_label_dictionary, null_str,
-                                                                             null_token_index, verbose)
-                # for parsing and tagging : will simply remove non-first bpe of each token
-                src_detokenized, label_detokenized_dic, predict_detokenize_dic = get_detokenized_str(source_preprocessed,
-                                                                                                     input_alignement_with_raw,
-                                                                                                     label_dic,
-                                                                                                     predict_dic,
-                                                                                                     null_str,
-                                                                                                     args.tasks,
-                                                                                                     remove_mask_str_prediction)
-                for label in label_detokenized_dic:
+                source_preprocessed_dict, label_dic, predict_dic = get_bpe_string(predictions_topk_dic,
+                                                                                 label_per_task,
+                                                                                 input_tokens_tensor_per_task, topk, tokenizer,
+                                                                                 task_to_label_dictionary, null_str,
+                                                                                 null_token_index, verbose)
+                pdb.set_trace()
 
+                # for parsing and tagging : will simply remove non-first bpe of each token
+                src_detokenized_dic, label_detokenized_dic, predict_detokenize_dic = get_detokenized_str(source_preprocessed_dict,
+                                                                                                         input_alignement_with_raw,
+                                                                                                         label_dic,
+                                                                                                         predict_dic,
+                                                                                                         null_str,
+                                                                                                         remove_mask_str_prediction,
+                                                                                                         batch=batch)
+                pdb.set_trace()
+
+                for label in label_detokenized_dic:
+                    # TODO make more standart
+                    if label in ["pos"] or label.startswith("parsing"):
+                        src_detokenized = src_detokenized_dic["mwe_prediction"]
+                    elif label in ["mwe_prediction"]:
+                        src_detokenized = src_detokenized_dic["wordpieces_raw_aligned_with_words"]
+                    elif label in ["n_masks_mwe", "mwe_detection"]:
+                        src_detokenized = src_detokenized_dic["wordpieces_inputs_raw_tokens"]
+                        pdb.set_trace()
+                    else:
+                        raise(Exception("label {} not found".format(label)))
                     perf_prediction, skipping, _samples = overall_word_level_metric_measure(task_label=label,
                                                                                             gold_sent_ls_dict=label_detokenized_dic,
                                                                                             pred_sent_ls_topk_dict=predict_detokenize_dic,
@@ -656,7 +671,7 @@ def epoch_run(batchIter, tokenizer,
 
                     printing("PREDICTION epoch {} task {} score all {}/{} total "
                              "gold {} gold token {} pred {} pred token {} ",
-                             var=[epoch, label, perf_prediction["sum"]["all"]["score"], perf_prediction["sum"]["all"]["n_tokens"], label_detokenized_dic[label], output_tokens_tensor_aligned_dic[label], predict_detokenize_dic[label], predictions_topk_dic[label][:, :, 0]],
+                             var=[epoch, label, perf_prediction["sum"]["all"]["score"], perf_prediction["sum"]["all"]["n_tokens"], label_detokenized_dic[label], label_per_task[label], predict_detokenize_dic[label], predictions_topk_dic[label][:, :, 0]],
                              verbose=verbose, verbose_level="pred")
 
                     score_dic[label], n_tokens_dic[label], n_sents_dic[label] = \
@@ -664,7 +679,9 @@ def epoch_run(batchIter, tokenizer,
                                                        dic_prediction_score=perf_prediction,
                                                        score_dic=score_dic[label], n_tokens_dic=n_tokens_dic[label],
                                                        n_sents_dic=n_sents_dic[label])
+
                     evaluated_task.append(label)
+                    print("TASK evaluated", label)
 
                 if writing_pred:
                     new_file = writing_predictions_conll_multi(

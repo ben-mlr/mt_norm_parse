@@ -177,18 +177,24 @@ def realigne_multi(ls_sent_str, input_alignement_with_raw, null_str, mask_str, t
     """
 
     assert len(ls_sent_str) == len(input_alignement_with_raw), \
-        "ERROR : ls_sent_str {} : {} input_alignement_with_raw {} : {} "\
-            .format(ls_sent_str, len(ls_sent_str), input_alignement_with_raw, len(input_alignement_with_raw))
+        "ERROR : ls_sent_str {} : {} input_alignement_with_raw {} : {} ".format(ls_sent_str, len(ls_sent_str),
+                                                                                input_alignement_with_raw, len(input_alignement_with_raw))
     new_sent_ls = []
     for sent, index_ls in zip(ls_sent_str, input_alignement_with_raw):
+
         assert len(sent) == len(index_ls), "ERROR : sent {} and index_ls {} not same len".format(sent, index_ls)
         former_index = -1
         new_sent = []
         former_token = ""
         for _i, (token, index) in enumerate(zip(sent, index_ls)):
             trigger_end_sent = False
+            try:
+                index = int(index)
+            except Exception as e:
+                print("ERROR", index, e)
+
             if remove_extra_predicted_token:
-                if index == 1000:
+                if index == 1000 or index == -1:
                     # we reach the end according to gold data
                     # (this means we just stop looking at the prediciton of the model (we can do that because we assumed word alignement))
                     trigger_end_sent = True
@@ -196,13 +202,13 @@ def realigne_multi(ls_sent_str, input_alignement_with_raw, null_str, mask_str, t
                 token = NULL_STR_TO_SHOW if not remove_null_str else ""
             if token == mask_str:
                 token = "X" if not remove_mask_str else ""
-            if "normalize" == task:
+            if task in ["normalize", "mwe_prediction"]:
                 if index == former_index:
                     if token.startswith("##"):
                         former_token += token[2:]
                     else:
                         former_token += token
-            elif "pos" == task or task.startswith("parsing"):
+            elif task in ["pos", "mwe_detection", "n_masks_mwe"] or task.startswith("parsing"):
                 # we just ignore bpe that are not first bpe of tokens
                 if index == former_index:
                     pass
@@ -212,12 +218,15 @@ def realigne_multi(ls_sent_str, input_alignement_with_raw, null_str, mask_str, t
                 new_sent.append(former_token)
                 former_token = token
                 if trigger_end_sent:
+                    #print("Triger")
+                    #pdb.set_trace()
                     break
             # if not pred mode : always not trigger_end_sent : True (required for the model to not stop too early if predict SEP too soon)
             if (former_token == TOKEN_BPE_BERT_SEP or _i + 1 == len(index_ls) and not remove_extra_predicted_token) or \
                     ((remove_extra_predicted_token and (
                             former_token == TOKEN_BPE_BERT_SEP and trigger_end_sent) or _i + 1 == len(index_ls))):
                 new_sent.append(token)
+                #print("Other BREAT")
                 break
             former_index = index
 

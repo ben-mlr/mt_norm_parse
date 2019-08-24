@@ -68,10 +68,8 @@ def get_bpe_label_word_level_task(labels, batch, input_tokens_tensor, input_alig
                     # as CLS is appended at the begining of each sentences : we need to adjust the labels for it
                     # TODO : !! cumulated is indexed by bpe tokenized sequence : label is indexed by original index : should get cumulated[lnew_index_label]
                     # CLS and SEQ points to the first token indexed by -1 so become 1
-                    #pdb.set_trace()
                     if label not in [ROOT_HEADS_INDEX, END_HEADS_INDEX] and cumulate_shift[ind_sent][label] > 0:
                         label += cumulate_shift[ind_sent][label]
-                        #pdb.set_trace()
                     label += CLS_ADJUST
             except Exception as e:
                 try:
@@ -154,22 +152,23 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
                 task_batch = eval("batch.{}".format(task_batch_name))
                 # we handle all word level tasks in the same way
                 #assert tasks_parameters[task]["prediction_level"] == "word", "ERROR only word level task supported here so far"
-                if True or tasks_parameters[task]["prediction_level"] == "word":
-                    output_tokens_tensor, head_mask, input_tokens_tensor = get_bpe_label_word_level_task(task_batch, batch,
-                                                                                                         input_tokens_tensor,
-                                                                                                         input_alignement_with_raw,
-                                                                                                         use_gpu, graph_labels=bool("parsing_heads" == task_batch_name))
-                    head_masks[task] = head_mask
-                    output_tokens_tensor_aligned = output_tokens_tensor[:, : input_tokens_tensor.size(1)]
-                    output_tokens_tensor_aligned = output_tokens_tensor_aligned.contiguous()
-                    if use_gpu:
-                        output_tokens_tensor_aligned = output_tokens_tensor_aligned.cuda()
-                    # if the task has several label : we just appen the label name to the task in the label dictionary
-                    label_name = task_batch_name #task if len(tasks_parameters[task]["label"]) == 1 else task+"_"+task_batch_name
-                    label_per_task[label_name] = output_tokens_tensor_aligned
-
+                if task in ["parsing", "pos"]:
+                    # for now we align parsing and tagging signal with raw input using get_bpe_label_word_level_task here
+                    output_tokens_tensor, head_mask, input_tokens_tensor = get_bpe_label_word_level_task(task_batch, batch, input_tokens_tensor, input_alignement_with_raw, use_gpu, graph_labels=bool("parsing_heads" == task_batch_name))
                 else:
-                    raise(Exception("ERROR : only word level supported so far "))
+                    # for tokenization related tasks we already took care of alignement during CoNLLReader
+                    output_tokens_tensor = task_batch
+                    head_mask = None
+                print(task, task_batch_name)
+                head_masks[task] = head_mask
+                output_tokens_tensor_aligned = output_tokens_tensor[:, : input_tokens_tensor.size(1)]
+                output_tokens_tensor_aligned = output_tokens_tensor_aligned.contiguous()
+                if use_gpu:
+                    output_tokens_tensor_aligned = output_tokens_tensor_aligned.cuda()
+                # if the task has several label : we just appen the label name to the task in the label dictionary
+                label_name = task_batch_name #task if len(tasks_parameters[task]["label"]) == 1 else task+"_"+task_batch_name
+                label_per_task[label_name] = output_tokens_tensor_aligned
+
             input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = input_tokens_tensor
 
     token_type_ids = torch.zeros_like(input_tokens_tensor)

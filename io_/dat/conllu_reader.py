@@ -123,11 +123,11 @@ class CoNLLReader(object):
     n_masks_to_add_in_raw_label = [-1]
     if self.bert_tokenizer is not None:
       # NB : for the raw tokens we consider the pre-tokenization of the CONLLU format so far
-      word_piece_words_index = [-1]
-      word_piece_normalization_index = [-1]
-      word_piece_raw_tokens_index = [-1]
-      word_piece_raw_tokens_aligned_index = [-1]
-      word_piece_lemmas_index = [-1]
+      word_piece_words_index = [0]
+      word_piece_normalization_index = [0]
+      word_piece_raw_tokens_index = [0]
+      word_piece_raw_tokens_aligned_index = [0]
+      word_piece_lemmas_index = [0]
 
       is_first_bpe_of_token = [-1]
       is_first_bpe_of_words = [-1]
@@ -382,11 +382,12 @@ class CoNLLReader(object):
       if normalization:
           is_first_bpe_of_norm.append(-1)
 
-      word_piece_normalization_index.append(-1)
-      word_piece_raw_tokens_index.append(-1)
-      word_piece_raw_tokens_aligned_index.append(-1)
-      word_piece_words_index.append(-1)
-      word_piece_lemmas_index.append(-1)
+      # we add one indx for SEP token
+      word_piece_normalization_index.append(int(n_words)+1)
+      word_piece_raw_tokens_index.append(int(n_words)+1)
+      word_piece_raw_tokens_aligned_index.append(int(n_words)+1)
+      word_piece_words_index.append(int(n_words)+1)
+      word_piece_lemmas_index.append(int(n_words)+1)
 
       word_piece_raw_tokens.extend(self.bert_tokenizer.convert_tokens_to_ids([SEP_BERT]))
       word_piece_raw_tokens_aligned.extend(self.bert_tokenizer.convert_tokens_to_ids([SEP_BERT]))

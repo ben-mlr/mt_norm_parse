@@ -53,12 +53,10 @@ def overall_word_level_metric_measure(task_label,
     for gold_ind_sent, gold_sent in enumerate(gold_sent_ls):
         # TODO test for all topk
         try:
-            assert len(gold_sent) == len(pred_sent_ls_topk[0][gold_ind_sent]), "ERROR : gold_sent : {} len {} and pred_sent_ls_topk[0][gold_ind_sent] {} len {} "\
-                .format(gold_sent, len(gold_sent),
-                        pred_sent_ls_topk[0][gold_ind_sent], len(pred_sent_ls_topk[0][gold_ind_sent]))
+            assert len(gold_sent) == len(pred_sent_ls_topk[0][gold_ind_sent]), "ERROR : gold_sent : {} len {} and pred_sent_ls_topk[0][gold_ind_sent] {} len {} ".format(gold_sent, len(gold_sent), pred_sent_ls_topk[0][gold_ind_sent], len(pred_sent_ls_topk[0][gold_ind_sent]))
             # WARNING : this might not be true in POS mode for some cases (when mask bpe is used)
         except Exception as e:
-            print("ERROR (scoring/report) ", e)
+            print("ERROR (scoring/report) on task {} ".format(task_label), e)
             if len(gold_sent) > len(pred_sent_ls_topk[0][gold_ind_sent]):
                 counter = 0
                 n_to_solve = len(gold_sent) - len(pred_sent_ls_topk[0][gold_ind_sent])

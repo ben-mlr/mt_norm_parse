@@ -483,13 +483,16 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
     tid_inputs = np.empty([bucket_size, bucket_length], dtype=np.int64)
 
     wordpieces_inputs_raw_tokens = np.empty([bucket_size, bucket_length_in_bpe], dtype=np.int64) if max_char_length_dic["buckets_length_bpe_words"] is not None else None
-    wordpieces_inputs_raw_tokens_alignement_index = np.empty([bucket_size, bucket_length_in_bpe], dtype=np.int64) if max_char_length_dic["buckets_length_bpe_words"] is not None else None
+
     is_mwe_label = np.empty([bucket_size, bucket_length_in_bpe], dtype=np.int64) if max_char_length_dic["buckets_length_bpe_words"] is not None else None
     n_masks_to_app_in_raw_label = np.empty([bucket_size, bucket_length_in_bpe], dtype=np.int64) if max_char_length_dic["buckets_length_bpe_words"] is not None else None
     wordpieces_words = np.empty([bucket_size, bucket_length_in_bpe], dtype=np.int64) if max_char_length_dic["buckets_length_bpe_words"] is not None else None
-    wordpieces_words_alignement_index = np.empty([bucket_size, bucket_length_in_bpe], dtype=np.int64) if max_char_length_dic["buckets_length_bpe_words"] is not None else None
+
     wordpieces_raw_aligned_with_words = np.empty([bucket_size, bucket_length_in_bpe], dtype=np.int64) if max_char_length_dic["buckets_length_bpe_words"] is not None else None
-    wordpieces_raw_aligned_alignement_index = np.empty([bucket_size, bucket_length_in_bpe], dtype=np.int64) if max_char_length_dic["buckets_length_bpe_words"] is not None else None
+
+    ind_wordpieces_words_alignement_index = [] if max_char_length_dic["buckets_length_bpe_words"] is not None else None
+    ind_wordpieces_inputs_raw_tokens_alignement_index = [] if max_char_length_dic["buckets_length_bpe_words"] is not None else None
+    ind_wordpieces_raw_aligned_alignement_index = [] if max_char_length_dic["buckets_length_bpe_words"] is not None else None
 
     if normalization:
       char_norm_length = min(max_char_len+NUM_CHAR_PAD, max_char_norm_length[bucket_id] + NUM_CHAR_PAD)
@@ -535,7 +538,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
         wordpieces_inputs_raw_tokens[i, :inst_size_bpe_raw] = word_piece_raw_tokens
         wordpieces_inputs_raw_tokens[i, inst_size_bpe_raw:] = PAD_ID_BERT
         # we cannot have range as int !!
-        #wordpieces_inputs_raw_tokens_alignement_index[i, :inst_size_bpe_raw] = word_piece_raw_tokens_index
+        ind_wordpieces_inputs_raw_tokens_alignement_index.append(word_piece_raw_tokens_index+[PAD_ID_LOSS_STANDART for _ in range(bucket_length_in_bpe-inst_size_bpe_raw)])
         #wordpieces_inputs_raw_tokens_alignement_index[i, inst_size_bpe_raw:] = PAD_ID_LOSS_STANDART
         n_masks_to_app_in_raw_label[i, :inst_size_bpe_raw] = n_masks_to_add_in_raw_label
         n_masks_to_app_in_raw_label[i, inst_size_bpe_raw:] = PAD_ID_LOSS_STANDART
@@ -547,12 +550,14 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
         wordpieces_words[i, :inst_size_bpe_word] = word_piece_words
         wordpieces_words[i, inst_size_bpe_word:] = PAD_ID_BERT
         # its bpe alignement index with source words
-        wordpieces_words_alignement_index[i, :inst_size_bpe_word] = word_piece_words_index
-        wordpieces_words_alignement_index[i, inst_size_bpe_word:] = PAD_ID_LOSS_STANDART
+
+        ind_wordpieces_words_alignement_index.append(word_piece_words_index + [PAD_ID_LOSS_STANDART for _ in range(bucket_length_in_bpe-inst_size_bpe_word)])
         # raw tokens aligned with words (inserted MASK)
+
         wordpieces_raw_aligned_with_words[i, :inst_size_bpe_word] = word_piece_raw_tokens_aligned
         wordpieces_raw_aligned_with_words[i, inst_size_bpe_word:] = PAD_ID_BERT
-        # is it useful ?
+        # is it useful: yes
+        ind_wordpieces_raw_aligned_alignement_index.append(word_piece_raw_tokens_aligned_index + [PAD_ID_LOSS_STANDART for _ in range(bucket_length_in_bpe-inst_size_bpe_word)])
         #wordpieces_raw_aligned_alignement_index[i, :inst_size_bpe_word] = word_piece_raw_tokens_aligned_index
         #wordpieces_raw_aligned_alignement_index[i, inst_size_bpe_word:] = PAD_ID_LOSS_STANDART
 
@@ -645,8 +650,11 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       n_masks_to_app_in_raw_label = Variable(torch.from_numpy(n_masks_to_app_in_raw_label), requires_grad=False)
       wordpieces_inputs_raw_tokens = Variable(torch.from_numpy(wordpieces_inputs_raw_tokens), requires_grad=False)
 
-      # we don't put as pytorch alignement indexes
+      ind_wordpieces_raw_aligned_alignement_index = np.array(ind_wordpieces_raw_aligned_alignement_index)
+      ind_wordpieces_inputs_raw_tokens_alignement_index = np.array(ind_wordpieces_inputs_raw_tokens_alignement_index)
+      ind_wordpieces_words_alignement_index = np.array(ind_wordpieces_inputs_raw_tokens_alignement_index)
 
+      # we don't put as pytorch alignement indexes
     pos = Variable(torch.from_numpy(pid_inputs), requires_grad=False)
     xpos = Variable(torch.from_numpy(xpid_inputs), requires_grad=False)
     heads = Variable(torch.from_numpy(hid_inputs), requires_grad=False)
@@ -679,7 +687,9 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
         wordpieces_inputs_raw_tokens = wordpieces_inputs_raw_tokens.cuda()
 
     data_variable.append((words, word_norm,
-                          wordpieces_words, wordpieces_raw_aligned_with_words, wordpieces_inputs_raw_tokens, is_mwe_label, n_masks_to_app_in_raw_label,
+                          wordpieces_words, wordpieces_raw_aligned_with_words, wordpieces_inputs_raw_tokens,
+                          ind_wordpieces_words_alignement_index, ind_wordpieces_raw_aligned_alignement_index, ind_wordpieces_inputs_raw_tokens_alignement_index,
+                          is_mwe_label, n_masks_to_app_in_raw_label,
                           chars, chars_norm, word_norm_not_norm, edit, pos, xpos, heads, types, masks, single, lengths, order_inputs, raw_word_inputs, words_normalized_str, raw_lines))
 
   return data_variable, bucket_sizes, _buckets, max_char_length_dic["n_sent"]
@@ -702,7 +712,9 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
   bucket_id = min([i for i in range(len(buckets_scale)) if buckets_scale[i] > random_number])
   bucket_length = _buckets[bucket_id]
 
-  words, word_norm, wordpieces_words, wordpieces_raw_aligned_with_words, wordpieces_inputs_raw_tokens, is_mwe_label, n_masks_to_app_in_raw_label,\
+  words, word_norm, wordpieces_words, wordpieces_raw_aligned_with_words, wordpieces_inputs_raw_tokens, \
+  ind_wordpieces_words_alignement_index, ind_wordpieces_raw_aligned_alignement_index, ind_wordpieces_inputs_raw_tokens_alignement_index,\
+  is_mwe_label, n_masks_to_app_in_raw_label,\
   chars, chars_norm, word_norm_not_norm, edit, pos, xpos, heads, types, masks, single, lengths, order_inputs, raw, normalized_str, raw_lines = data_variable[bucket_id]
   bucket_size = bucket_sizes[bucket_id]
   batch_size = min(bucket_size, batch_size)
@@ -714,10 +726,13 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
 
   if wordpieces_words is not None:
     wordpieces_words = wordpieces_words[index]
+    ind_wordpieces_words_alignement_index = ind_wordpieces_words_alignement_index[index]
   if wordpieces_raw_aligned_with_words is not None:
     wordpieces_raw_aligned_with_words = wordpieces_raw_aligned_with_words[index]
+    ind_wordpieces_raw_aligned_alignement_index = ind_wordpieces_raw_aligned_alignement_index[index]
   if wordpieces_inputs_raw_tokens is not None:
     wordpieces_inputs_raw_tokens = wordpieces_inputs_raw_tokens[index]
+    ind_wordpieces_inputs_raw_tokens_alignement_index = ind_wordpieces_inputs_raw_tokens_alignement_index[index]
   if is_mwe_label is not None:
     is_mwe_label = is_mwe_label[index]
   if n_masks_to_app_in_raw_label is not None:
@@ -739,7 +754,9 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
   raw = [raw[i.cpu().item()] for i in index]
   normalized_str = [normalized_str[i.cpu().item()] for i in index]
 
-  return words, word_norm, wordpieces_words, wordpieces_raw_aligned_with_words, wordpieces_inputs_raw_tokens, is_mwe_label, n_masks_to_app_in_raw_label, chars[index], chars_norm, word_norm_not_norm, edit, pos[index], xpos[index], heads[index], types[index],\
+  return words, word_norm, wordpieces_words, wordpieces_raw_aligned_with_words, wordpieces_inputs_raw_tokens, \
+         ind_wordpieces_words_alignement_index, ind_wordpieces_raw_aligned_alignement_index, ind_wordpieces_inputs_raw_tokens_alignement_index, \
+         is_mwe_label, n_masks_to_app_in_raw_label, chars[index], chars_norm, word_norm_not_norm, edit, pos[index], xpos[index], heads[index], types[index],\
          masks[index], lengths[index], order_inputs[index.cpu()], raw, normalized_str, raw_lines
 
 
@@ -758,7 +775,9 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
     bucket_length = _buckets[bucket_id]
     if bucket_size == 0:
       continue
-    words, word_norm, wordpieces_words, wordpieces_raw_aligned_with_words, wordpieces_inputs_raw_tokens, is_mwe_label, n_masks_to_app_in_raw_label, \
+    words, word_norm, wordpieces_words, wordpieces_raw_aligned_with_words, wordpieces_inputs_raw_tokens, \
+    ind_wordpieces_words_alignement_index, ind_wordpieces_raw_aligned_alignement_index, ind_wordpieces_inputs_raw_tokens_alignement_index, \
+    is_mwe_label, n_masks_to_app_in_raw_label, \
       chars, chars_norm, word_norm_not_norm, edit, pos, xpos, heads, types, masks, single, lengths, order_ids, \
       raw_word_inputs, normalized_str, raw_lines = data_variable[bucket_id]
 
@@ -795,14 +814,18 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
           #continue
       if wordpieces_words is not None:
         wordpieces_words = wordpieces_words[excerpt]
+        ind_wordpieces_words_alignement_index = ind_wordpieces_words_alignement_index[excerpt]
       if wordpieces_raw_aligned_with_words is not None:
         wordpieces_raw_aligned_with_words = wordpieces_raw_aligned_with_words[excerpt]
+        ind_wordpieces_raw_aligned_alignement_index = ind_wordpieces_raw_aligned_alignement_index[excerpt]
       if wordpieces_inputs_raw_tokens is not None:
         wordpieces_inputs_raw_tokens = wordpieces_inputs_raw_tokens[excerpt]
+        ind_wordpieces_inputs_raw_tokens_alignement_index = ind_wordpieces_inputs_raw_tokens_alignement_index[excerpt]
       if is_mwe_label is not None:
         is_mwe_label = is_mwe_label[excerpt]
       if n_masks_to_app_in_raw_label is not None:
         n_masks_to_app_in_raw_label = n_masks_to_app_in_raw_label[excerpt]
+
 
       if word_norm is not None:
         if word_norm.size(0) <= 0:
@@ -811,6 +834,7 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
           continue
       yield words[excerpt], _word_norm, \
             wordpieces_words, wordpieces_raw_aligned_with_words, wordpieces_inputs_raw_tokens, is_mwe_label, n_masks_to_app_in_raw_label, \
+            ind_wordpieces_words_alignement_index, ind_wordpieces_raw_aligned_alignement_index, ind_wordpieces_inputs_raw_tokens_alignement_index, \
             chars[excerpt], chars_norm_, _word_norm_not_norm, _edit, \
             pos[excerpt], xpos[excerpt], heads[excerpt], \
             types[excerpt],  \

@@ -19,6 +19,7 @@ class MaskBatch(object):
                  output_word=None, pos=None, input_word=None, edit=None,
                  wordpieces_words=None, wordpieces_raw_aligned_with_words=None, wordpieces_inputs_raw_tokens=None, is_mwe_label=None,
                  n_masks_to_app_in_raw_label=None,
+                 ind_wordpieces_words_alignement_index=None, ind_wordpieces_raw_aligned_alignement_index=None, ind_wordpieces_inputs_raw_tokens_alignement_index=None,
                  output_norm_not_norm=None, pad=PAD_ID_CHAR, verbose=0, timing=False, dropout_input=0.):
 
         self.raw_input = raw_input
@@ -32,6 +33,10 @@ class MaskBatch(object):
         self.wordpieces_inputs_raw_tokens = wordpieces_inputs_raw_tokens
         self.mwe_detection = is_mwe_label
         self.n_masks_mwe = n_masks_to_app_in_raw_label
+        # NB : the convention is that the alignement tensor is named as the original tensor with _alignement
+        self.mwe_prediction_alignement = ind_wordpieces_words_alignement_index
+        self.wordpieces_raw_aligned_with_words_alignement = ind_wordpieces_raw_aligned_alignement_index
+        self.wordpieces_inputs_raw_tokens_alignement = ind_wordpieces_inputs_raw_tokens_alignement_index
 
         # NB : the attributes should be aligned with the task_settings label field
         self.pos = pos
