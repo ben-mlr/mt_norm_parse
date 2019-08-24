@@ -134,7 +134,10 @@ def run(args,
                               add_start_char=1 if run_mode == "train" else None,
                               verbose=1)
     # we flatten the tasks
-    num_labels_per_task, task_to_label_dictionary = get_vocab_size_and_dictionary_per_task([task for tasks in args.tasks for task in tasks], pos_dictionary=pos_dictionary, type_dictionary=type_dictionary)
+    num_labels_per_task, task_to_label_dictionary = get_vocab_size_and_dictionary_per_task([task for tasks in args.tasks for task in tasks],
+                                                                                           vocab_bert_wordpieces_len=vocab_size,
+                                                                                           pos_dictionary=pos_dictionary,
+                                                                                           type_dictionary=type_dictionary)
     voc_pos_size = num_labels_per_task["pos"] if "pos" in args.tasks else None
     if voc_pos_size is not None:
         printing("MODEL : voc_pos_size defined as {}", var=voc_pos_size,  verbose_level=1, verbose=verbose)

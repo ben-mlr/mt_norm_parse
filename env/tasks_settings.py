@@ -13,6 +13,7 @@ TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact
                                  "label": ["normalize"],
                                  "eval_metrics": [["accuracy-exact-normalize", "accuracy-normalize", "npv-normalize", "recall-normalize", "precision-normalize","tnr-normalize", "f1-normalize", "accuracy-exact-n_masks_pred","accuracy-exact-normalize_pred"]],
                                  "predicted_classes": ["NORMED", "NEED_NORM"],
+
                                  "predicted_classes_pred_field": ["PRED_NORMED", "PRED_NEED_NORM"]
                                  },
                    # TOOD : could add input for full flexibility
@@ -20,6 +21,7 @@ TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact
                                      "head": "BertTokenHead",
                                      "loss": CrossEntropyLoss(ignore_index=-1, reduce="mean"),
                                      "prediction_level": "word",
+                                     "input": "wordpieces_inputs_raw_tokens",
                                      "label": ["mwe_detection"],
                                      "eval_metrics": [["accuracy-exact-is_mwe"]],
                                      },
@@ -28,14 +30,16 @@ TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact
                                      "head": "BertTokenHead",
                                      "loss": CrossEntropyLoss(ignore_index=-1, reduce="mean"),
                                      "prediction_level": "word",
+                                     "input": "wordpieces_inputs_raw_tokens",
                                      "label": ["n_masks_mwe"],
                                      "eval_metrics": [["accuracy-exact-n_masks_mwe"]],
                                      },
                    "mwe_prediction":
                                     {"normalization": False,
-                                     "head": "BertMLMHead",
+                                     "head": "BertOnlyMLMHead",
                                      "loss": CrossEntropyLoss(ignore_index=-1, reduce="mean"),
                                      "prediction_level": "bpe",
+                                     "input": "wordpieces_raw_aligned_with_words",
                                      "label": ["mwe_prediction"],
                                      "eval_metrics": [["accuracy-exact-mwe_pred"]],
                                      },
@@ -65,6 +69,8 @@ TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact
                            # a list per prediction
                            "eval_metrics": [["accuracy-exact-pos"]],
                            "label": ["pos"],
+                           # because its the label of mwe prediction
+                           "input": "mwe_prediction",
                            "head": "BertTokenHead",
                            "prediction_level": "word",
                            "loss": CrossEntropyLoss(ignore_index=-1,reduce="sum")
@@ -74,6 +80,8 @@ TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact
                        "default_metric": None,
                        "eval_metrics": [["accuracy-exact-parsing_heads"], ["accuracy-exact-parsing_types"]],
                        "head": "BertGraphHead",
+                        # because its the label of mwe prediction
+                        "input": "mwe_prediction",
                        "label": ["parsing_heads", "parsing_types"],
                        "prediction_level": "word",
                        "loss": CrossEntropyLoss(ignore_index=-1, reduction="mean")

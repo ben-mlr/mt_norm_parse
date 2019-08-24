@@ -2,7 +2,7 @@ from env.importing import OrderedDict, pdb
 from io_.info_print import printing
 
 
-def get_vocab_size_and_dictionary_per_task(tasks, pos_dictionary=None, type_dictionary=None, verbose=1):
+def get_vocab_size_and_dictionary_per_task(tasks, pos_dictionary=None, type_dictionary=None, vocab_bert_wordpieces_len=None, verbose=1):
     # TODO : should be factorize with load dictionaries
     if pos_dictionary is None and type_dictionary is None:
         assert "pos" not in tasks and "parsing" not in tasks, \
@@ -31,5 +31,9 @@ def get_vocab_size_and_dictionary_per_task(tasks, pos_dictionary=None, type_dict
     if "mwe_detection" in tasks:
         num_labels_per_task["mwe_detection"] = 1
         task_to_label_dictionary["mwe_detection"] = "index"
+    if "mwe_prediction" in tasks:
+        assert vocab_bert_wordpieces_len is not None
+        num_labels_per_task["mwe_prediction"] = vocab_bert_wordpieces_len
+        task_to_label_dictionary["mwe_detection"] = "bert"
 
     return num_labels_per_task, task_to_label_dictionary

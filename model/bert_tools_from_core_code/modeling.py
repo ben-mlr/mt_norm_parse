@@ -496,7 +496,7 @@ class BertOnlyMLMHead(nn.Module):
 
     def forward(self, sequence_output):
         prediction_scores = self.predictions(sequence_output)
-        return prediction_scores
+        return prediction_scores,
 
 
 class BertOnlyNSPHead(nn.Module):
@@ -961,26 +961,32 @@ class BertMultiTask(BertPreTrainedModel):
         self.layer_wise_attention = None
         self.labels_supported = [label for task in tasks for label in self.task_parameters[task]["label"]]
         for task in tasks:
-            try:
-                assert task in num_labels_per_task, "ERROR : no num label for task {} ".format(task)
-            except Exception as e:
-                # Handling parsing specificity here
-                # (the task and the dictionary(and the labels also) are not names the same
-                if task == "parsing":
-                    assert "parsing_types" in num_labels_per_task, "ERROR parsing_types should be in {}".format(num_labels_per_task)
-                else:
-                    raise(e)
+            if task not in ["mwe_prediction"]:
+                try:
+                    assert task in num_labels_per_task, "ERROR : no num label for task {} ".format(task)
+                except Exception as e:
+                    # Handling parsing specificity here
+                    # (the task and the dictionary(and the labels also) are not names the same
+                    if task == "parsing":
+                        assert "parsing_types" in num_labels_per_task, "ERROR parsing_types should be in {}".format(num_labels_per_task)
+                    else:
+                        raise(e)
         self.num_labels_dic = num_labels_per_task
         for i, task in enumerate(tasks):
             assert task in TASKS_PARAMETER, "ERROR : task {} is not in {}".format(task, TASKS_PARAMETER)
             num_label = task if task != "parsing" else "parsing_types"
-            self.head[task] = eval(self.task_parameters[task]["head"])(config, num_labels=self.num_labels_dic[num_label])
+            if task == "mwe_prediction":
+                # in this case we need to define and load MLM head of the model
+                self.head[task] = eval(self.task_parameters[task]["head"])(config, self.bert.embeddings.word_embeddings.weight)
+            else:
+                self.head[task] = eval(self.task_parameters[task]["head"])(config,num_labels=self.num_labels_dic[num_label])
 
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None, head_masks=None):
+    def forward(self, input_ids_dict, token_type_ids=None, attention_mask=None, labels=None, head_masks=None):
         if labels is None:
             labels = OrderedDict()
         if head_masks is None:
             head_masks = OrderedDict()
+        sequence_output_dict = OrderedDict()
         logits_dict = OrderedDict()
         loss_dict = OrderedDict()
         # sanity check the labels : they should all be in
@@ -988,20 +994,32 @@ class BertMultiTask(BertPreTrainedModel):
             assert label in self.labels_supported, "label {} in {} not supported".format(label, self.labels_supported)
 
         # task_wise layer attention
-        sequence_output, _ = self.bert(input_ids, token_type_ids=None,
-                                       attention_mask=attention_mask,
-                                       output_all_encoded_layers=self.layer_wise_attention is not None)
+        for input_name, input_tensors in input_ids_dict.items():
+            sequence_output, _ = self.bert(input_tensors, token_type_ids=None,
+                                           attention_mask=attention_mask,
+                                           output_all_encoded_layers=self.layer_wise_attention is not None)
+            sequence_output_dict[input_name] = sequence_output
+
         for task in self.tasks:
             # we don't use mask for parsing heads (cf. test performed below : the -1 already ignore the heads we don't want)
             # NB : head_masks for parsing only applies to heads not types
             head_masks_task = None#head_masks.get(task, None) if task != "parsing" else None
             # NB : head_mask means masks specific the the module heads (nothing related to parsing !! )
-            logits_dict[task] = self.head[task](sequence_output, head_mask=head_masks_task)
+            assert self.task_parameters[task]["input"] in sequence_output_dict, \
+                "ERROR input of task {} was not found in input_ids_dict {} " \
+                "and therefore not in sequence_output_dict".format(task, input_ids_dict.keys())
+            if not isinstance(self.head[task], BertOnlyMLMHead):
+                logits_dict[task] = self.head[task](sequence_output_dict[self.task_parameters[task]["input"]], head_mask=head_masks_task)
+            else:
+                logits_dict[task] = self.head[task](sequence_output_dict[self.task_parameters[task]["input"]])
             # test performed : (logits_dict[task][0][1,2,:20]==float('-inf'))==(labels["parsing_heads"][1,:20]==-1)
             # handle several labels at output (e.g  parsing)
             n_pred = len(list(logits_dict[task]))
-            assert n_pred == len(self.task_parameters[task]["label"]),\
+            try:
+                assert n_pred == len(self.task_parameters[task]["label"]),\
                 "ERROR : not as many labels as prediction for task {} : {} vs {} ".format(task, self.task_parameters[task]["label"], logits_dict[task])
+            except:
+                pdb.set_trace()
             logits_dict = self.rename_multi_modal_task_logits(labels=self.task_parameters[task]["label"],
                                                               logits_dict=logits_dict, task=task, n_pred=n_pred)
             for label_task in self.task_parameters[task]["label"]:
@@ -1137,7 +1155,9 @@ class BertForMaskedLM(BertPreTrainedModel):
         super(BertForMaskedLM, self).__init__(config)
         self.bert = BertModel(config)
         self.normalization_module = config.normalization_module
-        self.cls = BertOnlyMLMHead(config, self.bert.embeddings.word_embeddings.weight)
+        self.cls = BertOnlyMLMHead(config,
+                                   self.bert.embeddings.word_embeddings.weight)
+
         self.apply(self.init_bert_weights)
         layer_wise_attention = config.layer_wise_attention
         self.classifier_task_2 = None
@@ -1200,9 +1220,7 @@ class BertForMaskedLM(BertPreTrainedModel):
                 "ERROR : you provided labels for normalization and" \
                 " self.mask_n_predictor : so you should provide labels_n_mask_prediction"
             total_ponderation = 90
-            weight = torch.Tensor(
-                [5 / total_ponderation, 20 / total_ponderation, 20 / total_ponderation, 20 / total_ponderation,
-                 20 / total_ponderation])
+            weight = torch.Tensor([5 / total_ponderation, 20 / total_ponderation, 20 / total_ponderation, 20 / total_ponderation, 20 / total_ponderation])
             if logits_n_mask_prediction.is_cuda:
                 weight = weight.cuda()
             loss_fct_masks_pred = CrossEntropyLoss(ignore_index=-1, weight=weight)

@@ -74,6 +74,7 @@ SAMPLES_PER_TASK_TO_REPORT = {
 
             "n_masks_mwe": ["all", "InV", "OOV"],
             "mwe_detection": ["all", "InV", "OOV"],
+            "mwe_prediction": ["all", "InV", "OOV"],
 }
 
 edit_rules = ["edit_check-"+ref_list_label+"-"+need_normed_rule for ref_list_label in ["data", "ref", "all"] for need_normed_rule in ["need_normed", "all"]]
@@ -89,6 +90,7 @@ TASKS_2_METRICS_STR = {"all": ["accuracy-exact-normalize", "accuracy-normalize",
                        "pos": ["accuracy-exact-pos"],
                        "n_masks_mwe": ["accuracy-n_masks_mwe"],
                        "mwe_detection": ["accuracy-mwe_detection"],
+                       "mwe_prediction": ["mwe_prediction"],
                        "edit_prediction": [""],
                        "norm_not_norm": ["IoU-pred-normed", "recall-norm_not_norm", "accuracy-norm_not_norm","IoU-pred-need_norm","precision-norm_not_norm"]}
 # "InV-accuracy-normalize", "OOV-accuracy-normalize"

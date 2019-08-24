@@ -316,7 +316,7 @@ def sanity_check_batch_label(task, batch, verbose=1):
     # NB : we can do this if elif only because we don't do simulatnuous stuff
 
     tasks = task.split(",")
-
+    assert "all" not in tasks, "ERROR sanity not supported for 'all' tasks "
     for task in tasks:
         if task in ["all", "normalize"]:
             assert batch.output_seq is not None, "ERROR checking normalization output seq"
@@ -335,8 +335,12 @@ def sanity_check_batch_label(task, batch, verbose=1):
             assert batch.wordpieces_inputs_raw_tokens is not None, "ERROR : wordpieces_inputs_raw_tokens were not found in batch "
             assert batch.mwe_detection is not None, "ERROR : is_mwe_label were not found in batch "
         elif task in ["all", "n_masks_mwe"]:
-            assert batch.wordpieces_inputs_raw_tokens is not None, "ERROR : wordpieces_inputs_raw_tokens were not found in batch "
+            assert batch.wordpieces_inputs_raw_tokens is not None, "ERROR : wordpieces_inputs_raw_tokens " \
+                                                                   "were not found in batch "
             assert batch.n_masks_mwe is not None, "ERROR : n_masks_to_app_in_raw_label were not found in batch "
+        elif task in ["all", "mwe_prediction"]:
+            assert batch.mwe_prediction is not None
+            assert batch.wordpieces_raw_aligned_with_words is not None
         else:
             raise(Exception("task provided {} could not be checked".format(task)))
     #printing("BATCH CHECKED ", verbose=verbose, verbose_level=1)

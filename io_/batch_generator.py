@@ -27,7 +27,7 @@ class MaskBatch(object):
         self.input_seq = input_seq
         self.input_word = input_word
 
-        self.wordpieces_words = wordpieces_words
+        self.mwe_prediction = wordpieces_words
         self.wordpieces_raw_aligned_with_words = wordpieces_raw_aligned_with_words
         self.wordpieces_inputs_raw_tokens = wordpieces_inputs_raw_tokens
         self.mwe_detection = is_mwe_label

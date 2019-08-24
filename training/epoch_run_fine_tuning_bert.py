@@ -290,14 +290,8 @@ def epoch_run(batchIter, tokenizer,
                 # TODO : should have a task specific input_mask and head_masks : only considering word level tasks and bpe level tasks for now
                 input_mask = get_mask_input(input_tokens_tensor, use_gpu)
 
-                head_masks, input_tokens_tensor, token_type_ids, label_per_task = get_label_per_bpe(args.tasks, batch, input_tokens_tensor,
-                                                                                                    input_alignement_with_raw, use_gpu, tasks_parameters=TASKS_PARAMETER)
-                if not args.multitask:
-                    print("WARNING (epoch_run_fine_tuning_bert.py) head_masks is ignore in --0 multitask")
-                    print("WARNING (epoch_run_fine_tuning_bert.py) input masks is now pading only : we use loss to mask unwanted bpe token, it should be fine in TokenClassiciation")
+                head_masks, input_tokens_tensor, token_type_ids, label_per_task, input_tokens_tensor_per_task = get_label_per_bpe(args.tasks, batch, input_tokens_tensor, input_alignement_with_raw, use_gpu,  tasks_parameters=TASKS_PARAMETER)
                 dimension_check_label(label_per_task, input_tokens_tensor)
-                #if "pos" in args.tasks:
-                #    output_tokens_tensor_aligned = label_per_task["pos"]
 
                 # NB : we use the aligned input with the
             # logging
@@ -621,7 +615,8 @@ def epoch_run(batchIter, tokenizer,
                 # TODO : handle in a more standart way
                 n_tokens_counter_per_task["all"] += n_tokens_counter_current_per_task[label]
                 pdb.set_trace()
-                logits_dic, loss_dic, _ = model(input_tokens_tensor, token_type_ids, labels=label_per_task, head_masks=head_masks, attention_mask=input_mask)
+                logits_dic, loss_dic, _ = model(input_tokens_tensor_per_task, token_type_ids, labels=label_per_task,
+                                                head_masks=head_masks, attention_mask=input_mask)
                 pdb.set_trace()
 
                 if len(list(loss_dic.keys() & set(TASKS_PARAMETER.keys()))) != len(loss_dic.keys()):

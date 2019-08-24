@@ -144,6 +144,7 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
     #  TODO : should be done in pytorch + reducancies with get_index
 
     label_per_task = OrderedDict()
+    input_tokens_tensor_per_task = OrderedDict()
     input_mask, output_tokens_tensor = None, None
 
     head_masks = OrderedDict()
@@ -152,8 +153,8 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
             for task_batch_name in tasks_parameters[task]["label"]:
                 task_batch = eval("batch.{}".format(task_batch_name))
                 # we handle all word level tasks in the same way
-                assert tasks_parameters[task]["prediction_level"] == "word", "ERROR only word level task supported here so far"
-                if tasks_parameters[task]["prediction_level"] == "word":
+                #assert tasks_parameters[task]["prediction_level"] == "word", "ERROR only word level task supported here so far"
+                if True or tasks_parameters[task]["prediction_level"] == "word":
                     output_tokens_tensor, head_mask, input_tokens_tensor = get_bpe_label_word_level_task(task_batch, batch,
                                                                                                          input_tokens_tensor,
                                                                                                          input_alignement_with_raw,
@@ -166,12 +167,14 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
                     # if the task has several label : we just appen the label name to the task in the label dictionary
                     label_name = task_batch_name #task if len(tasks_parameters[task]["label"]) == 1 else task+"_"+task_batch_name
                     label_per_task[label_name] = output_tokens_tensor_aligned
+
                 else:
                     raise(Exception("ERROR : only word level supported so far "))
+            input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = input_tokens_tensor
 
     token_type_ids = torch.zeros_like(input_tokens_tensor)
 
     if use_gpu:
         token_type_ids = token_type_ids.cuda()
 
-    return head_masks, input_tokens_tensor, token_type_ids, label_per_task
+    return head_masks, input_tokens_tensor, token_type_ids, label_per_task, input_tokens_tensor_per_task
