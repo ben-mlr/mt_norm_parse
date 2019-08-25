@@ -159,10 +159,15 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
                     # for tokenization related tasks we already took care of alignement during CoNLLReader
                     output_tokens_tensor = task_batch
                     head_mask = None
-                print(task, task_batch_name)
                 head_masks[task] = head_mask
+
                 output_tokens_tensor_aligned = output_tokens_tensor[:, : input_tokens_tensor.size(1)]
+
+                if task_batch_name == "n_masks_mwe" and output_tokens_tensor_aligned.size(0) == 0:
+                    pdb.set_trace()
+
                 output_tokens_tensor_aligned = output_tokens_tensor_aligned.contiguous()
+
                 if use_gpu:
                     output_tokens_tensor_aligned = output_tokens_tensor_aligned.cuda()
                 # if the task has several label : we just appen the label name to the task in the label dictionary

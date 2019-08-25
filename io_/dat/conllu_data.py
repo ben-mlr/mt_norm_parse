@@ -756,7 +756,8 @@ def get_batch_variable(data, batch_size, unk_replace=0., lattice=None,
 
   return words, word_norm, wordpieces_words, wordpieces_raw_aligned_with_words, wordpieces_inputs_raw_tokens, \
          ind_wordpieces_words_alignement_index, ind_wordpieces_raw_aligned_alignement_index, ind_wordpieces_inputs_raw_tokens_alignement_index, \
-         is_mwe_label, n_masks_to_app_in_raw_label, chars[index], chars_norm, word_norm_not_norm, edit, pos[index], xpos[index], heads[index], types[index],\
+         is_mwe_label, n_masks_to_app_in_raw_label, \
+         chars[index], chars_norm, word_norm_not_norm, edit, pos[index], xpos[index], heads[index], types[index],\
          masks[index], lengths[index], order_inputs[index.cpu()], raw, normalized_str, raw_lines
 
 
@@ -813,6 +814,8 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
                    verbose=verbose, verbose_level=2)
           #continue
       if wordpieces_words is not None:
+        if wordpieces_words[excerpt].size(0) == 0:
+          print("WARNING : generating empty tensors : inconsisentices between nbatches, buckets and number of sentences")
         wordpieces_words = wordpieces_words[excerpt]
         ind_wordpieces_words_alignement_index = ind_wordpieces_words_alignement_index[excerpt]
       if wordpieces_raw_aligned_with_words is not None:
@@ -826,15 +829,17 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
       if n_masks_to_app_in_raw_label is not None:
         n_masks_to_app_in_raw_label = n_masks_to_app_in_raw_label[excerpt]
 
-
       if word_norm is not None:
         if word_norm.size(0) <= 0:
           printing("WARNING : We are skipping a batch because word_norm {} {}".format(word_norm.size(), word_norm),
                    verbose=verbose, verbose_level=2)
           continue
-      yield words[excerpt], _word_norm, \
-            wordpieces_words, wordpieces_raw_aligned_with_words, wordpieces_inputs_raw_tokens, is_mwe_label, n_masks_to_app_in_raw_label, \
+
+
+
+      yield words[excerpt], _word_norm, wordpieces_words, wordpieces_raw_aligned_with_words, wordpieces_inputs_raw_tokens, \
             ind_wordpieces_words_alignement_index, ind_wordpieces_raw_aligned_alignement_index, ind_wordpieces_inputs_raw_tokens_alignement_index, \
+            is_mwe_label, n_masks_to_app_in_raw_label, \
             chars[excerpt], chars_norm_, _word_norm_not_norm, _edit, \
             pos[excerpt], xpos[excerpt], heads[excerpt], \
             types[excerpt],  \

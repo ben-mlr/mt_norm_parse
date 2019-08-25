@@ -1,5 +1,5 @@
 #from env.importing import *
-from env.importing import np, torch, time, plt, pack_sequence, pad_packed_sequence, pack_padded_sequence,  OrderedDict, Variable
+from env.importing import np, torch, time, plt, pack_sequence, pad_packed_sequence, pack_padded_sequence,  OrderedDict, Variable, pdb
 from io_.dat.constants import PAD_ID_CHAR
 from io_.info_print import printing
 from io_.dat.constants import PAD_ID_CHAR, PAD_ID_WORD, CHAR_START_ID, CHAR_END_ID
@@ -31,17 +31,28 @@ class MaskBatch(object):
         self.mwe_prediction = wordpieces_words
         self.wordpieces_raw_aligned_with_words = wordpieces_raw_aligned_with_words
         self.wordpieces_inputs_raw_tokens = wordpieces_inputs_raw_tokens
+
         self.mwe_detection = is_mwe_label
         self.n_masks_mwe = n_masks_to_app_in_raw_label
         # NB : the convention is that the alignement tensor is named as the original tensor with _alignement
+        # PB !!
+
         self.mwe_prediction_alignement = ind_wordpieces_words_alignement_index
+        # resolving single sample batch
+        if len(self.mwe_prediction_alignement.shape) == 1:
+            self.mwe_prediction_alignement = np.expand_dims(self.mwe_prediction_alignement,axis=0)
         self.wordpieces_raw_aligned_with_words_alignement = ind_wordpieces_raw_aligned_alignement_index
+        if len(self.wordpieces_raw_aligned_with_words_alignement.shape) == 1:
+            self.wordpieces_raw_aligned_with_words_alignement = np.expand_dims(self.wordpieces_raw_aligned_with_words_alignement, axis=0)
         self.wordpieces_inputs_raw_tokens_alignement = ind_wordpieces_inputs_raw_tokens_alignement_index
+        if len(self.wordpieces_inputs_raw_tokens_alignement.shape) == 1:
+            self.wordpieces_inputs_raw_tokens_alignement = np.expand_dims(self.wordpieces_inputs_raw_tokens_alignement,axis=0)
 
         # NB : the attributes should be aligned with the task_settings label field
         self.pos = pos
         self.parsing_types = types
         self.parsing_heads = heads
+
         if dropout_input > 0:
             # we put it jere so that input_seq_mask computed based on droped input_seq # migh cause trouble for input_seq_len
             droping_multiplier_word = torch.zeros_like(input_word).bernoulli_(1-dropout_input)

@@ -29,7 +29,7 @@ def get_vocab_size_and_dictionary_per_task(tasks, pos_dictionary=None, type_dict
         task_to_label_dictionary["n_masks_mwe"] = "index"
 
     if "mwe_detection" in tasks:
-        num_labels_per_task["mwe_detection"] = 1
+        num_labels_per_task["mwe_detection"] = 2
         task_to_label_dictionary["mwe_detection"] = "index"
     if "mwe_prediction" in tasks:
         assert vocab_bert_wordpieces_len is not None

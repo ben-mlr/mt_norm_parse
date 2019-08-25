@@ -75,7 +75,11 @@ def get_detokenized_str(source_preprocessed_dict, input_alignement_with_raw, lab
             # cause it corresponds to parsing, pos inputs
             _input_alignement_with_raw = eval("batch.{}_alignement".format(source_label))
             # we cut based on source to be consistent with former definition
-            _input_alignement_with_raw = _input_alignement_with_raw[:, :len(source_preprocessed[0])]
+            try:
+                _input_alignement_with_raw = _input_alignement_with_raw[:, :len(source_preprocessed[0])]
+            except Exception as e:
+                pdb.set_trace()
+                raise(e)
         else:
             _input_alignement_with_raw = input_alignement_with_raw
 
@@ -85,7 +89,6 @@ def get_detokenized_str(source_preprocessed_dict, input_alignement_with_raw, lab
                                                                       # normalize means we deal wiht bpe input not pos
                                                                       mask_str=MASK_BERT,
                                                                       remove_mask_str=remove_mask_str_prediction)
-        print("-->", source_label, "done")
     for label in label_dic:
         # TODO : make more standart : we hardcode input type based on label (should be possible with task_parameter)
         if label in ["n_masks_mwe", "mwe_detection"]:
@@ -102,7 +105,6 @@ def get_detokenized_str(source_preprocessed_dict, input_alignement_with_raw, lab
             src_name = "mwe_prediction"
             _input_alignement_with_raw = input_alignement_with_raw
 
-        print("ALIGN GOLD")
         label_detokenized_dic[label] = alignement.realigne_multi(label_dic[label], _input_alignement_with_raw,
                                                                  remove_null_str=True,
                                                                  null_str=null_str, task=label, mask_str=MASK_BERT)
@@ -116,7 +118,6 @@ def get_detokenized_str(source_preprocessed_dict, input_alignement_with_raw, lab
 
         predict_detokenize_dic[label] = []
         # handle several prediction
-        print("ALIGN PREDICT")
         for sent_ls in predict_dic[label]:
 
             predict_detokenize_dic[label].append(alignement.realigne_multi(sent_ls, _input_alignement_with_raw, remove_null_str=True,

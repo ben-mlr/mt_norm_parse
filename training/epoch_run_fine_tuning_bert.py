@@ -289,10 +289,7 @@ def epoch_run(batchIter, tokenizer,
                 out_bpe_tokenized = None
                 # TODO : should have a task specific input_mask and head_masks : only considering word level tasks and bpe level tasks for now
                 input_mask = get_mask_input(input_tokens_tensor, use_gpu)
-
-                head_masks, input_tokens_tensor, token_type_ids, label_per_task, input_tokens_tensor_per_task = get_label_per_bpe(args.tasks, batch, input_tokens_tensor,
-                                                                                                                                  input_alignement_with_raw, use_gpu,
-                                                                                                                                  tasks_parameters=TASKS_PARAMETER)
+                head_masks, input_tokens_tensor, token_type_ids, label_per_task, input_tokens_tensor_per_task = get_label_per_bpe(args.tasks, batch, input_tokens_tensor,input_alignement_with_raw, use_gpu,tasks_parameters=TASKS_PARAMETER)
                 dimension_check_label(label_per_task, input_tokens_tensor)
 
                 # NB : we use the aligned input with the
@@ -626,7 +623,6 @@ def epoch_run(batchIter, tokenizer,
                     pass
 
                 predictions_topk_dic = get_prediction(logits_dic, topk=topk)
-                pdb.set_trace()
                 assert "normalize" not in args.tasks, "ERROR : following line () was needed apparently for normalize being supported"
                 #output_tokens_tensor_aligned_dic = get_aligned_output(label_per_task)
                 # for parsing heads will leave heads untouched
@@ -635,7 +631,6 @@ def epoch_run(batchIter, tokenizer,
                                                                                  input_tokens_tensor_per_task, topk, tokenizer,
                                                                                  task_to_label_dictionary, null_str,
                                                                                  null_token_index, verbose)
-                pdb.set_trace()
 
                 # for parsing and tagging : will simply remove non-first bpe of each token
                 src_detokenized_dic, label_detokenized_dic, predict_detokenize_dic = get_detokenized_str(source_preprocessed_dict,
@@ -645,7 +640,6 @@ def epoch_run(batchIter, tokenizer,
                                                                                                          null_str,
                                                                                                          remove_mask_str_prediction,
                                                                                                          batch=batch)
-                pdb.set_trace()
 
                 for label in label_detokenized_dic:
                     # TODO make more standart
@@ -655,7 +649,6 @@ def epoch_run(batchIter, tokenizer,
                         src_detokenized = src_detokenized_dic["wordpieces_raw_aligned_with_words"]
                     elif label in ["n_masks_mwe", "mwe_detection"]:
                         src_detokenized = src_detokenized_dic["wordpieces_inputs_raw_tokens"]
-                        pdb.set_trace()
                     else:
                         raise(Exception("label {} not found".format(label)))
                     perf_prediction, skipping, _samples = overall_word_level_metric_measure(task_label=label,

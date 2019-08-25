@@ -1034,7 +1034,12 @@ class BertMultiTask(BertPreTrainedModel):
     def get_loss(loss_func, label_task, num_label_dic, labels, logits_dict, task):
 
         if not label_task.startswith("parsing"):
-            loss = loss_func(logits_dict[label_task].view(-1, num_label_dic[task]), labels[label_task].view(-1))
+            try:
+                loss = loss_func(logits_dict[label_task].view(-1, num_label_dic[task]), labels[label_task].view(-1))
+            except Exception as e:
+                print(e)
+                print("ERROR task {} num_label {} , labels {} ".format(task, num_label_dic, labels[label_task].view(-1)))
+                raise(e)
         elif label_task == "parsing_heads":
             #loss = loss_func(logits_dict[label_task], labels[label_task])
             # trying alternative way for loss

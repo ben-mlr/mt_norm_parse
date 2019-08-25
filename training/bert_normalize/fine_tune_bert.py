@@ -193,12 +193,13 @@ def run(args,
                                                                      dropout_input=0.0,
                                                                      verbose=verbose)
                 # -|-|-
+                print("WARNING --> hardcoded random iter for DEV : need to change")
                 batchIter_dev = data_gen_multi_task_sampling_batch(tasks=args.tasks, readers=readers_dev, batch_size=args.batch_size,
                                                                    word_dictionary=word_dictionary,
                                                                    char_dictionary=char_dictionary,
                                                                    pos_dictionary=pos_dictionary,
                                                                    word_dictionary_norm=word_norm_dictionary,
-                                                                   get_batch_mode=False,
+                                                                   get_batch_mode=True,
                                                                    extend_n_batch=1,
                                                                    print_raw=False,
                                                                    dropout_input=0.0,
@@ -431,14 +432,14 @@ def run(args,
                                  verbose=verbose, verbose_level=1)
                         printing("HEURISTICS : edit threshold set to {}", var=[threshold_edit], verbose=verbose,
                                  verbose_level=1)
-
+                    print("WARNING --> hardcoded random iter for TEST : need to change")
                     batchIter_test = data_gen_multi_task_sampling_batch(tasks=[task_to_eval], readers=readers_test,
                                                                         batch_size=batch_size_TEST,
                                                                         word_dictionary=word_dictionary,
                                                                         char_dictionary=char_dictionary,
                                                                         pos_dictionary=pos_dictionary,
                                                                         word_dictionary_norm=word_norm_dictionary,
-                                                                        get_batch_mode=False,
+                                                                        get_batch_mode=True,
                                                                         extend_n_batch=1,
                                                                         dropout_input=0.0,
                                                                         verbose=verbose)
