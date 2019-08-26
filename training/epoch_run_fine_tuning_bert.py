@@ -675,7 +675,6 @@ def epoch_run(batchIter, tokenizer,
                                                        n_sents_dic=n_sents_dic[label])
 
                     evaluated_task.append(label)
-                    print("TASK evaluated", label)
 
                 if writing_pred:
                     new_file = writing_predictions_conll_multi(

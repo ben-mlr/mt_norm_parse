@@ -235,9 +235,7 @@ def run(args,
                                                                          n_iter_max=n_iter_max_per_epoch,
                                                                          verbose=verbose)
 
-
                 model.eval()
-
                 if args.dev_path is not None:
                     print("RUNNING DEV on ITERATION MODE")
                     loss_dev, iter_dev, perf_report_dev, early_stoping_val = epoch_run(batchIter_dev, tokenizer,
@@ -516,7 +514,7 @@ def run(args,
             printing("REPORT = creating overall report at {} ", var=[report_dir], verbose=verbose, verbose_level=1)
         report.extend(report_all)
         json.dump(report, open(report_full_dir, "w"))
-        printing("{} {} ", var=[REPORT_FLAG_DIR_STR, report_full_dir], verbose=verbose, verbose_level=0)
+        printing("{} {} ", var=[REPORT_FLAG_DIR_STR, report_full_dir], verbose=0, verbose_level=0)
 
     json.dump(report_all, open(report_dir, "w"))
     print("REPORTING TO {}".format(report_dir))

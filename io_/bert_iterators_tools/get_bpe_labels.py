@@ -177,9 +177,11 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
             #input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = input_tokens_tensor
             input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = eval("batch.{}".format(tasks_parameters[task]["input"])) if task not in ["parsing", "pos"] else input_tokens_tensor
             input_mask_per_task[tasks_parameters[task]["input"]] = (input_tokens_tensor_per_task[tasks_parameters[task]["input"]] != PAD_ID_BERT)
+            if use_gpu:
+                input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = input_tokens_tensor_per_task[tasks_parameters[task]["input"]].cuda()
+                input_mask_per_task[tasks_parameters[task]["input"]] = input_mask_per_task[tasks_parameters[task]["input"]].cuda()
 
             token_type_ids[tasks_parameters[task]["input"]] = torch.zeros_like(input_tokens_tensor_per_task[tasks_parameters[task]["input"]])
-
             if use_gpu:
                 token_type_ids[tasks_parameters[task]["input"]] = token_type_ids[tasks_parameters[task]["input"]].cuda()
 

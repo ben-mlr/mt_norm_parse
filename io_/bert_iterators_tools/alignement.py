@@ -191,9 +191,7 @@ def realigne_multi(ls_sent_str, input_alignement_with_raw, null_str, mask_str, t
             try:
                 index = int(index)
             except Exception as e:
-                print("WARNINT : MWE {} ".format(index, e))
-                #pdb.set_trace()
-
+                pass
             if remove_extra_predicted_token:
                 if index == 1000 or index == -1:
                     # we reach the end according to gold data
@@ -219,15 +217,12 @@ def realigne_multi(ls_sent_str, input_alignement_with_raw, null_str, mask_str, t
                 new_sent.append(former_token)
                 former_token = token
                 if trigger_end_sent:
-                    #print("Triger")
-                    #pdb.set_trace()
                     break
             # if not pred mode : always not trigger_end_sent : True (required for the model to not stop too early if predict SEP too soon)
             if (former_token == TOKEN_BPE_BERT_SEP or _i + 1 == len(index_ls) and not remove_extra_predicted_token) or \
                     ((remove_extra_predicted_token and (
                             former_token == TOKEN_BPE_BERT_SEP and trigger_end_sent) or _i + 1 == len(index_ls))):
                 new_sent.append(token)
-                #print("Other BREAT")
                 break
             former_index = index
 

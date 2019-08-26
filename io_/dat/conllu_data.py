@@ -412,7 +412,8 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
           _buckets[last_bucket_id] = len(sent.word_ids)+2
           # we assumed that raw bpe were smaller or equal to words (assert will raise error otherwise in reader)
           # to do for norm also
-          buckets_length_bpe_words[last_bucket_id] = len(sent_word_piece.word_piece_words)
+        if buckets_length_bpe_words[bucket_id] == -1:
+          buckets_length_bpe_words[bucket_id] = len(sent_word_piece.word_piece_words)
         break
     inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end,
                           must_get_norm=must_get_norm,

@@ -211,7 +211,6 @@ def write_conll_multitask(format, dir_pred, dir_original, src_text_ls,
             printing("CREATING NEW FILE (io_/dat/normalized_writer) : {} ", var=[dir_pred], verbose=verbose,
                      verbose_level=1)
 
-
     with open(dir_pred, mode_write) as norm_file:
         with open(dir_original, mode_write) as original:
             len_original = 0
@@ -284,9 +283,12 @@ def write_conll_multitask(format, dir_pred, dir_original, src_text_ls,
                         continue
 
                     pos = pred_sent["pos"][ind] if "pos" in pred_per_task else "_"
-                    tenth_col = "Norm={}|mwe_detection={}|n_masks_mwe={}".format(pred_sent["normalize"][ind] if "normalize" in pred_per_task else "_",
-                                                                                 pred_sent["mwe_detection"][ind] if "mwe_detection" in pred_per_task else "_",
-                                                                                 pred_sent["n_masks_mwe"][ind] if "n_masks_mwe" in pred_per_task else "_")
+                    try:
+                        tenth_col = "Norm={}|mwe_detection={}|n_masks_mwe={}".format(pred_sent["normalize"][ind] if "normalize" in pred_per_task else "_",
+                                                                                 pred_sent["mwe_detection"][ind-adjust_mwe] if "mwe_detection" in pred_per_task else "_",
+                                                                                 pred_sent["n_masks_mwe"][ind-adjust_mwe] if "n_masks_mwe" in pred_per_task else "_")
+                    except:
+                        pdb.set_trace()
                     #normalize = "Norm={}|".format(pred_sent["normalize"][ind]) if "normalize" in pred_per_task else "_"
                     types = pred_sent["parsing_types"][ind] if "parsing_types" in pred_per_task else "_"
                     heads = pred_sent["parsing_heads"][ind] if "parsing_heads" in pred_per_task else ind - 1

@@ -88,9 +88,9 @@ TASKS_2_METRICS_STR = {"all": ["accuracy-exact-normalize", "accuracy-normalize",
                        "parsing":["accuracy-exact-parsing_heads", "accuracy-exact-parsing_types"],
                        "normalize": ["accuracy-exact-normalize", "accuracy-normalize", "npv-normalize", "recall-normalize", "precision-normalize","tnr-normalize", "f1-normalize", "accuracy-exact-n_masks_pred","accuracy-exact-normalize_pred"],
                        "pos": ["accuracy-exact-pos"],
-                       "n_masks_mwe": ["accuracy-n_masks_mwe"],
-                       "mwe_detection": ["accuracy-mwe_detection"],
-                       "mwe_prediction": ["mwe_prediction"],
+                       "n_masks_mwe": ["accuracy-exact-n_masks_mwe"],
+                       "mwe_detection": ["accuracy-exact-mwe_detection"],
+                       "mwe_prediction": ["accuracy-exact-mwe_prediction"],
                        "edit_prediction": [""],
                        "norm_not_norm": ["IoU-pred-normed", "recall-norm_not_norm", "accuracy-norm_not_norm","IoU-pred-need_norm","precision-norm_not_norm"]}
 # "InV-accuracy-normalize", "OOV-accuracy-normalize"

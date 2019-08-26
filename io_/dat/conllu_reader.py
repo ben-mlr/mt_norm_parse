@@ -119,6 +119,7 @@ class CoNLLReader(object):
     char_norm_str_seq = []
     # 1 per raw token (not 1 per word)
     is_mwe = [-1]
+    mwe_splits_save = []
     n_masks_to_add_in_raw_label = [-1]
     if self.bert_tokenizer is not None:
       # NB : for the raw tokens we consider the pre-tokenization of the CONLLU format so far
