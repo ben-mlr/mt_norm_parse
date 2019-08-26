@@ -99,7 +99,7 @@ class SentenceWordPieced(object):
                is_mwe=None,
                word_piece_raw_tokens_aligned_index=None, word_piece_words_index=None, word_piece_raw_tokens_index=None,
                n_masks_to_add_in_raw_label=None,
-               is_first_bpe_of_token=None, is_first_bpe_of_norm=None, is_first_bpe_of_words=None):
+               is_first_bpe_of_token=None, is_first_bpe_of_norm=None, is_first_bpe_of_words=None, all_indexes=None):
     # bpe indexes
     self.word_piece_raw_tokens_aligned = word_piece_raw_tokens_aligned if len(word_piece_raw_tokens_aligned) > 0 else None
     self.word_piece_raw_tokens = word_piece_raw_tokens if len(word_piece_raw_tokens) > 0 else None
@@ -117,6 +117,7 @@ class SentenceWordPieced(object):
     self.word_piece_raw_tokens_aligned_index = word_piece_raw_tokens_aligned_index
     self.word_piece_raw_tokens_index = word_piece_raw_tokens_index
     self.word_piece_words_index = word_piece_words_index
+    self.all_indexes = all_indexes
 
   def sanity_check_len(self, normalization, n_words):
 
@@ -148,6 +149,7 @@ class Sentence(object):
                char_seqs, char_id_seqs, lines,
                word_norm=None, word_norm_ids=None,
                char_norm_seq=None, char_norm_ids_seq=None,
+               all_indexes=None,
                ):
     self.words = words
     self.word_ids = word_ids
@@ -158,6 +160,7 @@ class Sentence(object):
     self.char_norm_ids_seq = char_norm_ids_seq
     self.word_norm = word_norm
     self.word_norm_ids = word_norm_ids
+    self.all_indexes = all_indexes
 
   def length(self):
     return len(self.words)

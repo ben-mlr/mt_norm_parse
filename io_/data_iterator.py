@@ -52,7 +52,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                                                              normalization=normalization),
                           disable=disable_tqdm_level(verbose, verbose_level=2)):
 
-            words, word_norm, wordpieces_words, wordpieces_raw_aligned_with_words, wordpieces_inputs_raw_tokens, \
+            all_indexes, words, word_norm, wordpieces_words, wordpieces_raw_aligned_with_words, wordpieces_inputs_raw_tokens, \
             ind_wordpieces_words_alignement_index, ind_wordpieces_raw_aligned_alignement_index, ind_wordpieces_inputs_raw_tokens_alignement_index, \
             is_mwe_label, n_masks_to_app_in_raw_label, chars, chars_norm, word_norm_not_norm, edit, pos, xpos, heads, types, \
                 masks, lengths, order_ids, raw_word_inputs, normalized_str, raw_lines = batch
@@ -77,6 +77,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                                 wordpieces_raw_aligned_with_words=wordpieces_raw_aligned_with_words,
                                 wordpieces_inputs_raw_tokens=wordpieces_inputs_raw_tokens, is_mwe_label=is_mwe_label,
                                 n_masks_to_app_in_raw_label=n_masks_to_app_in_raw_label,
+                                all_indexes=all_indexes,
                                 verbose=verbose), order_ids
             else:
                 yield MaskBatch(chars_norm, chars,  output_norm_not_norm=word_norm_not_norm, pad=padding, timing=timing,
@@ -90,6 +91,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                                 wordpieces_inputs_raw_tokens=wordpieces_inputs_raw_tokens, is_mwe_label=is_mwe_label,
                                 n_masks_to_app_in_raw_label=n_masks_to_app_in_raw_label,
                                 raw_input=normalized_str, raw_output=raw_word_inputs,
+                                all_indexes=all_indexes,
                                 verbose=verbose), order_ids
 
     # get_batch randomly (for training purpose)
@@ -98,7 +100,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             # word, char, pos, xpos, heads, types, masks, lengths, morph
             printing("Data : getting {} out of {} batches", var=(ibatch, nbatch+1), verbose=verbose, verbose_level=2)
 
-            word, word_norm, wordpieces_words, wordpieces_raw_aligned_with_words, wordpieces_inputs_raw_tokens, \
+            all_indexes, word, word_norm, wordpieces_words, wordpieces_raw_aligned_with_words, wordpieces_inputs_raw_tokens, \
             ind_wordpieces_words_alignement_index, ind_wordpieces_raw_aligned_alignement_index, ind_wordpieces_inputs_raw_tokens_alignement_index, \
             is_mwe_label, n_masks_to_app_in_raw_label, \
             char, chars_norm, word_norm_not_norm, edit, pos, _, heads, types, _, \
@@ -145,6 +147,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                                 ind_wordpieces_raw_aligned_alignement_index=ind_wordpieces_raw_aligned_alignement_index,
                                 ind_wordpieces_inputs_raw_tokens_alignement_index=ind_wordpieces_inputs_raw_tokens_alignement_index,
                                 output_norm_not_norm=word_norm_not_norm, dropout_input=dropout_input,
+                                all_indexes=all_indexes,
                                 pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose), order_ids
             else:
                 yield MaskBatch(char, chars_norm, output_word=word_norm, edit=edit,
@@ -156,6 +159,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
                                 ind_wordpieces_raw_aligned_alignement_index=ind_wordpieces_raw_aligned_alignement_index,
                                 ind_wordpieces_inputs_raw_tokens_alignement_index=ind_wordpieces_inputs_raw_tokens_alignement_index,
                                 n_masks_to_app_in_raw_label=n_masks_to_app_in_raw_label,
+                                all_indexes=all_indexes,
                                 output_norm_not_norm=word_norm_not_norm, dropout_input=dropout_input,
                                 pos=pos, pad=padding, timing=timing, input_word=word, verbose=verbose,
                                 raw_input=raw_word_inputs, raw_output=normalized_str), order_ids

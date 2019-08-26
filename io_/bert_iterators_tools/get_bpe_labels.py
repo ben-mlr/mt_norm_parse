@@ -1,6 +1,6 @@
 
 from env.importing import pdb, OrderedDict, np, torch, time
-from io_.dat.constants import  PAD_ID_BERT, PAD_ID_TAG, PAD_ID_HEADS, ROOT_HEADS_INDEX, END_HEADS_INDEX
+from io_.dat.constants import PAD_ID_BERT, PAD_ID_TAG, PAD_ID_HEADS, ROOT_HEADS_INDEX, END_HEADS_INDEX
 
 
 def get_mask_input(input_tokens_tensor, use_gpu):
@@ -17,7 +17,8 @@ def get_mask_input(input_tokens_tensor, use_gpu):
 CLS_ADJUST = 0
 
 
-def get_bpe_label_word_level_task(labels, batch, input_tokens_tensor, input_alignement_with_raw, use_gpu, graph_labels=False):
+def get_bpe_label_word_level_task(labels, batch, input_tokens_tensor, input_alignement_with_raw,
+                                  use_gpu, graph_labels=False):
     output_tokens_tensor = np.array(labels.cpu())
     new_input = np.array(input_tokens_tensor.cpu())
     len_max = max([len(sent) for sent in new_input])
@@ -143,6 +144,9 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
 
     label_per_task = OrderedDict()
     input_tokens_tensor_per_task = OrderedDict()
+    token_type_ids = OrderedDict()
+    input_mask_per_task = OrderedDict()
+
     input_mask, output_tokens_tensor = None, None
 
     head_masks = OrderedDict()
@@ -155,16 +159,12 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
                 if task in ["parsing", "pos"]:
                     # for now we align parsing and tagging signal with raw input using get_bpe_label_word_level_task here
                     output_tokens_tensor, head_mask, input_tokens_tensor = get_bpe_label_word_level_task(task_batch, batch, input_tokens_tensor, input_alignement_with_raw, use_gpu, graph_labels=bool("parsing_heads" == task_batch_name))
+                    output_tokens_tensor_aligned = output_tokens_tensor[:, : input_tokens_tensor.size(1)]
                 else:
                     # for tokenization related tasks we already took care of alignement during CoNLLReader
-                    output_tokens_tensor = task_batch
+                    output_tokens_tensor_aligned = task_batch
                     head_mask = None
                 head_masks[task] = head_mask
-
-                output_tokens_tensor_aligned = output_tokens_tensor[:, : input_tokens_tensor.size(1)]
-
-                if task_batch_name == "n_masks_mwe" and output_tokens_tensor_aligned.size(0) == 0:
-                    pdb.set_trace()
 
                 output_tokens_tensor_aligned = output_tokens_tensor_aligned.contiguous()
 
@@ -174,11 +174,13 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
                 label_name = task_batch_name #task if len(tasks_parameters[task]["label"]) == 1 else task+"_"+task_batch_name
                 label_per_task[label_name] = output_tokens_tensor_aligned
 
-            input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = input_tokens_tensor
+            #input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = input_tokens_tensor
+            input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = eval("batch.{}".format(tasks_parameters[task]["input"])) if task not in ["parsing", "pos"] else input_tokens_tensor
+            input_mask_per_task[tasks_parameters[task]["input"]] = (input_tokens_tensor_per_task[tasks_parameters[task]["input"]] != PAD_ID_BERT)
 
-    token_type_ids = torch.zeros_like(input_tokens_tensor)
+            token_type_ids[tasks_parameters[task]["input"]] = torch.zeros_like(input_tokens_tensor_per_task[tasks_parameters[task]["input"]])
 
-    if use_gpu:
-        token_type_ids = token_type_ids.cuda()
+            if use_gpu:
+                token_type_ids[tasks_parameters[task]["input"]] = token_type_ids[tasks_parameters[task]["input"]].cuda()
 
-    return head_masks, input_tokens_tensor, token_type_ids, label_per_task, input_tokens_tensor_per_task
+    return head_masks, input_tokens_tensor, token_type_ids, label_per_task, input_tokens_tensor_per_task, input_mask_per_task

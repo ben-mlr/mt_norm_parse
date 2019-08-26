@@ -996,7 +996,7 @@ class BertMultiTask(BertPreTrainedModel):
         # task_wise layer attention
         for input_name, input_tensors in input_ids_dict.items():
             sequence_output, _ = self.bert(input_tensors, token_type_ids=None,
-                                           attention_mask=attention_mask,
+                                           attention_mask=attention_mask[input_name],
                                            output_all_encoded_layers=self.layer_wise_attention is not None)
             sequence_output_dict[input_name] = sequence_output
 

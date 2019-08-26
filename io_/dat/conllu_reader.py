@@ -13,7 +13,6 @@ class CoNLLReader(object):
 
   def __init__(self, file_path, word_dictionary,
                char_dictionary, pos_dictionary, type_dictionary, xpos_dictionary,
-
                lemma_dictionary, word_norm_dictionary=None,
                bert_tokenizer=None,
                case=None,
@@ -128,6 +127,8 @@ class CoNLLReader(object):
       word_piece_raw_tokens_index = [0]
       word_piece_raw_tokens_aligned_index = [0]
       word_piece_lemmas_index = [0]
+      # we start with 0 for bert special characters
+      all_indexes = [0]
 
       is_first_bpe_of_token = [-1]
       is_first_bpe_of_words = [-1]
@@ -193,6 +194,9 @@ class CoNLLReader(object):
 
         assert matching_mwe_ind is not None, "ERROR : tokens[0] {} - or . byt did not match mwe pattern".format(tokens[0])
         mwe = self.bert_tokenizer.tokenize_origin(tokens[1])[0]
+
+        all_indexes.append(tokens[0])
+
         word_piece_raw_tokens.extend(self.bert_tokenizer.convert_tokens_to_ids(mwe))
         # we add indexes range to highlight MWE
         word_piece_raw_tokens_index.extend([tokens[0] for _ in mwe])
@@ -205,6 +209,9 @@ class CoNLLReader(object):
 
         word_piece_raw_tokens_aligned.extend(self.bert_tokenizer.convert_tokens_to_ids(mwe))
         word_piece_raw_tokens_aligned_index.extend([tokens[0] for _ in mwe])
+        index_mwe = tokens[0]
+
+
 
         id_stop_mwe = eval(matching_mwe_ind.group(2))
         assert isinstance(id_stop_mwe, int), "ERROR : {} not int while it should".format(id_stop_mwe)
@@ -219,6 +226,8 @@ class CoNLLReader(object):
         continue
 
       n_words = tokens[0]
+      all_indexes.append(tokens[0])
+
       # is_mwe labels : 1 label per words (not raw token but tokenized words)
 
       n_exception = 0
@@ -318,7 +327,7 @@ class CoNLLReader(object):
             n_masks_to_add_in_raw = len(mwe_splits_save)-len(mwe)
             assert n_masks_to_add_in_raw >= 0, "ERROR : n_masks_to_add_in_raw should be an int : pb with tokens {} ".format(tokens)
             # we index masks inserted it in the sequence as -1
-            word_piece_raw_tokens_aligned_index.extend([-1 for _ in range(n_masks_to_add_in_raw)])
+            word_piece_raw_tokens_aligned_index.extend([index_mwe for _ in range(n_masks_to_add_in_raw)])
             word_piece_raw_tokens_aligned.extend(self.bert_tokenizer.convert_tokens_to_ids([MASK_BERT for _ in range(n_masks_to_add_in_raw)]))
 
             n_masks_to_add_in_raw_label.append(n_masks_to_add_in_raw)
@@ -375,6 +384,7 @@ class CoNLLReader(object):
       is_mwe.append(-1)
       n_masks_to_add_in_raw_label.append(-1)
 
+
     if self.bert_tokenizer is not None:
 
       is_first_bpe_of_words.append(-1)
@@ -388,6 +398,7 @@ class CoNLLReader(object):
       word_piece_raw_tokens_aligned_index.append(int(n_words)+1)
       word_piece_words_index.append(int(n_words)+1)
       word_piece_lemmas_index.append(int(n_words)+1)
+      all_indexes.append(int(n_words)+1)
 
       word_piece_raw_tokens.extend(self.bert_tokenizer.convert_tokens_to_ids([SEP_BERT]))
       word_piece_raw_tokens_aligned.extend(self.bert_tokenizer.convert_tokens_to_ids([SEP_BERT]))
@@ -408,13 +419,15 @@ class CoNLLReader(object):
                                                word_piece_raw_tokens_index=word_piece_raw_tokens_index,
                                                is_first_bpe_of_token=is_first_bpe_of_token,
                                                is_first_bpe_of_norm=is_first_bpe_of_norm,
-                                               is_first_bpe_of_words=is_first_bpe_of_words)
+                                               is_first_bpe_of_words=is_first_bpe_of_words,
+                                               )
       sentence_word_piece.sanity_check_len(normalization=normalization, n_words=n_words)
     else:
       sentence_word_piece = None
 
     return DependencyInstance(Sentence(words, word_ids, char_seqs,char_id_seqs,
                                        [lines, raw_text],
+                                       all_indexes=all_indexes,
                                        word_norm=norm_words,
                                        word_norm_ids=norm_word_ids,
                                        char_norm_ids_seq=char_norm_id_seqs,

@@ -289,7 +289,8 @@ def epoch_run(batchIter, tokenizer,
                 out_bpe_tokenized = None
                 # TODO : should have a task specific input_mask and head_masks : only considering word level tasks and bpe level tasks for now
                 input_mask = get_mask_input(input_tokens_tensor, use_gpu)
-                head_masks, input_tokens_tensor, token_type_ids, label_per_task, input_tokens_tensor_per_task = get_label_per_bpe(args.tasks, batch, input_tokens_tensor,input_alignement_with_raw, use_gpu,tasks_parameters=TASKS_PARAMETER)
+                head_masks, input_tokens_tensor, token_type_ids, label_per_task, input_tokens_tensor_per_task, input_mask_per_task = get_label_per_bpe(args.tasks, batch, input_tokens_tensor, input_alignement_with_raw,  use_gpu, tasks_parameters=TASKS_PARAMETER)
+                # NB : token_type_ids not used in MultiTask (no needed, just use 0 everywhere )
                 dimension_check_label(label_per_task, input_tokens_tensor)
 
                 # NB : we use the aligned input with the
@@ -471,8 +472,7 @@ def epoch_run(batchIter, tokenizer,
                         pred_detokenized_topk.append(alignement.realigne(sent_ls, input_alignement_with_raw,
                                                                          remove_null_str=True,
                                                                          tasks=args.tasks[0], remove_extra_predicted_token=True,
-                                                                         null_str=null_str, mask_str=MASK_BERT)
-                                                     )
+                                                                         null_str=null_str, mask_str=MASK_BERT))
 
                         # NB : applying those successively might overlay heuristic
                         if task_normalize_is:
@@ -614,8 +614,9 @@ def epoch_run(batchIter, tokenizer,
                     n_tokens_counter_current_per_task[label] = (label_per_task[label] != PAD_ID_LOSS_STANDART).sum().item()
                 # TODO : handle in a more standart way
                 n_tokens_counter_per_task["all"] += n_tokens_counter_current_per_task[label]
-                logits_dic, loss_dic, _ = model(input_tokens_tensor_per_task, token_type_ids, labels=label_per_task,
-                                                head_masks=head_masks, attention_mask=input_mask)
+                logits_dic, loss_dic, _ = model(input_tokens_tensor_per_task,
+                                                token_type_ids=None,
+                                                labels=label_per_task, head_masks=head_masks, attention_mask=input_mask_per_task)
 
                 if len(list(loss_dic.keys() & set(TASKS_PARAMETER.keys()))) != len(loss_dic.keys()):
                     # it means a given task has several set of labels (e.g parsing)
@@ -677,11 +678,14 @@ def epoch_run(batchIter, tokenizer,
                     print("TASK evaluated", label)
 
                 if writing_pred:
+                    pdb.set_trace()
                     new_file = writing_predictions_conll_multi(
-                                            dir_pred=dir_normalized, dir_normalized_original_only=dir_normalized_original_only,
+                                            dir_pred=dir_normalized,
+                                            dir_normalized_original_only=dir_normalized_original_only,
                                             dir_gold=dir_gold, dir_gold_original_only=dir_gold_original_only,
-                                            src_detokenized=src_detokenized, pred_per_task=predict_detokenize_dic,
+                                            src_detokenized=src_detokenized_dic, pred_per_task=predict_detokenize_dic,
                                             iter=iter, batch_i=batch_i, new_file=new_file, gold_per_tasks=label_detokenized_dic,
+                                            all_indexes=batch.all_indexes, task_parameters=TASKS_PARAMETER,
                                             tasks=args.tasks, verbose=verbose)
 
                 _loss = get_multitask_loss(loss_dic, args.multi_task_loss_ponderation)

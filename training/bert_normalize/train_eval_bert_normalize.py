@@ -31,7 +31,7 @@ def train_eval_bert_normalize(args, verbose=1):
     model_dir = BERT_MODEL_DIC[args.bert_model]["model"]
     vocab_size = BERT_MODEL_DIC[args.bert_model]["vocab_size"]
 
-    debug = True
+    debug = False
     if os.environ.get("ENV") in ["rioc", "neff"]:
         debug = False
 

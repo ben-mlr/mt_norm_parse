@@ -163,16 +163,19 @@ def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_
                                                                                   ind - ind_adjust if ind - ind_adjust > 0 else 0))
 
                         if cut_sent:
-                            if ind>50:
+                            if ind > 50:
                                 break
                     norm_file.write("\n")
                     original.write("\n")
-            printing("WRITING predicted batch of {} original and {} normalized", var=[dir_original, dir_normalized], verbose=verbose, verbose_level="raw_data")
+            printing("WRITING predicted batch of {} original and {} normalized",
+                     var=[dir_original, dir_normalized], verbose=verbose, verbose_level="raw_data")
+
     return max_len_word
 
 
 def write_conll_multitask(format, dir_pred, dir_original, src_text_ls,
-                          pred_per_task, tasks, cp_paste=False, gold=False,
+                          pred_per_task, tasks,task_parameters, cp_paste=False, gold=False,
+                          all_indexes=None,
                           ind_batch=0, new_file=False, cut_sent=False, verbose=0):
 
     assert format in ["conll"]
@@ -181,38 +184,60 @@ def write_conll_multitask(format, dir_pred, dir_original, src_text_ls,
     # assert each task is predicting as many sample per batch
     pred_task_len_former = -1
     task_former = ""
+
+
+    # assertion on number of samples predicted
     for task in pred_per_task:
 
         pred_task_len = len(pred_per_task[task]) if gold else len(pred_per_task[task][writing_top-1])
 
         if pred_task_len_former > 0:
-            assert pred_task_len == pred_task_len_former, "ERROR {} and {} task ".format(task_former, task)
-            assert pred_task_len == len(src_text_ls), "ERROR mismatch source {}  and prediction {} ".format(src_text_ls,pred_per_task[task])
+            assert pred_task_len == pred_task_len_former, \
+                "ERROR {} and {} task ".format(task_former, task)
+            assert pred_task_len == len(src_text_ls["mwe_prediction"]),\
+                "ERROR mismatch source {}  and prediction {} ".format(src_text_ls, pred_per_task[task])
+            assert pred_task_len == len(src_text_ls["wordpieces_inputs_raw_tokens"]), \
+                "ERROR mismatch source {} and prediction {} ".format(src_text_ls, pred_per_task[task])
+            assert pred_task_len == all_indexes.shape[0],\
+                "ERROR mismatch index {}  and prediction {} ".format(src_text_ls, pred_per_task[task])
         pred_task_len_former = pred_task_len
+
         task_former = task
         if format == "conll":
             mode_write = "w" if new_file else "a"
         if new_file:
-            printing("CREATING NEW FILE (io_/dat/normalized_writer) : {} ", var=[dir_pred], verbose=verbose, verbose_level=1)
+            printing("CREATING NEW FILE (io_/dat/normalized_writer) : {} ", var=[dir_pred], verbose=verbose,
+                     verbose_level=1)
+
 
     with open(dir_pred, mode_write) as norm_file:
         with open(dir_original, mode_write) as original:
             len_original = 0
+            for ind_sent in range(all_indexes.shape[0]):
+                original_sent_tokenized = src_text_ls["mwe_prediction"][ind_sent]
+                original_sent_raw = src_text_ls["wordpieces_inputs_raw_tokens"][ind_sent]
 
-            for ind_sent, original_sent in enumerate(src_text_ls):
                 pred_sent = OrderedDict()
+
+                # NB : length assertion for each input-output (correcting if possible)
                 for task in pred_per_task:
+
                     if gold:
                         pred_sent[task] = pred_per_task[task][ind_sent]
                     else:
                         pred_sent[task] = pred_per_task[task][writing_top-1][ind_sent]
+
                     try:
-                        assert len(original_sent) == len(pred_sent[task]), "WARNING : (writer) original_sent len {} {} " \
-                                                                           "\n  normalized_sent len {} {}".format(len(original_sent), original_sent, len(pred_sent[task]), pred_sent[task])
+                        if task.startswith("parsing"):
+                            src = src_text_ls["mwe_prediction"][ind_sent]
+                        else:
+                            src = src_text_ls[task_parameters[task]["input"]][ind_sent]
+                        assert len(src) == len(pred_sent[task]),\
+                            "WARNING : (writer) task {} original_sent len {} {} \n  predicted sent len {} {}".format(task,len(src), src, len(pred_sent[task]), pred_sent[task])
                     except AssertionError as e:
                         print(e)
-                        if len(original_sent) > len(pred_sent[task]):
-                            pred_sent[task].extend(["UNK" for _ in range(len(original_sent)-len(pred_sent[task]))])
+                        if len(src) > len(pred_sent[task]):
+                            pred_sent[task].extend(["UNK" for _ in range(len(src)-len(pred_sent[task]))])
                             print("WARNING (writer) : original larger than prediction : so appending UNK token for writing")
                         else:
                             print("WARNING (writer) : original smaller than prediction for ")
@@ -223,27 +248,54 @@ def write_conll_multitask(format, dir_pred, dir_original, src_text_ls,
                 original.write("#sent_id = {} \n".format(ind_sent+ind_batch+1))
                 ind_adjust = 0
 
-                for ind, original_token in enumerate(original_sent):
+                #for ind, original_token in enumerate(original_sent):
+                last_mwe_index = -1
+                adjust_mwe = 0
+                for ind in all_indexes[ind_sent, :]:
                     # WE REMOVE SPECIAL TOKENS ONLY IF THEY APPEAR AT THE BEGINING OR AT THE END
                     # on the source token !! (it tells us when we stop) (we nevern want to use gold information)
+                    if "-" in ind and ind != "-1":
+                        matching_mwe_ind = re.match("([0-9]+)-([0-9]+)", str(ind))
+                        assert matching_mwe_ind is not None, "ERROR ind is {} : could not found mwe index".format(ind)
+                        last_mwe_index = int(matching_mwe_ind.group(2))
+                        ind_mwe = int(matching_mwe_ind.group(1))
+                        original_token = src_text_ls["wordpieces_inputs_raw_tokens"][ind_sent][ind_mwe]
+                        adjust_mwe += (last_mwe_index-ind_mwe)
+                        #assert ind_adjust == 0, "ERROR not supported"
+                        mwe_meta = "Norm={}|mwe_detection={}|n_masks_mwe={}".format("_", pred_sent["mwe_detection"][ind_mwe] if "mwe_detection" in pred_per_task else "_",
+                                                                                    pred_sent["n_masks_mwe"][ind_mwe] if "n_masks_mwe" in pred_per_task else "_")
+                        norm_file.write("{index}\t{original}\t_\t{pos}\t_\t_\t{dep}\t_\t{types}\t{norm}\n".format(index=ind, original=original_token, pos="_", types="_", dep="_", norm=mwe_meta))
+                        original.write("{}\t{}\t_\t_\t_\t_\t_\t_\t{}\t_\n".format(ind, original_token, "_"))
+                        continue
+                    else:
+                        ind = int(ind)
+                        original_token = src_text_ls["mwe_prediction"][ind_sent][ind]
+                        # asserting that we have everything together on the source side
+                        if ind > last_mwe_index:
+                            assert src_text_ls["mwe_prediction"][ind_sent][ind] == src_text_ls["wordpieces_inputs_raw_tokens"][ind_sent][ind-adjust_mwe], "ERROR : on non-mwe tokens : raw and tokenized should be same but are raw {} tokenizd {}".format(src_text_ls["wordpieces_inputs_raw_tokens"][ind_sent][ind],src_text_ls["mwe_prediction"][ind_sent][ind+adjust_mwe])
+
                     max_len_word = max(len(original_token), len_original)
-                    if original_token in SPECIAL_TOKEN_LS and (ind+1 == len(original_sent) or ind == 0):
+                    #if original_token in SPECIAL_TOKEN_LS and (ind+1 == len(original_sent) or ind == 0):
+                    if original_token in SPECIAL_TOKEN_LS: #ind == "-1" or ind == 0 or original_token == "[SEP]":
+                        # ind 0 is skipped because it corresponds to CLS
                         ind_adjust = 1
                         continue
 
                     pos = pred_sent["pos"][ind] if "pos" in pred_per_task else "_"
-                    normalize = "Norm={}|".format(pred_sent["normalize"][ind]) if "normalize" in pred_per_task else "_"
+                    tenth_col = "Norm={}|mwe_detection={}|n_masks_mwe={}".format(pred_sent["normalize"][ind] if "normalize" in pred_per_task else "_",
+                                                                                 pred_sent["mwe_detection"][ind] if "mwe_detection" in pred_per_task else "_",
+                                                                                 pred_sent["n_masks_mwe"][ind] if "n_masks_mwe" in pred_per_task else "_")
+                    #normalize = "Norm={}|".format(pred_sent["normalize"][ind]) if "normalize" in pred_per_task else "_"
                     types = pred_sent["parsing_types"][ind] if "parsing_types" in pred_per_task else "_"
-                    heads = pred_sent["parsing_heads"][ind] if "parsing_heads" in pred_per_task else ind - ind_adjust if ind - ind_adjust > 0 else 0
+                    heads = pred_sent["parsing_heads"][ind] if "parsing_heads" in pred_per_task else ind - 1
                     if cp_paste:
                         normalize = "Norm={}|".format(original_token)
-                    norm_file.write("{index}\t{original}\t_\t{pos}\t_\t_\t{dep}\t_\t{types}\t{norm}\n".format(index=ind + 1 - ind_adjust, original=original_token, pos=pos, types=types, dep=heads, norm=normalize))
-
-                    original.write("{}\t{}\t_\t_\t_\t_\t_\t_\t{}\t_\n".format(ind+1, original_token,
-                                                                              ind - ind_adjust if ind - ind_adjust > 0 else 0))
+                    norm_file.write("{index}\t{original}\t_\t{pos}\t_\t_\t{dep}\t_\t{types}\t{norm}\n".format(index=ind, original=original_token, pos=pos, types=types, dep=heads, norm=tenth_col))
+                    original.write("{}\t{}\t_\t_\t_\t_\t_\t_\t{}\t_\n".format(ind, original_token, ind-1))
                     if cut_sent:
                         if ind > 50:
                             break
+                        print("CUTTING SENT index {}>50 ".format(ind))
                 norm_file.write("\n")
                 original.write("\n")
         printing("WRITING predicted batch of {} original and {} normalized", var=[dir_original, dir_pred], verbose=verbose, verbose_level="raw_data")

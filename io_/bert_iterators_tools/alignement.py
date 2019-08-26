@@ -191,7 +191,7 @@ def realigne_multi(ls_sent_str, input_alignement_with_raw, null_str, mask_str, t
             try:
                 index = int(index)
             except Exception as e:
-                print("ERROR : should handle special ", index, e)
+                print("WARNINT : MWE {} ".format(index, e))
                 #pdb.set_trace()
 
             if remove_extra_predicted_token:

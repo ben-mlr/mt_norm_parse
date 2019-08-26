@@ -19,6 +19,7 @@ class MaskBatch(object):
                  output_word=None, pos=None, input_word=None, edit=None,
                  wordpieces_words=None, wordpieces_raw_aligned_with_words=None, wordpieces_inputs_raw_tokens=None, is_mwe_label=None,
                  n_masks_to_app_in_raw_label=None,
+                 all_indexes=None,
                  ind_wordpieces_words_alignement_index=None, ind_wordpieces_raw_aligned_alignement_index=None, ind_wordpieces_inputs_raw_tokens_alignement_index=None,
                  output_norm_not_norm=None, pad=PAD_ID_CHAR, verbose=0, timing=False, dropout_input=0.):
 
@@ -36,6 +37,7 @@ class MaskBatch(object):
         self.n_masks_mwe = n_masks_to_app_in_raw_label
         # NB : the convention is that the alignement tensor is named as the original tensor with _alignement
         # PB !!
+        self.all_indexes = all_indexes
 
         self.mwe_prediction_alignement = ind_wordpieces_words_alignement_index
         # resolving single sample batch

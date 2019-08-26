@@ -82,13 +82,14 @@ def get_detokenized_str(source_preprocessed_dict, input_alignement_with_raw, lab
                 raise(e)
         else:
             _input_alignement_with_raw = input_alignement_with_raw
+        print("SOURCE ALIGNING", source_label, source_preprocessed, _input_alignement_with_raw)
 
-        src_detokenized_dic[source_label] = alignement.realigne_multi(source_preprocessed, _input_alignement_with_raw,
-                                                                      null_str=null_str,
-                                                                      task="normalize",
+        src_detokenized_dic[source_label] = alignement.realigne_multi(source_preprocessed, _input_alignement_with_raw, null_str=null_str, task="normalize",
                                                                       # normalize means we deal wiht bpe input not pos
                                                                       mask_str=MASK_BERT,
                                                                       remove_mask_str=remove_mask_str_prediction)
+
+
     for label in label_dic:
         # TODO : make more standart : we hardcode input type based on label (should be possible with task_parameter)
         if label in ["n_masks_mwe", "mwe_detection"]:
@@ -104,7 +105,7 @@ def get_detokenized_str(source_preprocessed_dict, input_alignement_with_raw, lab
         else:
             src_name = "mwe_prediction"
             _input_alignement_with_raw = input_alignement_with_raw
-
+        print("TARGET ALIGNING", source_label)
         label_detokenized_dic[label] = alignement.realigne_multi(label_dic[label], _input_alignement_with_raw,
                                                                  remove_null_str=True,
                                                                  null_str=null_str, task=label, mask_str=MASK_BERT)
@@ -129,7 +130,7 @@ def get_detokenized_str(source_preprocessed_dict, input_alignement_with_raw, lab
                 assert len(predict_detokenize_dic[label][0][e]) == len(label_detokenized_dic[label][e]), "ERROR : for label {} len pred {} len gold {}".format(label, len(predict_detokenize_dic[label][0][e]), len(label_detokenized_dic[label][e]))
             except Exception as err:
                 print("ERROR : gold and pred are not aligned anymore", err)
-                #pdb.set_trace()
+                pdb.set_trace()
 
     return src_detokenized_dic, label_detokenized_dic, predict_detokenize_dic
 

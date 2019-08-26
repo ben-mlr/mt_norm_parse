@@ -226,7 +226,7 @@ def writing_predictions_conll(dir_normalized, dir_normalized_original_only, dir_
 def writing_predictions_conll_multi(dir_pred, dir_normalized_original_only,
                                     dir_gold, dir_gold_original_only,
                                     src_detokenized, pred_per_task,
-                                    iter, batch_i,tasks,
+                                    iter, batch_i, tasks, all_indexes,task_parameters,
                                     new_file, gold_per_tasks, verbose):
 
     write_conll_multitask(format="conll", dir_pred=dir_pred,
@@ -234,11 +234,15 @@ def writing_predictions_conll_multi(dir_pred, dir_normalized_original_only,
                           src_text_ls=src_detokenized,
                           tasks=tasks, ind_batch=iter + batch_i, new_file=new_file,
                           pred_per_task=pred_per_task,
+                          task_parameters=task_parameters,
+                          all_indexes=all_indexes,
                           verbose=verbose)
     write_conll_multitask(format="conll", dir_pred=dir_gold,
                           dir_original=dir_gold_original_only,tasks=tasks,
                           src_text_ls=src_detokenized,
                           pred_per_task=gold_per_tasks, gold=True,
+                          all_indexes=all_indexes,
+                          task_parameters=task_parameters,
                           ind_batch=iter + batch_i, new_file=new_file, verbose=verbose)
 
     return False
