@@ -195,11 +195,13 @@ def write_conll_multitask(format, dir_pred, dir_original, src_text_ls,
             assert pred_task_len == pred_task_len_former, \
                 "ERROR {} and {} task ".format(task_former, task)
             assert pred_task_len == len(src_text_ls["mwe_prediction"]),\
-                "ERROR mismatch source {}  and prediction {} ".format(src_text_ls, pred_per_task[task])
+                "ERROR mismatch source mwe_prediction {}  and prediction {} ".format(src_text_ls, pred_per_task[task])
             assert pred_task_len == len(src_text_ls["wordpieces_inputs_raw_tokens"]), \
-                "ERROR mismatch source {} and prediction {} ".format(src_text_ls, pred_per_task[task])
-            assert pred_task_len == all_indexes.shape[0],\
-                "ERROR mismatch index {}  and prediction {} ".format(src_text_ls, pred_per_task[task])
+                "ERROR mismatch source wordpieces_inputs_raw_tokens {} and prediction {} ".format(src_text_ls, pred_per_task[task])
+            try:
+                assert pred_task_len == all_indexes.shape[0], "ERROR mismatch index {}  and all_indexes {} : pred {}".format(pred_task_len, all_indexes.shape[0], pred_per_task[task])
+            except:
+                pdb.set_trace()
         pred_task_len_former = pred_task_len
 
         task_former = task

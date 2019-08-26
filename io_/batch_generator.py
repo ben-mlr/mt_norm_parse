@@ -38,7 +38,8 @@ class MaskBatch(object):
         # NB : the convention is that the alignement tensor is named as the original tensor with _alignement
         # PB !!
         self.all_indexes = all_indexes
-
+        if len(self.all_indexes.shape) == 1:
+            self.all_indexes = np.expand_dims(self.all_indexes, axis=0)
         self.mwe_prediction_alignement = ind_wordpieces_words_alignement_index
         # resolving single sample batch
         if len(self.mwe_prediction_alignement.shape) == 1:

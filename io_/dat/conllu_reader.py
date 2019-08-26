@@ -128,7 +128,7 @@ class CoNLLReader(object):
       word_piece_raw_tokens_aligned_index = [0]
       word_piece_lemmas_index = [0]
       # we start with 0 for bert special characters
-      all_indexes = [0]
+      all_indexes = ["0"]
 
       is_first_bpe_of_token = [-1]
       is_first_bpe_of_words = [-1]
@@ -398,7 +398,7 @@ class CoNLLReader(object):
       word_piece_raw_tokens_aligned_index.append(int(n_words)+1)
       word_piece_words_index.append(int(n_words)+1)
       word_piece_lemmas_index.append(int(n_words)+1)
-      all_indexes.append(int(n_words)+1)
+      all_indexes.append(str(int(n_words)+1))
 
       word_piece_raw_tokens.extend(self.bert_tokenizer.convert_tokens_to_ids([SEP_BERT]))
       word_piece_raw_tokens_aligned.extend(self.bert_tokenizer.convert_tokens_to_ids([SEP_BERT]))

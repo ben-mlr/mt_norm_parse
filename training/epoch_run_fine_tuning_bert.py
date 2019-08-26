@@ -678,7 +678,6 @@ def epoch_run(batchIter, tokenizer,
                     print("TASK evaluated", label)
 
                 if writing_pred:
-                    pdb.set_trace()
                     new_file = writing_predictions_conll_multi(
                                             dir_pred=dir_normalized,
                                             dir_normalized_original_only=dir_normalized_original_only,

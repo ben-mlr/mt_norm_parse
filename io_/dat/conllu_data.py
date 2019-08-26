@@ -547,6 +547,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
         is_mwe_label[i, :inst_size_bpe_raw] = is_mwe
         is_mwe_label[i, inst_size_bpe_raw:] = PAD_ID_LOSS_STANDART
       if word_piece_raw_tokens_aligned is not None and word_piece_words is not None:
+        inst_size_in_indexes = len(indexes)
         inst_size_bpe_word = len(word_piece_raw_tokens_aligned) # same len as word_piece_words (sanity checked in reader)
         # words indexes (can be used as input for tag/parse/norm or gold labels for tokenization
         wordpieces_words[i, :inst_size_bpe_word] = word_piece_words
@@ -563,7 +564,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
         #wordpieces_raw_aligned_alignement_index[i, :inst_size_bpe_word] = word_piece_raw_tokens_aligned_index
         #wordpieces_raw_aligned_alignement_index[i, inst_size_bpe_word:] = PAD_ID_LOSS_STANDART
 
-        all_indexes.append(indexes+[PAD_ID_LOSS_STANDART for _ in range(bucket_length+1-inst_size)])
+        all_indexes.append(indexes+[str(PAD_ID_LOSS_STANDART) for _ in range(bucket_length+1-inst_size_in_indexes)])
 
       # word ids
       wid_inputs[i, :inst_size] = wids
@@ -657,6 +658,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       ind_wordpieces_raw_aligned_alignement_index = np.array(ind_wordpieces_raw_aligned_alignement_index)
       ind_wordpieces_inputs_raw_tokens_alignement_index = np.array(ind_wordpieces_inputs_raw_tokens_alignement_index)
       ind_wordpieces_words_alignement_index = np.array(ind_wordpieces_inputs_raw_tokens_alignement_index)
+
       all_indexes = np.array(all_indexes)
 
       # we don't put as pytorch alignement indexes
