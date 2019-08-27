@@ -88,9 +88,7 @@ def overall_word_level_metric_measure(task_label,
                 break
         if src_detokenized is not None and samples[0] != "all" and len(samples) > 1:
             # otherise we don't need src_detokenized
-            assert len(gold_sent) == len(src_detokenized[gold_ind_sent]),\
-                "ERROR src_detokenized {} and gold_sent_ls for sent {} have different length ".format(gold_sent,
-                                                                                                      src_detokenized[gold_ind_sent])
+            assert len(gold_sent) == len(src_detokenized[gold_ind_sent]), "ERROR src_detokenized {} and gold_sent_ls for sent {} have different length ".format(gold_sent, src_detokenized[gold_ind_sent])
 
         score_sent = []
         filter_sent = {_sample: [] for _sample in samples}
@@ -105,7 +103,7 @@ def overall_word_level_metric_measure(task_label,
                 #    print("EXCLUDING CORRECT LABELS BECAUSE OF HEADS")
             else:
                 gold_token_to_score = gold_token
-            score_sent.append(word_level_scoring(metric=metric, gold=gold_token_to_score,topk_pred=topk_word_pred, topk=topk))
+            score_sent.append(word_level_scoring(metric=metric, gold=gold_token_to_score, topk_pred=topk_word_pred, topk=topk))
             for ind_sample, _sample in enumerate(samples):
                 try:
                     src = src_detokenized[gold_ind_sent][ind_word] if _sample != "all" and not _sample.startswith("n_masks") else None

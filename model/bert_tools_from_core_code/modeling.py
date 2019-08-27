@@ -1210,7 +1210,7 @@ class BertForMaskedLM(BertPreTrainedModel):
             softmax_weight = softmax_weight.view(batch_dim, len_seq, stacked_layers.size(2))
             sequence_output = new_sequence.view(batch_dim, len_seq, stacked_layers.size(1))
 
-        prediction_scores = self.cls(sequence_output)
+        prediction_scores, = self.cls(sequence_output)
         loss_dict = OrderedDict([("loss", None), ("loss_task_1", 0), ("loss_task_2", 0),
                                  ("loss_task_n_mask_prediction", 0)])
         pred_dict = OrderedDict([("logits_task_1", None), ("logits_task_2", None), ("logits_n_mask_prediction", None)])
@@ -1225,7 +1225,8 @@ class BertForMaskedLM(BertPreTrainedModel):
                 "ERROR : you provided labels for normalization and" \
                 " self.mask_n_predictor : so you should provide labels_n_mask_prediction"
             total_ponderation = 90
-            weight = torch.Tensor([5 / total_ponderation, 20 / total_ponderation, 20 / total_ponderation, 20 / total_ponderation, 20 / total_ponderation])
+            weight = torch.Tensor([5 / total_ponderation, 20 / total_ponderation, 20 / total_ponderation,
+                                   20 / total_ponderation, 20 / total_ponderation])
             if logits_n_mask_prediction.is_cuda:
                 weight = weight.cuda()
             loss_fct_masks_pred = CrossEntropyLoss(ignore_index=-1, weight=weight)

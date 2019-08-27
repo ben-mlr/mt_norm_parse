@@ -33,11 +33,12 @@ class CoNLLReader(object):
     :param max_char_len:
     """
     self.__source_file = codecs.open(file_path, 'r', 'utf-8', errors='ignore')
-    self.__file_path = file_path
+
     self.__word_dictionary = word_dictionary
     self.__char_dictionary = char_dictionary
     self.__lemma_dictionary = lemma_dictionary
     self.__word_norm_dictionary = word_norm_dictionary
+
 
     self.__pos_dictionary = pos_dictionary
     self.__xpos_dictionary = xpos_dictionary
@@ -54,6 +55,7 @@ class CoNLLReader(object):
       max_char_len = MAX_CHAR_LENGTH
     printing("MODEL : max_char_len set to {} in CoNLLREADER ", var=max_char_len, verbose_level=1, verbose=1)
     self.max_char_len = max_char_len
+    self.file_path = file_path
 
   def close(self):
     self.__source_file.close()
@@ -192,40 +194,45 @@ class CoNLLReader(object):
     for tokens in lines:
 
       # reading a MWE : we append to the raw tokens
-      if '-' in tokens[0] :
-        matching_mwe_ind = re.match("([0-9]+)-([0-9]+)", tokens[0])
+      if '-' in tokens[0] or "." in tokens[0]:
 
-        assert matching_mwe_ind is not None, "ERROR : tokens[0] {} - or . byt did not match mwe pattern".format(tokens[0])
-        mwe = self.bert_tokenizer.tokenize_origin(tokens[1])[0]
+        if '-' in tokens[0]:
 
-        all_indexes.append(tokens[0])
+          matching_mwe_ind = re.match("([0-9]+)-([0-9]+)", tokens[0])
 
-        word_piece_raw_tokens.extend(self.bert_tokenizer.convert_tokens_to_ids(mwe))
-        # we add indexes range to highlight MWE
-        word_piece_raw_tokens_index.extend([tokens[0] for _ in mwe])
+          assert matching_mwe_ind is not None, "ERROR : tokens[0] {} - or . byt did not match mwe pattern".format(tokens[0])
+          mwe = self.bert_tokenizer.tokenize_origin(tokens[1])[0]
 
-        is_mwe.append(1)
-        is_mwe.extend([-1 for _ in range(len(mwe)-1)])
+          all_indexes.append(tokens[0])
 
-        is_first_bpe_of_token.append(1)
-        is_first_bpe_of_token.extend([0 for _ in range(len(mwe)-1)])
+          word_piece_raw_tokens.extend(self.bert_tokenizer.convert_tokens_to_ids(mwe))
+          # we add indexes range to highlight MWE
+          word_piece_raw_tokens_index.extend([tokens[0] for _ in mwe])
 
-        word_piece_raw_tokens_aligned.extend(self.bert_tokenizer.convert_tokens_to_ids(mwe))
-        word_piece_raw_tokens_aligned_index.extend([tokens[0] for _ in mwe])
-        index_mwe = tokens[0]
+          is_mwe.append(1)
+          is_mwe.extend([-1 for _ in range(len(mwe)-1)])
 
+          is_first_bpe_of_token.append(1)
+          is_first_bpe_of_token.extend([0 for _ in range(len(mwe)-1)])
 
+          word_piece_raw_tokens_aligned.extend(self.bert_tokenizer.convert_tokens_to_ids(mwe))
+          word_piece_raw_tokens_aligned_index.extend([tokens[0] for _ in mwe])
+          index_mwe = tokens[0]
 
-        id_stop_mwe = eval(matching_mwe_ind.group(2))
-        assert isinstance(id_stop_mwe, int), "ERROR : {} not int while it should".format(id_stop_mwe)
-        id_start_mwe =eval(matching_mwe_ind.group(1))
+          id_stop_mwe = eval(matching_mwe_ind.group(2))
+          assert isinstance(id_stop_mwe, int), "ERROR : {} not int while it should".format(id_stop_mwe)
+          id_start_mwe =eval(matching_mwe_ind.group(1))
+
+        else:
+          printing("WARNING : (reader) skipping {} line because . found inside index", var=[tokens], verbose=verbose, verbose_level=1)
+
         continue
 
       if len(tokens) < 10:
         sys.stderr.write("Sentence broken for unkwown reasons {} \n {} ".format(tokens, lines))
         if os.environ.get("EXPERIENCE") is not None:
           print("WARNING : WRITING corrupted gold data in {} ".format(os.path.join(os.environ["EXPERIENCE"], "logs/catching_errors.txt")))
-          open(os.path.join(os.environ["EXPERIENCE"], "logs/catching_errors.txt"), "a").write("Line broken {} because of tokens {} from {} file \n ".format(lines, tokens,self.__file_path))
+          open(os.path.join(os.environ["EXPERIENCE"], "logs/catching_errors.txt"), "a").write("Line broken {} because of tokens {} from {} file \n ".format(lines, tokens,self.file_path))
         continue
 
       n_words = tokens[0]
@@ -240,13 +247,13 @@ class CoNLLReader(object):
                                                              predict_mode_only=not must_get_norm,
                                                              verbose=verbose)
         if self.bert_tokenizer is not None:
-          normalized_token = self.bert_tokenizer.tokenize_origin(normalized_token)[0]
+          normalized_token_bpe = self.bert_tokenizer.tokenize_origin(normalized_token)[0]
 
           is_first_bpe_of_norm.append(1)
-          is_first_bpe_of_norm.extend([0 for _ in range(len(normalized_token)-1)])
+          is_first_bpe_of_norm.extend([0 for _ in range(len(normalized_token_bpe)-1)])
 
-          word_piece_normalization.extend(self.bert_tokenizer.convert_tokens_to_ids(normalized_token))
-          word_piece_normalization_index.extend([tokens[0] for _ in range(normalized_token)])
+          word_piece_normalization.extend(self.bert_tokenizer.convert_tokens_to_ids(normalized_token_bpe))
+          word_piece_normalization_index.extend([tokens[0] for _ in normalized_token_bpe])
         if self.case is not None and self.case == "lower":
           normalized_token = normalized_token.lower()
         # extracting normalized words as sequence of characters as string and ids, string and ids
@@ -356,8 +363,8 @@ class CoNLLReader(object):
       head = tokens[6]
       type = tokens[7]
       if "parsing" in tasks:
-        assert head != "_", "ERROR : head not found for line {} while tasks is {}".format(lines, tasks)
-        assert type != "_", "ERROR : type not found for line {} while tasks is {}".format(lines, tasks)
+        assert head != "_", "ERROR : head not found for line {} while tasks is {} on data {} ".format(lines, tasks, self.file_path )
+        assert type != "_", "ERROR : type not found for line {} while tasks is {} on data {} ".format(lines, tasks,self.file_path)
       types.append(type)
       type_ids.append(self.__type_dictionary.get_index(type))
       heads.append(head)

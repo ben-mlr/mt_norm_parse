@@ -367,7 +367,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
       assert buckets_length_bpe_words[-1] == _buckets[-1], \
         "ERROR : if last bucket is -1 should be the same for both word buckt and bpe bucket"
 
-  printing('Reading data from %s' % source_path, verbose_level=1, verbose=verbose)
+  printing('DATA READER : Reading data from %s' % source_path, verbose_level=1, verbose=verbose)
   counter = 0
   reader = CoNLLReader(source_path, word_dictionary, char_dictionary, pos_dictionary, type_dictionary, xpos_dictionary,
                        max_char_len=max_char_len, bert_tokenizer=bert_tokenizer,
@@ -463,7 +463,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
 
 def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
                           type_dictionary, max_size=None, normalize_digits=True, symbolic_root=False,word_norm_dictionary=None,
-                          symbolic_end=False, use_gpu=False, volatile=False, dry_run=False, lattice=None,
+                          symbolic_end=False, use_gpu=False, volatile=False, dry_run=False, lattice=None,args=None,
                           verbose=0, normalization=False, bucket=True, word_decoder=False,
                           tasks=None, max_char_len=None, must_get_norm=True, bert_tokenizer=None,
                           bucketing_level=None,
@@ -711,12 +711,17 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
     lengths = torch.from_numpy(lengths_inputs)
 
     if use_gpu:
-      words = words.cuda()
-      chars_norm = chars_norm.cuda() if normalization else None
-      word_norm_not_norm = word_norm_not_norm.cuda() if "norm_not_norm" in tasks else None
-      edit = edit.cuda() if "edit_prediction" in tasks else None
-      word_norm = word_norm.cuda() if normalization and word_decoder else None
-      chars = chars.cuda()
+      word_char_one_hot_in_gpu = False
+      # not used anymore
+      if word_char_one_hot_in_gpu:
+        words = words.cuda()
+        chars_norm = chars_norm.cuda() if normalization else None
+        word_norm_not_norm = word_norm_not_norm.cuda() if "norm_not_norm" in tasks else None
+        edit = edit.cuda() if "edit_prediction" in tasks else None
+        word_norm = word_norm.cuda() if normalization and word_decoder else None
+        chars = chars.cuda()
+      else:
+        printing("WARNING : we are not adding to cuda word, chars, norm , edit 1 hot encoding", verbose=verbose, verbose_level=1)
       pos = pos.cuda()
       xpos = xpos.cuda()
       heads = heads.cuda()
@@ -725,14 +730,21 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       #single = single.cuda()
       lengths = lengths.cuda()
 
-      if word_piece_words is not None:
+      if word_piece_words is not None and ("parsing" in args.tasks or "pos" in args.tasks):
         wordpieces_words = wordpieces_words.cuda()
-        wordpieces_raw_aligned_with_words = wordpieces_raw_aligned_with_words.cuda()
-      if word_piece_raw_tokens is not None:
-        is_mwe_label = is_mwe_label.cuda()
-        n_masks_to_app_in_raw_label = n_masks_to_app_in_raw_label.cuda()
-        wordpieces_inputs_raw_tokens = wordpieces_inputs_raw_tokens.cuda()
-
+      else:
+        printing("WARNING : we are not adding to cuda word pieces of words cause tasks is {} and neither parsing or pos found",
+               var=[args.tasks], verbose=verbose,
+               verbose_level=1)
+      if word_piece_raw_tokens is not None and ("mwe_prediction" in args.tasks\
+              or "mwe_detection" in args.tasks or "n_masks_mwe" in args.tasks):
+          is_mwe_label = is_mwe_label.cuda()
+          wordpieces_raw_aligned_with_words = wordpieces_raw_aligned_with_words.cuda()
+          n_masks_to_app_in_raw_label = n_masks_to_app_in_raw_label.cuda()
+          wordpieces_inputs_raw_tokens = wordpieces_inputs_raw_tokens.cuda()
+      else:
+        printing("WARNING : we are not adding to cuda word pieces of words cause tasks is {}"
+                 " and neither mwe_prediction,mwe_detection,n_masks_mwe found", var=[args.tasks], verbose=verbose, verbose_level=1)
     data_variable.append((all_indexes, words, word_norm,
                           wordpieces_words, wordpieces_raw_aligned_with_words, wordpieces_inputs_raw_tokens,
                           ind_wordpieces_words_alignement_index, ind_wordpieces_raw_aligned_alignement_index, ind_wordpieces_inputs_raw_tokens_alignement_index,

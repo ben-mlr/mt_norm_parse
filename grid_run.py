@@ -341,10 +341,10 @@ if __name__ == "__main__":
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
                                                   gpus_ls=gpu_ls, gpu_mode="random",
                                                   write_to_dir=RUN_SCRIPTS_DIR, description_comment=description_comment)
-          FINE_TUNE_BERT = True
+          FINE_TUNE_BERT = False
           if FINE_TUNE_BERT:
-              epochs = 1
-              lang_iter = ["fr_sequoia", "tr_imst"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
+              epochs = 30
+              lang_iter = ["en_ewt"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
               task_to_grid = [["parsing", "n_masks_mwe", "mwe_detection", "mwe_prediction"]]#, ["parsing", "pos"]]
               #task_to_grid = [["normalize"]]
               demo_data = False
@@ -388,7 +388,8 @@ if __name__ == "__main__":
                                                   #train_path=[[LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED]], dev_path=[[LIU_DEV]],
                                                   #train_path=[[CODE_MIXED_RAW_TRAIN_SMALL]], dev_path=[[CODE_MIXED_RAW_CUT_DEV]],
                                                   #train_path=[[EWT_DEMO] for _ in range(n_tasks)], dev_path=[[EWT_DEMO] for _ in range(n_tasks)],
-                                                  train_path=[[get_dir_data("train", lang, demo=demo_data)] for _ in range(n_tasks) for lang in lang_iter], dev_path=[[get_dir_data("dev", lang, demo=demo_data)] for _ in range(n_tasks) for lang in lang_iter],
+                                                  train_path=[[get_dir_data("train", lang, demo=demo_data)] for _ in range(n_tasks) for lang in lang_iter], 
+                                                  dev_path=[[get_dir_data("dev", lang, demo=demo_data)] for _ in range(n_tasks) for lang in lang_iter],
                                                   #train_path=[[EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV]],
                                                   #train_path=[[AUGMENTED_LEX_DIC[n_sent]] for n_sent in [80, 100, 120, 150, 250, 350]],
                                                   #dev_path=[[LIU_DEV] for n_sent in [80, 100, 120,150,250,350]],
@@ -398,8 +399,8 @@ if __name__ == "__main__":
                                                   #test_paths=[[[LEX_TRAIN_SPLIT_2], [LEX_DEV_SPLIT_2], [LEX_TEST]]],# [[LEX_TRAIN_SPLIT_2], [LEX_DEV_SPLIT_2], [LEX_TEST]]],
                                                   #test_paths=[[[EWT_DEV], [EN_LINES_EWT_TRAIN], [EWT_TEST], [DEV], [TEST]], [[LEX_TEST, EWT_DEV], [LIU_DEV, EWT_TEST], [DEV,  DEV], [TEST, TEST]]],
                                                   #test_paths=[[[EWT_DEMO]] for _ in range(n_tasks)],
-                                                  test_paths=[[[get_dir_data("test", lang, demo=demo_data)]] for _ in range(n_tasks) for lang in lang_iter],
-                                                  #test_paths=[[[get_dir_data("test", lang, demo=demo_data)], [get_dir_data("dev", lang, demo=demo_data)], [get_dir_data("train", lang, demo=demo_data)]] for _ in range(n_tasks) for lang in lang_iter],  # [EWT_DEV], [EWT_TEST], [EN_LINES_EWT_TRAIN]]],
+                                                  #test_paths=[[[get_dir_data("test", lang, demo=demo_data)], [get_dir_data("dev", lang, demo=demo_data)], [get_dir_data("train", lang, demo=demo_data)]] for _ in range(n_tasks) for lang in lang_iter],
+                                                  test_paths=[[[get_dir_data("test", lang, demo=demo_data)], [get_dir_data("dev", lang, demo=demo_data)], [get_dir_data("train", lang, demo=demo_data)]] for _ in range(n_tasks) for lang in lang_iter],  # [EWT_DEV], [EWT_TEST], [EN_LINES_EWT_TRAIN]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
@@ -420,8 +421,8 @@ if __name__ == "__main__":
                                                   unrolling_word_ls=None, scoring_func=None, mode_word_encoding_ls=None,
                                                   dropout_input_ls=None,
                                                   multi_task_loss_ponderation_ls=[OrderedDict([("pos", 0.5),
-                                                                                               ("n_masks_mwe", 1), ("mwe_detection", 1),
-                                                                                               ("mwe_prediction", 1),
+                                                                                               ("n_masks_mwe", 0.5), ("mwe_detection", 0.5),
+                                                                                               ("mwe_prediction", 0.5),
                                                                                                ("parsing_types", 1), ("parsing_heads", 1)])],#OrderedDict([("pos", 0.2), ("parsing_types", 1), ("parsing_heads", 1)])],
                                                   scale_ls=[1])
                                 # arguments that are specific to script generation
@@ -432,7 +433,7 @@ if __name__ == "__main__":
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
-                                                  batch_size_ls=[12],
+                                                  batch_size_ls=[2],
                                                   #checkpoint_dir_ls=["'" + os.path.join(CHECKPOINT_BERT_DIR, "9535768-B-45690-9535768-B-model_0/9535768-B-45690-9535768-B-model_0-epbest-checkpoint.pt") + "'"],
                                                   gpu_mode="random",
                                                   bert_module_ls=["mlm"],  # ["mlm"],
@@ -465,8 +466,7 @@ if __name__ == "__main__":
                                                   test_paths=[[[CODE_MIXED_RAW_TEST_SMALL], [CODE_MIXED_RAW_DEV_SMALL]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
-                                                  epochs=epochs if not (
-                                                              test_before_run or warmup) else WARMUP_N_EPOCHS,
+                                                  epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
                                                   gpus_ls=gpu_ls,
                                                   write_to_dir=RUN_SCRIPTS_DIR,
                                                   description_comment=description_comment,
@@ -490,13 +490,13 @@ if __name__ == "__main__":
                                                   mode_word_encoding_ls=None,
                                                   dropout_input_ls=None, multi_task_loss_ponderation_ls=None,
                                                   scale_ls=[1])
-          BERT_NORMALIZATION = False
+          BERT_NORMALIZATION = True
           if BERT_NORMALIZATION:
-              epochs = 1
+              epochs = 30
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
-                                                  batch_size_ls=[1],
+                                                  batch_size_ls=[8],
                                                   #checkpoint_dir_ls=["'" + os.path.join(CHECKPOINT_BERT_DIR,"9535768-B-45690-9535768-B-model_0/9535768-B-45690-9535768-B-model_0-epbest-checkpoint.pt") + "'"],
                                                   gpu_mode="random",
                                                   bert_module_ls=["mlm"],  # ["mlm"],
