@@ -15,6 +15,7 @@ class CoNLLReader(object):
                char_dictionary, pos_dictionary, type_dictionary, xpos_dictionary,
                lemma_dictionary, word_norm_dictionary=None,
                bert_tokenizer=None,
+               word_level_input=True,
                case=None,
                max_char_len=MAX_CHAR_LENGTH):
     """
@@ -44,6 +45,7 @@ class CoNLLReader(object):
     self.__type_dictionary = type_dictionary
     self.case = case
 
+    self.word_level_input = word_level_input
     self.bert_tokenizer = bert_tokenizer
     if bert_tokenizer is not None:
       printing("INFO Reader : will provide BERT bpe tokens", verbose=1, verbose_level=1)
@@ -190,7 +192,7 @@ class CoNLLReader(object):
     for tokens in lines:
 
       # reading a MWE : we append to the raw tokens
-      if '-' in tokens[0] or '.' in tokens[0]:
+      if '-' in tokens[0] :
         matching_mwe_ind = re.match("([0-9]+)-([0-9]+)", tokens[0])
 
         assert matching_mwe_ind is not None, "ERROR : tokens[0] {} - or . byt did not match mwe pattern".format(tokens[0])

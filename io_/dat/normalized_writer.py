@@ -215,8 +215,6 @@ def write_conll_multitask(format, dir_pred, dir_original, src_text_ls,
         with open(dir_original, mode_write) as original:
             len_original = 0
             for ind_sent in range(all_indexes.shape[0]):
-                original_sent_tokenized = src_text_ls["mwe_prediction"][ind_sent]
-                original_sent_raw = src_text_ls["wordpieces_inputs_raw_tokens"][ind_sent]
 
                 pred_sent = OrderedDict()
 

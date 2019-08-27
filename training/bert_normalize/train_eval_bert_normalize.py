@@ -56,6 +56,6 @@ def train_eval_bert_normalize(args, verbose=1):
         n_iter_max_per_epoch=10,
         slang_dic_test=slang_dic, early_stoppin_metric=early_stoppin_metric,
         saving_every_epoch=100, auxilliary_task_norm_not_norm=True,
-        report=True, verbose="raw_data")
+        report=True, verbose=1)
 
     printing("MODEL {} trained and evaluated", var=[args.model_id_pref], verbose_level=1, verbose=verbose)

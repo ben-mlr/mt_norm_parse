@@ -344,7 +344,7 @@ if __name__ == "__main__":
           FINE_TUNE_BERT = True
           if FINE_TUNE_BERT:
               epochs = 1
-              lang_iter = ["en_lines", "fr_partut"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
+              lang_iter = ["fr_sequoia", "tr_imst"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
               task_to_grid = [["parsing", "n_masks_mwe", "mwe_detection", "mwe_prediction"]]#, ["parsing", "pos"]]
               #task_to_grid = [["normalize"]]
               demo_data = False
@@ -388,7 +388,7 @@ if __name__ == "__main__":
                                                   #train_path=[[LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED]], dev_path=[[LIU_DEV]],
                                                   #train_path=[[CODE_MIXED_RAW_TRAIN_SMALL]], dev_path=[[CODE_MIXED_RAW_CUT_DEV]],
                                                   #train_path=[[EWT_DEMO] for _ in range(n_tasks)], dev_path=[[EWT_DEMO] for _ in range(n_tasks)],
-                                                  train_path=[[get_dir_data("train", lang, demo=demo_data)] for _ in range(n_tasks) for lang in lang_iter], dev_path=[[get_dir_data("train", lang, demo=demo_data)] for _ in range(n_tasks) for lang in lang_iter],
+                                                  train_path=[[get_dir_data("train", lang, demo=demo_data)] for _ in range(n_tasks) for lang in lang_iter], dev_path=[[get_dir_data("dev", lang, demo=demo_data)] for _ in range(n_tasks) for lang in lang_iter],
                                                   #train_path=[[EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV]],
                                                   #train_path=[[AUGMENTED_LEX_DIC[n_sent]] for n_sent in [80, 100, 120, 150, 250, 350]],
                                                   #dev_path=[[LIU_DEV] for n_sent in [80, 100, 120,150,250,350]],
@@ -398,7 +398,7 @@ if __name__ == "__main__":
                                                   #test_paths=[[[LEX_TRAIN_SPLIT_2], [LEX_DEV_SPLIT_2], [LEX_TEST]]],# [[LEX_TRAIN_SPLIT_2], [LEX_DEV_SPLIT_2], [LEX_TEST]]],
                                                   #test_paths=[[[EWT_DEV], [EN_LINES_EWT_TRAIN], [EWT_TEST], [DEV], [TEST]], [[LEX_TEST, EWT_DEV], [LIU_DEV, EWT_TEST], [DEV,  DEV], [TEST, TEST]]],
                                                   #test_paths=[[[EWT_DEMO]] for _ in range(n_tasks)],
-                                                  test_paths=[[[get_dir_data("train", lang, demo=demo_data)]] for _ in range(n_tasks) for lang in lang_iter],
+                                                  test_paths=[[[get_dir_data("test", lang, demo=demo_data)]] for _ in range(n_tasks) for lang in lang_iter],
                                                   #test_paths=[[[get_dir_data("test", lang, demo=demo_data)], [get_dir_data("dev", lang, demo=demo_data)], [get_dir_data("train", lang, demo=demo_data)]] for _ in range(n_tasks) for lang in lang_iter],  # [EWT_DEV], [EWT_TEST], [EN_LINES_EWT_TRAIN]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,

@@ -382,12 +382,13 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
     _buck = buckets_length_bpe_words
   last_bucket_id = len(_buck ) - 1
   data = [[] for _ in _buck ]
-  max_char_length = [0 for _ in _buck ]
-  max_char_norm_length = [0 for _ in _buck ] if normalization else None
+  max_char_length = [0 for _ in _buck]
+  max_char_norm_length = [0 for _ in _buck] if normalization else None
 
   while inst is not None and (not dry_run or counter < 100):
     if inst == "CORRUPTED":
-      inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end, must_get_norm=must_get_norm, word_decoder=word_decoder, tasks=tasks)
+      inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end,
+                            must_get_norm=must_get_norm, word_decoder=word_decoder, tasks=tasks)
       print("WARNING skipping one corrupted sentences in reader")
       continue
 
@@ -405,7 +406,9 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
 
     for bucket_id, bucket_size in enumerate(_buck):
       if inst_size < bucket_size or bucket_id == last_bucket_id:
-        #print("LENGTH {} ".format(bucket_length_in_bpe, len(n_masks_to_add_in_raw_label)))
+        if len(sent.word_ids) > _buckets[bucket_id]:
+          print("WARNING : LENTH adjusting bucket id {} of len {} to len _bucket {}".format(bucket_id, _buckets[bucket_id], len(sent.word_ids)+5))
+          _buckets[bucket_id] = len(sent.word_ids)+5
         data[bucket_id].append([sent.all_indexes, sent.word_ids, sent.word_norm_ids, sent.char_id_seqs, sent.char_norm_ids_seq, inst.pos_ids, inst.heads, inst.type_ids,
                                 counter, sent.words, sent.word_norm, sent.raw_lines, inst.xpos_ids,
                                 sent_word_piece.word_piece_raw_tokens,
@@ -500,7 +503,9 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
     if bucket_size == 0:
       data_variable.append((1, 1))
       continue
-    bucket_length = _buckets[bucket_id]
+    bucket_length = _buckets[bucket_id]+10
+    print("WARNING : adding 10 dimension to bucket_length "
+          "for avoiding over loading of words buckets due to bpe bucketing (bucket id {})".format(bucket_id))
     if max_char_length_dic["buckets_length_bpe_words"] is not None:
       bucket_length_in_bpe = max_char_length_dic["buckets_length_bpe_words"][bucket_id]
     char_length = min(max_char_len+NUM_CHAR_PAD, max_char_length[bucket_id] + NUM_CHAR_PAD)
@@ -558,9 +563,9 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
       assert len(cid_seqs) == len(wids), "ERROR cid_seqs {} and wids {} are different len".format(cid_seqs, wids)
       if len(wids_norm) > 0 and normalization:
           assert len(wids_norm) == len(wids), "ERROR wids_norm {} and wids {} are different len".format(cid_seqs, wids)
-      if len(cid_norm_seqs)>0 and normalization:
+      if len(cid_norm_seqs) > 0 and normalization:
           assert len(cid_seqs) == len(cid_norm_seqs), "ERROR cid_seqs {} and cid_norm_seqs {} have different length ".format(cid_seqs, cid_norm_seqs)
-      inst_size = len(wids)
+      inst_size = len(wids)#len(wids)
       lengths_inputs[i] = inst_size
       order_inputs[i] = orderid
       raw_word_inputs.append(word_raw)
@@ -602,8 +607,8 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
         all_indexes.append(indexes+[str(PAD_ID_LOSS_STANDART) for _ in range(bucket_length+1-inst_size_in_indexes)])
 
       # word ids
-      wid_inputs[i, :inst_size] = wids
-      wid_inputs[i, inst_size:] = PAD_ID_WORD
+      wid_inputs[i, :len(wids)] = wids
+      wid_inputs[i, len(wids):] = PAD_ID_WORD
       # we assume word to word mapping for now
       if normalization and word_decoder:
         wid_norm_inputs[i, :inst_size] = wids_norm
