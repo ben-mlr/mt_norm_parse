@@ -216,7 +216,7 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
                  bert_tokenizer,
                  norm_not_norm=False,
                  word_decoder=False, must_get_norm=True,
-                 bucket=True,max_char_len=None,
+                 bucket=True,max_char_len=None,bucketing_level=None,
                  add_start_char=1, add_end_char=1, symbolic_end=True, symbolic_root=True,
                  verbose=1):
 
@@ -269,6 +269,7 @@ def readers_load(datasets, tasks, word_dictionary, word_dictionary_norm , char_d
                                                                           max_char_len=None,
                                                                           must_get_norm=must_get_norm,
                                                                           bert_tokenizer=bert_tokenizer,
+                                                                          bucketing_level=bucketing_level,
                                                                           word_norm_dictionary=word_dictionary_norm,
                                                                           verbose=verbose)
 

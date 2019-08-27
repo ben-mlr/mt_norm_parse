@@ -385,7 +385,6 @@ class CoNLLReader(object):
       is_mwe.append(-1)
       n_masks_to_add_in_raw_label.append(-1)
 
-
     if self.bert_tokenizer is not None:
 
       is_first_bpe_of_words.append(-1)
@@ -422,7 +421,11 @@ class CoNLLReader(object):
                                                is_first_bpe_of_norm=is_first_bpe_of_norm,
                                                is_first_bpe_of_words=is_first_bpe_of_words,
                                                )
-      sentence_word_piece.sanity_check_len(normalization=normalization, n_words=n_words)
+      try:
+        sentence_word_piece.sanity_check_len(normalization=normalization, n_words=n_words)
+      except:
+        print("WARNING sentence {} CORRUPTED".format(raw_text))
+        return "CORRUPTED"
     else:
       sentence_word_piece = None
 

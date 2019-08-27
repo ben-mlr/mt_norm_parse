@@ -337,7 +337,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
               normalize_digits=True, word_decoder=False, 
               normalization=False, bucket=False, max_char_len=None,
               symbolic_root=False, symbolic_end=False, dry_run=False, tasks=None,
-              must_get_norm=True, bert_tokenizer=None,
+              must_get_norm=True, bert_tokenizer=None, bucketing_level=None,
               verbose=0):
   """
   Given vocabularies , data_file :
@@ -345,42 +345,67 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
   - each bucket is a list of unicode encoded worrds, character, pos tags, relations, ... based on DependancyInstances()
    and Sentence() objects
   """
-
+  if bucketing_level is None:
+    bucketing_level = "wordpiece"
+  assert bucketing_level in ["word", "wordpiece"], "ERROR : {} should be word or wordpiece"
+  printing("INFO ITERATOR : bucketing is done based on {} level", var=[bucketing_level], verbose_level=1, verbose=verbose)
   if bucket:
-    _buckets = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, -1]
+    _buckets = [20, 50, 100, -1]
     # in bpe
-    buckets_length_bpe_words = [10, 15, 20, 40, 50, 70,  100, -1]
+    buckets_length_bpe_words = [20, 50, 100, -1]
 
     #printing("WARNING : bucket limited to 40", verbose=verbose, verbose_level=1)
   else:
-    buckets_length_bpe_words = [80]
-    _buckets = [40]
+    buckets_length_bpe_words = [-1]
+    _buckets = [-1]
     printing("WARNING : for validation we don't bucket the data : bucket len is {} (-1 means will be based "
              "on max sent length lenght) ", var=_buckets[0], verbose=verbose, verbose_level=1)
-  last_bucket_id = len(_buckets) - 1
-  data = [[] for _ in _buckets]
-  max_char_length = [0 for _ in _buckets]
-  max_char_norm_length = [0 for _ in _buckets] if normalization else None
+
+  assert len(_buckets) == len(buckets_length_bpe_words), "ERROR bucket word level and bpe level should be same len "
+
+  if buckets_length_bpe_words[-1] == -1 or _buckets[-1] == -1:
+      assert buckets_length_bpe_words[-1] == _buckets[-1], \
+        "ERROR : if last bucket is -1 should be the same for both word buckt and bpe bucket"
+
   printing('Reading data from %s' % source_path, verbose_level=1, verbose=verbose)
   counter = 0
   reader = CoNLLReader(source_path, word_dictionary, char_dictionary, pos_dictionary, type_dictionary, xpos_dictionary,
                        max_char_len=max_char_len, bert_tokenizer=bert_tokenizer,
                        lemma_dictionary=None, word_norm_dictionary=word_norm_dictionary)
   printing("DATA iterator based on {} tasks", var=tasks, verbose_level=1, verbose=verbose)
-  inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end,
-                        must_get_norm=must_get_norm,
-                        word_decoder=word_decoder, tasks=tasks)
+
+  inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end, must_get_norm=must_get_norm, word_decoder=word_decoder, tasks=tasks)
+
+  if bucketing_level == "word":
+    _buck = _buckets
+  elif bucketing_level == "wordpiece":
+    _buck = buckets_length_bpe_words
+  last_bucket_id = len(_buck ) - 1
+  data = [[] for _ in _buck ]
+  max_char_length = [0 for _ in _buck ]
+  max_char_norm_length = [0 for _ in _buck ] if normalization else None
 
   while inst is not None and (not dry_run or counter < 100):
+    if inst == "CORRUPTED":
+      inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end, must_get_norm=must_get_norm, word_decoder=word_decoder, tasks=tasks)
+      print("WARNING skipping one corrupted sentences in reader")
+      continue
+
     printing("Sentence : counter {} inst : {}".format(counter, inst.sentence.raw_lines[1]),
              verbose=verbose, verbose_level=5)
-    inst_size = inst.length()
+
     sent = inst.sentence
     sent_word_piece = inst.sentence_word_piece
-    for bucket_id, bucket_size in enumerate(_buckets):
-      if inst_size < bucket_size or bucket_id == last_bucket_id:
-        #pdb.set_trace()
 
+
+    if bucketing == "word":
+      inst_size = inst.length()
+    elif bucketing == "wordpiece":
+      inst_size = inst.sentence_word_piece.length()
+
+    for bucket_id, bucket_size in enumerate(_buck):
+      if inst_size < bucket_size or bucket_id == last_bucket_id:
+        #print("LENGTH {} ".format(bucket_length_in_bpe, len(n_masks_to_add_in_raw_label)))
         data[bucket_id].append([sent.all_indexes, sent.word_ids, sent.word_norm_ids, sent.char_id_seqs, sent.char_norm_ids_seq, inst.pos_ids, inst.heads, inst.type_ids,
                                 counter, sent.words, sent.word_norm, sent.raw_lines, inst.xpos_ids,
                                 sent_word_piece.word_piece_raw_tokens,
@@ -396,8 +421,8 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
                                 sent_word_piece.is_first_bpe_of_token,
                                 sent_word_piece.is_first_bpe_of_norm,
                                 sent_word_piece.is_first_bpe_of_words,
-
                                 ])
+
         max_char_len = max([len(char_seq) for char_seq in sent.char_seqs])
         if normalization:
           max_char_norm_len = max([len(char_norm_seq) for char_norm_seq in sent.char_norm_ids_seq])
@@ -408,16 +433,20 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
         if normalization:
           if max_char_norm_length[bucket_id] < max_char_norm_len:
             max_char_norm_length[bucket_id] = max_char_norm_len
-        if bucket_id == last_bucket_id and _buckets[last_bucket_id] < len(sent.word_ids):
-          _buckets[last_bucket_id] = len(sent.word_ids)+2
+
+        if bucket_id == last_bucket_id and buckets_length_bpe_words[last_bucket_id] < len(sent_word_piece.word_piece_words):
+          buckets_length_bpe_words[last_bucket_id] = len(sent_word_piece.word_piece_words)+2
+          if _buckets[last_bucket_id] < len(sent_word_piece.word_piece_words):
+            _buckets[bucket_id] = len(sent.word_ids)+2
+
           # we assumed that raw bpe were smaller or equal to words (assert will raise error otherwise in reader)
           # to do for norm also
         if buckets_length_bpe_words[bucket_id] == -1:
-          buckets_length_bpe_words[bucket_id] = len(sent_word_piece.word_piece_words)
+          buckets_length_bpe_words[bucket_id] = len(sent_word_piece.word_piece_words)+2
+          _buckets[bucket_id] = len(sent.word_ids)+2
         break
     inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end,
-                          must_get_norm=must_get_norm,
-                          word_decoder=word_decoder, tasks=tasks)
+                          must_get_norm=must_get_norm, word_decoder=word_decoder, tasks=tasks)
     counter += 1
     if inst is None or not (not dry_run or counter < 100):
       printing("Breaking : breaking because inst {} counter<100 {} dry {} ".format(inst is None, counter < 100, dry_run),
@@ -434,6 +463,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
                           symbolic_end=False, use_gpu=False, volatile=False, dry_run=False, lattice=None,
                           verbose=0, normalization=False, bucket=True, word_decoder=False,
                           tasks=None, max_char_len=None, must_get_norm=True, bert_tokenizer=None,
+                          bucketing_level=None,
                           add_end_char=0, add_start_char=0):
   """
   Given data ovject form read_variable creates array-like  variables for character, word, pos, relation, heads ready to be fed to a network
@@ -449,7 +479,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
                                                   normalize_digits=normalize_digits, symbolic_root=symbolic_root,
                                                   word_decoder=word_decoder, tasks=tasks,max_char_len=max_char_len,
                                                   must_get_norm=must_get_norm,
-                                                  bert_tokenizer=bert_tokenizer,
+                                                  bert_tokenizer=bert_tokenizer,bucketing=bucketing_level,
                                                   symbolic_end=symbolic_end, dry_run=dry_run)
 
   max_char_length = max_char_length_dic["max_char_length"]
@@ -537,33 +567,36 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
 
       # bpe
       if word_piece_raw_tokens is not None and is_mwe is not None:
-        inst_size_bpe_raw = len(word_piece_raw_tokens) # same len as is_mwe (sanity checked in reader)
+        inst_size_bpe_raw = len(word_piece_raw_tokens)# same len as is_mwe (sanity checked in reader)
+        not_cutting = 1
+
         wordpieces_inputs_raw_tokens[i, :inst_size_bpe_raw] = word_piece_raw_tokens
         wordpieces_inputs_raw_tokens[i, inst_size_bpe_raw:] = PAD_ID_BERT
-        # we cannot have range as int !!
-        ind_wordpieces_inputs_raw_tokens_alignement_index.append(word_piece_raw_tokens_index+[PAD_ID_LOSS_STANDART for _ in range(bucket_length_in_bpe-inst_size_bpe_raw)])
-        #wordpieces_inputs_raw_tokens_alignement_index[i, inst_size_bpe_raw:] = PAD_ID_LOSS_STANDART
         n_masks_to_app_in_raw_label[i, :inst_size_bpe_raw] = n_masks_to_add_in_raw_label
         n_masks_to_app_in_raw_label[i, inst_size_bpe_raw:] = PAD_ID_LOSS_STANDART
         is_mwe_label[i, :inst_size_bpe_raw] = is_mwe
         is_mwe_label[i, inst_size_bpe_raw:] = PAD_ID_LOSS_STANDART
+        # we cannot have range as int !!
+        ind_wordpieces_inputs_raw_tokens_alignement_index.append(word_piece_raw_tokens_index+[PAD_ID_LOSS_STANDART for _ in range((bucket_length_in_bpe-inst_size_bpe_raw)*not_cutting)])
+        #wordpieces_inputs_raw_tokens_alignement_index[i, inst_size_bpe_raw:] = PAD_ID_LOSS_STANDART
+
       if word_piece_raw_tokens_aligned is not None and word_piece_words is not None:
         inst_size_in_indexes = len(indexes)
+
         inst_size_bpe_word = len(word_piece_raw_tokens_aligned) # same len as word_piece_words (sanity checked in reader)
         # words indexes (can be used as input for tag/parse/norm or gold labels for tokenization
+        no_cutting_word = 1
         wordpieces_words[i, :inst_size_bpe_word] = word_piece_words
         wordpieces_words[i, inst_size_bpe_word:] = PAD_ID_BERT
         # its bpe alignement index with source words
-
-        ind_wordpieces_words_alignement_index.append(word_piece_words_index + [PAD_ID_LOSS_STANDART for _ in range(bucket_length_in_bpe-inst_size_bpe_word)])
         # raw tokens aligned with words (inserted MASK)
-
         wordpieces_raw_aligned_with_words[i, :inst_size_bpe_word] = word_piece_raw_tokens_aligned
         wordpieces_raw_aligned_with_words[i, inst_size_bpe_word:] = PAD_ID_BERT
         # is it useful: yes
-        ind_wordpieces_raw_aligned_alignement_index.append(word_piece_raw_tokens_aligned_index + [PAD_ID_LOSS_STANDART for _ in range(bucket_length_in_bpe-inst_size_bpe_word)])
+        ind_wordpieces_raw_aligned_alignement_index.append(word_piece_raw_tokens_aligned_index + [PAD_ID_LOSS_STANDART for _ in range((bucket_length_in_bpe - inst_size_bpe_word)*no_cutting_word)])
         #wordpieces_raw_aligned_alignement_index[i, :inst_size_bpe_word] = word_piece_raw_tokens_aligned_index
         #wordpieces_raw_aligned_alignement_index[i, inst_size_bpe_word:] = PAD_ID_LOSS_STANDART
+        ind_wordpieces_words_alignement_index.append(word_piece_words_index + [PAD_ID_LOSS_STANDART for _ in range((bucket_length_in_bpe - inst_size_bpe_word)*no_cutting_word)])
 
         all_indexes.append(indexes+[str(PAD_ID_LOSS_STANDART) for _ in range(bucket_length+1-inst_size_in_indexes)])
 

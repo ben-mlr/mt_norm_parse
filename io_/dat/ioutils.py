@@ -119,9 +119,14 @@ class SentenceWordPieced(object):
     self.word_piece_words_index = word_piece_words_index
     self.all_indexes = all_indexes
 
+  def length(self):
+    return len(self.word_piece_raw_tokens_aligned)+2
+
   def sanity_check_len(self, normalization, n_words):
 
-    assert len(self.is_first_bpe_of_token) == len(self.word_piece_raw_tokens), "ERROR : {} not same len as {}".format(self.is_first_bpe_of_token, self.word_piece_raw_tokens)
+    assert len(self.is_first_bpe_of_token) == len(self.word_piece_raw_tokens), \
+      "ERROR : {} {} not same len as {} {}".format(len(self.is_first_bpe_of_token), self.is_first_bpe_of_token,
+                                                   len(self.word_piece_raw_tokens), self.word_piece_raw_tokens)
 
     if normalization:
       assert len(self.is_first_bpe_of_norm) == len(self.word_piece_normalization)
@@ -132,7 +137,7 @@ class SentenceWordPieced(object):
     # as many words as aligned tokens (MASK were added)
     assert len(self.word_piece_raw_tokens_aligned) == len(self.word_piece_words), "ERROR : {} not same len as {}".format(len(self.word_piece_raw_tokens_aligned), len(self.word_piece_words))
     # as many raw tokens as is_mwe
-    assert len(self.word_piece_raw_tokens) == len(self.is_mwe), "ERROR : {} not same len as {}".format(self.word_piece_raw_tokens, self.is_mwe)
+    assert len(self.word_piece_raw_tokens) == len(self.is_mwe), "ERROR : {} vs {} : {} not same len as {}".format(len(self.word_piece_raw_tokens),len(self.is_mwe),self.word_piece_raw_tokens, self.is_mwe)
     # check alignement index with 1-hot encoded index
     assert len(self.word_piece_raw_tokens_aligned_index) == len(self.word_piece_raw_tokens_aligned), "ERROR : {} not same len as {}".format(self.word_piece_raw_tokens_aligned_index, self.word_piece_raw_tokens_aligned)
     assert len(self.word_piece_raw_tokens_index) == len(self.word_piece_raw_tokens)
