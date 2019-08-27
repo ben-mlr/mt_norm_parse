@@ -398,9 +398,9 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
     sent_word_piece = inst.sentence_word_piece
 
 
-    if bucketing == "word":
+    if bucketing_level == "word":
       inst_size = inst.length()
-    elif bucketing == "wordpiece":
+    elif bucketing_level == "wordpiece":
       inst_size = inst.sentence_word_piece.length()
 
     for bucket_id, bucket_size in enumerate(_buck):
@@ -479,7 +479,8 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
                                                   normalize_digits=normalize_digits, symbolic_root=symbolic_root,
                                                   word_decoder=word_decoder, tasks=tasks,max_char_len=max_char_len,
                                                   must_get_norm=must_get_norm,
-                                                  bert_tokenizer=bert_tokenizer,bucketing=bucketing_level,
+                                                  bert_tokenizer=bert_tokenizer,
+                                                  bucketing_level=bucketing_level,
                                                   symbolic_end=symbolic_end, dry_run=dry_run)
 
   max_char_length = max_char_length_dic["max_char_length"]
