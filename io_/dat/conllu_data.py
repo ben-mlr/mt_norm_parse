@@ -458,7 +458,7 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
 
   return data, {"buckets_length_bpe_words": buckets_length_bpe_words if bert_tokenizer is not None else None,
                 "max_char_length": max_char_length,
-                "max_char_norm_length": max_char_norm_length, "n_sent": counter}, _buckets
+                "max_char_norm_length": max_char_norm_length, "n_sent": counter}, _buck
 
 
 def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dictionary, xpos_dictionary,
@@ -492,7 +492,7 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
   printing("DATA MAX_CHAR_LENGTH set to {}".format(max_char_len), verbose=verbose, verbose_level=1)
 
   bucket_sizes = [len(data[b]) for b in range(len(_buckets))]
-
+  printing("DATA checking bucket sizes {}",var=[bucket_sizes], verbose=verbose, verbose_level=1)
   data_variable = []
 
   ss = [0] * len(_buckets)
@@ -750,6 +750,11 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
                           ind_wordpieces_words_alignement_index, ind_wordpieces_raw_aligned_alignement_index, ind_wordpieces_inputs_raw_tokens_alignement_index,
                           is_mwe_label, n_masks_to_app_in_raw_label,
                           chars, chars_norm, word_norm_not_norm, edit, pos, xpos, heads, types, masks, single, lengths, order_inputs, raw_word_inputs, words_normalized_str, raw_lines))
+  #pdb.set_trace()
+  for i in range(len(data_variable)):
+    if data_variable[i][0] != 1:
+      print("SIZE", i, bucket_size,_buckets,bucket_id, data_variable[i][3].size())
+
 
   return data_variable, bucket_sizes, _buckets, max_char_length_dic["n_sent"]
 
@@ -874,23 +879,16 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
                    verbose=verbose, verbose_level=2)
           #continue
 
-      if wordpieces_words is not None:
-        if wordpieces_words[excerpt].size(0) == 0:
-          print("WARNING : generating empty tensors : inconsisentices between nbatches, buckets and number of sentences")
-        wordpieces_words = wordpieces_words[excerpt]
-        ind_wordpieces_words_alignement_index = ind_wordpieces_words_alignement_index[excerpt]
-      if all_indexes is not None:
-        all_indexes = all_indexes[excerpt]
-      if wordpieces_raw_aligned_with_words is not None:
-        wordpieces_raw_aligned_with_words = wordpieces_raw_aligned_with_words[excerpt]
-        ind_wordpieces_raw_aligned_alignement_index = ind_wordpieces_raw_aligned_alignement_index[excerpt]
-      if wordpieces_inputs_raw_tokens is not None:
-        wordpieces_inputs_raw_tokens = wordpieces_inputs_raw_tokens[excerpt]
-        ind_wordpieces_inputs_raw_tokens_alignement_index = ind_wordpieces_inputs_raw_tokens_alignement_index[excerpt]
-      if is_mwe_label is not None:
-        is_mwe_label = is_mwe_label[excerpt]
-      if n_masks_to_app_in_raw_label is not None:
-        n_masks_to_app_in_raw_label = n_masks_to_app_in_raw_label[excerpt]
+      _wordpieces_words = wordpieces_words[excerpt] if wordpieces_words is not None else None
+      _ind_wordpieces_words_alignement_index = ind_wordpieces_words_alignement_index[excerpt] if ind_wordpieces_words_alignement_index is not None else None
+      _all_indexes = all_indexes[excerpt] if all_indexes is not None else None
+      _wordpieces_raw_aligned_with_words = wordpieces_raw_aligned_with_words[excerpt] if wordpieces_raw_aligned_with_words is not None else None
+      _ind_wordpieces_raw_aligned_alignement_index = ind_wordpieces_raw_aligned_alignement_index[excerpt] if ind_wordpieces_raw_aligned_alignement_index is not None else None
+
+      _wordpieces_inputs_raw_tokens = wordpieces_inputs_raw_tokens[excerpt] if wordpieces_inputs_raw_tokens is not None else wordpieces_inputs_raw_tokens
+      _ind_wordpieces_inputs_raw_tokens_alignement_index = ind_wordpieces_inputs_raw_tokens_alignement_index[excerpt] if ind_wordpieces_inputs_raw_tokens_alignement_index is not None else None
+      _is_mwe_label = is_mwe_label[excerpt] if is_mwe_label is not None else None
+      _n_masks_to_app_in_raw_label = n_masks_to_app_in_raw_label[excerpt] if n_masks_to_app_in_raw_label is not None else None
 
       if word_norm is not None:
         if word_norm.size(0) <= 0:
@@ -898,9 +896,9 @@ def iterate_batch_variable(data, batch_size, unk_replace=0.,
                    verbose=verbose, verbose_level=2)
           continue
 
-      yield all_indexes, words[excerpt], _word_norm, wordpieces_words, wordpieces_raw_aligned_with_words, wordpieces_inputs_raw_tokens, \
-            ind_wordpieces_words_alignement_index, ind_wordpieces_raw_aligned_alignement_index, ind_wordpieces_inputs_raw_tokens_alignement_index, \
-            is_mwe_label, n_masks_to_app_in_raw_label, \
+      yield _all_indexes, words[excerpt], _word_norm, _wordpieces_words, _wordpieces_raw_aligned_with_words, _wordpieces_inputs_raw_tokens, \
+            _ind_wordpieces_words_alignement_index, _ind_wordpieces_raw_aligned_alignement_index, _ind_wordpieces_inputs_raw_tokens_alignement_index, \
+            _is_mwe_label, _n_masks_to_app_in_raw_label, \
             chars[excerpt], chars_norm_, _word_norm_not_norm, _edit, \
             pos[excerpt], xpos[excerpt], heads[excerpt], \
             types[excerpt],  \

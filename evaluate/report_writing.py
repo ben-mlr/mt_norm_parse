@@ -71,23 +71,20 @@ def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, scor
 
         # class negative 0 , class positive 1
         # TODO : make that more consistent with user needs !
-        if "normalize" in evaluated_task:
-            if "all" in _samples and TASKS_PARAMETER["normalize"]["predicted_classes"][0] in _samples and TASKS_PARAMETER["normalize"]["predicted_classes"][1] in _samples:
+        evaluated_tasks_confusion_matrix_based_score = list(set(evaluated_task) & set(["normalize", "normalize_pred"]))
+        for task in evaluated_tasks_confusion_matrix_based_score:
+            if "all" in _samples and TASKS_PARAMETER[task]["predicted_classes"][0] in _samples and TASKS_PARAMETER[task]["predicted_classes"][1] in _samples:
                 # then we can compute all the confusion matrix rate
                 # TODO : factorize with TASKS_2_METRICS_STR
                 for metric_val in ["precision", "f1", "recall", "tnr", "npv", "accuracy"]:
-                    metric_val += "-normalize" #tasks[0]
-                    score, n_rate_universe = get_perf_rate(metric=metric_val, n_tokens_dic=n_tokens_dic["normalize"],
-                                                           score_dic=score_dic["normalize"],
-                                                           agg_func=agg_func)
+                    metric_val += "-"+task
+                    score, n_rate_universe = get_perf_rate(metric=metric_val, n_tokens_dic=n_tokens_dic[task],
+                                                           score_dic=score_dic[task], task=task, agg_func=agg_func)
                     try:
                         report = report_template(metric_val=metric_val, subsample="rates" +label_heuristic,
-                                                 info_score_val=None,
-                                                 score_val=score, n_sents=n_sents_dic["normalize"][agg_func]["all"],
-                                                 avg_per_sent=0,
-                                                 n_tokens_score=n_rate_universe, model_full_name_val=model_id,
-                                                 task=tasks,
-                                                 evaluation_script_val="exact_match", model_args_dir=args_dir,
+                                                 info_score_val=None, score_val=score, n_sents=n_sents_dic[task][agg_func]["all"],
+                                                 avg_per_sent=0, n_tokens_score=n_rate_universe, model_full_name_val=model_id,
+                                                 task=tasks, evaluation_script_val="exact_match", model_args_dir=args_dir,
                                                  token_type="word", report_path_val=None, data_val=data_label)
                     except Exception as e:
                         print("REPORT ERROR {} ".format(e))

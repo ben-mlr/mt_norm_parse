@@ -13,8 +13,12 @@ TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact
                                  "label": ["normalize"],
                                  "eval_metrics": [["accuracy-exact-normalize", "accuracy-normalize", "npv-normalize", "recall-normalize", "precision-normalize","tnr-normalize", "f1-normalize", "accuracy-exact-n_masks_pred","accuracy-exact-normalize_pred"]],
                                  "predicted_classes": ["NORMED", "NEED_NORM"],
-
                                  "predicted_classes_pred_field": ["PRED_NORMED", "PRED_NEED_NORM"]
+                                 },
+                   # (not a real task but needed)
+                   "normalize_pred": {"default_metric": "exact_match",
+                                      "predicted_classes": ["NORMED", "NEED_NORM"],
+                                      "predicted_classes_pred_field": ["PRED_NORMED", "PRED_NEED_NORM"]
                                  },
                    # TOOD : could add input for full flexibility
                    "mwe_detection": {"normalization": False,

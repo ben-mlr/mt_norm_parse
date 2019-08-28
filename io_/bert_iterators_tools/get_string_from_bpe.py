@@ -126,7 +126,8 @@ def get_detokenized_str(source_preprocessed_dict, input_alignement_with_raw, lab
         for e in range(len(label_detokenized_dic[label])):
             try:
                 assert len(predict_detokenize_dic[label][0][e]) == len(label_detokenized_dic[label][e]),\
-                    "ERROR : for label {} len pred {} len gold {}".format(label, len(predict_detokenize_dic[label][0][e]),
+                    "ERROR : for label {} len pred {} len gold {}".format(label,
+                                                                          len(predict_detokenize_dic[label][0][e]),
                                                                           len(label_detokenized_dic[label][e]))
             except Exception as err:
                 print("ERROR : gold and pred are not aligned anymore", err)

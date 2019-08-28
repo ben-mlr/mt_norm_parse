@@ -553,17 +553,21 @@ def epoch_run(batchIter, tokenizer,
                         elif task_normalize_is:
                             # we fill it with an empty report for simplifying reporting
                             accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=["all"],
-                                                           dic_prediction_score={agg_func_ls[0]: 
-                                                                                     {"all": {"agg_func": agg_func_ls[0],"metric": "exact_match",
-                                                                                     "score": 0, "n_sents": 0, "n_tokens": 0 }}},
+                                                           dic_prediction_score={agg_func_ls[0]: {"all": {"agg_func": agg_func_ls[0],"metric": "exact_match", "score": 0, "n_sents": 0, "n_tokens": 0 }}},
                                                            score_dic=score_dic["n_masks_pred"], n_tokens_dic=n_tokens_dic["n_masks_pred"], n_sents_dic=n_sents_dic["n_masks_pred"])
+
+                            accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=["all"],
+                                                           dic_prediction_score={agg_func_ls[0]:{"all": {"agg_func": agg_func_ls[0], "metric": "exact_match", "score": 0, "n_sents": 0, "n_tokens": 0}}},
+                                                           score_dic=score_dic["normalize_pred"], n_tokens_dic=n_tokens_dic["normalize_pred"], n_sents_dic=n_sents_dic["normalize_pred"])
                             evaluated_task.append("n_masks_pred")
+                            evaluated_task.append("normalize_pred")
+
 
                         evaluated_task.append(predicted_task)
 
                         perf_prediction, skipping, _samples = overall_word_level_metric_measure(task_label=predicted_task,
-                                                                                                gold_sent_ls_dict={predicted_task:gold_detokenized},
-                                                                                                pred_sent_ls_topk_dict={predicted_task:pred_detokenized_topk},
+                                                                                                gold_sent_ls_dict={predicted_task: gold_detokenized},
+                                                                                                pred_sent_ls_topk_dict={predicted_task: pred_detokenized_topk},
                                                                                                 topk=topk,
                                                                                                 metric=metric, samples=samples,
                                                                                                 agg_func_ls=agg_func_ls,

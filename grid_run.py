@@ -341,13 +341,13 @@ if __name__ == "__main__":
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
                                                   gpus_ls=gpu_ls, gpu_mode="random",
                                                   write_to_dir=RUN_SCRIPTS_DIR, description_comment=description_comment)
-          FINE_TUNE_BERT = False
+          FINE_TUNE_BERT = True
           if FINE_TUNE_BERT:
-              epochs = 30
+              epochs = 1
               lang_iter = ["en_ewt"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
               task_to_grid = [["parsing", "n_masks_mwe", "mwe_detection", "mwe_prediction"]]#, ["parsing", "pos"]]
               #task_to_grid = [["normalize"]]
-              demo_data = False
+              demo_data = True
 
               tasks_ls = [[task_simul] for task_simul in task_to_grid for _ in lang_iter]
               printing("GRID : running {} lang on {} tasks combinaiton ".format(lang_iter, task_to_grid), verbose=1, verbose_level=1)
@@ -490,9 +490,9 @@ if __name__ == "__main__":
                                                   mode_word_encoding_ls=None,
                                                   dropout_input_ls=None, multi_task_loss_ponderation_ls=None,
                                                   scale_ls=[1])
-          BERT_NORMALIZATION = True
+          BERT_NORMALIZATION = False
           if BERT_NORMALIZATION:
-              epochs = 30
+              epochs = 1
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
