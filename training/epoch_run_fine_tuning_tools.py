@@ -1,4 +1,4 @@
-from env.importing import torch
+from env.importing import torch, pdb
 from io_.dat.constants import SPECIAL_TOKEN_LS, PAD_ID_BERT
 from io_.printout_iterator_as_raw import printing
 from io_.dat.normalized_writer import write_conll, write_conll_multitask
@@ -261,18 +261,25 @@ def init_score_token_sent_dict(samples_per_task_reporting, tasks, agg_func_ls, c
 
     samples = samples_per_task_reporting["normalize"] #["all", "NEED_NORM", "NORMED", "PRED_NEED_NORM", "PRED_NORMED", "InV", "OOV"]
     init_samples = samples.copy()
-
-    if compute_intersection_score:
-        for ind, sam in enumerate(samples[1:]):
-            for ind_2 in range(ind):
-                init_samples.append(sam+"-n-"+samples[ind_2+1])
-    #_tasks = [_task for _task in tasks if _task != "parsing"]
+    init_samples_per_task = {}
 
     _tasks = get_task_label(tasks, task_settings)
 
-    score_dic = {task: {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls} for task in _tasks}
-    n_tokens_dic = {task: {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls} for task in _tasks}
-    n_sents_dic = {task: {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls} for task in _tasks}
+    for task in _tasks:
+        if task.startswith("mwe"):
+            init_samples_per_task[task] = samples_per_task_reporting[task].copy()
+        else:
+            init_samples_per_task[task] = samples_per_task_reporting["normalize"].copy()
+
+    if compute_intersection_score:
+        for task in _tasks:
+            for ind, sam in enumerate(init_samples_per_task[task][1:]):
+                for ind_2 in range(ind):
+                    init_samples_per_task[task].append(sam+"-n-"+init_samples_per_task[task][ind_2+1])
+
+    score_dic = {task: {agg_func: {sample: 0 for sample in init_samples_per_task[task]} for agg_func in agg_func_ls} for task in _tasks}
+    n_tokens_dic = {task: {agg_func: {sample: 0 for sample in init_samples_per_task[task]} for agg_func in agg_func_ls} for task in _tasks}
+    n_sents_dic = {task: {agg_func: {sample: 0 for sample in init_samples_per_task[task]} for agg_func in agg_func_ls} for task in _tasks}
 
     if "normalize" in tasks:
         for extra_label in ["n_masks_pred", "normalize_pred"]:
@@ -280,12 +287,6 @@ def init_score_token_sent_dict(samples_per_task_reporting, tasks, agg_func_ls, c
             n_tokens_dic[extra_label] = {"sum": {sample: 0 for sample in samples_per_task_reporting[extra_label]}}
             n_sents_dic[extra_label] = {"sum": {sample: 0 for sample in samples_per_task_reporting[extra_label]}}
 
-    if "mwe_prediction" in tasks or "mwe_detection" in tasks:
-        # mwe_detection or mwe_prediciton have the same filters
-        for task in list(set(["mwe_prediction", "mwe_detection"])&set(tasks)):
-            score_dic[task] = {"sum": {sample: 0 for sample in samples_per_task_reporting["mwe_prediction"]}}
-            n_tokens_dic[task] = {"sum": {sample: 0 for sample in samples_per_task_reporting["mwe_prediction"]}}
-            n_sents_dic[task] = {"sum": {sample: 0 for sample in samples_per_task_reporting["mwe_prediction"]}}
 
     return score_dic, n_tokens_dic, n_sents_dic
 

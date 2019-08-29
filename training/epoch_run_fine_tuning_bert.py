@@ -26,9 +26,13 @@ from model.bert_tools_from_core_code.masking import focused_masking
 def accumulate_scores_across_sents(agg_func_ls, sample_ls, dic_prediction_score, score_dic, n_tokens_dic, n_sents_dic):
     for agg_func in agg_func_ls:
         for sample in sample_ls:
-            score_dic[agg_func][sample] += dic_prediction_score[agg_func][sample]["score"]
-            n_tokens_dic[agg_func][sample] += dic_prediction_score[agg_func][sample]["n_tokens"]
-            n_sents_dic[agg_func][sample] += dic_prediction_score[agg_func][sample]["n_sents"]
+            try:
+                score_dic[agg_func][sample] += dic_prediction_score[agg_func][sample]["score"]
+                n_tokens_dic[agg_func][sample] += dic_prediction_score[agg_func][sample]["n_tokens"]
+                n_sents_dic[agg_func][sample] += dic_prediction_score[agg_func][sample]["n_sents"]
+            except:
+                print("<spejfsepfj ef")
+                pdb.set_trace()
     return score_dic, n_tokens_dic, n_sents_dic
 
 
@@ -620,7 +624,8 @@ def epoch_run(batchIter, tokenizer,
                     #assert len(set(args.tasks) & set(["parsing", "pos"])) == len(args.tasks), \
                     #    "ERROR need to handle tasks agnostic pad index for allowing other tasks {} ".format(args.tasks)
                     # we transform the padded labels according to the loss ignore mask parameters
-                    if label not in ["parsing_heads", "mwe_prediction", "n_masks_mwe", "mwe_detection"]:
+                    if label not in ["parsing_heads", "mwe_prediction",
+                                     "n_masks_mwe", "mwe_detection"]:
                         label_per_task[label][label_per_task[label] == PAD_ID_TAG] = PAD_ID_LOSS_STANDART
                     # we do the token counting using labels
                     n_tokens_counter_per_task[label] += (label_per_task[label] != PAD_ID_LOSS_STANDART).sum().item()
@@ -671,6 +676,7 @@ def epoch_run(batchIter, tokenizer,
                     else:
                         raise(Exception("label {} not found".format(label)))
                     if label.startswith("mwe"):
+                        # make this factorizable
                         filter_score = ["all", "InV", "OOV", "MWE"]
                     else:
                         filter_score = samples
