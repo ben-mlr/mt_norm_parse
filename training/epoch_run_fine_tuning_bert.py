@@ -22,6 +22,8 @@ from io_.bert_iterators_tools.get_bpe_labels import get_label_per_bpe, get_mask_
 from toolbox.deep_learning_toolbox import dropout_input_tensor
 from model.bert_tools_from_core_code.masking import focused_masking
 
+from io_.build_files_shard import build_shard
+from io_.get_new_batcher import get_new_shard, load_batcher_shard_data
 
 def accumulate_scores_across_sents(agg_func_ls, sample_ls, dic_prediction_score, score_dic, n_tokens_dic, n_sents_dic):
     for agg_func in agg_func_ls:
@@ -206,9 +208,15 @@ def epoch_run(batchIter, tokenizer,
     time_multitask_preprocess_2 = 0
     time_multitask_postprocess = 0
 
+    n_shard = 0
+
     while True:
 
         try:
+            if batch_i*args.batch_size >= n_sent_dataset_total:
+                printing("BREAKING ALL ITERATORS for (mode is {} memory_efficient_iterator {} , shard {} ending ",
+                         var=[mode, args.memory_efficient_iterator, n_shard], verbose_level=1, verbose=1)
+                break
             batch_i += 1
             batch = batchIter.__next__()
             n_tokens_counter_current_per_task = OrderedDict()
@@ -746,9 +754,18 @@ def epoch_run(batchIter, tokenizer,
                     tensorboard_loss_writer_batch_level_multi(writer, mode, model_id, _loss, batch_i, iter, loss_dic, tasks=args.tasks)
             time_backprop = time.time()-time_backprop_start
         except StopIteration:
-            printing("BREAKING ITERATION", verbose_level=1, verbose=1)
+            printing("BREAKING ITERATION for (mode is {} memory_efficient_iterator {} , shard {} ending ", var=[mode, args.memory_efficient_iterator, n_shard],
+                     verbose_level=1, verbose=1)
             printing("TIME : {:0.3f} min with / without {} n_masks predictions ", var=[mean_end_pred / batch_i, args.append_n_mask], verbose_level=1, verbose=verbose)
-            break
+            n_shard += 1
+            if not args.memory_efficient_iterator:
+                break
+            # TODO : redefine batchIter
+            training_file = get_new_shard(shard, n_shards)
+            batchIter = load_batcher_shard_data(training_file)
+
+
+
     if args.multitask:
         timing = OrderedDict([("time_multitask_preprocess_1", "{:0.4f}".format(time_multitask_preprocess_1/batch_i)),
                  ("time_multitask_preprocess_2", "{:0.4f}".format(time_multitask_preprocess_2/batch_i)),

@@ -15,6 +15,8 @@ from toolbox.report_tools import write_args, get_hyperparameters_dict, get_datas
 from toolbox.pred_tools.heuristics import get_letter_indexes
 from model.bert_tools_from_core_code.get_model import get_multi_task_bert_model
 from training.bert_normalize.multi_task_tools import get_vocab_size_and_dictionary_per_task
+from io_.build_files_shard import build_shard
+from io_.get_new_batcher import get_new_shard
 
 
 def run(args,
@@ -80,7 +82,7 @@ def run(args,
     if run_mode == "train":
         printing("CHECKPOINTING info : saving model every {}", var=saving_every_epoch, verbose=verbose, verbose_level=1)
     use_gpu = use_gpu_(use_gpu=None, verbose=verbose)
-    train_data_label = get_dataset_label(args.train_path,default="train")
+    train_data_label = get_dataset_label(args.train_path, default="train")
     dev_data_label = get_dataset_label(args.train_path, default="dev")
     #train_data_label = "|".join([REPO_DATASET.get(_train_path, "train_{}".format(i)) for i, _train_path in enumerate(args.train_path)])
     #dev_data_label = "|".join([REPO_DATASET.get(_dev_path, "dev_{}".format(i)) for i, _dev_path in enumerate(args.dev_path)]) if args.dev_path is not None else None
@@ -95,7 +97,7 @@ def run(args,
 
     if run_mode == "train":
         assert model_location is None and model_id is None, "ERROR we are creating a new one "
-        model_id, model_location, dict_path, tensorboard_log, end_predictions = setup_repoting_location(model_suffix=model_suffix, root_dir_checkpoints=CHECKPOINT_BERT_DIR, shared_id=args.overall_label, verbose=verbose)
+        model_id, model_location, dict_path, tensorboard_log, end_predictions, data_sharded = setup_repoting_location(model_suffix=model_suffix, root_dir_checkpoints=CHECKPOINT_BERT_DIR, shared_id=args.overall_label, verbose=verbose)
         hyperparameters = get_hyperparameters_dict(args, case, random_iterator_train, seed=SEED_TORCH, verbose=verbose)
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
 
@@ -155,7 +157,15 @@ def run(args,
     assert tokenizer is not None, "ERROR : tokenizer is None , voc_tokenizer failed to be loaded {}".format(voc_tokenizer)
     if run_mode == "train":
         time_load_readers_train_start = time.time()
-        readers_train = readers_load(datasets=args.train_path,
+
+        if args.memory_efficient_iterator:
+            shard, n_shards = build_shard(data_sharded, n_sent_max_per_file=30000, verbose=verbose)
+            training_file = get_new_shard(shard, n_shards)
+            printing("INFO Memory efficient iterator triggered (only build for train data , starting with {}", var=[training_file],
+                     verbose=verbose,
+                     verbose_level=1)
+
+        readers_train = readers_load(datasets=args.train_path if not args.memory_efficient_iterator else training_file,
                                      tasks=args.tasks,
                                      args=args,
                                      word_dictionary=word_dictionary,

@@ -343,8 +343,8 @@ if __name__ == "__main__":
                                                   write_to_dir=RUN_SCRIPTS_DIR, description_comment=description_comment)
           FINE_TUNE_BERT = True
           if FINE_TUNE_BERT:
-              epochs = 1
-              lang_iter = ["tr_imst", "fr_sequoia", "fr_spoken"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
+              epochs = 15
+              lang_iter = ["tr_imst"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
               task_to_grid = [["parsing", "n_masks_mwe", "mwe_detection", "mwe_prediction"]]#, ["parsing", "pos"]]
               #task_to_grid = [["normalize"]]
               demo_data = True

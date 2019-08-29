@@ -29,6 +29,7 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
     n_sents = data[-1]
     if extend_n_batch != 1:
         assert get_batch_mode, "ERROR extending nbatch only makes sense in get_batch True (random iteration) "
+
     nbatch = n_sents//batch_size*extend_n_batch  # approximated lower approximation 1.9//2 == 0
 
     if nbatch == 0:
