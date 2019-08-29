@@ -154,6 +154,7 @@ def run(args,
     tokenizer = BertTokenizer.from_pretrained(voc_tokenizer)
     assert tokenizer is not None, "ERROR : tokenizer is None , voc_tokenizer failed to be loaded {}".format(voc_tokenizer)
     if run_mode == "train":
+        time_load_readers_train_start = time.time()
         readers_train = readers_load(datasets=args.train_path,
                                      tasks=args.tasks,
                                      args=args,
@@ -167,7 +168,8 @@ def run(args,
                                      symbolic_root=1, bucket=True, max_char_len=20,
                                      must_get_norm=True, bucketing_level=bucketing_level,
                                      verbose=verbose)
-
+        time_load_readers_dev_start = time.time()
+        time_load_readers_train = time.time()-time_load_readers_train_start
         readers_dev = readers_load(datasets=args.dev_path, tasks=args.tasks, word_dictionary=word_dictionary,
                                    word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
                                    pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
@@ -179,12 +181,17 @@ def run(args,
                                    symbolic_end=1, symbolic_root=1, bucket=False, max_char_len=20,
                                    must_get_norm=True,
                                    verbose=verbose) if args.dev_path is not None else None
+        time_load_readers_dev = time.time()-time_load_readers_dev_start
         # Load tokenizer
+        print("TIMING : ", OrderedDict([("time_load_readers_train", "{:0.4f} min".format(time_load_readers_train/60)),
+                                        ("time_load_readers_dev",  "{:0.4f} min".format(time_load_readers_dev/60))]))
+
         early_stoping_val_former = 1000
         try:
             for epoch in range(args.epochs):
                 checkpointing_model_data = (epoch % saving_every_epoch == 0 or epoch == (args.epochs - 1))
                 # build iterator on the loaded data
+                time_load_batcher_start = time.time()
                 batchIter_train = data_gen_multi_task_sampling_batch(tasks=args.tasks, readers=readers_train, batch_size=args.batch_size,
                                                                      word_dictionary=word_dictionary,
                                                                      char_dictionary=char_dictionary,
@@ -195,6 +202,8 @@ def run(args,
                                                                      print_raw=False,
                                                                      dropout_input=0.0,
                                                                      verbose=verbose)
+                time_load_batcher = time.time()-time_load_batcher_start
+                print("TIMING batcher ", time_load_batcher)
                 # -|-|-
                 print("WARNING --> hardcoded random iter for DEV : need to change")
                 batchIter_dev = data_gen_multi_task_sampling_batch(tasks=args.tasks, readers=readers_dev, batch_size=args.batch_size,

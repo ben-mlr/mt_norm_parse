@@ -26,7 +26,7 @@ def word_level_scoring(metric, gold, topk_pred, topk):
 
 
 def word_level_filter(gold, topk_pred, topk, src, sample="all",
-                      sample_2=None, word_reference_dic_ls=None):
+                      sample_2=None, word_reference_dic_ls=None, is_mwe=None):
     """
     compare a gold string and a list of candidate
     return a score based on it
@@ -46,6 +46,9 @@ def word_level_filter(gold, topk_pred, topk, src, sample="all",
 
     if sample == "all":
         sample_1_filter = 1
+    elif sample == "MWE":
+        assert is_mwe is not None, "ERROR filter request is MWE but is_mwe not provided"
+        sample_1_filter = is_mwe
     elif sample == "PRED_NORMED":
         sample_1_filter = src == topk_pred[0]
     elif sample == "PRED_NEED_NORM":
@@ -87,6 +90,9 @@ def word_level_filter(gold, topk_pred, topk, src, sample="all",
             sample_2_filter = src == topk_pred[0]
         elif sample_2 == "PRED_NEED_NORM":
             sample_2_filter = src != topk_pred[0]
+        elif sample_2 == "MWE":
+            assert is_mwe is not None, "ERROR filter request is MWE but is_mwe not provided"
+            sample_2_filter = is_mwe
     else:
         sample_2_filter = 1
 

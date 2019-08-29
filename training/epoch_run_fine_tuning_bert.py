@@ -195,6 +195,13 @@ def epoch_run(batchIter, tokenizer,
     input_token_mask = None
 
     counting_failure_parralel_bpe_batch = 0
+
+    time_multitask_train = 0
+    time_backprop = 0
+    time_multitask_preprocess_1 = 0
+    time_multitask_preprocess_2 = 0
+    time_multitask_postprocess = 0
+
     while True:
 
         try:
@@ -286,12 +293,14 @@ def epoch_run(batchIter, tokenizer,
                          verbose_level=2, verbose=verbose)
 
             if args.multitask:
+                time_multitask_preprocess_start = time.time()
                 out_bpe_tokenized = None
                 # TODO : should have a task specific input_mask and head_masks : only considering word level tasks and bpe level tasks for now
                 input_mask = get_mask_input(input_tokens_tensor, use_gpu)
                 head_masks, input_tokens_tensor, token_type_ids, label_per_task, input_tokens_tensor_per_task, input_mask_per_task = get_label_per_bpe(args.tasks, batch, input_tokens_tensor, input_alignement_with_raw,  use_gpu, tasks_parameters=TASKS_PARAMETER)
                 # NB : token_type_ids not used in MultiTask (no needed, just use 0 everywhere )
                 dimension_check_label(label_per_task, input_tokens_tensor)
+                time_multitask_preprocess_1 += time_multitask_preprocess_start-time.time()
 
                 # NB : we use the aligned input with the
             # logging
@@ -596,6 +605,7 @@ def epoch_run(batchIter, tokenizer,
                                     verbose=verbose, verbose_level=4)
             # multitask :
             elif args.multitask:
+                time_multitask_preprocess_2_start = time.time()
                 #   - for all word level tasks : normalization, tagging, edit, parsing :
                 #       handle realignement to words
                 # --> evaluate them based on labels
@@ -618,6 +628,8 @@ def epoch_run(batchIter, tokenizer,
                     n_tokens_counter_current_per_task[label] = (label_per_task[label] != PAD_ID_LOSS_STANDART).sum().item()
                 # TODO : handle in a more standart way
                 n_tokens_counter_per_task["all"] += n_tokens_counter_current_per_task[label]
+                time_multitask_preprocess_2 += time.time()-time_multitask_preprocess_2_start
+                time_multitask_train_start = time.time()
                 logits_dic, loss_dic, _ = model(input_tokens_tensor_per_task,
                                                 token_type_ids=None,
                                                 labels=label_per_task, head_masks=head_masks, attention_mask=input_mask_per_task)
@@ -628,6 +640,8 @@ def epoch_run(batchIter, tokenizer,
                     pass
 
                 predictions_topk_dic = get_prediction(logits_dic, topk=topk)
+                time_multitask_train += time_multitask_train_start - time.time()
+                time_multitask_postprocess_start = time.time()
                 assert "normalize" not in args.tasks, "ERROR : following line () was needed apparently for normalize being supported"
                 #output_tokens_tensor_aligned_dic = get_aligned_output(label_per_task)
                 # for parsing heads will leave heads untouched
@@ -656,12 +670,16 @@ def epoch_run(batchIter, tokenizer,
                         src_detokenized = src_detokenized_dic["wordpieces_inputs_raw_tokens"]
                     else:
                         raise(Exception("label {} not found".format(label)))
+                    if label.startswith("mwe"):
+                        filter_score = ["all", "InV", "OOV", "MWE"]
+                    else:
+                        filter_score = samples
                     perf_prediction, skipping, _samples = overall_word_level_metric_measure(task_label=label,
                                                                                             gold_sent_ls_dict=label_detokenized_dic,
                                                                                             pred_sent_ls_topk_dict=predict_detokenize_dic,
                                                                                             topk=topk,
                                                                                             metric=metric,
-                                                                                            samples=samples,
+                                                                                            samples=filter_score,
                                                                                             agg_func_ls=agg_func_ls,
                                                                                             reference_word_dic=reference_word_dic,
                                                                                             compute_intersection_score=compute_intersection_score,
@@ -671,7 +689,6 @@ def epoch_run(batchIter, tokenizer,
                              "gold {} gold token {} pred {} pred token {} ",
                              var=[epoch, label, perf_prediction["sum"]["all"]["score"], perf_prediction["sum"]["all"]["n_tokens"], label_detokenized_dic[label], label_per_task[label], predict_detokenize_dic[label], predictions_topk_dic[label][:, :, 0]],
                              verbose=verbose, verbose_level="pred")
-
                     score_dic[label], n_tokens_dic[label], n_sents_dic[label] = \
                         accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=_samples,
                                                        dic_prediction_score=perf_prediction,
@@ -693,13 +710,14 @@ def epoch_run(batchIter, tokenizer,
                 _loss = get_multitask_loss(loss_dic, args.multi_task_loss_ponderation)
                 loss_dic["all"] = _loss
                 loss_dic_epoch = update_loss_dic_average(loss_dic, loss_dic_epoch)
-
+                time_multitask_postprocess += time_multitask_postprocess_start - time.time()
                 # temporary
                 task_normalize_is = False
                 task_pos_is = False
                 # based on a policy : handle batch, epoch, batch weights, simultanuously
                 # assert the policy is consistent with the available labels fed to the model
             # training :
+            time_backprop_start = time.time()
             loss += _loss.detach()
             if optimizer is not None:
                 _loss.backward()
@@ -720,11 +738,19 @@ def epoch_run(batchIter, tokenizer,
                 tensorboard_loss_writer_batch_level(writer, mode, model_id, _loss, batch_i, iter, loss_dic, task_normalize_is,  args.append_n_mask, task_pos_is)
                 if args.multitask:
                     tensorboard_loss_writer_batch_level_multi(writer, mode, model_id, _loss, batch_i, iter, loss_dic, tasks=args.tasks)
+            time_backprop = time.time()-time_backprop_start
         except StopIteration:
             printing("BREAKING ITERATION", verbose_level=1, verbose=1)
             printing("TIME : {:0.3f} min with / without {} n_masks predictions ", var=[mean_end_pred / batch_i, args.append_n_mask], verbose_level=1, verbose=verbose)
             break
-
+    if args.multitask:
+        timing = OrderedDict([("time_multitask_preprocess_1", "{:0.4f}".format(time_multitask_preprocess_1/batch_i)),
+                 ("time_multitask_preprocess_2", "{:0.4f}".format(time_multitask_preprocess_2/batch_i)),
+                 ("time_multitask_feedforward", "{:0.4f}".format(time_multitask_train/batch_i)),
+                 ("time_multitask_backprop", "{:0.4f}".format(time_backprop/batch_i)),
+                 ("time_multitask_postprocess", "{:0.4f}".format(time_multitask_postprocess/batch_i))
+                 ])
+        print("TIMING : model {} task for epoch {} {} in {} mode".format(args.tasks, epoch, timing, "predict only" if optimizer is None else "train"))
     log_warning(counting_failure_parralel_bpe_batch, data_label, batch_i, batch, noisy_under_splitted, skipping_batch_n_to_1, aligned, noisy_over_splitted, skip_1_t_n, skipping_evaluated_batch, verbose)
 
     early_stoppin_metric_val = 999

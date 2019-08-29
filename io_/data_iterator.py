@@ -365,10 +365,6 @@ def sanity_check_batch_label(task, batch, verbose=1):
             raise(Exception("task provided {} could not be checked".format(task)))
     #printing("BATCH CHECKED ", verbose=verbose, verbose_level=1)
 
-
-
-
-
 # TODO :
 # - integrate to train.py for both train and validation
 # - checl if it works the same when iterate is used and not get_batch
@@ -376,7 +372,8 @@ def sanity_check_batch_label(task, batch, verbose=1):
 # - check if there is not repetition
 # is there a test to do so
 
-if __name__=="__main__":
+if __name__ == "__main__":
+
     dummy, conll = False, True
     if dummy:
         iter = data_gen_dummy(V=5, batch=2, nbatches=1)
@@ -396,7 +393,7 @@ if __name__=="__main__":
         add_end_char = 1
         extend_n_batch = 1
         word_decoder = True
-        word_dictionary, word_dictionary_norm , char_dictionary, pos_dictionary,\
+        word_dictionary, word_dictionary_norm, char_dictionary, pos_dictionary,\
         xpos_dictionary, type_dictionary = conllu_data.create_dict(dict_path=dict_path,
                                                                    train_path=LIU_DEV,
                                                                    dev_path=LIU_DEV,

@@ -4,6 +4,16 @@ from env.importing import pdb
 AVAILABLE_EVALUATION_SAMPLE_FILTER = ["all"]
 
 
+def get_intersection_score(task_label, samples):
+    intersected_samples = []
+    sample_to_intersesct = [sam for sam in samples if sam != "all"]
+    for ind_sample, _sample in enumerate(sample_to_intersesct):
+        for ind_sample_2 in range(ind_sample):
+            inter = _sample + "-n-" + sample_to_intersesct[ind_sample_2]
+            intersected_samples.append(inter)
+    return intersected_samples, sample_to_intersesct
+
+
 def overall_word_level_metric_measure(task_label,
                                       gold_sent_ls_dict,
                                       pred_sent_ls_topk_dict,
@@ -40,12 +50,9 @@ def overall_word_level_metric_measure(task_label,
     assert len(pred_sent_ls_topk) == topk, "ERROR topk not consistent with prediction list ".format(len(pred_sent_ls_topk), topk)
     overall_score_ls_sent = []
     intersected_samples = []
+
     if compute_intersection_score:
-        sample_to_intersesct = [sam for sam in samples if sam != "all"]
-        for ind_sample, _sample in enumerate(sample_to_intersesct):
-            for ind_sample_2 in range(ind_sample):
-                inter = _sample + "-n-" + sample_to_intersesct[ind_sample_2]
-                intersected_samples.append(inter)
+        intersected_samples, sample_to_intersesct = get_intersection_score(task_label, samples)
 
     overall_filter_ls = {sample: [] for sample in samples+intersected_samples}
 
@@ -112,7 +119,9 @@ def overall_word_level_metric_measure(task_label,
                     pdb.set_trace()
 
                 filter_sent[_sample].append(word_level_filter(sample=_sample, gold=gold_token, topk_pred=topk_word_pred,
-                                                              topk=topk, src=src, word_reference_dic_ls=reference_word_dic))
+                                                              topk=topk, src=src,
+                                                              is_mwe=gold_sent_ls_dict[task_label][gold_ind_sent][ind_word] if task_label.startswith("mwe") else None,
+                                                              word_reference_dic_ls=reference_word_dic))
 
             if compute_intersection_score:
                 for ind_sample, _sample in enumerate(sample_to_intersesct):
@@ -120,12 +129,15 @@ def overall_word_level_metric_measure(task_label,
                         inter = _sample+"-n-"+sample_to_intersesct[ind_sample_2]
                         if filter_sent.get(inter, None) is None:
                             filter_sent[inter] = []
+
                         filter_sent[inter].append(word_level_filter(sample=_sample,
                                                                     sample_2=sample_to_intersesct[ind_sample_2],
                                                                     gold=gold_token,
                                                                     topk_pred=topk_word_pred, topk=topk,
                                                                     src=src_detokenized[gold_ind_sent][ind_word],
-                                                                    word_reference_dic_ls=reference_word_dic))
+                                                                    word_reference_dic_ls=reference_word_dic,
+                                                                    is_mwe=gold_sent_ls_dict[task_label][gold_ind_sent][ind_word] if task_label.startswith("mwe") else None
+                                                                    ))
         if compute_intersection_score:
             for _sample in samples+intersected_samples:
                 overall_filter_ls[_sample].append(filter_sent[_sample])

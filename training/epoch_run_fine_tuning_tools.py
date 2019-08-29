@@ -261,6 +261,7 @@ def init_score_token_sent_dict(samples_per_task_reporting, tasks, agg_func_ls, c
 
     samples = samples_per_task_reporting["normalize"] #["all", "NEED_NORM", "NORMED", "PRED_NEED_NORM", "PRED_NORMED", "InV", "OOV"]
     init_samples = samples.copy()
+
     if compute_intersection_score:
         for ind, sam in enumerate(samples[1:]):
             for ind_2 in range(ind):
@@ -272,11 +273,19 @@ def init_score_token_sent_dict(samples_per_task_reporting, tasks, agg_func_ls, c
     score_dic = {task: {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls} for task in _tasks}
     n_tokens_dic = {task: {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls} for task in _tasks}
     n_sents_dic = {task: {agg_func: {sample: 0 for sample in init_samples} for agg_func in agg_func_ls} for task in _tasks}
+
     if "normalize" in tasks:
         for extra_label in ["n_masks_pred", "normalize_pred"]:
             score_dic[extra_label] = {"sum": {sample: 0 for sample in samples_per_task_reporting[extra_label]}}
             n_tokens_dic[extra_label] = {"sum": {sample: 0 for sample in samples_per_task_reporting[extra_label]}}
             n_sents_dic[extra_label] = {"sum": {sample: 0 for sample in samples_per_task_reporting[extra_label]}}
+
+    if "mwe_prediction" in tasks or "mwe_detection" in tasks:
+        # mwe_detection or mwe_prediciton have the same filters
+        for task in list(set(["mwe_prediction", "mwe_detection"])&set(tasks)):
+            score_dic[task] = {"sum": {sample: 0 for sample in samples_per_task_reporting["mwe_prediction"]}}
+            n_tokens_dic[task] = {"sum": {sample: 0 for sample in samples_per_task_reporting["mwe_prediction"]}}
+            n_sents_dic[task] = {"sum": {sample: 0 for sample in samples_per_task_reporting["mwe_prediction"]}}
 
     return score_dic, n_tokens_dic, n_sents_dic
 

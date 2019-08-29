@@ -73,8 +73,8 @@ SAMPLES_PER_TASK_TO_REPORT = {
             "parsing_types": ["all", "InV", "OOV"],
 
             "n_masks_mwe": ["all", "InV", "OOV"],
-            "mwe_detection": ["all", "InV", "OOV"],
-            "mwe_prediction": ["all", "InV", "OOV"],
+            "mwe_detection": ["all", "InV", "OOV", "MWE"],
+            "mwe_prediction": ["all", "InV", "OOV", "MWE"],
 }
 
 edit_rules = ["edit_check-"+ref_list_label+"-"+need_normed_rule for ref_list_label in ["data", "ref", "all"] for need_normed_rule in ["need_normed", "all"]]
