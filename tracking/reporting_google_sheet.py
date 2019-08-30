@@ -51,6 +51,7 @@ def append_reporting_sheet(git_id, tasks, rioc_job, description, log_dir, target
                  verbose=verbose,
                  verbose_level=1)
     else:
+        print("LOCAL env not updating sheet")
         list_of_hashes=["NOTHING"]
     return len(list_of_hashes)+1, len(list_of_hashes[0])
 

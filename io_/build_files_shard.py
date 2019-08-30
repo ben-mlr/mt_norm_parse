@@ -1,10 +1,73 @@
+from env.importing import np, os, sys, random, pdb
+from io_.info_print import printing
 
 
-def build_shard(dir_shard, n_sent_max_per_file, format="conll", verbose=1):
+def count_conll_n_sent(dir_file):
+
+    with open(dir_file, 'r') as f:
+        n_sent = 0
+        for line in f:
+            if len(line.strip()) > 0:
+                line = line.strip()
+                line = line.split('\t')
+            if line[0] == "1":
+                n_sent += 1
+    return n_sent
+
+
+def create_files(dir_shard, n_shards, label_file):
+    ls_files_path = []
+    for i in range(n_shards):
+        path = os.path.join(dir_shard, "{}_{}.conll".format(label_file, i))
+        assert not os.path.isfile(path), "ERROR trying to create existing file {}".format(path)
+        open(path, 'a').close()
+        ls_files_path.append(path)
+    assert len(ls_files_path) == n_shards
+    return ls_files_path
+
+
+def split_randomly(n_shards, dir_shard, dir_file, n_sents, label_file="train"):
+
+    ls_files_path = create_files(dir_shard, n_shards, label_file)
+    n_sent_written = 0
+
+    with open(dir_file, 'r') as f:
+        line_former = ""
+        for line in f:
+            #pdb.set_trace()
+            new_sent = line.startswith("# ") and len(line_former.strip()) == 0
+            if new_sent:
+                file = random.choice(ls_files_path)
+                n_sent_written += 1
+            #print("NEW LINE {} line {}".format(new_sent, line))
+            open(file, "a").write(line)
+            line_former = line
+
+    assert n_sent_written == n_sents,\
+        "ERROR not all counted sentence were writted  counted {}  written {} (shard {})".format(n_sents, n_sent_written, dir_shard)
+
+
+def build_shard(dir_shard, dir_file, n_sent_max_per_file, format="conll", verbose=1):
 
     assert format in "conll"
+    assert len(dir_file) == 1, "ONLY 1 set of simultaneous task supported for sharding"
 
-    shard = ""
-    n_shards = 10
+    dir_file = dir_file[0]
+    n_sents = count_conll_n_sent(dir_file)
+    n_shards = n_sents//n_sent_max_per_file
 
-    return shard, n_shards
+    if n_shards == 0:
+        printing("INFO SHARDING : n_sent_max_per_file is lower that number of files in {} so only building 1 shard", var=[dir_file], verbose=verbose, verbose_level=1)
+        n_shards += 1
+
+    split_randomly(n_shards, dir_shard, dir_file, n_sents)
+
+    printing("INFO SHARD n_sent written {} splitted in {} files with in average {} sent per file written to {}", var=[n_sents, n_shards,n_sent_max_per_file, dir_shard], verbose=verbose, verbose_level=1)
+
+    return dir_shard, n_shards, n_sents
+
+
+if __name__ == "__main__":
+
+    build_shard("/Users/bemuller/Documents/Work/INRIA/temp",
+                "/Users/bemuller/Documents/Work/INRIA/dev/parsing/data/Universal-Dependencies-2.4/fr_spoken-ud-train.conllu", 50)

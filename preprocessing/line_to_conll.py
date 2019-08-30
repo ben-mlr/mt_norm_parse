@@ -10,7 +10,7 @@ def line_to_conll(dir_src, dir_target, starting_index=0, cut_sent=False, n_sents
         max_len = 0
         dir_target = dir_target + ".conll"
         for line in f:
-            ind+=1
+            ind += 1
             if starting_index > 0:
                 if ind <= starting_index:
                     continue

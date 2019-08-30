@@ -159,11 +159,25 @@ def run(args,
         time_load_readers_train_start = time.time()
 
         if args.memory_efficient_iterator:
-            shard, n_shards = build_shard(data_sharded, n_sent_max_per_file=30000, verbose=verbose)
-            training_file = get_new_shard(shard, n_shards)
+            data_sharded, n_shards, n_sent_dataset_total_train = build_shard(data_sharded, args.train_path, n_sent_max_per_file=N_SENT_MAX_CONLL_PER_SHARD, verbose=verbose)
+            training_file = get_new_shard(data_sharded, n_shards)
             printing("INFO Memory efficient iterator triggered (only build for train data , starting with {}", var=[training_file],
                      verbose=verbose,
                      verbose_level=1)
+            args_load_batcher_shard_data = {"word_dictionary":word_dictionary,
+                                            "tokenizer":tokenizer, "word_norm_dictionary":word_norm_dictionary,
+                                            "char_dictionary":char_dictionary,"pos_dictionary":pos_dictionary,
+                                            "xpos_dictionary":xpos_dictionary, "type_dictionary":type_dictionary,"use_gpu":use_gpu,
+                                            "norm_not_norm":auxilliary_task_norm_not_norm,"word_decoder":True, "add_start_char": 1,
+                                            "add_end_char":1, "symbolic_end":1, "symbolic_root":1,
+                                            "bucket":True, "max_char_len": 20, "must_get_norm":True, "bucketing_level": bucketing_level,
+                                            "use_gpu_hardcoded_readers":use_gpu_hardcoded_readers,
+                                            "auxilliary_task_norm_not_norm":auxilliary_task_norm_not_norm, "random_iterator_train":random_iterator_train
+                                            }
+
+        else:
+            data_sharded, n_shards, n_sent_dataset_total_train = None, None, None
+            args_load_batcher_shard_data = None
 
         readers_train = readers_load(datasets=args.train_path if not args.memory_efficient_iterator else training_file,
                                      tasks=args.tasks,
@@ -215,7 +229,6 @@ def run(args,
                 time_load_batcher = time.time()-time_load_batcher_start
                 print("TIMING batcher ", time_load_batcher)
                 # -|-|-
-                print("WARNING --> hardcoded random iter for DEV : need to change")
                 batchIter_dev = data_gen_multi_task_sampling_batch(tasks=args.tasks, readers=readers_dev, batch_size=args.batch_size,
                                                                    word_dictionary=word_dictionary,
                                                                    char_dictionary=char_dictionary,
@@ -255,6 +268,9 @@ def run(args,
                                                                          early_stoppin_metric=None,
                                                                          case=case,
                                                                          n_iter_max=n_iter_max_per_epoch,
+                                                                         data_sharded_dir=data_sharded, n_shards=n_shards,
+                                                                         n_sent_dataset_total=n_sent_dataset_total_train,
+                                                                         args_load_batcher_shard_data=args_load_batcher_shard_data, memory_efficient_iterator=args.memory_efficient_iterator,
                                                                          verbose=verbose)
 
                 model.eval()
@@ -454,14 +470,13 @@ def run(args,
                                  verbose=verbose, verbose_level=1)
                         printing("HEURISTICS : edit threshold set to {}", var=[threshold_edit], verbose=verbose,
                                  verbose_level=1)
-                    print("WARNING --> hardcoded random iter for TEST : need to change")
                     batchIter_test = data_gen_multi_task_sampling_batch(tasks=[task_to_eval], readers=readers_test,
                                                                         batch_size=batch_size_TEST,
                                                                         word_dictionary=word_dictionary,
                                                                         char_dictionary=char_dictionary,
                                                                         pos_dictionary=pos_dictionary,
                                                                         word_dictionary_norm=word_norm_dictionary,
-                                                                        get_batch_mode=True,
+                                                                        get_batch_mode=False,
                                                                         extend_n_batch=1,
                                                                         dropout_input=0.0,
                                                                         verbose=verbose)
@@ -498,7 +513,6 @@ def run(args,
                                                                               inverse_writing=inverse_writing,
                                                                               reference_word_dic={"InV": inv_word_dic},
                                                                               case=case, threshold_edit=threshold_edit,
-
                                                                               edit_module_pred_need_norm_only=mode_need_norm_heuristic == "need_normed",
                                                                               n_iter_max=n_iter_max_per_epoch, verbose=verbose)
                         print("LOSS TEST", loss_test)

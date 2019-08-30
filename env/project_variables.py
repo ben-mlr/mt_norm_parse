@@ -3,6 +3,8 @@ import os
 SEED_NP = 124
 SEED_TORCH = 124
 
+N_SENT_MAX_CONLL_PER_SHARD = 1
+
 # ENVIRONMENT VARIABLES
 PROJECT_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 RUN_SCRIPTS_DIR = os.path.join(PROJECT_PATH, "run_scripts")

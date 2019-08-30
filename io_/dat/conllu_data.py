@@ -384,12 +384,14 @@ def read_data(source_path, word_dictionary, char_dictionary, pos_dictionary, xpo
   data = [[] for _ in _buck ]
   max_char_length = [0 for _ in _buck]
   max_char_norm_length = [0 for _ in _buck] if normalization else None
+  counter_corrupted = 0
 
   while inst is not None and (not dry_run or counter < 100):
     if inst == "CORRUPTED":
       inst = reader.getNext(normalize_digits=normalize_digits, symbolic_root=symbolic_root, symbolic_end=symbolic_end,
                             must_get_norm=must_get_norm, word_decoder=word_decoder, tasks=tasks)
-      print("WARNING skipping one corrupted sentences in reader")
+      print("WARNING skipping one CORRUPTED sentences in reader {} in total ".format(counter_corrupted))
+      counter_corrupted += 1
       continue
 
     printing("Sentence : counter {} inst : {}".format(counter, inst.sentence.raw_lines[1]),
@@ -754,7 +756,6 @@ def read_data_to_variable(source_path, word_dictionary, char_dictionary, pos_dic
   for i in range(len(data_variable)):
     if data_variable[i][0] != 1:
       print("SIZE", i, bucket_size,_buckets,bucket_id, data_variable[i][3].size())
-
 
   return data_variable, bucket_sizes, _buckets, max_char_length_dic["n_sent"]
 

@@ -61,6 +61,8 @@ def epoch_run(batchIter, tokenizer,
               ponderation_loss_policy="static",
               samples_per_task_reporting=None,
               task_to_eval=None, task_to_label_dictionary=None,
+              data_sharded_dir=None, n_shards=None, n_sent_dataset_total=None, args_load_batcher_shard_data=None,
+              memory_efficient_iterator=False,
               verbose=0):
     """
     About Evaluation :
@@ -113,6 +115,9 @@ def epoch_run(batchIter, tokenizer,
     skipping = 0
     mean_end_pred = 0
     label_heuristic = ""
+    if memory_efficient_iterator:
+        assert data_sharded_dir is not None and n_shards is not None, "ERROR data_sharded_dir and n_shards needed as args.memory_efficient_iterator {}".format(memory_efficient_iterator)
+        assert n_sent_dataset_total is not None
     if args.gold_error_detection:
         label_heuristic += "-gold"
     if args.heuristic_ls is not None:
@@ -213,7 +218,8 @@ def epoch_run(batchIter, tokenizer,
     while True:
 
         try:
-            if batch_i*args.batch_size >= n_sent_dataset_total:
+
+            if memory_efficient_iterator and batch_i*args.batch_size >= n_sent_dataset_total:
                 printing("BREAKING ALL ITERATORS for (mode is {} memory_efficient_iterator {} , shard {} ending ",
                          var=[mode, args.memory_efficient_iterator, n_shard], verbose_level=1, verbose=1)
                 break
@@ -754,17 +760,15 @@ def epoch_run(batchIter, tokenizer,
                     tensorboard_loss_writer_batch_level_multi(writer, mode, model_id, _loss, batch_i, iter, loss_dic, tasks=args.tasks)
             time_backprop = time.time()-time_backprop_start
         except StopIteration:
-            printing("BREAKING ITERATION for (mode is {} memory_efficient_iterator {} , shard {} ending ", var=[mode, args.memory_efficient_iterator, n_shard],
+            printing("BREAKING ITERATION for (mode is {} memory_efficient_iterator {} , shard {} ending ", var=[mode, memory_efficient_iterator, n_shard],
                      verbose_level=1, verbose=1)
             printing("TIME : {:0.3f} min with / without {} n_masks predictions ", var=[mean_end_pred / batch_i, args.append_n_mask], verbose_level=1, verbose=verbose)
             n_shard += 1
-            if not args.memory_efficient_iterator:
+            if not memory_efficient_iterator:
                 break
             # TODO : redefine batchIter
-            training_file = get_new_shard(shard, n_shards)
-            batchIter = load_batcher_shard_data(training_file)
-
-
+            training_file = get_new_shard(data_sharded_dir, n_shards, verbose=verbose)
+            batchIter = load_batcher_shard_data(args, args_load_batcher_shard_data, training_file, verbose)
 
     if args.multitask:
         timing = OrderedDict([("time_multitask_preprocess_1", "{:0.4f}".format(time_multitask_preprocess_1/batch_i)),

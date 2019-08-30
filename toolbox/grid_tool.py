@@ -77,8 +77,8 @@ def grid_param_label_generate(param,
                               bert_model_ls=None,dropout_classifier_ls=None, fine_tuning_strategy_ls=None,
                               dropout_input_bpe_ls=None, dropout_bert_ls=None,
                               masking_strategy_ls=None, checkpoint_dir_ls=None,norm_2_noise_training_ls=None,
-                              aggregating_bert_layer_mode_ls=None, bert_module_ls=None,layer_wise_attention_ls=None,tokenize_and_bpe_ls=None,
-                              append_n_mask_ls=None, multitask_ls=None,
+                              aggregating_bert_layer_mode_ls=None, bert_module_ls=None,layer_wise_attention_ls=None,
+                              tokenize_and_bpe_ls=None, memory_efficient_iterator_ls=None, append_n_mask_ls=None, multitask_ls=None,
                               ):
 
   assert gpu_mode in GPU_MODE_SUPPORTED, "ERROR gpu_mode not in {}".format(str(GPU_MODE_SUPPORTED))
@@ -272,8 +272,8 @@ def grid_param_label_generate(param,
         assert len(combination) == (len(list(dic_grid.keys())))
         for argument, arg_value in zip(list(dic_grid.keys()), combination):
           param0[argument] = arg_value
-      #assert len(test_ls) == 1, "ONLY 1 task supported "
-      #param0["test_path"] = test_ls[0]
+        # assert len(test_ls) == 1, "ONLY 1 task supported "
+        # param0["test_path"] = test_ls[0]
         params.append(param0.copy())
         labels.append("{}-model_{}".format(grid_label, ind_model))
         ind_model += 1
@@ -311,7 +311,7 @@ def grid_param_label_generate(param,
     to_keep_only += " train_path,"+train_data_label+" dev_path,"+dev_data_label
   except Exception as e:
     print(e)
-    print("ERROR", train_ls)
+    print("ERROR (grid_tools) could not found key ", train_ls)
     printing("WARNING : train and dev_path fail to be label to be added to keep_only ", verbose_level=1, verbose=1)
 
   if printout_info_var:

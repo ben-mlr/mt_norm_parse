@@ -40,7 +40,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                       freeze_parameters_ls=None,
                       bert_model_ls=None, dropout_classifier_ls=None, fine_tuning_strategy_ls=None, dropout_input_bpe_ls=None, dropout_bert_ls=None,
                       masking_strategy_ls=None,checkpoint_dir_ls=None, norm_2_noise_training_ls=None, aggregating_bert_layer_mode_ls=None,bert_module_ls=None,
-                      layer_wise_attention_ls=None,tokenize_and_bpe_ls=None, append_n_mask_ls=None, multitask_ls=None,
+                      layer_wise_attention_ls=None,tokenize_and_bpe_ls=None, append_n_mask_ls=None, multitask_ls=None, memory_efficient_iterator_ls=None,
                       py_script="train_evaluate_run"):
     """
 
@@ -103,7 +103,8 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                                                                             norm_2_noise_training_ls=norm_2_noise_training_ls, aggregating_bert_layer_mode_ls=aggregating_bert_layer_mode_ls,
                                                                             append_n_mask_ls=append_n_mask_ls,
                                                                             bert_module_ls=bert_module_ls, layer_wise_attention_ls=layer_wise_attention_ls,
-                                                                            tokenize_and_bpe_ls=tokenize_and_bpe_ls, multitask_ls=multitask_ls
+                                                                            tokenize_and_bpe_ls=tokenize_and_bpe_ls, multitask_ls=multitask_ls,
+                                                                            memory_efficient_iterator_ls=memory_efficient_iterator_ls,
                                                                             )
     if gpu_mode == "random":
         if gpus_ls is None:
@@ -115,16 +116,14 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
     description = "{} - {} ({}) : Analysing : {} with regard to {} fixed".format(len(params) if not warmup else str(1)+"_WARMUP",
                                                                                  description_comment, mode_run, analysed, fixed)
     try:
-        row, col = append_reporting_sheet(git_id=get_commit_id(), tasks=get_experimented_tasks(params)+"-{}.py".format(py_script),
-                                          rioc_job=os.environ.get("OAR_JOB_ID", "local"+grid_label), description=description,
-                                          log_dir=dir_log, target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR,
-                                                                                                  "{}*".format(grid_label)),
-                                          env=environment, status="running {}".format(warmup_desc),
+        gid_id = get_commit_id()
+        row, col = append_reporting_sheet(git_id=gid_id, tasks=get_experimented_tasks(params)+"-{}.py".format(py_script), rioc_job=os.environ.get("OAR_JOB_ID", "local"+grid_label), description=description,
+                                          log_dir=dir_log, target_dir=dir_grid + " | " + os.path.join(CHECKPOINT_DIR,"{}*".format(grid_label)), env=environment, status="running {}".format(warmup_desc),
                                           verbose=1)
-    except Exception as e:
-        printing("GOOGLE SHEET CONNECTION FAILED {}", var=[e], verbose=1, verbose_level=1)
-        row = None
 
+    except Exception as e:
+        printing("WARNING : GOOGLE SHEET CONNECTION FAILED {}", var=[e], verbose=1, verbose_level=1)
+        row = None
     for ind, (param, model_id_pref) in enumerate(zip(params, labels)):
         script = "CUDA_VISIBLE_DEVICES={} {} {}".format(ind % len(gpus_ls), os.environ.get("PYTHON_CONDA", "python"), os.path.join(PROJECT_PATH, "{}.py".format(py_script)))
         for arg, val in param.items():

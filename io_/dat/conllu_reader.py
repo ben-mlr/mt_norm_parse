@@ -200,7 +200,8 @@ class CoNLLReader(object):
 
           matching_mwe_ind = re.match("([0-9]+)-([0-9]+)", tokens[0])
 
-          assert matching_mwe_ind is not None, "ERROR : tokens[0] {} - or . byt did not match mwe pattern".format(tokens[0])
+          assert matching_mwe_ind is not None, "ERROR : tokens[0] {} - or . " \
+                                               "byt did not match mwe pattern".format(tokens[0])
           mwe = self.bert_tokenizer.tokenize_origin(tokens[1])[0]
 
           all_indexes.append(tokens[0])
@@ -335,7 +336,14 @@ class CoNLLReader(object):
           if eval(tokens[0]) == id_stop_mwe:
             mwe_splits_save = self.bert_tokenizer.tokenize_origin(" ".join(mwe_splits_save))[0]
             n_masks_to_add_in_raw = len(mwe_splits_save)-len(mwe)
-            assert n_masks_to_add_in_raw >= 0, "ERROR : n_masks_to_add_in_raw should be an int : pb with tokens {} ".format(tokens)
+            try:
+              assert n_masks_to_add_in_raw >= 0, "ERROR : n_masks_to_add_in_raw should be an int : pb with tokens {} " \
+                                                 "split of {} mwe : difference is {} ".format(mwe_splits_save, mwe, n_masks_to_add_in_raw)
+            except Exception as e:
+              print("WARNING : CORRUPTED sentence {}".format(e))
+              return "CORRUPTED"
+
+
             # we index masks inserted it in the sequence as -1
             word_piece_raw_tokens_aligned_index.extend([index_mwe for _ in range(n_masks_to_add_in_raw)])
             word_piece_raw_tokens_aligned.extend(self.bert_tokenizer.convert_tokens_to_ids([MASK_BERT for _ in range(n_masks_to_add_in_raw)]))
@@ -433,7 +441,7 @@ class CoNLLReader(object):
       try:
         sentence_word_piece.sanity_check_len(normalization=normalization, n_words=n_words)
       except:
-        print("WARNING sentence {} CORRUPTED".format(raw_text))
+        print("WARNING sentence {} failed sentence_word_piece.sanity_check_len CORRUPTED".format(raw_text))
         return "CORRUPTED"
     else:
       sentence_word_piece = None
