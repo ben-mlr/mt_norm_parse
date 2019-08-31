@@ -341,15 +341,16 @@ if __name__ == "__main__":
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
                                                   gpus_ls=gpu_ls, gpu_mode="random",
                                                   write_to_dir=RUN_SCRIPTS_DIR, description_comment=description_comment)
-          FINE_TUNE_BERT = True
+          FINE_TUNE_BERT = False
+
           if FINE_TUNE_BERT:
-              epochs = 1
-              lang_iter = ["fr_sequoia"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
-              task_to_grid = [["parsing", "n_masks_mwe", "mwe_detection", "mwe_prediction", "pos"]] 
+              epochs = 25
+              lang_iter = ["tr_imst"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
+              task_to_grid = [["parsing",  "pos","n_masks_mwe", "mwe_detection", "mwe_prediction"]] 
                              # ["n_masks_mwe", "mwe_detection", "mwe_prediction", "pos"], 
                               #["parsing","n_masks_mwe", "mwe_detection", "mwe_prediction", "pos"]]#, ["parsing", "pos"]]
               #task_to_grid = [["normalize"]]
-              demo_data = True
+              demo_data = False
 
               tasks_ls = [[task_simul] for task_simul in task_to_grid for _ in lang_iter]
               printing("GRID : running {} lang on {} tasks combinaiton ".format(lang_iter, task_to_grid), verbose=1, verbose_level=1)
@@ -358,13 +359,12 @@ if __name__ == "__main__":
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
-                                                  batch_size_ls=[2],
+                                                  batch_size_ls=[2, 4],
                                                   #checkpoint_dir_ls=["'"+os.path.join(CHECKPOINT_BERT_DIR, "9535768-B-45690-9535768-B-model_0/9535768-B-45690-9535768-B-model_0-epbest-checkpoint.pt")+"'"],#["'"+os.path.join(CHECKPOINT_BERT_DIR,"checkpoints", "bert", "9372042-B-6ccaa-9372042-B-model_0/9372042-B-6ccaa-9372042-B-model_0-epbest-checkpoint.pt")+"'"],
                                                   gpu_mode="random",
-                                                  bert_module_ls=["mlm"],
                                                   append_n_mask_ls=[0],
                                                   #norm_2_noise_training_ls=[0., 1.],
-                                                  lr_ls=[0.000005],
+                                                  lr_ls=[0.000005, 0.0000025],
                                                   #lr_ls=[OrderedDict([("bert", 1e-5), ("classifier_task_2", 1e-4), ("classifier_task_1", 1e-5)]),)])],
                                                   #masking_strategy_ls=[["mlm", "0"]],# ["mlm", "1"], ["norm_mask_variable", "0"]],
                                                   masking_strategy_ls=[None],  #[["mlm", "0"], None],#[["mlm_need_norm", "0.5"], ["mlm", "0"],],# ["norm_mask", "0.5"],["norm_mask", "0.25"], ["norm_mask_variable", "0"]],#, ["mlm", "1"], ["mlm", "0"]],
@@ -424,13 +424,13 @@ if __name__ == "__main__":
                                                   unrolling_word_ls=None, scoring_func=None, mode_word_encoding_ls=None,
                                                   dropout_input_ls=None,
                                                   multi_task_loss_ponderation_ls=[OrderedDict([("pos", 0.5),
-                                                                                               ("n_masks_mwe", 0.1), ("mwe_detection", 0.1),
-                                                                                               ("mwe_prediction", 0.5),
+                                                                                               ("n_masks_mwe", 0.05), ("mwe_detection", 0.05),
+                                                                                               ("mwe_prediction", 0.1),
                                                                                                ("parsing_types", 1), ("parsing_heads", 1)])],#OrderedDict([("pos", 0.2), ("parsing_types", 1), ("parsing_heads", 1)])],
                                                   scale_ls=[1])
                                 # arguments that are specific to script generation
 
-          PRETRAINING = False
+          PRETRAINING = True
           if PRETRAINING:
               epochs = 1
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
@@ -439,7 +439,7 @@ if __name__ == "__main__":
                                                   batch_size_ls=[2],
                                                   #checkpoint_dir_ls=["'" + os.path.join(CHECKPOINT_BERT_DIR, "9535768-B-45690-9535768-B-model_0/9535768-B-45690-9535768-B-model_0-epbest-checkpoint.pt") + "'"],
                                                   gpu_mode="random",
-                                                  bert_module_ls=["mlm"],  # ["mlm"],
+                                                  bert_module_ls=None,
                                                   append_n_mask_ls=[0],
                                                   # norm_2_noise_training_ls=[0., 1.],
                                                   lr_ls=[0.00001],
@@ -449,13 +449,15 @@ if __name__ == "__main__":
                                                      #       OrderedDict([("bert", 2e-5), ("classifier", 0.0001)]),
                                                      #       OrderedDict([("bert", 1e-5), ("classifier", 0.001)]),
                                                      #       OrderedDict([("bert", 1e-5), ("classifier", 1e-5)])],
-                                                  masking_strategy_ls=[["mlm", "0"]],# ["mlm", "1"], ["norm_mask_variable", "0"]],
+                                                  masking_strategy_ls=None,#[["mlm", "0"]],# ["mlm", "1"], ["norm_mask_variable", "0"]],
                                                   #masking_strategy_ls=[["mlm", "0"], None],#[["mlm_need_norm", "0.5"], ["mlm", "0"],],# ["norm_mask", "0.5"],["norm_mask", "0.25"], ["norm_mask_variable", "0"]],#, ["mlm", "1"], ["mlm", "0"]],
                                                   #                     ["normed", "0.75"],["normed", "1."]],#[None,,
                                                   # lr_ls=[OrderedDict([("bert", "0.00001"), ("classifier", "0.0001")]),
                                                   #       OrderedDict([("bert", "0.00001"), ("classifier", "0.00001")])],
-                                                  multitask_ls=[0],
-                                                  tasks_ls=[[["normalize"]] for _ in range(1)],
+                                                  multitask_ls=[1],
+                                                  tasks_ls=[[["mlm"]] for _ in range(1)],
+                                                  memory_efficient_iterator_ls=[1],
+
                                                   # [["pos"], ["normalize", "pos"]],#, ["normalize"]],
                                                   fine_tuning_strategy_ls=["standart"],
                                                   dropout_classifier_ls=[0.1],

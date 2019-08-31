@@ -9,6 +9,7 @@ def get_multi_task_bert_model(args, model_dir, vocab_size, voc_pos_size, debug, 
         # TEMPORARY : should eventually keep only : model = make_bert_multitask()
         if args.multitask:
             # we flatten the tasks to make the model (we don't need to know if tasks are simulateneaous or not )
+            assert args.bert_module is None, "ERROR : bert module should be none in bert_multitask, their definition is based on the task "
             model = make_bert_multitask(pretrained_model_dir=model_dir, tasks=[task for tasks in args.tasks for task in tasks], num_labels_per_task=num_labels_per_task)
         else:
             model = get_bert_token_classification(pretrained_model_dir=model_dir,

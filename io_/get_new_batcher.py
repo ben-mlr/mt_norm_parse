@@ -1,4 +1,4 @@
-from env.importing import random, os, pdb
+from env.importing import random, os, pdb, time
 from io_.info_print import printing
 from io_.data_iterator import readers_load, conllu_data, data_gen_multi_task_sampling_batch
 
@@ -37,7 +37,8 @@ def load_batcher_shard_data(args, args_load_batcher_shard_data,
         args_load_batcher_shard_data["max_char_len"], args_load_batcher_shard_data["must_get_norm"], args_load_batcher_shard_data["bucketing_level"], \
         args_load_batcher_shard_data["use_gpu_hardcoded_readers"], args_load_batcher_shard_data["auxilliary_task_norm_not_norm"], args_load_batcher_shard_data["random_iterator_train"],
 
-
+    printing("INFO ITERATOR LOADING new batcher based on {} ", var=[shard_dir], verbose=verbose, verbose_level=1)
+    start = time.time()
     readers = readers_load(datasets=shard_dir,
                            tasks=args.tasks,
                            args=args,
@@ -64,5 +65,7 @@ def load_batcher_shard_data(args, args_load_batcher_shard_data,
                                                    print_raw=False,
                                                    dropout_input=0.0,
                                                    verbose=verbose)
+    end = time.time()-start
+    printing("INFO ITERATOR LOADED  {:0.3f}min ", var=[end/60], verbose=verbose, verbose_level=1)
 
     return batchIter

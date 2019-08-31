@@ -35,7 +35,7 @@ def split_randomly(n_shards, dir_shard, dir_file, n_sents, label_file="train"):
         line_former = ""
         for line in f:
             #pdb.set_trace()
-            new_sent = line.startswith("# ") and len(line_former.strip()) == 0
+            new_sent = line.startswith("#") and len(line_former.strip()) == 0
             if new_sent:
                 file = random.choice(ls_files_path)
                 n_sent_written += 1

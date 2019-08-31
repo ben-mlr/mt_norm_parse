@@ -1,9 +1,10 @@
 import os
+from env.tasks_settings import TASKS_PARAMETER
 # SEEDS
 SEED_NP = 124
 SEED_TORCH = 124
 
-N_SENT_MAX_CONLL_PER_SHARD = 1
+N_SENT_MAX_CONLL_PER_SHARD = 500
 
 # ENVIRONMENT VARIABLES
 PROJECT_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
@@ -56,7 +57,7 @@ LOSS_DETAIL_TEMPLATE_LS = {"loss_overall": [], "loss_seq_prediction": [],
                            "other": {}}
 SCORE_AUX = ["norm_not_norm-F1", "norm_not_norm-Precision", "norm_not_norm-Recall", "norm_not_norm-accuracy"]
 
-AVAILABLE_TASKS = ["all", "normalize", "norm_not_norm", "append_masks", "pos", "edit_prediction", "parsing"]
+AVAILABLE_TASKS = TASKS_PARAMETER.keys()# ["all", "normalize", "norm_not_norm", "append_masks", "pos", "edit_prediction", "parsing"]
 AVAILABLE_AGGREGATION_FUNC_AUX_TASKS = ["norm_not_norm", "edit_prediction"]
 AVAILABLE_BERT_FINE_TUNING_STRATEGY = ["bert_out_first", "standart", "flexible_lr", "only_first_and_last"]
 AVAILABLE_BERT_MASKING_STRATEGY = ["normed", "cls", "start_stop", "mlm", "norm_mask",
@@ -92,9 +93,8 @@ TASKS_2_METRICS_STR = {"all": ["accuracy-exact-normalize", "accuracy-normalize",
                                      "npv-normalize", "recall-normalize",
                                      "precision-normalize", "tnr-normalize", "f1-normalize",
                                      "precision-normalize_pred", "tnr-normalize_pred", "f1-normalize_pred",
-                                     "accuracy-exact-n_masks_pred", "accuracy-exact-normalize_pred"]
-    ,
-
+                                     "accuracy-exact-n_masks_pred", "accuracy-exact-normalize_pred"],
+                        "mlm":["accuracy-exact-mlm"],
                        "pos": ["accuracy-exact-pos"],
                        "n_masks_mwe": ["accuracy-exact-n_masks_mwe"],
                        "mwe_detection": ["accuracy-exact-mwe_detection"],

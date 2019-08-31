@@ -1,6 +1,7 @@
 
 from env.importing import np, OrderedDict, os, itertools, sys
 from io_.info_print import printing
+from env.tasks_settings import TASKS_PARAMETER
 from env.project_variables import TASKS_2_METRICS_STR, GPU_AVAILABLE_DEFAULT_LS, REPO_W2V, AVAILABLE_BERT_FINE_TUNING_STRATEGY, REPO_DATASET
 from env.default_hyperparameters import *
 
@@ -319,6 +320,7 @@ def grid_param_label_generate(param,
     for tasks in tasks_ls:
       for task in tasks:
         for _task in task.split(","):
+          # --> shoumd move to metric_add_ls.extend([metric for metric in TASKS_PARAMETER[_task]])
           metric_add_ls.extend(TASKS_2_METRICS_STR[_task])
     metric_add = " ".join(list(set(metric_add_ls)))
     print("{} {}".format(REPORT_FLAG_VARIABLES_EXPAND_STR, metric_add))

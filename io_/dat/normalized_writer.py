@@ -194,9 +194,11 @@ def write_conll_multitask(format, dir_pred, dir_original, src_text_ls,
         if pred_task_len_former > 0:
             assert pred_task_len == pred_task_len_former, \
                 "ERROR {} and {} task ".format(task_former, task)
+
             assert pred_task_len == len(src_text_ls["mwe_prediction"]),\
                 "ERROR mismatch source mwe_prediction {}  and prediction {} ".format(src_text_ls, pred_per_task[task])
-            assert pred_task_len == len(src_text_ls["wordpieces_inputs_raw_tokens"]), \
+            if src_text_ls.get("wordpieces_inputs_raw_tokens") is not None:
+                assert pred_task_len == len(src_text_ls["wordpieces_inputs_raw_tokens"]), \
                 "ERROR mismatch source wordpieces_inputs_raw_tokens {} and prediction {} ".format(src_text_ls, pred_per_task[task])
             try:
                 assert pred_task_len == all_indexes.shape[0], "ERROR mismatch index {}  and all_indexes {} : pred {}".format(pred_task_len, all_indexes.shape[0], pred_per_task[task])
@@ -258,7 +260,8 @@ def write_conll_multitask(format, dir_pred, dir_original, src_text_ls,
                         assert matching_mwe_ind is not None, "ERROR ind is {} : could not found mwe index".format(ind)
                         last_mwe_index = int(matching_mwe_ind.group(2))
                         ind_mwe = int(matching_mwe_ind.group(1))
-                        original_token = src_text_ls["wordpieces_inputs_raw_tokens"][ind_sent][ind_mwe]
+
+                        original_token = src_text_ls["wordpieces_inputs_raw_tokens"][ind_sent][ind_mwe] if "mwe_detection" in pred_per_task or "mwe_prediction" in pred_per_task or "n_masks_mwe" in pred_per_task else "NOT_NEEDED"
                         adjust_mwe += (last_mwe_index-ind_mwe)
                         #assert ind_adjust == 0, "ERROR not supported"
                         mwe_meta = "Norm={}|mwe_detection={}|n_masks_mwe={}".format("_", pred_sent["mwe_detection"][ind_mwe] if "mwe_detection" in pred_per_task else "_",
@@ -271,7 +274,12 @@ def write_conll_multitask(format, dir_pred, dir_original, src_text_ls,
                         original_token = src_text_ls["mwe_prediction"][ind_sent][ind]
                         # asserting that we have everything together on the source side
                         if ind > last_mwe_index:
-                            assert src_text_ls["mwe_prediction"][ind_sent][ind] == src_text_ls["wordpieces_inputs_raw_tokens"][ind_sent][ind-adjust_mwe], "ERROR : on non-mwe tokens : raw and tokenized should be same but are raw {} tokenizd {}".format(src_text_ls["wordpieces_inputs_raw_tokens"][ind_sent][ind],src_text_ls["mwe_prediction"][ind_sent][ind+adjust_mwe])
+                            if src_text_ls.get("wordpieces_inputs_raw_tokens") is not None:
+                                assert src_text_ls["mwe_prediction"][ind_sent][ind] == src_text_ls["wordpieces_inputs_raw_tokens"][ind_sent][ind-adjust_mwe], \
+                                    "ERROR : on non-mwe tokens : raw and tokenized " \
+                                    "should be same but are raw {} tokenizd {}".format(
+                                        src_text_ls["wordpieces_inputs_raw_tokens"][ind_sent][ind],
+                                        src_text_ls["mwe_prediction"][ind_sent][ind+adjust_mwe])
 
                     max_len_word = max(len(original_token), len_original)
                     #if original_token in SPECIAL_TOKEN_LS and (ind+1 == len(original_sent) or ind == 0):

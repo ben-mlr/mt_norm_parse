@@ -38,7 +38,6 @@ def run(args,
         compute_intersection_score_test=True,
         bucketing_level=None,
         slang_dic_test=None, list_reference_heuristic_test=None,
-        bert_module=None,
         case=None, threshold_edit=3,
         debug=False, verbose=1):
     """

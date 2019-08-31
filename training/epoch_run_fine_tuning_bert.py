@@ -20,7 +20,7 @@ from training.epoch_run_fine_tuning_tools import get_casing, logging_processing_
     writing_predictions_conll, writing_predictions_conll_multi, init_score_token_sent_dict, dimension_check_label, extend_input, tensorboard_loss_writer_epoch_level_multi, update_loss_dic_average
 from io_.bert_iterators_tools.get_bpe_labels import get_label_per_bpe, get_mask_input
 from toolbox.deep_learning_toolbox import dropout_input_tensor
-from model.bert_tools_from_core_code.masking import focused_masking
+from model.bert_tools_from_core_code.masking import focused_masking, dropout_mlm
 
 from io_.build_files_shard import build_shard
 from io_.get_new_batcher import get_new_shard, load_batcher_shard_data
@@ -385,6 +385,7 @@ def epoch_run(batchIter, tokenizer,
                 labels_n_mask_prediction[input_tokens_tensor == 0] = -1
 
             # TODO : to factorize
+            print("MASKING", args.masking_strategy, not args.multitask and optimizer is not None, optimizer is not None)
             if not args.multitask and optimizer is not None:
                 input_tokens_tensor, feeding_the_model_with_label = \
                     focused_masking(args.masking_strategy, input_tokens_tensor, output_tokens_tensor_aligned, dropout_input_bpe,
@@ -631,6 +632,13 @@ def epoch_run(batchIter, tokenizer,
                 # TODO:
                 # - factorize   masking
                 assert "normalize" not in args.tasks[0], "ERROR : input and output not supported yet for 'normalize' task in this setting "
+                pdb.set_trace()
+                if "mlm" in [task for tasks in args.tasks for task in tasks]:
+                    assert args.masking_strategy is None
+                    pdb.set_trace()
+                    input_tokens_tensor_per_task["mwe_prediction"] = dropout_mlm(input_tokens_tensor_per_task["mwe_prediction"], mask_token_index=mask_token_index, sep_token_index=sep_token_index, cls_token_index=cls_token_index, pad_index=PAD_ID_BERT, use_gpu=use_gpu, dropout_mask=0.15, dropout_random_bpe_of_masked=0.5, vocab_len=len(tokenizer.vocab) -2)
+                    pdb.set_trace()
+
                 for label in label_per_task:
                     # make mask for the loss padding
                     # TODO handle task specific index pad

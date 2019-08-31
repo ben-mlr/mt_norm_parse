@@ -3,6 +3,36 @@ from io_.info_print import printing
 from toolbox.deep_learning_toolbox import dropout_input_tensor
 
 
+def dropout_mlm(input_tokens_tensor, mask_token_index, sep_token_index, cls_token_index,pad_index, use_gpu,
+                dropout_mask=0.15, dropout_random_bpe_of_masked=0.5, vocab_len=None):
+
+    # dropout_mask% of the time we replace the bpe token by the MASK (except CLS,SEP and pad that will be kept untouched
+    input_tokens_tensor, mask_dropout, _ = dropout_input_tensor(input_tokens_tensor, mask_token_index,
+                                                                sep_token_index=sep_token_index,
+                                                                cls_token_index=cls_token_index, pad_index=pad_index,
+                                                                dropout=dropout_mask, apply_dropout=True)
+
+    if dropout_random_bpe_of_masked > 0:
+
+        assert vocab_len is not None
+
+        random_bpe_instead = np.random.random() < 0.5
+
+        if random_bpe_instead:
+
+            permute = (torch.randperm(torch.tensor(vocab_len - 2))[:len(input_tokens_tensor[mask_dropout == 0])] + 1)
+            # if we get sep, cls or pad we make sure we don't permute with them them
+            permute[permute == sep_token_index] = sep_token_index + 10
+            permute[permute == mask_token_index] = mask_token_index + 10
+            permute[permute == pad_index] = 53
+            if use_gpu:
+                permute = permute.cuda()
+
+            input_tokens_tensor[mask_dropout == 0] = permute
+
+    return input_tokens_tensor
+
+
 def focused_masking(masking_strategy, input_tokens_tensor, output_tokens_tensor_aligned, dropout_input_bpe, mask_token_index, sep_token_index,
                     use_gpu, epoch, n_epoch, portion_mask, input_mask, tokenizer,
                     verbose):
@@ -36,7 +66,7 @@ def focused_masking(masking_strategy, input_tokens_tensor, output_tokens_tensor_
             else:
                 # within the 15% rest : 50% of the time we replace by random 50% we keep
                 if np.random.random() < 0.5:
-                    permute = (torch.randperm(torch.tensor(len(tokenizer.vocab ) -2))
+                    permute = (torch.randperm(torch.tensor(len(tokenizer.vocab) -2))
                                [:len(input_tokens_tensor[input_tokens_tensor != output_tokens_tensor_aligned]) ] +1)
                     permute[permute == sep_token_index] = sep_token_index + 10
                     permute[permute == mask_token_index] = mask_token_index + 10
@@ -50,12 +80,13 @@ def focused_masking(masking_strategy, input_tokens_tensor, output_tokens_tensor_
             random_bpe_instead = np.random.random() < 0.5
             if random_bpe_instead:
                 permute = (torch.randperm(torch.tensor(len(tokenizer.vocab) -2))
-                           [:len(input_tokens_tensor[mask_dropout == 0]) ] +1)
+                           [:len(input_tokens_tensor[mask_dropout == 0])] +1)
                 permute[permute == sep_token_index] = sep_token_index +10
                 permute[permute == mask_token_index] = mask_token_index + 10
                 permute[permute == 0] = 53
                 if use_gpu:
                     permute = permute.cuda()
+
                 input_tokens_tensor[mask_dropout == 0] = permute
 
         if unmask_loss:

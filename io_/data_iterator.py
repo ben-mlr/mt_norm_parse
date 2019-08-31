@@ -362,6 +362,8 @@ def sanity_check_batch_label(task, batch, verbose=1):
         elif task in ["all", "mwe_prediction"]:
             assert batch.mwe_prediction is not None
             assert batch.wordpieces_raw_aligned_with_words is not None
+        elif task in ["mlm"]:
+            assert batch.mwe_prediction is not None, "ERROR batch.mwe_prediction is needed for task mlm"
         else:
             raise(Exception("task provided {} could not be checked".format(task)))
     #printing("BATCH CHECKED ", verbose=verbose, verbose_level=1)

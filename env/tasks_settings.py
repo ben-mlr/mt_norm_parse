@@ -10,6 +10,7 @@ from env.importing import CrossEntropyLoss
 TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact_match",
                                  "head": None, "loss": CrossEntropyLoss(ignore_index=-1),
                                  "prediction_level": "bpe",
+
                                  "label": ["normalize"],
                                  "eval_metrics": [["accuracy-exact-normalize", "accuracy-normalize", "npv-normalize", "recall-normalize", "precision-normalize","tnr-normalize", "f1-normalize", "accuracy-exact-n_masks_pred","accuracy-exact-normalize_pred"]],
                                  "predicted_classes": ["NORMED", "NEED_NORM"],
@@ -25,6 +26,7 @@ TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact
                                      "head": "BertTokenHead",
                                      "loss": CrossEntropyLoss(ignore_index=-1, reduce="mean"),
                                      "prediction_level": "word",
+                                     "num_labels_mandatory":True,
                                      "input": "wordpieces_inputs_raw_tokens",
                                      "label": ["mwe_detection"],
                                      "eval_metrics": [["accuracy-exact-is_mwe"]],
@@ -33,6 +35,7 @@ TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact
                                     {"normalization": False,
                                      "head": "BertTokenHead",
                                      "loss": CrossEntropyLoss(ignore_index=-1, reduce="mean"),
+                                     "num_labels_mandatory":True,
                                      "prediction_level": "word",
                                      "input": "wordpieces_inputs_raw_tokens",
                                      "label": ["n_masks_mwe"],
@@ -41,6 +44,7 @@ TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact
                    "mwe_prediction":
                                     {"normalization": False,
                                      "head": "BertOnlyMLMHead",
+                                    "num_labels_mandatory":False,
                                      "loss": CrossEntropyLoss(ignore_index=-1, reduce="mean"),
                                      "prediction_level": "bpe",
                                      "input": "wordpieces_raw_aligned_with_words",
@@ -70,6 +74,7 @@ TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact
                    "pos": {"normalization": False,
                            "default_metric": "accuracy-pos",
                            "pred": ["pos_pred"],
+                            "num_labels_mandatory":True,
                            # a list per prediction
                            "eval_metrics": [["accuracy-exact-pos"]],
                            "label": ["pos"],
@@ -79,9 +84,23 @@ TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact
                            "prediction_level": "word",
                            "loss": CrossEntropyLoss(ignore_index=-1,reduce="sum")
                            },
+                   "mlm": {"normalization": False,
+                           "default_metric": "accuracy-mlm",
+                           "num_labels_mandatory": False,
+                           # a list per prediction
+                           "eval_metrics": [["accuracy-exact-mlm"]],
+                           "label": ["mwe_prediction"],
+                           # because its the label of mwe prediction
+                           "input": "mwe_prediction",
+                           "head": "BertOnlyMLMHead",
+                           "prediction_level": "bpe",
+                           "loss": CrossEntropyLoss(ignore_index=-1, reduce="sum")
+                           },
                    "parsing": {
                        "normalization": False,
                        "default_metric": None,
+                       "num_labels_mandatory": True,
+                       "num_labels_mandatory_to_check": ["parsing_types"],
                        "eval_metrics": [["accuracy-exact-parsing_heads"], ["accuracy-exact-parsing_types"]],
                        "head": "BertGraphHead",
                         # because its the label of mwe prediction

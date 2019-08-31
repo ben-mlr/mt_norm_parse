@@ -191,7 +191,7 @@ def args_train(mode="command_line", script="train_evaluate_run"):
         parser.add_argument('--norm_2_noise_training', type=float, default=None)
         parser.add_argument('--aggregating_bert_layer_mode',type=str, default=None)
 
-        parser.add_argument('--bert_module', type=str, default="token_class")
+        parser.add_argument('--bert_module', type=str, default=None)
         parser.add_argument('--layer_wise_attention', type=int, default=0)
 
         parser.add_argument('--tokenize_and_bpe', type=int, default=0)

@@ -960,26 +960,18 @@ class BertMultiTask(BertPreTrainedModel):
         self.task_parameters = TASKS_PARAMETER
         self.layer_wise_attention = None
         self.labels_supported = [label for task in tasks for label in self.task_parameters[task]["label"]]
-        for task in tasks:
-            if task not in ["mwe_prediction"]:
-                try:
-                    assert task in num_labels_per_task, "ERROR : no num label for task {} ".format(task)
-                except Exception as e:
-                    # Handling parsing specificity here
-                    # (the task and the dictionary(and the labels also) are not names the same
-                    if task == "parsing":
-                        assert "parsing_types" in num_labels_per_task, "ERROR parsing_types should be in {}".format(num_labels_per_task)
-                    else:
-                        raise(e)
+
+        self.sanity_checking_num_labels_per_task(num_labels_per_task, tasks, self.task_parameters)
+
         self.num_labels_dic = num_labels_per_task
         for i, task in enumerate(tasks):
             assert task in TASKS_PARAMETER, "ERROR : task {} is not in {}".format(task, TASKS_PARAMETER)
             num_label = task if task != "parsing" else "parsing_types"
-            if task == "mwe_prediction":
+            if not self.task_parameters[task]["num_labels_mandatory"]:
                 # in this case we need to define and load MLM head of the model
                 self.head[task] = eval(self.task_parameters[task]["head"])(config, self.bert.embeddings.word_embeddings.weight)
             else:
-                self.head[task] = eval(self.task_parameters[task]["head"])(config,num_labels=self.num_labels_dic[num_label])
+                self.head[task] = eval(self.task_parameters[task]["head"])(config, num_labels=self.num_labels_dic[num_label])
 
     def forward(self, input_ids_dict, token_type_ids=None, attention_mask=None, labels=None, head_masks=None):
         if labels is None:
@@ -1080,6 +1072,22 @@ class BertMultiTask(BertPreTrainedModel):
         else:
             raise (Exception("More than 3 tensors as prediction is not supported (task {})".format(task)))
         return logits_dict
+
+
+    @staticmethod
+    def sanity_checking_num_labels_per_task(num_labels_per_task, tasks, task_parameters):
+        for task in tasks:
+            # for mwe_prediction no need of num_label we use the embedding matrix
+            # do we need to check num_label for this task ? and is only 1 label assosiated to this task
+            if task_parameters[task]["num_labels_mandatory"] and len(task_parameters[task]["labels"])==1:
+                assert task in num_labels_per_task, "ERROR : no num label for task {} ".format(task)
+            elif task_parameters[task]["num_labels_mandatory"] and len(task_parameters[task]["labels"])>1:
+                num_labels_mandatory_to_check = task_parameters[task].get("num_labels_mandatory_to_check")
+                assert num_labels_mandatory_to_check is not None, "ERROR : task {} is related to at least 2 labels : we need to know which one requires a num_label " \
+                                                                  "to define the model head but field {} " \
+                                                                  "not found in {}".format(task, "num_labels_mandatory_to_check", task_parameters[task])
+                for label in num_labels_mandatory_to_check:
+                    assert label in num_labels_per_task, "ERROR : task {} label {} not in num_labels_per_task {} dictionary".format(task, label, num_labels_per_task)
 
 
 class BertForTreePrediction(BertPreTrainedModel):
