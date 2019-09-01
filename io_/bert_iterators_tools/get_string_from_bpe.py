@@ -48,7 +48,6 @@ def get_bpe_string(predictions_topk_dic,
                                      get_string=False, label=label, null_token_index=null_token_index,
                                      null_str=null_str)
 
-
         predict_dic[label] = sent_ls_top
         label_dic[label] = gold
     for input_label, input_tokens_tensor in input_tokens_tensor_per_task.items():
@@ -82,7 +81,7 @@ def get_detokenized_str(source_preprocessed_dict, input_alignement_with_raw, lab
                 raise(e)
         else:
             _input_alignement_with_raw = input_alignement_with_raw
-
+        pdb.set_trace()
         src_detokenized_dic[source_label] = alignement.realigne_multi(source_preprocessed, _input_alignement_with_raw, null_str=null_str, task="normalize",
                                                                       # normalize means we deal wiht bpe input not pos
                                                                       mask_str=MASK_BERT,

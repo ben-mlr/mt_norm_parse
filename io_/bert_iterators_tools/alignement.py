@@ -182,7 +182,7 @@ def realigne_multi(ls_sent_str, input_alignement_with_raw, null_str, mask_str, t
     new_sent_ls = []
     for sent, index_ls in zip(ls_sent_str, input_alignement_with_raw):
 
-        assert len(sent) == len(index_ls), "ERROR : sent {} and index_ls {} not same len".format(sent, index_ls)
+        assert len(sent) == len(index_ls), "ERROR : sent {} len {} and index_ls {} len {} not same len".format(sent, index_ls, len(sent), len(index_ls))
         former_index = -1
         new_sent = []
         former_token = ""

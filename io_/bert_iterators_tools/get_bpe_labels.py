@@ -171,7 +171,8 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
                 if use_gpu:
                     output_tokens_tensor_aligned = output_tokens_tensor_aligned.cuda()
                 # if the task has several label : we just appen the label name to the task in the label dictionary
-                label_name = task_batch_name #task if len(tasks_parameters[task]["label"]) == 1 else task+"_"+task_batch_name
+                label_name = task_batch_name #if task != "mlm" else "mlm"#task if len(tasks_parameters[task]["label"]) == 1 else task+"_"+task_batch_name
+
                 label_per_task[label_name] = output_tokens_tensor_aligned
 
             #input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = input_tokens_tensor

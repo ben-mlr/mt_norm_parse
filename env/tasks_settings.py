@@ -44,7 +44,7 @@ TASKS_PARAMETER = {"normalize": {"normalization": True, "default_metric": "exact
                    "mwe_prediction":
                                     {"normalization": False,
                                      "head": "BertOnlyMLMHead",
-                                    "num_labels_mandatory":False,
+                                     "num_labels_mandatory":False,
                                      "loss": CrossEntropyLoss(ignore_index=-1, reduce="mean"),
                                      "prediction_level": "bpe",
                                      "input": "wordpieces_raw_aligned_with_words",
