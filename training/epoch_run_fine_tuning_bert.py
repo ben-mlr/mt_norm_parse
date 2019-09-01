@@ -632,7 +632,7 @@ def epoch_run(batchIter, tokenizer,
                 # TODO:
                 # - factorize   masking
                 assert "normalize" not in args.tasks[0], "ERROR : input and output not supported yet for 'normalize' task in this setting "
-                if "mlm" in  [task for tasks in args.tasks for task in tasks] or "mwe_prediction" in [task for tasks in args.tasks for task in tasks]:
+                if "mlm" in [task for tasks in args.tasks for task in tasks] :
                     assert args.masking_strategy is None
 
                     input_tokens_tensor_per_task["mwe_prediction"] = dropout_mlm(input_tokens_tensor_per_task["mwe_prediction"], mask_token_index=mask_token_index, sep_token_index=sep_token_index, cls_token_index=cls_token_index, pad_index=PAD_ID_BERT, use_gpu=use_gpu, dropout_mask=0.15, dropout_random_bpe_of_masked=0.5, vocab_len=len(tokenizer.vocab) -2)
