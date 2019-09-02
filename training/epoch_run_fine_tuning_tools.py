@@ -133,7 +133,7 @@ def update_loss_dic_average(loss_dic_current, loss_dic_total):
     return loss_dic_total
 
 
-def tensorboard_loss_writer_epoch_level_multi(writer, mode, model_id, epoch, loss_dic, n_tokens_dic):
+def tensorboard_loss_writer_epoch_level_multi(writer, mode, model_id, epoch, loss_dic, n_tokens_dic, data_label):
     """
     NB : loss provided is already supposed to be average per batch
     :param writer:
@@ -158,9 +158,9 @@ def tensorboard_loss_writer_epoch_level_multi(writer, mode, model_id, epoch, los
         print(e)
     for loss_lab, loss_val in loss_dic.items():
         try:
-            writer.add_scalars("loss-MULTI-epoch-{}-{}".format(loss_lab, mode),  {"{}-{}-{}".format("loss", mode, model_id): loss_val/n_tokens_dic[loss_lab]}, epoch)
+            writer.add_scalars("loss-multitask-epoch-{}-{}".format(loss_lab, mode),  {"{}-{}-{}-{}".format("loss", mode, data_label, model_id): loss_val/n_tokens_dic[loss_lab]}, epoch)
         except:
-            print("WARNING : could not report loss in tensorboard for epoch {}, n_token {} , loss {} , loss task {} ".format(epoch, n_tokens_dic[loss_lab], loss_val, loss_lab))
+            print("WARNING : could not report loss in tensorboard for epoch {}, n_token {} , loss {} , loss task {} data {}".format(epoch, n_tokens_dic[loss_lab], loss_val, loss_lab, data_label))
 
 
 def tensorboard_loss_writer_epoch_level(writer, tasks, mode, model_id, epoch, n_batch_norm, n_batch_pos, append_n_mask, loss, loss_norm, loss_pos, loss_n_mask_prediction, batch_i):

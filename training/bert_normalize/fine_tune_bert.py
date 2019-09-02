@@ -194,17 +194,21 @@ def run(args,
                                      verbose=verbose)
         time_load_readers_dev_start = time.time()
         time_load_readers_train = time.time()-time_load_readers_train_start
-        readers_dev = readers_load(datasets=args.dev_path, tasks=args.tasks, word_dictionary=word_dictionary,
-                                   word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
-                                   pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
-                                   bert_tokenizer=tokenizer,
-                                   args=args,
-                                   type_dictionary=type_dictionary, use_gpu=use_gpu_hardcoded_readers,
-                                   norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=True,
-                                   add_start_char=1, add_end_char=1, bucketing_level=bucketing_level,
-                                   symbolic_end=1, symbolic_root=1, bucket=False, max_char_len=20,
-                                   must_get_norm=True,
-                                   verbose=verbose) if args.dev_path is not None else None
+        readers_dev_ls = []
+
+        for dev_path in args.dev_path:
+            readers_dev = readers_load(datasets=dev_path, tasks=args.tasks, word_dictionary=word_dictionary,
+                                       word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
+                                       pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
+                                       bert_tokenizer=tokenizer,
+                                       args=args,
+                                       type_dictionary=type_dictionary, use_gpu=use_gpu_hardcoded_readers,
+                                       norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=True,
+                                       add_start_char=1, add_end_char=1, bucketing_level=bucketing_level,
+                                       symbolic_end=1, symbolic_root=1, bucket=False, max_char_len=20,
+                                       must_get_norm=True,
+                                       verbose=verbose) if args.dev_path is not None else None
+            readers_dev_ls.append(readers_dev)
         time_load_readers_dev = time.time()-time_load_readers_dev_start
         # Load tokenizer
         print("TIMING : ", OrderedDict([("time_load_readers_train", "{:0.4f} min".format(time_load_readers_train/60)),
@@ -229,7 +233,9 @@ def run(args,
                 time_load_batcher = time.time()-time_load_batcher_start
                 print("TIMING batcher ", time_load_batcher)
                 # -|-|-
-                batchIter_dev = data_gen_multi_task_sampling_batch(tasks=args.tasks, readers=readers_dev, batch_size=args.batch_size,
+                batchIter_dev_ls = []
+                for readers_dev in readers_dev_ls:
+                    batchIter_dev = data_gen_multi_task_sampling_batch(tasks=args.tasks, readers=readers_dev, batch_size=args.batch_size,
                                                                    word_dictionary=word_dictionary,
                                                                    char_dictionary=char_dictionary,
                                                                    pos_dictionary=pos_dictionary,
@@ -239,6 +245,7 @@ def run(args,
                                                                    print_raw=False,
                                                                    dropout_input=0.0,
                                                                    verbose=verbose) if args.dev_path is not None else None
+                    batchIter_dev_ls.append(batchIter_dev)
                 # TODO add optimizer (if not : dev loss)
                 model.train()
 
@@ -276,36 +283,41 @@ def run(args,
                 model.eval()
                 if args.dev_path is not None:
                     print("RUNNING DEV on ITERATION MODE")
-                    loss_dev, iter_dev, perf_report_dev, early_stoping_val = epoch_run(batchIter_dev, tokenizer,
-                                                                                       args=args,
-                                                                                       epoch=epoch,
-                                                                                       pos_dictionary=pos_dictionary,
-                                                                                       task_to_label_dictionary=task_to_label_dictionary,
-                                                                                       iter=iter_dev, use_gpu=use_gpu,
-                                                                                       model=model,
-                                                                                       writer=writer,
-                                                                                       writing_pred=epoch == (args.epochs - 1),
-                                                                                       dir_end_pred=end_predictions,
-                                                                                       predict_mode=True, data_label=dev_data_label,
-                                                                                       null_token_index=null_token_index, null_str=null_str,
-                                                                                       model_id=model_id,
-                                                                                       skip_1_t_n=skip_1_t_n,
-                                                                                       dropout_input_bpe=0,
-                                                                                       reference_word_dic={"InV": inv_word_dic},
-                                                                                       norm_2_noise_eval=False,
-                                                                                       early_stoppin_metric=early_stoppin_metric,
-                                                                                       subsample_early_stoping_metric_val=subsample_early_stoping_metric_val,
-                                                                                       case=case,
-                                                                                       n_iter_max=n_iter_max_per_epoch, verbose=verbose)
-                else:
-                    loss_dev, iter_dev, perf_report_dev = None, 0, None
+                    early_stoping_val_ls = []
+                    loss_dev_ls = []
+                    for i_dev, batchIter_dev in enumerate(batchIter_dev_ls):
+                        loss_dev, iter_dev, perf_report_dev, early_stoping_val = epoch_run(batchIter_dev, tokenizer,
+                                                                                           args=args,
+                                                                                           epoch=epoch,
+                                                                                           pos_dictionary=pos_dictionary,
+                                                                                           task_to_label_dictionary=task_to_label_dictionary,
+                                                                                           iter=iter_dev, use_gpu=use_gpu,
+                                                                                           model=model,
+                                                                                           writer=writer,
+                                                                                           writing_pred=epoch == (args.epochs - 1),
+                                                                                           dir_end_pred=end_predictions,
+                                                                                           predict_mode=True, data_label=dev_data_label,
+                                                                                           null_token_index=null_token_index, null_str=null_str,
+                                                                                           model_id=model_id,
+                                                                                           skip_1_t_n=skip_1_t_n,
+                                                                                           dropout_input_bpe=0,
+                                                                                           reference_word_dic={"InV": inv_word_dic},
+                                                                                           norm_2_noise_eval=False,
+                                                                                           early_stoppin_metric=early_stoppin_metric,
+                                                                                           subsample_early_stoping_metric_val=subsample_early_stoping_metric_val,
+                                                                                           case=case,
+                                                                                           n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+                        printing("TRAINING : loss train:{} dev {}:{} for epoch {}  out of {}",
+                                 var=[loss_train, i_dev, loss_dev, epoch, args.epochs], verbose=1, verbose_level=1)
+                        printing("PERFORMANCE {} DEV {} {} ", var=[epoch, i_dev+1, perf_report_dev], verbose=verbose,
+                                 verbose_level=1)
+                        early_stoping_val_ls.append(early_stoping_val)
+                        loss_dev_ls.append(loss_dev)
 
-                printing("PERFORMANCE {} TRAIN {}", var=[epoch, perf_report_train],
-                         verbose=verbose, verbose_level=1)
-                printing("PERFORMANCE {} DEV {} ", var=[epoch, perf_report_dev], verbose=verbose, verbose_level=1)
-
-                printing("TRAINING : loss train:{} dev:{} for epoch {}  out of {}", var=[loss_train, loss_dev, epoch, args.epochs], verbose=1, verbose_level=1)
-
+                    else:
+                        loss_dev, iter_dev, perf_report_dev = None, 0, None
+                # NB : early_stoping_val is based on first dev set
+                early_stoping_val = early_stoping_val_ls[0]
                 if checkpointing_model_data or early_stoping_val < early_stoping_val_former:
                     if early_stoping_val is not None:
                         _epoch = "best" if early_stoping_val < early_stoping_val_former else epoch

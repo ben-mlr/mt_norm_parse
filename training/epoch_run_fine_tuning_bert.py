@@ -397,7 +397,6 @@ def epoch_run(batchIter, tokenizer,
                 labels_n_mask_prediction[input_tokens_tensor == 0] = -1
 
             # TODO : to factorize
-            print("MASKING", args.masking_strategy, not args.multitask and optimizer is not None, optimizer is not None)
             if not args.multitask and optimizer is not None:
                 input_tokens_tensor, feeding_the_model_with_label = \
                     focused_masking(args.masking_strategy, input_tokens_tensor, output_tokens_tensor_aligned, dropout_input_bpe,
@@ -792,7 +791,7 @@ def epoch_run(batchIter, tokenizer,
         if writer is not None:
             # n_tokens_counter_per_task
             if args.multitask:
-                tensorboard_loss_writer_epoch_level_multi(writer,  mode, model_id, epoch, loss_dic_epoch, n_tokens_counter_per_task)
+                tensorboard_loss_writer_epoch_level_multi(writer,  mode, model_id, epoch, loss_dic_epoch, n_tokens_counter_per_task, data_label)
             tensorboard_loss_writer_epoch_level(writer, args.tasks, mode, model_id, epoch, n_batch_norm, n_batch_pos, args.append_n_mask, loss, loss_norm, loss_pos, loss_n_mask_prediction, batch_i)
         reports = []
         printing("TRAINING : evaluating on {} args.tasks ", var=[evaluated_task], verbose_level=1, verbose=verbose)

@@ -38,7 +38,7 @@ def train_eval_bert_normalize(args, verbose=1):
 
     null_token_index = BERT_MODEL_DIC[args.bert_model]["vocab_size"]  # based on bert cased vocabulary
     description = "grid"
-    list_reference_heuristic_test = pickle.load(open(os.path.join(PROJECT_PATH, "data/wiki-news-FAIR-SG-top50000.pkl"), "rb"))
+    list_reference_heuristic_test = pickle.load(open(os.path.join(PROJECT_PATH, "data/wiki-news-FAIR-SG-top50000.pkl"),  "rb"))
     slang_dic = json.load(open(os.path.join(PROJECT_PATH, "data/urban_dic_abbreviations.json"), "r"))
 
     early_stoppin_metric = get_early_stopping_metric(tasks=args.tasks, early_stoppin_metric=None, verbose=verbose)
@@ -56,7 +56,7 @@ def train_eval_bert_normalize(args, verbose=1):
         model_suffix="{}".format(args.model_id_pref), debug=debug,
         random_iterator_train=True,  bucket_test=False, compute_intersection_score_test=True,
         list_reference_heuristic_test=list_reference_heuristic_test, case="lower",
-        n_iter_max_per_epoch=10,
+        n_iter_max_per_epoch=2,
         slang_dic_test=slang_dic, early_stoppin_metric=early_stoppin_metric,
         saving_every_epoch=100, auxilliary_task_norm_not_norm=True,
         report=True, verbose=1)
