@@ -196,8 +196,9 @@ def write_conll_multitask(format, dir_pred, dir_original, src_text_ls,
         if pred_task_len_former > 0:
             assert pred_task_len == pred_task_len_former, \
                 "ERROR {} and {} task ".format(task_former, task_label)
-            assert pred_task_len == len(src_text_ls[task_parameters[_task]["input"]]), \
-                "ERROR  src len {} and pred len {} ".format(len(src_text_ls[task_parameters[_task]["input"]]),pred_task_len)
+            if not gold:
+                assert pred_task_len == len(src_text_ls[task_parameters[task]["input"]]), \
+                "ERROR  src len {} and pred len {} ".format(len(src_text_ls[task_parameters[task]["input"]]),pred_task_len)
             # we check also other input length
             if src_text_ls.get("input_masked") is not None:
                 assert pred_task_len == len(src_text_ls["input_masked"])
@@ -253,7 +254,10 @@ def write_conll_multitask(format, dir_pred, dir_original, src_text_ls,
                                 _task = task_label_or_gold_label
                             # TODO stanadarisze
                             if gold and task_label_or_gold_label == "mwe_prediction":
-                                src = src_text_ls["input_masked"][ind_sent]
+                                try:
+                                    src = src_text_ls["mwe_prediction"][ind_sent]
+                                except Exception:
+                                    src = src_text_ls["input_masked"][ind_sent]
                             else:
                                 src = src_text_ls[task_parameters[_task]["input"]][ind_sent]
 
