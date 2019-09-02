@@ -1,4 +1,5 @@
-from env.importing import torch, pdb
+from env.importing import torch, pdb, re
+from env.tasks_settings import TASKS_PARAMETER
 from io_.dat.constants import SPECIAL_TOKEN_LS, PAD_ID_BERT
 from io_.printout_iterator_as_raw import printing
 from io_.dat.normalized_writer import write_conll, write_conll_multitask
@@ -124,8 +125,7 @@ def tensorboard_loss_writer_batch_level(writer, mode, model_id, _loss, batch_i, 
 
 def update_loss_dic_average(loss_dic_current, loss_dic_total):
 
-    assert set(loss_dic_current.keys()).issubset(set(loss_dic_total.keys())),\
-        "ERROR : mismatch keys {} and {} ".format(loss_dic_current, loss_dic_total)
+    assert set(loss_dic_current.keys()).issubset(set(loss_dic_total.keys())), "ERROR : mismatch keys {} and {} ".format(loss_dic_current, loss_dic_total)
 
     for loss_label, value in loss_dic_current.items():
         loss_dic_total[loss_label] += value.item()
@@ -151,8 +151,11 @@ def tensorboard_loss_writer_epoch_level_multi(writer, mode, model_id, epoch, los
     :param batch_i:
     :return:
     """
-    assert set(loss_dic.keys()) == set(n_tokens_dic.keys()), \
+    try:
+        assert set(loss_dic.keys()) == set(n_tokens_dic.keys()), \
         "ERROR keys mismatching between loss and n_tokens {} {}".format(loss_dic, n_tokens_dic)
+    except Exception as e:
+        print(e)
     for loss_lab, loss_val in loss_dic.items():
         try:
             writer.add_scalars("loss-MULTI-epoch-{}-{}".format(loss_lab, mode),  {"{}-{}-{}".format("loss", mode, model_id): loss_val/n_tokens_dic[loss_lab]}, epoch)
@@ -238,7 +241,7 @@ def writing_predictions_conll_multi(dir_pred, dir_normalized_original_only,
                           all_indexes=all_indexes,
                           verbose=verbose)
     write_conll_multitask(format="conll", dir_pred=dir_gold,
-                          dir_original=dir_gold_original_only,tasks=tasks,
+                          dir_original=dir_gold_original_only, tasks=tasks,
                           src_text_ls=src_detokenized,
                           pred_per_task=gold_per_tasks, gold=True,
                           all_indexes=all_indexes,
@@ -248,10 +251,27 @@ def writing_predictions_conll_multi(dir_pred, dir_normalized_original_only,
     return False
 
 
+def get_task_name_based_on_logit_label(logit_label, label_processed):
+    match = re.match("(.*)-(.*)", logit_label)
+    assert match  is not None, "ERROR {}".format(logit_label)
+    label = match.group(2)
+    task = match .group(1)
+    #else:
+    #    label = logit_label
+    _continue = False
+    if label in label_processed:
+        _continue = True
+    else:
+        _continue = False
+        label_processed.append(label)
+    return label, task, _continue, label_processed
+
+
 def get_task_label(tasks, task_settings):
     list_label_score = []
     for task in tasks:
-        list_label_score.extend(task_settings[task]["label"])
+        #list_label_score.extend(task_settings[task]["label"])
+        list_label_score.extend([task+"-"+labe for labe in task_settings[task]["label"]])
     return list_label_score
 
 
@@ -263,30 +283,29 @@ def init_score_token_sent_dict(samples_per_task_reporting, tasks, agg_func_ls, c
     init_samples = samples.copy()
     init_samples_per_task = {}
 
-    _tasks = get_task_label(tasks, task_settings)
+    labels = get_task_label(tasks, task_settings)
 
-    for task in _tasks:
+    for task in labels:
         if task.startswith("mwe"):
             init_samples_per_task[task] = samples_per_task_reporting[task].copy()
         else:
             init_samples_per_task[task] = samples_per_task_reporting["normalize"].copy()
 
     if compute_intersection_score:
-        for task in _tasks:
+        for task in labels:
             for ind, sam in enumerate(init_samples_per_task[task][1:]):
                 for ind_2 in range(ind):
                     init_samples_per_task[task].append(sam+"-n-"+init_samples_per_task[task][ind_2+1])
 
-    score_dic = {task: {agg_func: {sample: 0 for sample in init_samples_per_task[task]} for agg_func in agg_func_ls} for task in _tasks}
-    n_tokens_dic = {task: {agg_func: {sample: 0 for sample in init_samples_per_task[task]} for agg_func in agg_func_ls} for task in _tasks}
-    n_sents_dic = {task: {agg_func: {sample: 0 for sample in init_samples_per_task[task]} for agg_func in agg_func_ls} for task in _tasks}
+    score_dic = {task: {agg_func: {sample: 0 for sample in init_samples_per_task[task]} for agg_func in agg_func_ls} for task in labels}
 
+    n_tokens_dic = {task: {agg_func: {sample: 0 for sample in init_samples_per_task[task]} for agg_func in agg_func_ls} for task in labels}
+    n_sents_dic = {task: {agg_func: {sample: 0 for sample in init_samples_per_task[task]} for agg_func in agg_func_ls} for task in labels}
     if "normalize" in tasks:
         for extra_label in ["n_masks_pred", "normalize_pred"]:
             score_dic[extra_label] = {"sum": {sample: 0 for sample in samples_per_task_reporting[extra_label]}}
             n_tokens_dic[extra_label] = {"sum": {sample: 0 for sample in samples_per_task_reporting[extra_label]}}
             n_sents_dic[extra_label] = {"sum": {sample: 0 for sample in samples_per_task_reporting[extra_label]}}
-
 
     return score_dic, n_tokens_dic, n_sents_dic
 

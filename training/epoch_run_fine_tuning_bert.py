@@ -1,7 +1,7 @@
 #from env.importing import *
 #from env.project_variables import *
 
-from env.importing import np, torch, OrderedDict, time, pdb, os
+from env.importing import np, torch, OrderedDict, time, pdb, os, re
 from env.project_variables import SAMPLES_PER_TASK_TO_REPORT, AVAILABLE_BERT_MASKING_STRATEGY, MULTITASK_BERT_LABELS_MLM_HEAD
 from env.tasks_settings import TASKS_PARAMETER
 from io_.dat.constants import PAD_ID_BERT, MASK_BERT, CLS_BERT, SEP_BERT, SPECIAL_TOKEN_LS, NULL_STR, PAD_ID_TAG, PAD_ID_LOSS_STANDART
@@ -20,12 +20,14 @@ from training.epoch_run_fine_tuning_tools import get_casing, logging_processing_
     writing_predictions_conll, writing_predictions_conll_multi, init_score_token_sent_dict, dimension_check_label, extend_input, tensorboard_loss_writer_epoch_level_multi, update_loss_dic_average
 from io_.bert_iterators_tools.get_bpe_labels import get_label_per_bpe, get_mask_input
 from toolbox.deep_learning_toolbox import dropout_input_tensor
-from model.bert_tools_from_core_code.masking import focused_masking, dropout_mlm
+from model.bert_tools_from_core_code.masking import focused_masking
 
 from io_.build_files_shard import build_shard
 from io_.get_new_batcher import get_new_shard, load_batcher_shard_data
 
+
 def accumulate_scores_across_sents(agg_func_ls, sample_ls, dic_prediction_score, score_dic, n_tokens_dic, n_sents_dic):
+
     for agg_func in agg_func_ls:
         for sample in sample_ls:
             try:
@@ -33,7 +35,7 @@ def accumulate_scores_across_sents(agg_func_ls, sample_ls, dic_prediction_score,
                 n_tokens_dic[agg_func][sample] += dic_prediction_score[agg_func][sample]["n_tokens"]
                 n_sents_dic[agg_func][sample] += dic_prediction_score[agg_func][sample]["n_sents"]
             except:
-                print("<spejfsepfj ef")
+                print("ERROR accumulation score on {} sample {} agg".format(sample, agg_func))
                 pdb.set_trace()
     return score_dic, n_tokens_dic, n_sents_dic
 
@@ -184,9 +186,10 @@ def epoch_run(batchIter, tokenizer,
                                                                       task_settings=TASKS_PARAMETER)
 
     _samples_per_task_reporting = list(samples_per_task_reporting.keys())+["all"]
-    n_tokens_counter_per_task = OrderedDict((a, 0) for a in _samples_per_task_reporting)
-    loss_dic_epoch = OrderedDict((a, 0) for a in _samples_per_task_reporting)
 
+    n_tokens_counter_per_task = OrderedDict((a, 0) for a in _samples_per_task_reporting)
+
+    loss_dic_epoch = OrderedDict((a, 0) for a in _samples_per_task_reporting)
     # TODO : should be removed (everuthing should go through samples_per_task_reporting)
     samples = samples_per_task_reporting["normalize"]
     # vocab_index_except_pad_cls_sep = [i for i in range(1, len(tokenizer.vocab)) if i not in [mask_token_index, sep_token_index, cls_token_index]]
@@ -203,7 +206,6 @@ def epoch_run(batchIter, tokenizer,
     n_batch_norm = 0
     n_task_pos_sanity = 0
     n_task_normalize_sanity = 0
-    input_token_mask = None
 
     counting_failure_parralel_bpe_batch = 0
 
@@ -315,8 +317,18 @@ def epoch_run(batchIter, tokenizer,
                 out_bpe_tokenized = None
                 # TODO : should have a task specific input_mask and head_masks : only considering word level tasks and bpe level tasks for now
                 input_mask = get_mask_input(input_tokens_tensor, use_gpu)
-                head_masks, input_tokens_tensor, token_type_ids, label_per_task, input_tokens_tensor_per_task, input_mask_per_task = get_label_per_bpe(args.tasks, batch, input_tokens_tensor, input_alignement_with_raw,  use_gpu, tasks_parameters=TASKS_PARAMETER)
+                head_masks, input_tokens_tensor, token_type_ids, label_per_task,\
+                input_tokens_tensor_per_task, input_mask_per_task = get_label_per_bpe(args.tasks, batch, input_tokens_tensor,
+                                                                                      input_alignement_with_raw,
+                                                                                      use_gpu, tasks_parameters=TASKS_PARAMETER,
+                                                                                      masking_strategy=args.masking_strategy,
+                                                                                      vocab_len=len(tokenizer.vocab)-2,
+                                                                                      mask_token_index=mask_token_index,
+                                                                                      sep_token_index=sep_token_index,
+                                                                                      cls_token_index=cls_token_index)
                 # NB : token_type_ids not used in MultiTask (no needed, just use 0 everywhere )
+
+
                 dimension_check_label(label_per_task, input_tokens_tensor)
                 time_multitask_preprocess_1 += time_multitask_preprocess_start-time.time()
 
@@ -632,10 +644,7 @@ def epoch_run(batchIter, tokenizer,
                 # TODO:
                 # - factorize   masking
                 assert "normalize" not in args.tasks[0], "ERROR : input and output not supported yet for 'normalize' task in this setting "
-                if "mlm" in [task for tasks in args.tasks for task in tasks] :
-                    assert args.masking_strategy is None
 
-                    input_tokens_tensor_per_task["mwe_prediction"] = dropout_mlm(input_tokens_tensor_per_task["mwe_prediction"], mask_token_index=mask_token_index, sep_token_index=sep_token_index, cls_token_index=cls_token_index, pad_index=PAD_ID_BERT, use_gpu=use_gpu, dropout_mask=0.15, dropout_random_bpe_of_masked=0.5, vocab_len=len(tokenizer.vocab) -2)
 
                 for label in label_per_task:
                     # make mask for the loss padding
@@ -644,15 +653,17 @@ def epoch_run(batchIter, tokenizer,
                     #assert len(set(args.tasks) & set(["parsing", "pos"])) == len(args.tasks), \
                     #    "ERROR need to handle tasks agnostic pad index for allowing other tasks {} ".format(args.tasks)
                     # we transform the padded labels according to the loss ignore mask parameters
-                    if label not in ["parsing_heads", "mwe_prediction",
+                    if label not in ["heads", "mwe_prediction",
                                      "n_masks_mwe", "mwe_detection"]:
                         label_per_task[label][label_per_task[label] == PAD_ID_TAG] = PAD_ID_LOSS_STANDART
                     # we do the token counting using labels
-                    n_tokens_counter_per_task[label] += (label_per_task[label] != PAD_ID_LOSS_STANDART).sum().item()
-                    # NB : do you account for CLS and SEQ HERE ?
-                    n_tokens_counter_current_per_task[label] = (label_per_task[label] != PAD_ID_LOSS_STANDART).sum().item()
+                for task in [task for tasks in args.tasks for task in tasks]:
+                    for label in TASKS_PARAMETER[task]["label"]:
+                        n_tokens_counter_per_task[task+"-"+label] += (label_per_task[label] != PAD_ID_LOSS_STANDART).sum().item()
+                        # NB : do you account for CLS and SEQ HERE ?
+                        n_tokens_counter_current_per_task[task+"-"+label] = (label_per_task[label] != PAD_ID_LOSS_STANDART).sum().item()
                 # TODO : handle in a more standart way
-                n_tokens_counter_per_task["all"] += n_tokens_counter_current_per_task[label]
+                n_tokens_counter_per_task["all"] += n_tokens_counter_current_per_task[task+"-"+label]
                 time_multitask_preprocess_2 += time.time()-time_multitask_preprocess_2_start
                 time_multitask_train_start = time.time()
                 logits_dic, loss_dic, _ = model(input_tokens_tensor_per_task,
@@ -670,38 +681,23 @@ def epoch_run(batchIter, tokenizer,
                 assert "normalize" not in args.tasks, "ERROR : following line () was needed apparently for normalize being supported"
                 #output_tokens_tensor_aligned_dic = get_aligned_output(label_per_task)
                 # for parsing heads will leave heads untouched
-                pdb.set_trace()
-                source_preprocessed_dict, label_dic, predict_dic = get_bpe_string(predictions_topk_dic,
-                                                                                 label_per_task,
-                                                                                 input_tokens_tensor_per_task, topk, tokenizer,
-                                                                                 task_to_label_dictionary, null_str,
-                                                                                 null_token_index, verbose)
-
+                source_preprocessed_dict, label_dic, predict_dic = get_bpe_string(predictions_topk_dic, label_per_task, input_tokens_tensor_per_task, topk, tokenizer, task_to_label_dictionary, null_str, null_token_index, TASKS_PARAMETER, verbose)
                 # for parsing and tagging : will simply remove non-first bpe of each token
-                src_detokenized_dic, label_detokenized_dic, predict_detokenize_dic = get_detokenized_str(source_preprocessed_dict,
-                                                                                                         input_alignement_with_raw,
-                                                                                                         label_dic,
-                                                                                                         predict_dic,
-                                                                                                         null_str,
-                                                                                                         remove_mask_str_prediction,
-                                                                                                         batch=batch)
+                src_detokenized_dic, label_detokenized_dic, predict_detokenize_dic = get_detokenized_str(source_preprocessed_dict, input_alignement_with_raw,label_dic, predict_dic, null_str, remove_mask_str_prediction, TASKS_PARAMETER, batch=batch)
 
-                for label in label_detokenized_dic:
-                    # TODO make more standart
-                    if label in ["pos"] or label.startswith("parsing"):
-                        src_detokenized = src_detokenized_dic["mwe_prediction"]
-                    elif label in ["mwe_prediction"]:
-                        src_detokenized = src_detokenized_dic["wordpieces_raw_aligned_with_words"]
-                    elif label in ["n_masks_mwe", "mwe_detection"]:
-                        src_detokenized = src_detokenized_dic["wordpieces_inputs_raw_tokens"]
-                    else:
-                        raise(Exception("label {} not found".format(label)))
-                    if label.startswith("mwe"):
-                        # make this factorizable
-                        filter_score = ["all", "InV", "OOV", "MWE"]
-                    else:
-                        filter_score = samples
+                label_processed = []
+
+                for label_pred in predict_detokenize_dic:
+                    from training.epoch_run_fine_tuning_tools import get_task_name_based_on_logit_label
+                    label, _, _continue, label_processed = get_task_name_based_on_logit_label(label_pred, label_processed)
+                    if _continue:
+                        continue
+
+                    task = re.match("(.*)-.*", label_pred).group(1)
+                    src_detokenized = src_detokenized_dic[TASKS_PARAMETER[task]["input"]]
+                    filter_score = samples_per_task_reporting[label_pred]
                     perf_prediction, skipping, _samples = overall_word_level_metric_measure(task_label=label,
+                                                                                            pred_label=label_pred,
                                                                                             gold_sent_ls_dict=label_detokenized_dic,
                                                                                             pred_sent_ls_topk_dict=predict_detokenize_dic,
                                                                                             topk=topk,
@@ -714,15 +710,19 @@ def epoch_run(batchIter, tokenizer,
 
                     printing("PREDICTION epoch {} task {} score all {}/{} total "
                              "gold {} gold token {} pred {} pred token {} ",
-                             var=[epoch, label, perf_prediction["sum"]["all"]["score"], perf_prediction["sum"]["all"]["n_tokens"], label_detokenized_dic[label], label_per_task[label], predict_detokenize_dic[label], predictions_topk_dic[label][:, :, 0]],
+                             var=[epoch, label, perf_prediction["sum"]["all"]["score"],
+                                  perf_prediction["sum"]["all"]["n_tokens"],
+                                  label_detokenized_dic[label], label_per_task[label],
+                                  predict_detokenize_dic[label_pred], predictions_topk_dic[label_pred][:, :, 0]],
                              verbose=verbose, verbose_level="pred")
-                    score_dic[label], n_tokens_dic[label], n_sents_dic[label] = \
-                        accumulate_scores_across_sents(agg_func_ls=agg_func_ls, sample_ls=_samples,
+                    score_dic[label_pred], n_tokens_dic[label_pred], n_sents_dic[label_pred] = \
+                        accumulate_scores_across_sents(agg_func_ls=agg_func_ls,
+                                                       sample_ls=_samples,
                                                        dic_prediction_score=perf_prediction,
-                                                       score_dic=score_dic[label], n_tokens_dic=n_tokens_dic[label],
-                                                       n_sents_dic=n_sents_dic[label])
+                                                       score_dic=score_dic[label_pred], n_tokens_dic=n_tokens_dic[label_pred],
+                                                       n_sents_dic=n_sents_dic[label_pred])
 
-                    evaluated_task.append(label)
+                    evaluated_task.append(label_pred)
 
                 if writing_pred:
                     new_file = writing_predictions_conll_multi(
@@ -733,7 +733,6 @@ def epoch_run(batchIter, tokenizer,
                                             iter=iter, batch_i=batch_i, new_file=new_file, gold_per_tasks=label_detokenized_dic,
                                             all_indexes=batch.all_indexes, task_parameters=TASKS_PARAMETER,
                                             tasks=args.tasks, verbose=verbose)
-
                 _loss = get_multitask_loss(loss_dic, args.multi_task_loss_ponderation)
                 loss_dic["all"] = _loss
                 loss_dic_epoch = update_loss_dic_average(loss_dic, loss_dic_epoch)
@@ -797,12 +796,15 @@ def epoch_run(batchIter, tokenizer,
             tensorboard_loss_writer_epoch_level(writer, args.tasks, mode, model_id, epoch, n_batch_norm, n_batch_pos, args.append_n_mask, loss, loss_norm, loss_pos, loss_n_mask_prediction, batch_i)
         reports = []
         printing("TRAINING : evaluating on {} args.tasks ", var=[evaluated_task], verbose_level=1, verbose=verbose)
-        reports, early_stoppin_metric_val, score, n_tokens = report_score_all(evaluated_task, agg_func_ls, samples_per_task_reporting,
+        reports, early_stoppin_metric_val, score, n_tokens = report_score_all(evaluated_task, agg_func_ls,
+                                                                              samples_per_task_reporting,
                                                                               label_heuristic, score_dic, n_tokens_dic,
                                                                               n_sents_dic, model_id, args.tasks, args_dir,
                                                                               data_label, reports,  writer, log_perf,
-                                                                              early_stoppin_metric_val, early_stoppin_metric,
-                                                                              mode, subsample_early_stoping_metric_val,
+                                                                              early_stoppin_metric_val,
+                                                                              early_stoppin_metric,
+                                                                              mode,
+                                                                              subsample_early_stoping_metric_val,
                                                                               epoch)
     else:
         reports = None

@@ -1,7 +1,6 @@
 from io_.info_print import printing
 from io_.dat.constants import SPECIAL_TOKEN_LS
 from env.importing import *
-
 APPLY_PERMUTE_THRESHOLD_SENT = 0.8
 APPLY_PERMUTE_WORD = 0.8
 
@@ -174,7 +173,7 @@ def write_conll(format, dir_normalized, dir_original, src_text_ls, text_decoded_
 
 
 def write_conll_multitask(format, dir_pred, dir_original, src_text_ls,
-                          pred_per_task, tasks,task_parameters, cp_paste=False, gold=False,
+                          pred_per_task, tasks, task_parameters, cp_paste=False, gold=False,
                           all_indexes=None,
                           ind_batch=0, new_file=False, cut_sent=False, verbose=0):
 
@@ -185,28 +184,38 @@ def write_conll_multitask(format, dir_pred, dir_original, src_text_ls,
     pred_task_len_former = -1
     task_former = ""
 
-
     # assertion on number of samples predicted
-    for task in pred_per_task:
+    for task_label in pred_per_task:
 
-        pred_task_len = len(pred_per_task[task]) if gold else len(pred_per_task[task][writing_top-1])
-
+        pred_task_len = len(pred_per_task[task_label]) if gold else len(pred_per_task[task_label][writing_top-1])
+        _task = re.match("(.*)-(.*)", task_label)
+        if _task is not None:  # , "ERROR writer could not match {}".format(task_label)
+            task = _task.group(1)
+        else:
+            task = task_label
         if pred_task_len_former > 0:
             assert pred_task_len == pred_task_len_former, \
-                "ERROR {} and {} task ".format(task_former, task)
-
-            assert pred_task_len == len(src_text_ls["mwe_prediction"]),\
-                "ERROR mismatch source mwe_prediction {}  and prediction {} ".format(src_text_ls, pred_per_task[task])
+                "ERROR {} and {} task ".format(task_former, task_label)
+            assert pred_task_len == len(src_text_ls[task_parameters[_task]["input"]]), \
+                "ERROR  src len {} and pred len {} ".format(len(src_text_ls[task_parameters[_task]["input"]]),pred_task_len)
+            # we check also other input length
+            if src_text_ls.get("input_masked") is not None:
+                assert pred_task_len == len(src_text_ls["input_masked"])
+            if src_text_ls.get("mwe_prediction") is not None:
+                assert pred_task_len == len(src_text_ls["mwe_prediction"]), "ERROR mismatch source " \
+                                                                            "mwe_prediction {}  " \
+                                                                            "and prediction {} ".format(src_text_ls, pred_per_task[task_label])
             if src_text_ls.get("wordpieces_inputs_raw_tokens") is not None:
                 assert pred_task_len == len(src_text_ls["wordpieces_inputs_raw_tokens"]), \
-                "ERROR mismatch source wordpieces_inputs_raw_tokens {} and prediction {} ".format(src_text_ls, pred_per_task[task])
+                                    "ERROR mismatch source wordpieces_inputs_" \
+                                    "raw_tokens {} and prediction {} ".format(src_text_ls, pred_per_task[task_label])
             try:
-                assert pred_task_len == all_indexes.shape[0], "ERROR mismatch index {}  and all_indexes {} : pred {}".format(pred_task_len, all_indexes.shape[0], pred_per_task[task])
+                assert pred_task_len == all_indexes.shape[0], "ERROR mismatch index {}  and all_indexes {} : pred {}".format(pred_task_len, all_indexes.shape[0], pred_per_task[task_label])
             except:
                 pdb.set_trace()
         pred_task_len_former = pred_task_len
 
-        task_former = task
+        task_former = task_label
         if format == "conll":
             mode_write = "w" if new_file else "a"
         if new_file:
@@ -221,24 +230,42 @@ def write_conll_multitask(format, dir_pred, dir_original, src_text_ls,
                 pred_sent = OrderedDict()
 
                 # NB : length assertion for each input-output (correcting if possible)
-                for task in pred_per_task:
+
+                # TODO standartize !!  INCONSITENCIES WHEN GOLD TRUE AND GOLD FALSE, IF GOLD : pred_per_task is indexed by labels (no relation 1-1 to task and src ! )
+                for task_label_or_gold_label in pred_per_task:
+                    #task, _, label_processed = get_task_name_based_on_logit_label(task_label, label_processed)
 
                     if gold:
-                        pred_sent[task] = pred_per_task[task][ind_sent]
+                        pred_sent[task_label_or_gold_label] = pred_per_task[task_label_or_gold_label][ind_sent]
                     else:
-                        pred_sent[task] = pred_per_task[task][writing_top-1][ind_sent]
+                        pred_sent[task_label_or_gold_label] = pred_per_task[task_label_or_gold_label][writing_top-1][ind_sent]
 
                     try:
-                        if task.startswith("parsing"):
+                        # TODO : standartize  (the first if is needed because we handle at the same time gold data indexed by label and prediction labelled by task+label
+                        if task_label_or_gold_label in ["heads", "types", "pos"]:
                             src = src_text_ls["mwe_prediction"][ind_sent]
+                            _task = None
                         else:
-                            src = src_text_ls[task_parameters[task]["input"]][ind_sent]
-                        assert len(src) == len(pred_sent[task]),\
-                            "WARNING : (writer) task {} original_sent len {} {} \n  predicted sent len {} {}".format(task,len(src), src, len(pred_sent[task]), pred_sent[task])
+                            _task = re.match("(.*)-(.*)", task_label_or_gold_label)
+                            if _task is not None:#, "ERROR writer could not match {}".format(task_label)
+                                _task = _task.group(1)
+                            else:
+                                _task = task_label_or_gold_label
+                            # TODO stanadarisze
+                            if gold and task_label_or_gold_label == "mwe_prediction":
+                                src = src_text_ls["input_masked"][ind_sent]
+                            else:
+                                src = src_text_ls[task_parameters[_task]["input"]][ind_sent]
+
+                        assert len(src) == len(pred_sent[task_label_or_gold_label]),\
+                            "WARNING : (writer) task {} original_sent len {} {} \n " \
+                            " predicted sent len {} {}".format(task_label_or_gold_label, len(src), src,
+                                                               len(pred_sent[task_label_or_gold_label]), pred_sent[task_label_or_gold_label])
                     except AssertionError as e:
                         print(e)
-                        if len(src) > len(pred_sent[task]):
-                            pred_sent[task].extend(["UNK" for _ in range(len(src)-len(pred_sent[task]))])
+                        pdb.set_trace()
+                        if len(src) > len(pred_sent[task_label_or_gold_label]):
+                            pred_sent[task_label_or_gold_label].extend(["UNK" for _ in range(len(src)-len(pred_sent[task_label_or_gold_label]))])
                             print("WARNING (writer) : original larger than prediction : so appending UNK token for writing")
                         else:
                             print("WARNING (writer) : original smaller than prediction for ")
@@ -265,22 +292,27 @@ def write_conll_multitask(format, dir_pred, dir_original, src_text_ls,
                         adjust_mwe += (last_mwe_index-ind_mwe)
                         #assert ind_adjust == 0, "ERROR not supported"
                         mwe_meta = "Norm={}|mwe_detection={}|n_masks_mwe={}".format("_", pred_sent["mwe_detection"][ind_mwe] if "mwe_detection" in pred_per_task else "_",
-                                                                                    pred_sent["n_masks_mwe"][ind_mwe] if "n_masks_mwe" in pred_per_task else "_")
+                                                                                    pred_sent["n_masks_mwe"][ind_mwe]
+                                                                                    if "n_masks_mwe" in pred_per_task else "_")
+
                         norm_file.write("{index}\t{original}\t_\t{pos}\t_\t_\t{dep}\t_\t{types}\t{norm}\n".format(index=ind, original=original_token, pos="_", types="_", dep="_", norm=mwe_meta))
                         original.write("{}\t{}\t_\t_\t_\t_\t_\t_\t{}\t_\n".format(ind, original_token, "_"))
                         continue
                     else:
                         ind = int(ind)
-                        original_token = src_text_ls["mwe_prediction"][ind_sent][ind]
+                        try:
+                            original_token = src_text_ls["mwe_prediction"][ind_sent][ind]
+                            original_pretokenized_field = "mwe_prediction"
+                        except Exception as e:
+                            original_token = src_text_ls["input_masked"][ind_sent][ind]
+                            original_pretokenized_field = "input_masked"
                         # asserting that we have everything together on the source side
                         if ind > last_mwe_index:
                             if src_text_ls.get("wordpieces_inputs_raw_tokens") is not None:
-                                assert src_text_ls["mwe_prediction"][ind_sent][ind] == src_text_ls["wordpieces_inputs_raw_tokens"][ind_sent][ind-adjust_mwe], \
+                                assert src_text_ls[original_pretokenized_field][ind_sent][ind] == src_text_ls["wordpieces_inputs_raw_tokens"][ind_sent][ind-adjust_mwe], \
                                     "ERROR : on non-mwe tokens : raw and tokenized " \
-                                    "should be same but are raw {} tokenizd {}".format(
-                                        src_text_ls["wordpieces_inputs_raw_tokens"][ind_sent][ind],
-                                        src_text_ls["mwe_prediction"][ind_sent][ind+adjust_mwe])
-
+                                    "should be same but are raw {} tokenized {}".format(src_text_ls["wordpieces_inputs_raw_tokens"][ind_sent][ind],
+                                                                                        src_text_ls[original_pretokenized_field][ind_sent][ind+adjust_mwe])
                     max_len_word = max(len(original_token), len_original)
                     #if original_token in SPECIAL_TOKEN_LS and (ind+1 == len(original_sent) or ind == 0):
                     if original_token in SPECIAL_TOKEN_LS: #ind == "-1" or ind == 0 or original_token == "[SEP]":

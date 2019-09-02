@@ -21,6 +21,7 @@ def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, scor
     n_tokens = 0
     assert isinstance(samples, dict), "ERROR samples : {}".format(samples)
     for task in list(set(evaluated_task)):
+
         assert task in samples, "ERROR : task {} was not found in samples dictionary {}".format(task, samples)
         _samples = samples[task]
         for agg_func in agg_func_ls:
@@ -40,7 +41,7 @@ def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, scor
                 n_tokens = n_tokens_dic[task][agg_func][sample]
                 n_sents = n_sents_dic[task][agg_func][sample]
                 # metric_val = "accuracy-exact-{}".format(tasks[1] if len(tasks)>1 else tasks[0])
-                metric_val = "accuracy-exact-{}".format(task)
+                metric_val = "accuracy-{}".format(task)
 
                 try:
                     report = report_template(metric_val=metric_val, subsample=sample +label_heuristic, info_score_val=None,
@@ -76,7 +77,7 @@ def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, scor
             if "all" in _samples and TASKS_PARAMETER[task]["predicted_classes"][0] in _samples and TASKS_PARAMETER[task]["predicted_classes"][1] in _samples:
                 # then we can compute all the confusion matrix rate
                 # TODO : factorize with TASKS_2_METRICS_STR
-                for metric_val in ["precision", "f1", "recall", "tnr", "npv", "accuracy"]:
+                for metric_val in ["precision", "f1", "recall", "tnr", "npv"]:
                     metric_val += "-"+task
                     score, n_rate_universe = get_perf_rate(metric=metric_val, n_tokens_dic=n_tokens_dic[task],
                                                            score_dic=score_dic[task], task=task, agg_func=agg_func)

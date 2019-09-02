@@ -11,10 +11,11 @@ def parse_argument_dictionary(argument_as_string, tasks=None, hyperparameter="mu
     else:
         dic = OrderedDict()
         if hyperparameter == "multi_task_loss_ponderation":
+
             assert tasks is not None
             for task in tasks:
                 if task == "parsing":
-                    for sub in ["parsing_heads", "parsing_types"]:
+                    for sub in ["parsing-heads", "parsing-types"]:
                         pattern = "{}=([^=]*),".format(sub)
                         match = re.search(pattern, argument_as_string)
                         assert match is not None, "ERROR : pattern {} not found for task {} in argument_as_string {}  ".format(

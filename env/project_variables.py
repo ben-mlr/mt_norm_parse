@@ -68,16 +68,16 @@ MULTITASK_BERT_LABELS_MLM_HEAD = {"pos": "logits_task_2", "normalize": "logits_t
 MULTITASK_BERT_LABELS_MLM_HEAD_LOSS = {"pos": "loss_task_2", "normalize": "loss_task_1", "append_masks": "loss_task_n_mask_prediction"}
 
 SAMPLES_PER_TASK_TO_REPORT = {
-            "pos": ["all", "NEED_NORM", "NORMED", "PRED_NEED_NORM", "PRED_NORMED", "InV", "OOV"],
+            "pos-pos": ["all", "NEED_NORM", "NORMED", "PRED_NEED_NORM", "PRED_NORMED", "InV", "OOV"],
             "normalize": ["all", "NEED_NORM", "NORMED", "PRED_NEED_NORM", "PRED_NORMED", "InV", "OOV"],
             "n_masks_pred": ["all", "n_masks_1", "n_masks_2", "n_masks_3", "n_masks_4", "n_masks_5"],
             "normalize_pred": ["all", "NEED_NORM", "NORMED", "PRED_NEED_NORM", "PRED_NORMED", "InV", "OOV"],
-            "parsing_heads": ["all", "InV", "OOV"],
-            "parsing_types": ["all", "InV", "OOV"],
-
-            "n_masks_mwe": ["all", "InV", "OOV"],
-            "mwe_detection": ["all", "InV", "OOV", "MWE"],
-            "mwe_prediction": ["all", "InV", "OOV", "MWE"],
+            "parsing-heads": ["all", "InV", "OOV"],
+            "parsing-types": ["all", "InV", "OOV"],
+            "n_masks_mwe-n_masks_mwe": ["all", "InV", "OOV"],
+            "mlm-mwe_prediction": ["all", "InV", "OOV"],
+            "mwe_detection-mwe_detection": ["all", "InV", "OOV", "MWE"],
+            "mwe_prediction-mwe_prediction": ["all", "InV", "OOV", "MWE"],
 }
 
 edit_rules = ["edit_check-"+ref_list_label+"-"+need_normed_rule for ref_list_label in ["data", "ref", "all"] for need_normed_rule in ["need_normed", "all"]]
@@ -86,19 +86,19 @@ HEURISTICS = heuristics+edit_rules
 
 # TODO : factorize this with task_settings
 TASKS_2_METRICS_STR = {"all": ["accuracy-exact-normalize", "accuracy-normalize","InV-accuracy-normalize","OOV-accuracy-normalize",
-                               "npv-normalize", "recall-normalize", "precision-normalize","tnr-normalize", "accuracy-exact-pos",
-                               "f1-normalize", "accuracy-exact-n_masks_pred"],
-                       "parsing":["accuracy-exact-parsing_heads", "accuracy-exact-parsing_types"],
+                               "npv-normalize", "recall-normalize", "precision-normalize","tnr-normalize", "accuracy-pos",
+                               "f1-normalize", "accuracy-n_masks_pred"],
+                       "parsing":["accuracy-parsing-heads", "accuracy-parsing-types"],
                        "normalize": ["accuracy-exact-normalize", "accuracy-normalize",
                                      "npv-normalize", "recall-normalize",
                                      "precision-normalize", "tnr-normalize", "f1-normalize",
                                      "precision-normalize_pred", "tnr-normalize_pred", "f1-normalize_pred",
                                      "accuracy-exact-n_masks_pred", "accuracy-exact-normalize_pred"],
-                        "mlm":["accuracy-exact-mlm"],
-                       "pos": ["accuracy-exact-pos"],
-                       "n_masks_mwe": ["accuracy-exact-n_masks_mwe"],
-                       "mwe_detection": ["accuracy-exact-mwe_detection"],
-                       "mwe_prediction": ["accuracy-exact-mwe_prediction"],
+                        "mlm":["accuracy-mlm-mwe_prediction"],
+                       "pos": ["accuracy-pos-pos"],
+                       "n_masks_mwe": ["accuracy-n_masks_mwe-n_masks_mwe"],
+                       "mwe_detection": ["accuracy-mwe_detection-mwe_detection"],
+                       "mwe_prediction": ["accuracy-mwe_prediction-mwe_prediction"],
                        "edit_prediction": [""],
                        "norm_not_norm": ["IoU-pred-normed", "recall-norm_not_norm", "accuracy-norm_not_norm","IoU-pred-need_norm","precision-norm_not_norm"]}
 # "InV-accuracy-normalize", "OOV-accuracy-normalize"

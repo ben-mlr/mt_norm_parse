@@ -21,6 +21,7 @@ def update_multitask_loss_ponderation(multi_task_loss_ponderation):
     for task, weight in multi_task_loss_ponderation.items():
         if task in MULTITASK_BERT_LABELS_MLM_HEAD:
             multi_task_loss_ponderation_new[MULTITASK_BERT_LABELS_MLM_HEAD_LOSS[task]] = weight
+
     return multi_task_loss_ponderation_new
 
 
@@ -31,7 +32,7 @@ def train_eval_bert_normalize(args, verbose=1):
     model_dir = BERT_MODEL_DIC[args.bert_model]["model"]
     vocab_size = BERT_MODEL_DIC[args.bert_model]["vocab_size"]
 
-    debug = False
+    debug = True
     if os.environ.get("ENV") in ["rioc", "neff"]:
         debug = False
 
@@ -45,8 +46,10 @@ def train_eval_bert_normalize(args, verbose=1):
     printing("INFO : tasks is {} so setting early_stoppin_metric to {} ", var=[args.tasks, early_stoppin_metric], verbose=verbose, verbose_level=1)
     printing("INFO : environ is {} so debug set to {}", var=[os.environ.get("ENV", "Unkwnown"), debug], verbose_level=1, verbose=verbose)
     # MLM in multitas mode is temporary and require task_i indexing : that's why we need to rename ponderation dictionary
+
     if not args.multitask:
         args.multi_task_loss_ponderation = update_multitask_loss_ponderation(args.multi_task_loss_ponderation)
+
     run(args=args, voc_tokenizer=voc_tokenizer, vocab_size=vocab_size, model_dir=model_dir,
         report_full_path_shared=args.overall_report_dir,
         description=description, null_token_index=null_token_index, null_str=NULL_STR,

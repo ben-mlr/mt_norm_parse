@@ -1,5 +1,6 @@
 
 #from env.importing import nn, torch, np
+from env.importing import pdb
 import json
 import logging
 import os
@@ -32,8 +33,15 @@ except AttributeError:
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
+from training.args_tool import args_train, parse_argument_dictionary
+
+
 def get_multitask_loss(loss_dict, ponderation):
+
+    ponderation = parse_argument_dictionary(ponderation, loss_dict.keys())
+
     loss = 0
+
     for label_loss in loss_dict:
         loss += ponderation[label_loss] * loss_dict[label_loss]
     return loss

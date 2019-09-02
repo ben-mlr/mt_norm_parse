@@ -163,23 +163,14 @@ def from_bpe_token_to_str(bpe_tensor, topk, pred_mode, null_token_index, null_st
     """
     assert label is not None or get_string, \
         "ERROR : task {} get_string {} : one of them should be defined or True".format(label, get_string)
-
     predictions_topk_ls = [[[bpe_tensor[sent, word, top].item() if pred_mode else bpe_tensor[sent, word].item() for word in range(bpe_tensor.size(1))] for sent in range(bpe_tensor.size(0))] for top in range(topk)]
 
-    if label in ["normalize", "mwe_prediction"] or get_string:
+    # here all label that requires the tokenizer (should factorize his in some way)
+    if label in ["normalize", "mwe_prediction", "input_masked"] or get_string:
         assert tokenizer is not None
-
         sent_ls_top = [[tokenizer.convert_ids_to_tokens(sent_bpe, special_extra_token=null_token_index,special_token_string=null_str) for sent_bpe in predictions_topk] for predictions_topk in predictions_topk_ls]
         printing("DATA : bpe string again {}", var=[sent_ls_top], verbose=verbose, verbose_level="raw_data")
 
-    elif label == "pos":
-        # NB +1 because index 0 is related to UNK
-        if label_dictionary is not None:
-            pos_dictionary = label_dictionary
-        try:
-            sent_ls_top = [[[pos_dictionary.instances[token_ind-1] if token_ind > 0 else "UNK" for token_ind in sent_bpe] for sent_bpe in predictions_topk] for predictions_topk in predictions_topk_ls]
-        except IndexError as e:
-            print("ERROR {} : must be {} index was called while pos_dictionary is {} len".format(e, predictions_topk_ls, len(pos_dictionary.instances)))
     else:
         dictionary = label_dictionary
 
@@ -190,7 +181,7 @@ def from_bpe_token_to_str(bpe_tensor, topk, pred_mode, null_token_index, null_st
                 sent_ls_top = [[[dictionary.instances[token_ind - 1] if token_ind > 0 else "UNK" for token_ind in sent_bpe] for sent_bpe in predictions_topk] for predictions_topk in predictions_topk_ls]
             # adding more information about the exe
             except Exception as e:
-                print("{} : dictionary : {} and prediction {} ".format(e, dictionary.instances, predictions_topk_ls))
+                print("{} : dictionary : {} and prediction {} (POS specificity was removed )".format(e, dictionary.instances, predictions_topk_ls))
                 raise(e)
     if not pred_mode:
         sent_ls_top = sent_ls_top[0]

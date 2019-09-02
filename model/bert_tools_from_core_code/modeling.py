@@ -964,11 +964,11 @@ class BertMultiTask(BertPreTrainedModel):
         self.sanity_checking_num_labels_per_task(num_labels_per_task, tasks, self.task_parameters)
 
         self.num_labels_dic = num_labels_per_task
-        if "mlm" in tasks:
-            self.num_labels_dic["mlm"] = self.bert.embeddings.word_embeddings.weight.size(0)
+        ##if "mlm" in tasks:
+        #   self.num_labels_dic["mlm"] = self.bert.embeddings.word_embeddings.weight.size(0)
         for i, task in enumerate(tasks):
             assert task in TASKS_PARAMETER, "ERROR : task {} is not in {}".format(task, TASKS_PARAMETER)
-            num_label = task if task != "parsing" else "parsing_types"
+            num_label = task+"-"+self.task_parameters[task]["label"][0] if len(self.task_parameters[task]["label"]) == 1 else task+"-"+self.task_parameters[task]["num_labels_mandatory_to_check"][0] # assuming 1 in num_labels_mandatory_to_check
             if not self.task_parameters[task]["num_labels_mandatory"]:
                 # in this case we need to define and load MLM head of the model
                 self.head[task] = eval(self.task_parameters[task]["head"])(config, self.bert.embeddings.word_embeddings.weight)
@@ -999,79 +999,79 @@ class BertMultiTask(BertPreTrainedModel):
             # NB : head_masks for parsing only applies to heads not types
             head_masks_task = None#head_masks.get(task, None) if task != "parsing" else None
             # NB : head_mask means masks specific the the module heads (nothing related to parsing !! )
-            assert self.task_parameters[task]["input"] in sequence_output_dict, "ERROR input of task {} was not found in input_ids_dict {} and therefore not in sequence_output_dict".format(task, input_ids_dict.keys())
+            assert self.task_parameters[task]["input"] in sequence_output_dict, \
+                "ERROR input of task {} was not found in input_ids_dict {} " \
+                "and therefore not in sequence_output_dict".format(task, input_ids_dict.keys())
+            logit_label = task#+"-"+self.task_parameters[task]["label"][0] if len(self.task_parameters[task]["label"]) == 1 else task
             if not isinstance(self.head[task], BertOnlyMLMHead):
-                logits_dict[task] = self.head[task](sequence_output_dict[self.task_parameters[task]["input"]], head_mask=head_masks_task)
+                logits_dict[task] = self.head[task](sequence_output_dict[self.task_parameters[task]["input"]],
+                                                           head_mask=head_masks_task)
             else:
                 logits_dict[task] = self.head[task](sequence_output_dict[self.task_parameters[task]["input"]])
             # test performed : (logits_dict[task][0][1,2,:20]==float('-inf'))==(labels["parsing_heads"][1,:20]==-1)
             # handle several labels at output (e.g  parsing)
-            n_pred = len(list(logits_dict[task]))
-            try:
-                assert n_pred == len(self.task_parameters[task]["label"]), "ERROR : not as many labels as prediction for task {} : {} vs {} ".format(task, self.task_parameters[task]["label"], logits_dict[task])
-            except:
-                pdb.set_trace()
-            logits_dict = self.rename_multi_modal_task_logits(labels=self.task_parameters[task]["label"], logits_dict=logits_dict, task=task, n_pred=n_pred)
-            for label_task in self.task_parameters[task]["label"]:
+            logits_dict = self.rename_multi_modal_task_logits(labels=self.task_parameters[task]["label"],  task=task, logits_dict=logits_dict, task_parameters=self.task_parameters)
+
+            for logit_label in logits_dict:
+            #for label in self.task_parameters[task]["label"]:
                 # HANDLE HERE MULTI MODAL TASKS
-                if label_task in labels:
-                    pdb.set_trace()
-                    #if task != "mlm" else task
-                    loss_dict[label_task] = self.get_loss(self.task_parameters[task]["loss"],label_task, self.num_labels_dic, labels, logits_dict, task)
+                label = re.match("(.*)-(.*)", logit_label)
+                assert label is not None, "ERROR logit_label {}".format(logit_label)
+                label = label.group(2)
+                if label in labels:
+                    loss_dict[logit_label] = self.get_loss(self.task_parameters[task]["loss"], label,self.num_labels_dic, labels, logits_dict, task, logit_label)
         # thrid output is for potential attention weights
         return logits_dict, loss_dict, None
 
     @staticmethod
-    def get_loss(loss_func, label_task, num_label_dic, labels, logits_dict, task):
-
-        if not label_task.startswith("parsing"):
+    def get_loss(loss_func, label, num_label_dic, labels, logits_dict, task, logit_label):
+        if label not in ["heads", "types"]:
             try:
-                pdb.set_trace()
-                loss = loss_func(logits_dict[label_task].view(-1, num_label_dic[task]), labels[label_task].view(-1))
+                loss = loss_func(logits_dict[logit_label].view(-1, num_label_dic[logit_label]), labels[label].view(-1))
             except Exception as e:
                 print(e)
-                print("ERROR task {} num_label {} , labels {} ".format(task, num_label_dic, labels[label_task].view(-1)))
+                print("ERROR task {} num_label {} , labels {} ".format(task, num_label_dic, labels[label].view(-1)))
                 raise(e)
 
-        elif label_task == "parsing_heads":
+        elif label == "heads":
             #loss = loss_func(logits_dict[label_task], labels[label_task])
             # trying alternative way for loss
-            loss = CrossEntropyLoss(ignore_index=-1, reduction="mean")(logits_dict[label_task].view(-1, logits_dict[label_task].size(2)), labels[label_task].view(-1))
+            loss = CrossEntropyLoss(ignore_index=-1, reduction="mean")(logits_dict[logit_label].view(-1, logits_dict[logit_label].size(2)), labels[label].view(-1))
             # other possibilities is to do log softmax then L1 loss (lead to other results)
-            #print("DEBUG PRED HEADS pred {} gold {}".format(torch.argsort(logits_dict[label_task], dim=-1, descending=True)[:,:, :1], labels[label_task]))
-            #print("DEBUG LOSS HEADS {}".format(loss))
             if loss < 1e-3:
                 pdb.set_trace()
-        elif label_task == "parsing_types":
+        elif label == "types":
             # gold label after removing 0 gold
-            gold = labels["parsing_types"][labels["parsing_heads"] != PAD_ID_LOSS_STANDART]
+            gold = labels["types"][labels["heads"] != PAD_ID_LOSS_STANDART]
             # pred logits (after removing -1) on the gold heads
-            pred = logits_dict["parsing_types"][(labels["parsing_heads"] != PAD_ID_LOSS_STANDART).nonzero()[:, 0],
-                                                (labels["parsing_heads"] != PAD_ID_LOSS_STANDART).nonzero()[:, 1], labels["parsing_heads"][labels["parsing_heads"] != PAD_ID_LOSS_STANDART]]
+            pred = logits_dict["parsing-types"][(labels["heads"] != PAD_ID_LOSS_STANDART).nonzero()[:, 0],
+                                                (labels["heads"] != PAD_ID_LOSS_STANDART).nonzero()[:, 1], labels["heads"][labels["heads"] != PAD_ID_LOSS_STANDART]]
             # remark : in the way it's coded for paring : the padding is already removed (so ignore index is null)
-
             try:
                 loss = loss_func(pred, gold)
-                #print("DEBUG PRED TYPES pred {} gold {}".format(torch.argsort(pred, dim=-1, descending=True)[:, :1], gold))
-                #print("DEBUG LOSS TYPES {}".format(loss))
-                #pdb.set_trace()
-
             except Exception as e:
-                print("ERROR pred : {} gold {} : parsing heads origin {)  ".format(pred, gold, labels["parsing_heads"]))
+                print("ERROR pred : {} gold {} : parsing heads origin {)  ".format(pred, gold, labels["heads"]))
                 raise(e)
         return loss
 
     @staticmethod
-    def rename_multi_modal_task_logits(labels, logits_dict, task, n_pred):
-        if n_pred == 2:
-            for i_label, double_label in enumerate(labels):
-                # NB : the order of self.task_parameters[task]["label"] must be the same as the head output
-                logits_dict[double_label] = logits_dict[task][i_label]
-            del logits_dict[task]
-        elif n_pred == 1:
-            logits_dict[task] = logits_dict[task][0]
-        else:
-            raise (Exception("More than 3 tensors as prediction is not supported (task {})".format(task)))
+    def rename_multi_modal_task_logits(labels, logits_dict, task, task_parameters):
+        #if n_pred == 2:
+
+        n_pred = len(list(logits_dict[task]))
+        # try:
+        assert n_pred == len(task_parameters[task]["label"]), \
+            "ERROR : not as many labels as prediction for task {} : {} vs {} ".format(task, task_parameters[task][
+                "label"], logits_dict[task])
+
+        for i_label, label in enumerate(labels):
+            # NB : the order of self.task_parameters[task]["label"] must be the same as the head output
+            logits_dict[task+"-"+label] = logits_dict[task][i_label]
+        del logits_dict[task]
+        #elif n_pred == 1:
+        #    logits_dict[task+"-"] = logits_dict[logits_label][0]
+        #else:
+        #    raise (Exception("More than 3 tensors as prediction is not supported (task {})".format(task)))
         return logits_dict
 
 
@@ -1081,14 +1081,19 @@ class BertMultiTask(BertPreTrainedModel):
             # for mwe_prediction no need of num_label we use the embedding matrix
             # do we need to check num_label for this task ? and is only 1 label assosiated to this task
             if task_parameters[task]["num_labels_mandatory"] and len(task_parameters[task]["label"]) == 1:
-                assert task in num_labels_per_task, "ERROR : no num label for task {} ".format(task)
+                if task != "parsing":
+                    assert task+"-"+task_parameters[task]["label"][0] in num_labels_per_task,\
+                        "ERROR : no num label for task+label {} ".format(task+"-"+task_parameters[task]["label"][0])
+                else:
+                    assert task in num_labels_per_task, "ERROR : no num label for task {} ".format(task)
             elif task_parameters[task]["num_labels_mandatory"] and len(task_parameters[task]["label"])>1:
                 num_labels_mandatory_to_check = task_parameters[task].get("num_labels_mandatory_to_check")
-                assert num_labels_mandatory_to_check is not None, "ERROR : task {} is related to at least 2 labels : we need to know which one requires a num_label " \
+                assert num_labels_mandatory_to_check is not None, "ERROR : task {} is related to at least 2 labels :" \
+                                                                  " we need to know which one requires a num_label " \
                                                                   "to define the model head but field {} " \
                                                                   "not found in {}".format(task, "num_labels_mandatory_to_check", task_parameters[task])
                 for label in num_labels_mandatory_to_check:
-                    assert label in num_labels_per_task, "ERROR : task {} label {} not in num_labels_per_task {} dictionary".format(task, label, num_labels_per_task)
+                    assert task+"-"+label in num_labels_per_task, "ERROR : task {} label {} not in num_labels_per_task {} dictionary".format(task, label, num_labels_per_task)
 
 
 

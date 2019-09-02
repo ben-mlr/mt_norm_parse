@@ -207,7 +207,7 @@ def realigne_multi(ls_sent_str, input_alignement_with_raw, null_str, mask_str, t
                         former_token += token[2:]
                     else:
                         former_token += token
-            elif task in ["pos", "mwe_detection", "n_masks_mwe"] or task.startswith("parsing"):
+            elif task in ["pos", "mwe_detection", "n_masks_mwe"] or task.startswith("parsing") or task in ["heads", "types"]:
                 # we just ignore bpe that are not first bpe of tokens
                 if index == former_index:
                     pass

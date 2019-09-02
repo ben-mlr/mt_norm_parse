@@ -341,12 +341,12 @@ if __name__ == "__main__":
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
                                                   gpus_ls=gpu_ls, gpu_mode="random",
                                                   write_to_dir=RUN_SCRIPTS_DIR, description_comment=description_comment)
-          FINE_TUNE_BERT = True
+          FINE_TUNE_BERT = False
 
           if FINE_TUNE_BERT:
               epochs = 1
               lang_iter = ["tr_imst"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
-              task_to_grid = [["parsing",  "pos", "n_masks_mwe", "mwe_detection", "mwe_prediction"], ["parsing",  "pos"]] 
+              task_to_grid = [["parsing",  "pos", "n_masks_mwe", "mwe_detection", "mwe_prediction"]]
                              # ["n_masks_mwe", "mwe_detection", "mwe_prediction", "pos"], 
                               #["parsing","n_masks_mwe", "mwe_detection", "mwe_prediction", "pos"]]#, ["parsing", "pos"]]
               #task_to_grid = [["normalize"]]
@@ -392,7 +392,7 @@ if __name__ == "__main__":
                                                   #train_path=[[EWT_DEMO] for _ in range(n_tasks)], dev_path=[[EWT_DEMO] for _ in range(n_tasks)],
                                                   train_path=[[get_dir_data("train", lang, demo=demo_data)] for _ in range(n_tasks) for lang in lang_iter], 
                                                   dev_path=[[get_dir_data("dev", lang, demo=demo_data)] for _ in range(n_tasks) for lang in lang_iter],
-                                                  memory_efficient_iterator_ls=[1],
+                                                  memory_efficient_iterator_ls=[0],
                                                   #train_path=[[EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV]],
                                                   #train_path=[[AUGMENTED_LEX_DIC[n_sent]] for n_sent in [80, 100, 120, 150, 250, 350]],
                                                   #dev_path=[[LIU_DEV] for n_sent in [80, 100, 120,150,250,350]],
@@ -423,14 +423,16 @@ if __name__ == "__main__":
                                                   n_layers_word_encoder_ls=None,
                                                   unrolling_word_ls=None, scoring_func=None, mode_word_encoding_ls=None,
                                                   dropout_input_ls=None,
-                                                  multi_task_loss_ponderation_ls=[OrderedDict([("pos", 0.5),
-                                                                                               ("n_masks_mwe", 0.05), ("mwe_detection", 0.05),
-                                                                                               ("mwe_prediction", 0.1),
-                                                                                               ("parsing_types", 1), ("parsing_heads", 1)])],#OrderedDict([("pos", 0.2), ("parsing_types", 1), ("parsing_heads", 1)])],
+                                                  multi_task_loss_ponderation_ls=[OrderedDict([("pos-pos", 0.5),
+                                                                                               ("n_masks_mwe-n_masks_mwe", 0.05),
+                                                                                               ("mwe_detection-mwe_detection", 0.05),
+                                                                                               ("mwe_prediction-mwe_prediction", 0.1),
+                                                                                               ("parsing-types", 1),
+                                                                                               ("parsing-heads", 1)])],
                                                   scale_ls=[1])
                                 # arguments that are specific to script generation
 
-          PRETRAINING = False
+          PRETRAINING = True
           if PRETRAINING:
               epochs = 1
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
@@ -493,7 +495,8 @@ if __name__ == "__main__":
                                                   n_layers_word_encoder_ls=None,
                                                   unrolling_word_ls=None, scoring_func=None,
                                                   mode_word_encoding_ls=None,
-                                                  dropout_input_ls=None, multi_task_loss_ponderation_ls=None,
+                                                  dropout_input_ls=None,
+                                                  multi_task_loss_ponderation_ls=[{"mlm-mwe_prediction": 1}],
                                                   scale_ls=[1])
           BERT_NORMALIZATION = False
           if BERT_NORMALIZATION:

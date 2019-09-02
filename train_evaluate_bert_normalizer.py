@@ -20,10 +20,6 @@ if __name__ == "__main__":
         #                                                ("loss_task_n_mask_prediction", 1),
         #                                                ("parsing_types", 1), ("parsing_heads", 1)])
 
-    if args.multi_task_loss_ponderation is not None:
-        args.multi_task_loss_ponderation = parse_argument_dictionary(argument_as_string=params["multi_task_loss_ponderation"],
-                                                                     tasks=[task for tasks in args.tasks for task in tasks],
-                                                                     hyperparameter="multi_task_loss_ponderation")
 
-        # TODO FACTORIZE MULTITASK
+    # TODO FACTORIZE MULTITASK
     train_eval_bert_normalize(args)

@@ -1,6 +1,7 @@
 
 from env.importing import pdb, OrderedDict, np, torch, time
 from io_.dat.constants import PAD_ID_BERT, PAD_ID_TAG, PAD_ID_HEADS, ROOT_HEADS_INDEX, END_HEADS_INDEX
+from model.bert_tools_from_core_code.masking import dropout_mlm
 
 
 def get_mask_input(input_tokens_tensor, use_gpu):
@@ -135,7 +136,8 @@ def get_bpe_label_word_level_task(labels, batch, input_tokens_tensor, input_alig
     return output_tokens_tensor, head_mask, input_tokens_tensor
 
 
-def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_raw, use_gpu, tasks_parameters):
+def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_raw, use_gpu, tasks_parameters, vocab_len=None, masking_strategy=0,
+                      mask_token_index=None, sep_token_index=None, cls_token_index=None):
     """
     returns input, input masks and output for each tasks
     (in regard to the task type , so far only word level is supported)
@@ -171,13 +173,31 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
                 if use_gpu:
                     output_tokens_tensor_aligned = output_tokens_tensor_aligned.cuda()
                 # if the task has several label : we just appen the label name to the task in the label dictionary
-                label_name = task_batch_name #if task != "mlm" else "mlm"#task if len(tasks_parameters[task]["label"]) == 1 else task+"_"+task_batch_name
 
-                label_per_task[label_name] = output_tokens_tensor_aligned
+                label_per_task[task_batch_name] = output_tokens_tensor_aligned
 
             #input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = input_tokens_tensor
-            input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = eval("batch.{}".format(tasks_parameters[task]["input"])) if task not in ["parsing", "pos"] else input_tokens_tensor
-            input_mask_per_task[tasks_parameters[task]["input"]] = (input_tokens_tensor_per_task[tasks_parameters[task]["input"]] != PAD_ID_BERT)
+
+            # if "mlm" in
+
+            if not tasks_parameters[task].get("mask_input", False):
+                input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = eval("batch.{}".format(tasks_parameters[task]["input"])) if task not in ["parsing", "pos"] else input_tokens_tensor
+                input_mask_per_task[tasks_parameters[task]["input"]] = (input_tokens_tensor_per_task[tasks_parameters[task]["input"]] != PAD_ID_BERT)
+            else:
+                assert masking_strategy is None
+                assert tasks_parameters[task].get("original") is not None, "ERROR 'original' field is needed to get raw sequence before preprocssing for task {} ".format(task)
+                input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = dropout_mlm(eval("batch.{}".format(tasks_parameters[task]["original"])),
+                                                                                            mask_token_index=mask_token_index,
+                                                                                            sep_token_index=sep_token_index,
+                                                                                            cls_token_index=cls_token_index,
+                                                                                            pad_index=PAD_ID_BERT,
+                                                                                            use_gpu=use_gpu,
+                                                                                            dropout_mask=0.15,
+                                                                                            dropout_random_bpe_of_masked=0.5,
+                                                                                            vocab_len=vocab_len)
+                # NB ; this mask is for PADDING !! (bad naming)
+                input_mask_per_task[tasks_parameters[task]["input"]] = (input_tokens_tensor_per_task[tasks_parameters[task]["input"]] != PAD_ID_BERT)
+
             if use_gpu:
                 input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = input_tokens_tensor_per_task[tasks_parameters[task]["input"]].cuda()
                 input_mask_per_task[tasks_parameters[task]["input"]] = input_mask_per_task[tasks_parameters[task]["input"]].cuda()

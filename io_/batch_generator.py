@@ -53,8 +53,8 @@ class MaskBatch(object):
 
         # NB : the attributes should be aligned with the task_settings label field
         self.pos = pos
-        self.parsing_types = types
-        self.parsing_heads = heads
+        self.types = types
+        self.heads = heads
 
         if dropout_input > 0:
             # we put it jere so that input_seq_mask computed based on droped input_seq # migh cause trouble for input_seq_len

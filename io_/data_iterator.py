@@ -348,8 +348,8 @@ def sanity_check_batch_label(task, batch, verbose=1):
         elif task in ["all", "edit_prediction"]:
             assert batch.edit is not None, "ERROR edit batch was found None "
         elif task in ["all", "parsing"]:
-            assert batch.parsing_heads is not None, "ERROR : heads were not found in batch "
-            assert batch.parsing_types is not None, "ERROR : types were not found in batch "
+            assert batch.heads is not None, "ERROR : heads were not found in batch "
+            assert batch.types is not None, "ERROR : types were not found in batch "
 
         # checking inputs also
         elif task in ["all", "mwe_detection"]:
