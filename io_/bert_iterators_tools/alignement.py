@@ -168,7 +168,7 @@ def aligned_output(input_tokens_tensor, output_tokens_tensor,
 
 
 def realigne_multi(ls_sent_str, input_alignement_with_raw, null_str, mask_str, task,
-                   remove_null_str=True, remove_mask_str=False, remove_extra_predicted_token=False):
+                   remove_null_str=True, remove_mask_str=False, remove_extra_predicted_token=False, keep_mask=False):
     """
     # factorize with net realign
     ** remove_extra_predicted_token used iif pred mode **
@@ -199,8 +199,9 @@ def realigne_multi(ls_sent_str, input_alignement_with_raw, null_str, mask_str, t
                     trigger_end_sent = True
             if token == null_str:
                 token = NULL_STR_TO_SHOW if not remove_null_str else ""
-            if token == mask_str:
+            if token == mask_str and not keep_mask:
                 token = "X" if not remove_mask_str else ""
+
             if task in ["normalize", "mwe_prediction"]:
                 if index == former_index:
                     if token.startswith("##"):

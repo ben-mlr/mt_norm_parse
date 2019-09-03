@@ -109,7 +109,8 @@ def get_detokenized_str(source_preprocessed_dict, input_alignement_with_raw, lab
                                                                       null_str=null_str, task="normalize",
                                                                       # normalize means we deal with bpe input not pos
                                                                       mask_str=MASK_BERT,
-                                                                      remove_mask_str=remove_mask_str_prediction)
+                                                                      remove_mask_str=remove_mask_str_prediction,
+                                                                      keep_mask=True if source_label == "input_masked" else False)
 
     #for label in label_dic:
     label_processed = []

@@ -7,12 +7,15 @@ def dropout_mlm(input_tokens_tensor, mask_token_index, sep_token_index, cls_toke
                 dropout_mask=0.15, dropout_random_bpe_of_masked=0.5, vocab_len=None):
 
     # dropout_mask% of the time we replace the bpe token by the MASK (except CLS,SEP and pad that will be kept untouched
-    input_tokens_tensor, mask_dropout, _ = dropout_input_tensor(input_tokens_tensor, mask_token_index,
-                                                                sep_token_index=sep_token_index,
-                                                                cls_token_index=cls_token_index, pad_index=pad_index,
-                                                                dropout=dropout_mask, apply_dropout=True)
+    input_tokens_tensor, mask_dropout, apply_dropout = dropout_input_tensor(input_tokens_tensor, mask_token_index,
+                                                                            sep_token_index=sep_token_index,
+                                                                            cls_token_index=cls_token_index, pad_index=pad_index,
+                                                                            dropout=dropout_mask,
+                                                                            apply_dropout=None,
+                                                                            applied_dropout_rate=0.8)
 
-    if dropout_random_bpe_of_masked > 0:
+    # if dropout has not been aplied (20% the time) : then  dropout_random_bpe_of_masked we permute
+    if not apply_dropout and dropout_random_bpe_of_masked > 0:
 
         assert vocab_len is not None
 

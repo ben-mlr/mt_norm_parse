@@ -271,34 +271,42 @@ def run(args,
                                                               fine_tuning_strategy=args.fine_tuning_strategy,
                                                               lr_init=args.lr, betas=(0.9, 0.99),
                                                               epoch=epoch, verbose=verbose)
-                printing("TRAINING : training on GET_BATCH_MODE ", verbose=verbose, verbose_level=2)
-                printing("TRAINING : training 1 'epoch' = {} iteration ({} batch_size) ", var=[n_iter_max_per_epoch, args.batch_size], verbose=verbose, verbose_level=2)
-                loss_train, iter_train, perf_report_train, _ = epoch_run(batchIter_train, tokenizer,
-                                                                         args=args,
-                                                                         pos_dictionary=pos_dictionary,
-                                                                         task_to_label_dictionary=task_to_label_dictionary,
-                                                                         data_label=train_data_label,
-                                                                         model=model,
-                                                                         dropout_input_bpe=args.dropout_input_bpe,
-                                                                         writer=writer,
-                                                                         iter=iter_train, epoch=epoch,
-                                                                         writing_pred=epoch == (args.epochs - 1),
-                                                                         dir_end_pred=end_predictions,
-                                                                         optimizer=optimizer, use_gpu=use_gpu,
-                                                                         predict_mode=True,
-                                                                         skip_1_t_n=skip_1_t_n,
-                                                                         model_id=model_id,
-                                                                         reference_word_dic={"InV": inv_word_dic},
-                                                                         null_token_index=null_token_index, null_str=null_str,
-                                                                         norm_2_noise_eval=False,
-                                                                         early_stoppin_metric=None,
-                                                                         case=case,
-                                                                         n_iter_max=n_iter_max_per_epoch,
-                                                                         data_sharded_dir=data_sharded, n_shards=n_shards,
-                                                                         n_sent_dataset_total=n_sent_dataset_total_train,
-                                                                         args_load_batcher_shard_data=args_load_batcher_shard_data,
-                                                                         memory_efficient_iterator=args.memory_efficient_iterator,
-                                                                         verbose=verbose)
+
+                if epoch > 0:
+                    printing("TRAINING : training on GET_BATCH_MODE ", verbose=verbose, verbose_level=2)
+                    printing("TRAINING : training 1 'epoch' = {} iteration ({} batch_size) ",
+                             var=[n_iter_max_per_epoch, args.batch_size],
+                             verbose=verbose, verbose_level=2)
+
+                    loss_train, iter_train, perf_report_train, _ = epoch_run(batchIter_train, tokenizer,
+                                                                             args=args,
+                                                                             pos_dictionary=pos_dictionary,
+                                                                             task_to_label_dictionary=task_to_label_dictionary,
+                                                                             data_label=train_data_label,
+                                                                             model=model,
+                                                                             dropout_input_bpe=args.dropout_input_bpe,
+                                                                             writer=writer,
+                                                                             iter=iter_train, epoch=epoch,
+                                                                             writing_pred=epoch == (args.epochs - 1),
+                                                                             dir_end_pred=end_predictions,
+                                                                             optimizer=optimizer, use_gpu=use_gpu,
+                                                                             predict_mode=True,
+                                                                             skip_1_t_n=skip_1_t_n,
+                                                                             model_id=model_id,
+                                                                             reference_word_dic={"InV": inv_word_dic},
+                                                                             null_token_index=null_token_index, null_str=null_str,
+                                                                             norm_2_noise_eval=False,
+                                                                             early_stoppin_metric=None,
+                                                                             case=case,
+                                                                             n_iter_max=n_iter_max_per_epoch,
+                                                                             data_sharded_dir=data_sharded, n_shards=n_shards,
+                                                                             n_sent_dataset_total=n_sent_dataset_total_train,
+                                                                             args_load_batcher_shard_data=args_load_batcher_shard_data,
+                                                                             memory_efficient_iterator=args.memory_efficient_iterator,
+                                                                             verbose=verbose)
+
+                else:
+                    printing("TRAINING : skipping first epoch to start by evaluating on devs dataset0", verbose=verbose, verbose_level=1)
 
                 model.eval()
                 if args.dev_path is not None:
@@ -328,7 +336,7 @@ def run(args,
                                                                                            early_stoppin_metric=early_stoppin_metric,
                                                                                            subsample_early_stoping_metric_val=subsample_early_stoping_metric_val,
                                                                                            case=case,
-                                                                                           n_iter_max=n_iter_max_per_epoch,
+                                                                                           n_iter_max=1000000,
                                                                                            verbose=verbose)
 
                         printing("TRAINING : loss train:{} dev {}:{} for epoch {}  out of {}",

@@ -155,7 +155,8 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
     for simul_task in tasks:
         for task in simul_task:
             for task_batch_name in tasks_parameters[task]["label"]:
-                task_batch = eval("batch.{}".format(task_batch_name))
+                task_batch = eval("batch.{}".format(task_batch_name)).clone()
+
                 # we handle all word level tasks in the same way
                 #assert tasks_parameters[task]["prediction_level"] == "word", "ERROR only word level task supported here so far"
                 if task in ["parsing", "pos"]:
@@ -181,12 +182,12 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
             # if "mlm" in
 
             if not tasks_parameters[task].get("mask_input", False):
-                input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = eval("batch.{}".format(tasks_parameters[task]["input"])) if task not in ["parsing", "pos"] else input_tokens_tensor
+                input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = eval("batch.{}".format(tasks_parameters[task]["input"])).clone() if task not in ["parsing", "pos"] else input_tokens_tensor.clone()
                 input_mask_per_task[tasks_parameters[task]["input"]] = (input_tokens_tensor_per_task[tasks_parameters[task]["input"]] != PAD_ID_BERT)
             else:
                 assert masking_strategy is None
                 assert tasks_parameters[task].get("original") is not None, "ERROR 'original' field is needed to get raw sequence before preprocssing for task {} ".format(task)
-                input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = dropout_mlm(eval("batch.{}".format(tasks_parameters[task]["original"])),
+                input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = dropout_mlm(eval("batch.{}".format(tasks_parameters[task]["original"])).clone(),
                                                                                             mask_token_index=mask_token_index,
                                                                                             sep_token_index=sep_token_index,
                                                                                             cls_token_index=cls_token_index,

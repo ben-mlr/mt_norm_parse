@@ -52,6 +52,35 @@ def logging_scores(perf_prediction, iter, batch_i, pred_detokenized_topk, verbos
              verbose=verbose, verbose_level=2)
 
 
+def log_data_src_label_pred(src_detokenized_dic, predict_detokenize_dic, label_detokenized_dic, tasks, verbose, verbose_level):
+
+    if isinstance(verbose, int) or verbose == "alignment":
+        if verbose == "alignment" or verbose >= verbose_level:
+            for task in [_task for _tasks in tasks for _task in _tasks]:
+                input_name = TASKS_PARAMETER[task]["input"]
+                label_name_ls = TASKS_PARAMETER[task]["label"]
+
+                for ind_src_sent, src_sent in enumerate(src_detokenized_dic[input_name]):
+                    print("      ")
+                    for label in label_name_ls:
+                        try:
+                            assert len(predict_detokenize_dic[task + "-" + label][0][ind_src_sent]) == len(label_detokenized_dic[label][ind_src_sent]), \
+                                "ERROR pred {} label {} ".format(predict_detokenize_dic[task + "-" + label][ind_src_sent], label_detokenized_dic[label][ind_src_sent])
+                            assert len(src_detokenized_dic[input_name][ind_src_sent]) == len(label_detokenized_dic[label][ind_src_sent]), "ERROR "
+                            for ind_src, src in enumerate(src_sent):
+                                to_print = "SRC : {} ,    ".format(src) + " ".join(["PRED:{}  GOLD:{} (label {})".format(predict_detokenize_dic[task + "-" + label][0][ind_src_sent][ind_src], label_detokenized_dic[label][ind_src_sent][ind_src], label) for label in label_name_ls])
+                                printing(to_print, verbose=1, verbose_level=1)
+                        except Exception as e:
+                            print(e)
+                            pdb.set_trace()
+                            raise(e)
+
+
+            #for sent_src, sent_gold, sent_pred in zip()
+
+
+
+
 def print_align_bpe(source_preprocessed, gold, input_alignement_with_raw, labels_n_mask_prediction,
                     verbose, verbose_level):
     if labels_n_mask_prediction is None:
