@@ -192,6 +192,9 @@ CODE_MIXED_RAW_TEST_LABEL, CODE_MIXED_RAW_TEST = "raw_code_mixed-test_10k", os.p
 
 CODE_MIXED_RAW_TEST_CUT_LABEL, CODE_MIXED_RAW_CUT_TEST = "raw_code_mixed-test_cut", os.path.join(PROJECT_PATH, "./data/code_mixed/code-mixed_code-mixed1-test_cut.conll.conll")
 
+WIKI_DEV_LABEL, WIKI_DEV = "wikipedia_fr_tk_sg-top10k.conll", os.path.join(PROJECT_PATH, "data/wiki/wikipedia_fr_tk_sg-top10k.conll")
+WIKI_DEV_SMALL_LABEL, WIKI_DEV_SMALL = "wikipedia_fr_tk_sg-top1k.conll", os.path.join(PROJECT_PATH, "data/wiki/wikipedia_fr_tk_sg-top1k.conll")
+
 # AUGMENT
 
 DIR_TWEET_W2V = os.path.join(PROJECT_PATH, "w2v", "tweets.en.w2v.txt")
@@ -366,10 +369,12 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 CODE_MIXED_RAW_TEST: CODE_MIXED_RAW_TEST_LABEL,
                 CODE_MIXED_RAW_CUT_TEST: CODE_MIXED_RAW_TEST_CUT_LABEL,
                 CODE_MIXED_RAW_CUT_DEV: CODE_MIXED_RAW_CUT_DEV_LABEL,
-
+                WIKI_DEV: WIKI_DEV_LABEL,
+                WIKI_DEV_SMALL: WIKI_DEV_SMALL_LABEL,
                 EMNLP12_DIC: EMNLP12_DIC_LABEL,
 
                 EWT_DEMO: EWT_DEMO_LABEL
+
                 }
 
 

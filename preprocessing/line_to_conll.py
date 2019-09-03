@@ -17,8 +17,14 @@ def line_to_conll(dir_src, dir_target, starting_index=0, cut_sent=False, n_sents
 
             if "  " in unidecode.unidecode(line):
                 line = line.strip()
+
                 line = " ".join(line.split())
-                assert "  " not in unidecode.unidecode(line)
+                try:
+                    assert "  " not in unidecode.unidecode(line), "line {}".format(line)
+                except Exception as e:
+                    _line = " ".join(unidecode.unidecode(line).split())
+                    print("WARNING handling exeption  by transforming line {} in {} (unicode only)".format(line, _line ))
+                    line = _line
 
             line = line.strip().split(" ")
 
@@ -46,13 +52,13 @@ if __name__ == "__main__":
     #line_to_conll(os.path.join(PROJECT_PATH, "data", "pan_ben_conll.tok"), os.path.join(PROJECT_PATH, "data","pan_tweets-dev"), starting_index=1000000, n_sents=30000)
 
     file_name = "code-test-1k.conll"
-    starting_index = 160000
+    starting_index = 0
     n_sents = 1000
-    line_to_conll(os.path.join(PROJECT_PATH, "data", "code_mixed", "code-mixed_code-mixed1.txt.txt"),
-                  os.path.join(PROJECT_PATH, "data", "code_mixed", file_name),
+    line_to_conll("/Users/bemuller/Documents/Work/INRIA/temp/wikipedia_fr_tk_sg-top10k.txt",#os.path.join(PROJECT_PATH, "data", "code_mixed", "code-mixed_code-mixed1.txt.txt"),
+                  "/Users/bemuller/Documents/Work/INRIA/temp/wikipedia_fr_tk_sg-top1k.conll",
                   cut_sent=True, starting_index=starting_index, n_sents=n_sents)
-
-    with open(os.path.join(PROJECT_PATH, "data", "code_mixed", "README-data.txt"), "a") as f:
+    if False:
+       with open(os.path.join(PROJECT_PATH, "data", "code_mixed", "README-data.txt"), "a") as f:
         f.write("line_to_conll(os.path.join(PROJECT_PATH, data, code_mixed, code-mixed_code-mixed1.txt.txt), os.path.join(PROJECT_PATH,data, code_mixed, {}),cut_sent=True, starting_index={}, n_sents={}))".format(file_name, starting_index, n_sents))
         f.write("\n")
         print("Loged to ", os.path.join(PROJECT_PATH, "data", "code_mixed", "README-data.txt"))

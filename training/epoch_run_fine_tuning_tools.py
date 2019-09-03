@@ -158,12 +158,13 @@ def tensorboard_loss_writer_epoch_level_multi(writer, mode, model_id, epoch, los
         print(e)
     for loss_lab, loss_val in loss_dic.items():
         try:
-            writer.add_scalars("loss-multitask-epoch-{}-{}".format(loss_lab, mode),  {"{}-{}-{}-{}".format("loss", mode, data_label, model_id): loss_val/n_tokens_dic[loss_lab]}, epoch)
+            writer.add_scalars("loss-multitask-epoch-{}-{}".format(loss_lab, mode),
+                               {"{}-{}-{}-{}".format("loss", mode, data_label, model_id): loss_val/n_tokens_dic[loss_lab]}, epoch)
         except:
             print("WARNING : could not report loss in tensorboard for epoch {}, n_token {} , loss {} , loss task {} data {}".format(epoch, n_tokens_dic[loss_lab], loss_val, loss_lab, data_label))
 
 
-def tensorboard_loss_writer_epoch_level(writer, tasks, mode, model_id, epoch, n_batch_norm, n_batch_pos, append_n_mask, loss, loss_norm, loss_pos, loss_n_mask_prediction, batch_i):
+def tensorboard_loss_writer_epoch_level(writer, tasks, mode, model_id, epoch, n_batch_norm, n_batch_pos, append_n_mask, loss, loss_norm, loss_pos, loss_n_mask_prediction, batch_i, data_label):
     """
     NB : loss provided is already supposed to be average per batch
     :param writer:
@@ -182,7 +183,7 @@ def tensorboard_loss_writer_epoch_level(writer, tasks, mode, model_id, epoch, n_
     :return:
     """
     writer.add_scalars("loss-overall-epoch-{}-{}".format(tasks[0], mode),
-                       {"{}-{}-{}".format("loss", mode, model_id): loss/batch_i}, epoch)
+                       {"{}-{}-{}-{}".format("loss", mode, data_label, model_id): loss/batch_i}, epoch)
     if "normalize" in tasks:
         try:
             writer.add_scalars("loss-norm-epoch",
@@ -202,7 +203,6 @@ def tensorboard_loss_writer_epoch_level(writer, tasks, mode, model_id, epoch, n_
                        epoch)
         except Exception as e:
             print("ERROR {} loss_pos is , n_batch_pos is {} coud not log ".format(e, loss_pos, n_batch_pos))
-
 
 
 def writing_predictions_conll(dir_normalized, dir_normalized_original_only, dir_gold, dir_gold_original_only,

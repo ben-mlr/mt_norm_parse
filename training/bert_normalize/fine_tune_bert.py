@@ -82,7 +82,6 @@ def run(args,
         printing("CHECKPOINTING info : saving model every {}", var=saving_every_epoch, verbose=verbose, verbose_level=1)
     use_gpu = use_gpu_(use_gpu=None, verbose=verbose)
     train_data_label = get_dataset_label(args.train_path, default="train")
-    dev_data_label = get_dataset_label(args.train_path, default="dev")
     #train_data_label = "|".join([REPO_DATASET.get(_train_path, "train_{}".format(i)) for i, _train_path in enumerate(args.train_path)])
     #dev_data_label = "|".join([REPO_DATASET.get(_dev_path, "dev_{}".format(i)) for i, _dev_path in enumerate(args.dev_path)]) if args.dev_path is not None else None
 
@@ -158,45 +157,35 @@ def run(args,
     if run_mode == "train":
         time_load_readers_train_start = time.time()
 
-        if args.memory_efficient_iterator:
-            data_sharded, n_shards, n_sent_dataset_total_train = build_shard(data_sharded, args.train_path, n_sent_max_per_file=N_SENT_MAX_CONLL_PER_SHARD, verbose=verbose)
-            training_file = get_new_shard(data_sharded, n_shards)
-            printing("INFO Memory efficient iterator triggered (only build for train data , starting with {}", var=[training_file],
-                     verbose=verbose,
-                     verbose_level=1)
-            args_load_batcher_shard_data = {"word_dictionary":word_dictionary,
-                                            "tokenizer":tokenizer, "word_norm_dictionary":word_norm_dictionary,
-                                            "char_dictionary":char_dictionary,"pos_dictionary":pos_dictionary,
-                                            "xpos_dictionary":xpos_dictionary, "type_dictionary":type_dictionary,"use_gpu":use_gpu,
-                                            "norm_not_norm":auxilliary_task_norm_not_norm,"word_decoder":True, "add_start_char": 1,
-                                            "add_end_char":1, "symbolic_end":1, "symbolic_root":1,
-                                            "bucket":True, "max_char_len": 20, "must_get_norm":True, "bucketing_level": bucketing_level,
-                                            "use_gpu_hardcoded_readers":use_gpu_hardcoded_readers,
-                                            "auxilliary_task_norm_not_norm":auxilliary_task_norm_not_norm, "random_iterator_train":random_iterator_train
-                                            }
-
-        else:
+        if not args.memory_efficient_iterator:
             data_sharded, n_shards, n_sent_dataset_total_train = None, None, None
             args_load_batcher_shard_data = None
 
-        readers_train = readers_load(datasets=args.train_path if not args.memory_efficient_iterator else training_file,
-                                     tasks=args.tasks,
-                                     args=args,
-                                     word_dictionary=word_dictionary,
-                                     bert_tokenizer=tokenizer,
-                                     word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
-                                     pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
-                                     type_dictionary=type_dictionary, use_gpu=use_gpu_hardcoded_readers ,
-                                     norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=True,
-                                     add_start_char=1, add_end_char=1, symbolic_end=1,
-                                     symbolic_root=1, bucket=True, max_char_len=20,
-                                     must_get_norm=True, bucketing_level=bucketing_level,
-                                     verbose=verbose)
+            readers_train = readers_load(datasets=args.train_path if not args.memory_efficient_iterator else training_file,
+                                         tasks=args.tasks,
+                                         args=args,
+                                         word_dictionary=word_dictionary,
+                                         bert_tokenizer=tokenizer,
+                                         word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
+                                         pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
+                                         type_dictionary=type_dictionary, use_gpu=use_gpu_hardcoded_readers ,
+                                         norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=True,
+                                         add_start_char=1, add_end_char=1, symbolic_end=1,
+                                         symbolic_root=1, bucket=True, max_char_len=20,
+                                         must_get_norm=True, bucketing_level=bucketing_level,
+                                         verbose=verbose)
+        else:
+            data_sharded, n_shards, n_sent_dataset_total_train = build_shard(data_sharded, args.train_path,
+                                                                             n_sent_max_per_file=N_SENT_MAX_CONLL_PER_SHARD,
+                                                                             verbose=verbose)
+
         time_load_readers_dev_start = time.time()
         time_load_readers_train = time.time()-time_load_readers_train_start
         readers_dev_ls = []
-
+        dev_data_label_ls = []
         for dev_path in args.dev_path:
+            dev_data_label = get_dataset_label(dev_path, default="dev")
+            dev_data_label_ls.append(dev_data_label)
             readers_dev = readers_load(datasets=dev_path, tasks=args.tasks, word_dictionary=word_dictionary,
                                        word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
                                        pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
@@ -209,6 +198,7 @@ def run(args,
                                        must_get_norm=True,
                                        verbose=verbose) if args.dev_path is not None else None
             readers_dev_ls.append(readers_dev)
+
         time_load_readers_dev = time.time()-time_load_readers_dev_start
         # Load tokenizer
         print("TIMING : ", OrderedDict([("time_load_readers_train", "{:0.4f} min".format(time_load_readers_train/60)),
@@ -217,10 +207,37 @@ def run(args,
         early_stoping_val_former = 1000
         try:
             for epoch in range(args.epochs):
+
+                if args.memory_efficient_iterator:
+                    # we start epoch with a new shart everytime !
+
+                    training_file = get_new_shard(data_sharded, n_shards)
+                    printing("INFO Memory efficient iterator triggered (only build for train data , starting with {}",
+                             var=[training_file], verbose=verbose, verbose_level=1)
+                    args_load_batcher_shard_data = {"word_dictionary": word_dictionary, "tokenizer": tokenizer, "word_norm_dictionary": word_norm_dictionary, "char_dictionary": char_dictionary,
+                                                    "pos_dictionary": pos_dictionary, "xpos_dictionary": xpos_dictionary, "type_dictionary": type_dictionary, "use_gpu": use_gpu,
+                                                    "norm_not_norm": auxilliary_task_norm_not_norm, "word_decoder": True, "add_start_char": 1, "add_end_char": 1, "symbolic_end": 1, "symbolic_root": 1,
+                                                    "bucket": True, "max_char_len": 20, "must_get_norm": True, "bucketing_level": bucketing_level,
+                                                    "use_gpu_hardcoded_readers": use_gpu_hardcoded_readers, "auxilliary_task_norm_not_norm": auxilliary_task_norm_not_norm, "random_iterator_train": random_iterator_train
+                                                    }
+
+                    readers_train = readers_load(datasets=args.train_path if not args.memory_efficient_iterator else training_file,
+                                                tasks=args.tasks, args=args, word_dictionary=word_dictionary,
+                                                bert_tokenizer=tokenizer, word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
+                                                pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
+                                                type_dictionary=type_dictionary, use_gpu=use_gpu_hardcoded_readers,
+                                                norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=True,
+                                                add_start_char=1, add_end_char=1, symbolic_end=1,
+                                                symbolic_root=1, bucket=True, max_char_len=20,
+                                                must_get_norm=True, bucketing_level=bucketing_level,
+                                                verbose=verbose)
+
                 checkpointing_model_data = (epoch % saving_every_epoch == 0 or epoch == (args.epochs - 1))
                 # build iterator on the loaded data
                 time_load_batcher_start = time.time()
-                batchIter_train = data_gen_multi_task_sampling_batch(tasks=args.tasks, readers=readers_train, batch_size=args.batch_size,
+                batchIter_train = data_gen_multi_task_sampling_batch(tasks=args.tasks,
+                                                                     readers=readers_train,
+                                                                     batch_size=args.batch_size,
                                                                      word_dictionary=word_dictionary,
                                                                      char_dictionary=char_dictionary,
                                                                      pos_dictionary=pos_dictionary,
@@ -235,16 +252,17 @@ def run(args,
                 # -|-|-
                 batchIter_dev_ls = []
                 for readers_dev in readers_dev_ls:
-                    batchIter_dev = data_gen_multi_task_sampling_batch(tasks=args.tasks, readers=readers_dev, batch_size=args.batch_size,
-                                                                   word_dictionary=word_dictionary,
-                                                                   char_dictionary=char_dictionary,
-                                                                   pos_dictionary=pos_dictionary,
-                                                                   word_dictionary_norm=word_norm_dictionary,
-                                                                   get_batch_mode=False,
-                                                                   extend_n_batch=1,
-                                                                   print_raw=False,
-                                                                   dropout_input=0.0,
-                                                                   verbose=verbose) if args.dev_path is not None else None
+                    batchIter_dev = data_gen_multi_task_sampling_batch(tasks=args.tasks, readers=readers_dev,
+                                                                       batch_size=args.batch_size,
+                                                                       word_dictionary=word_dictionary,
+                                                                       char_dictionary=char_dictionary,
+                                                                       pos_dictionary=pos_dictionary,
+                                                                       word_dictionary_norm=word_norm_dictionary,
+                                                                       get_batch_mode=False,
+                                                                       extend_n_batch=1,
+                                                                       print_raw=False,
+                                                                       dropout_input=0.0,
+                                                                       verbose=verbose) if args.dev_path is not None else None
                     batchIter_dev_ls.append(batchIter_dev)
                 # TODO add optimizer (if not : dev loss)
                 model.train()
@@ -254,6 +272,7 @@ def run(args,
                                                               lr_init=args.lr, betas=(0.9, 0.99),
                                                               epoch=epoch, verbose=verbose)
                 printing("TRAINING : training on GET_BATCH_MODE ", verbose=verbose, verbose_level=2)
+                printing("TRAINING : training 1 'epoch' = {} iteration ({} batch_size) ", var=[n_iter_max_per_epoch, args.batch_size], verbose=verbose, verbose_level=2)
                 loss_train, iter_train, perf_report_train, _ = epoch_run(batchIter_train, tokenizer,
                                                                          args=args,
                                                                          pos_dictionary=pos_dictionary,
@@ -277,7 +296,8 @@ def run(args,
                                                                          n_iter_max=n_iter_max_per_epoch,
                                                                          data_sharded_dir=data_sharded, n_shards=n_shards,
                                                                          n_sent_dataset_total=n_sent_dataset_total_train,
-                                                                         args_load_batcher_shard_data=args_load_batcher_shard_data, memory_efficient_iterator=args.memory_efficient_iterator,
+                                                                         args_load_batcher_shard_data=args_load_batcher_shard_data,
+                                                                         memory_efficient_iterator=args.memory_efficient_iterator,
                                                                          verbose=verbose)
 
                 model.eval()
@@ -296,8 +316,10 @@ def run(args,
                                                                                            writer=writer,
                                                                                            writing_pred=epoch == (args.epochs - 1),
                                                                                            dir_end_pred=end_predictions,
-                                                                                           predict_mode=True, data_label=dev_data_label,
-                                                                                           null_token_index=null_token_index, null_str=null_str,
+                                                                                           predict_mode=True,
+                                                                                           data_label=dev_data_label_ls[i_dev],
+                                                                                           null_token_index=null_token_index,
+                                                                                           null_str=null_str,
                                                                                            model_id=model_id,
                                                                                            skip_1_t_n=skip_1_t_n,
                                                                                            dropout_input_bpe=0,
@@ -306,7 +328,9 @@ def run(args,
                                                                                            early_stoppin_metric=early_stoppin_metric,
                                                                                            subsample_early_stoping_metric_val=subsample_early_stoping_metric_val,
                                                                                            case=case,
-                                                                                           n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+                                                                                           n_iter_max=n_iter_max_per_epoch,
+                                                                                           verbose=verbose)
+
                         printing("TRAINING : loss train:{} dev {}:{} for epoch {}  out of {}",
                                  var=[loss_train, i_dev, loss_dev, epoch, args.epochs], verbose=1, verbose_level=1)
                         printing("PERFORMANCE {} DEV {} {} ", var=[epoch, i_dev+1, perf_report_dev], verbose=verbose,
@@ -526,7 +550,7 @@ def run(args,
                                                                               reference_word_dic={"InV": inv_word_dic},
                                                                               case=case, threshold_edit=threshold_edit,
                                                                               edit_module_pred_need_norm_only=mode_need_norm_heuristic == "need_normed",
-                                                                              n_iter_max=n_iter_max_per_epoch, verbose=verbose)
+                                                                              n_iter_max=1000000, verbose=verbose)
                         print("LOSS TEST", loss_test)
                     except Exception as e:
                         #raise(e)

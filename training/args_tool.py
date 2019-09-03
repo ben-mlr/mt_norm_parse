@@ -37,8 +37,7 @@ def parse_argument_dictionary(argument_as_string, tasks=None, hyperparameter="mu
                     assert match is not None, "ERROR : pattern {} not found for task {} in argument_as_string {}  ".format(pattern, task, argument_as_string)
                     dic[task] = eval(match.group(1))
 
-            printing("SANITY CHECK : multi_task_loss_ponderation {} ", var=[argument_as_string],
-                     verbose_level=1, verbose=verbose)
+            printing("SANITY CHECK : multi_task_loss_ponderation {} ", var=[argument_as_string], verbose_level=3, verbose=verbose)
         elif hyperparameter == "lr":
             # to handle several optimizers
             try :

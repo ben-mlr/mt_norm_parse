@@ -65,7 +65,7 @@ def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, scor
                         print("WARNING : could no apply early sotpping metric cause score is None")
                 if writer is not None and log_perf:
                     writer.add_scalars("perf-{}-{}".format(tasks[0], mode),
-                                       {"{}-{}-{}-{}".format(metric_val, mode, model_id, sample):
+                                       {"{}-{}-{}-{}-{}".format(metric_val, mode, model_id, data_label, sample):
                                             score /n_tokens if n_tokens >0 and score is not None else 0
                                         }, epoch)
                 reports.append(report)
@@ -96,7 +96,7 @@ def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, scor
                     reports.append(report)
 
                     if writer is not None and log_perf:
-                        writer.add_scalars("perf-{}-{}".format(tasks[0], mode), {"{}-{}-{}-bpe".format(metric_val, mode, model_id): score if score is not None else 0}, epoch)
+                        writer.add_scalars("perf-{}-{}".format(tasks[0], mode), {"{}-{}-{}-{}-bpe".format(metric_val, data_label, mode, model_id): score if score is not None else 0}, epoch)
 
     return reports, early_stoppin_metric_val, score, n_tokens
 

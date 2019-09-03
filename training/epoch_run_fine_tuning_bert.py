@@ -367,6 +367,10 @@ def epoch_run(batchIter, tokenizer,
                 # or number of bpe tokens related to each bpe
 
             if batch_i == n_iter_max:
+                printing("BREAKING ITERATION because n_iter_max {} reached (mode is {} memory_efficient_iterator {}, "
+                         "shard {} ending ",
+                         var=[n_iter_max, mode, memory_efficient_iterator, n_shard],
+                         verbose_level=1, verbose=1)
                 break
             if batch_i % 1000 == 0:
                 printing("TRAINING : iteration finishing {}/{} batch", var=[batch_i, n_iter_max], verbose=verbose, verbose_level=1)
@@ -644,7 +648,6 @@ def epoch_run(batchIter, tokenizer,
                 # - factorize   masking
                 assert "normalize" not in args.tasks[0], "ERROR : input and output not supported yet for 'normalize' task in this setting "
 
-
                 for label in label_per_task:
                     # make mask for the loss padding
                     # TODO handle task specific index pad
@@ -764,6 +767,7 @@ def epoch_run(batchIter, tokenizer,
                 if args.multitask:
                     tensorboard_loss_writer_batch_level_multi(writer, mode, model_id, _loss, batch_i, iter, loss_dic, tasks=args.tasks)
             time_backprop = time.time()-time_backprop_start
+
         except StopIteration:
             printing("BREAKING ITERATION for (mode is {} memory_efficient_iterator {} , shard {} ending ", var=[mode, memory_efficient_iterator, n_shard],
                      verbose_level=1, verbose=1)
@@ -792,7 +796,7 @@ def epoch_run(batchIter, tokenizer,
             # n_tokens_counter_per_task
             if args.multitask:
                 tensorboard_loss_writer_epoch_level_multi(writer,  mode, model_id, epoch, loss_dic_epoch, n_tokens_counter_per_task, data_label)
-            tensorboard_loss_writer_epoch_level(writer, args.tasks, mode, model_id, epoch, n_batch_norm, n_batch_pos, args.append_n_mask, loss, loss_norm, loss_pos, loss_n_mask_prediction, batch_i)
+            tensorboard_loss_writer_epoch_level(writer, args.tasks, mode, model_id, epoch, n_batch_norm, n_batch_pos, args.append_n_mask, loss, loss_norm, loss_pos, loss_n_mask_prediction, batch_i, data_label)
         reports = []
         printing("TRAINING : evaluating on {} args.tasks ", var=[evaluated_task], verbose_level=1, verbose=verbose)
         reports, early_stoppin_metric_val, score, n_tokens = report_score_all(evaluated_task, agg_func_ls,

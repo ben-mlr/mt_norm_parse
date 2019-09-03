@@ -432,7 +432,7 @@ if __name__ == "__main__":
 
           PRETRAINING = True
           if PRETRAINING:
-              epochs = 1
+              epochs = 5
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
@@ -467,8 +467,9 @@ if __name__ == "__main__":
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   freeze_parameters_ls=[0],
                                                   freeze_layer_prefix_ls_ls=[None],
-                                                  train_path=[[CODE_MIXED_RAW_TRAIN_SMALL]], dev_path=[[[CODE_MIXED_RAW_DEV], [CODE_MIXED_RAW_TRAIN_SMALL]]],
-                                                  test_paths=[[[CODE_MIXED_RAW_TRAIN_SMALL], [CODE_MIXED_RAW_DEV], [CODE_MIXED_RAW_TEST]]],
+                                                  train_path=[[CODE_MIXED_RAW_TRAIN_SMALL]],
+                                                  dev_path=[[[CODE_MIXED_RAW_DEV_SMALL], [WIKI_DEV_SMALL]]],
+                                                  test_paths=[[[CODE_MIXED_RAW_TRAIN_SMALL], [WIKI_DEV_SMALL], [CODE_MIXED_RAW_DEV_SMALL], [CODE_MIXED_RAW_TEST_SMALL]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
