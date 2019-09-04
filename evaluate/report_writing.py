@@ -60,11 +60,14 @@ def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, scor
                     raise (e)
 
                 if early_stoppin_metric is not None:
-                    if metric_val == early_stoppin_metric and subsample_early_stoping_metric_val == sample + label_heuristic and score is not None:
-                        pdb.set_trace()
-                        early_stoppin_metric_val = -score /n_tokens
+                    if metric_val == early_stoppin_metric \
+                            and subsample_early_stoping_metric_val == sample + label_heuristic \
+                            and score is not None and n_tokens > 0:
+                        early_stoppin_metric_val = -score/n_tokens
                     elif score is None:
                         print("WARNING : could no apply early sotpping metric cause score is None")
+                    elif n_tokens == 0:
+                        print("WARNING : could no apply early sotpping metric cause n_tokens is 0 ")
                 if writer is not None and log_perf:
                     writer.add_scalars("perf-{}-{}".format(tasks[0], mode),
                                        {"{}-{}-{}-{}-{}".format(metric_val, mode, model_id, data_label, sample):

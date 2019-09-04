@@ -41,7 +41,9 @@ def train_eval_bert_normalize(args, verbose=1):
     list_reference_heuristic_test = pickle.load(open(os.path.join(PROJECT_PATH, "data/wiki-news-FAIR-SG-top50000.pkl"),  "rb"))
     slang_dic = json.load(open(os.path.join(PROJECT_PATH, "data/urban_dic_abbreviations.json"), "r"))
 
-    early_stoppin_metric, subsample_early_stoping_metric_val = get_early_stopping_metric(tasks=args.tasks, early_stoppin_metric=None, verbose=verbose)
+    early_stoppin_metric, subsample_early_stoping_metric_val = get_early_stopping_metric(tasks=args.tasks,
+                                                                                         early_stoppin_metric=None,
+                                                                                         verbose=verbose)
 
     printing("INFO : tasks is {} so setting early_stoppin_metric to {} ", var=[args.tasks, early_stoppin_metric], verbose=verbose, verbose_level=1)
     printing("INFO : environ is {} so debug set to {}", var=[os.environ.get("ENV", "Unkwnown"), debug], verbose_level=1, verbose=verbose)

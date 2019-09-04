@@ -33,7 +33,7 @@ from io import open
 from env.importing import torch, nn, CrossEntropyLoss, F, np, pdb
 from io_.dat.constants import PAD_ID_LOSS_STANDART
 from io_.dat.constants import NUM_LABELS_N_MASKS
-
+from model.bert_tools_from_core_code.tools import get_key_name_num_label
 
 #from .file_utils import cached_path
 from model.bert_tools_from_core_code.tools import *
@@ -549,6 +549,7 @@ class BertPreTrainedModel(nn.Module):
         if isinstance(module, nn.Linear) and module.bias is not None:
             module.bias.data.zero_()
 
+
     @classmethod
     def from_pretrained(cls, pretrained_model_name_or_path, state_dict=None, cache_dir=None,
                         dropout_custom=0.,normalization_mode=True, layer_wise_attention=False,
@@ -953,12 +954,14 @@ class BertMultiTask(BertPreTrainedModel):
     def __init__(self, config, tasks, num_labels_per_task):
         super(BertMultiTask, self).__init__(config)
         self.bert = BertModel(config)
+        self.config = config
         assert isinstance(num_labels_per_task, dict)
         assert isinstance(tasks, list) and len(tasks) >= 1, "config.tasks should be a list of len >=1"
         self.head = nn.ModuleDict()
         self.tasks = tasks
         self.task_parameters = TASKS_PARAMETER
         self.layer_wise_attention = None
+        self.downstream_tasks = None
         self.labels_supported = [label for task in tasks for label in self.task_parameters[task]["label"]]
 
         self.sanity_checking_num_labels_per_task(num_labels_per_task, tasks, self.task_parameters)
@@ -966,14 +969,19 @@ class BertMultiTask(BertPreTrainedModel):
         self.num_labels_dic = num_labels_per_task
         ##if "mlm" in tasks:
         #   self.num_labels_dic["mlm"] = self.bert.embeddings.word_embeddings.weight.size(0)
-        for i, task in enumerate(tasks):
-            assert task in TASKS_PARAMETER, "ERROR : task {} is not in {}".format(task, TASKS_PARAMETER)
-            num_label = task+"-"+self.task_parameters[task]["label"][0] if len(self.task_parameters[task]["label"]) == 1 else task+"-"+self.task_parameters[task]["num_labels_mandatory_to_check"][0] # assuming 1 in num_labels_mandatory_to_check
-            if not self.task_parameters[task]["num_labels_mandatory"]:
-                # in this case we need to define and load MLM head of the model
-                self.head[task] = eval(self.task_parameters[task]["head"])(config, self.bert.embeddings.word_embeddings.weight)
+        for task in TASKS_PARAMETER:
+            if task in tasks:
+                #assert task in TASKS_PARAMETER, "ERROR : task {} is not in {}".format(task, TASKS_PARAMETER)
+                num_label = get_key_name_num_label(task, self.task_parameters)
+                #num_label = task+"-"+self.task_parameters[task]["label"][0] if len(self.task_parameters[task]["label"]) == 1 else task+"-"+self.task_parameters[task]["num_labels_mandatory_to_check"][0] # assuming 1 in num_labels_mandatory_to_check
+                if not self.task_parameters[task]["num_labels_mandatory"]:
+                    # in this case we need to define and load MLM head of the model
+                    self.head[task] = eval(self.task_parameters[task]["head"])(config, self.bert.embeddings.word_embeddings.weight)
+                else:
+                    self.head[task] = eval(self.task_parameters[task]["head"])(config, num_labels=self.num_labels_dic[num_label])
             else:
-                self.head[task] = eval(self.task_parameters[task]["head"])(config, num_labels=self.num_labels_dic[num_label])
+                # we define empty heads for downstream use
+                self.head[task] = None
 
     def forward(self, input_ids_dict, token_type_ids=None, attention_mask=None, labels=None, head_masks=None):
         if labels is None:
@@ -1019,9 +1027,20 @@ class BertMultiTask(BertPreTrainedModel):
                 assert label is not None, "ERROR logit_label {}".format(logit_label)
                 label = label.group(2)
                 if label in labels:
-                    loss_dict[logit_label] = self.get_loss(self.task_parameters[task]["loss"], label,self.num_labels_dic, labels, logits_dict, task, logit_label)
+                    loss_dict[logit_label] = self.get_loss(self.task_parameters[task]["loss"], label, self.num_labels_dic, labels, logits_dict, task, logit_label)
         # thrid output is for potential attention weights
         return logits_dict, loss_dict, None
+
+    def append_extra_heads_model(self, downstream_tasks, num_labels_dic_new):
+        self.downstream_tasks = downstream_tasks
+        for new_task in downstream_tasks:
+            if new_task in self.tasks:
+                pass
+                #printing("MODEL : task {} in downstream usage was already define in pretrained model", var=[new_task], verbose_level=1, verbose=1)
+            else:
+                num_label = get_key_name_num_label(new_task, self.downstream_tasks)
+                self.head[new_task] = eval(self.task_parameters[new_task]["head"])(self.config, num_labels=num_labels_dic_new[num_label])
+
 
     @staticmethod
     def get_loss(loss_func, label, num_label_dic, labels, logits_dict, task, logit_label):
@@ -1054,6 +1073,8 @@ class BertMultiTask(BertPreTrainedModel):
                 raise(e)
         return loss
 
+
+
     @staticmethod
     def rename_multi_modal_task_logits(labels, logits_dict, task, task_parameters):
         #if n_pred == 2:
@@ -1073,6 +1094,7 @@ class BertMultiTask(BertPreTrainedModel):
         #else:
         #    raise (Exception("More than 3 tensors as prediction is not supported (task {})".format(task)))
         return logits_dict
+
 
 
     @staticmethod

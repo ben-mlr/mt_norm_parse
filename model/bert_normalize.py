@@ -1,18 +1,53 @@
+import logging
+import tarfile
+import tempfile
+
 from env.models_dir import *
 from io_.info_print import printing
 from toolbox.deep_learning_toolbox import freeze_param
-from model.bert_tools_from_core_code.modeling import BertForTokenClassification, BertConfig, BertForMaskedLM, BertMultiTask
+
+from model.bert_tools_from_core_code.modeling import BertForTokenClassification, BertConfig, BertForMaskedLM, BertMultiTask, BertConfig
 
 
-def make_bert_multitask(pretrained_model_dir, tasks, num_labels_per_task):
+logger = logging.getLogger(__name__)
+
+
+def make_bert_multitask(pretrained_model_dir, tasks, num_labels_per_task, args_checkpoint_dir):
     assert num_labels_per_task is not None and isinstance(num_labels_per_task, dict), \
         "ERROR : num_labels_per_task {} should be a dictionary".format(num_labels_per_task)
     assert isinstance(tasks, list) and len(tasks) >= 1, "ERROR tasks {} should be a list of len >=1".format(tasks)
 
-    if pretrained_model_dir is not None:
+    if pretrained_model_dir is not None and args_checkpoint_dir is None:
         model = BertMultiTask.from_pretrained(pretrained_model_dir, tasks=tasks, num_labels_per_task=num_labels_per_task)
+    elif args_checkpoint_dir is not None:
+
+        assert os.path.isfile(args_checkpoint_dir), "ERROR {} not found to reload checkpoint".format(args_checkpoint_dir)
+
+        args_checkpoint = json.load(open(args_checkpoint_dir,"r"))
+        assert "checkpoint_dir" in args_checkpoint, "ERROR checkpoint_dir not in {} ".format(args_checkpoint)
+        checkpoint_dir = args_checkpoint["checkpoint_dir"]
+        assert os.path.isfile(checkpoint_dir), "ERROR checkpoint {} not found ".format(checkpoint_dir)
+        # redefining model and reloading
+        def get_config_bert(bert_model, config_file_name="bert_config.json"):
+            model_dir = BERT_MODEL_DIC[bert_model]["model"]
+            tempdir = tempfile.mkdtemp()
+            logger.info("extracting archive file {} to temp dir {}".format(model_dir, tempdir))
+            with tarfile.open(model_dir, 'r:gz') as archive:
+                archive.extractall(tempdir)
+            serialization_dir = tempdir
+            config_file = os.path.join(serialization_dir, config_file_name)
+            assert os.path.isfile(config_file), "ERROR {} not a file ".format(config_file)
+            return config_file
+
+        config_file = get_config_bert(args_checkpoint["hyperparameters"]["bert_model"])
+        config = BertConfig(config_file)
+        pdb.set_trace()
+        model = BertMultiTask(config=config, tasks=args_checkpoint["hyperparameters"]["tasks"], num_labels_per_task=args_checkpoint["info_checkpoint"]["num_labels_per_task"])
+        model.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
+
+        model.append_extra_heads_model(tasks)
     else:
-        raise(Exception("not supported yet"))
+        raise(Exception("only one of pretrained_model_dir checkpoint_dir can be defined "))
 
     return model
 

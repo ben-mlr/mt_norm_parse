@@ -133,8 +133,7 @@ def run(args,
     if voc_pos_size is not None:
         printing("MODEL : voc_pos_size defined as {}", var=voc_pos_size,  verbose_level=1, verbose=verbose)
 
-    model = get_multi_task_bert_model(args, model_dir, vocab_size, voc_pos_size, debug, verbose,
-                                      num_labels_per_task=num_labels_per_task)
+    model = get_multi_task_bert_model(args, model_dir, vocab_size, voc_pos_size, debug, num_labels_per_task=num_labels_per_task, verbose=verbose)
 
     if use_gpu:
         model.to("cuda")
@@ -194,7 +193,9 @@ def run(args,
                                         ("time_load_readers_dev",  "{:0.4f} min".format(time_load_readers_dev/60))]))
 
         early_stoping_val_former = 1000
+        assert args.epochs>1, "ERROR need at least 2 epochs (1 eval , 1 train 1 eval"
         try:
+
             for epoch in range(args.epochs):
 
                 if args.memory_efficient_iterator:
@@ -365,7 +366,8 @@ def run(args,
                                           model_id=model_id,
                                           info_checkpoint=OrderedDict([("n_epochs", epoch+1), ("batch_size", args.batch_size),
                                                                        ("train_path", train_data_label),
-                                                                       ("dev_path", dev_data_label_ls)]),
+                                                                       ("dev_path", dev_data_label_ls),
+                                                                       ("num_labels_per_task", num_labels_per_task)]),
                                           verbose=verbose)
 
             print("PERFORMANCE LAST {} TRAIN : {} ".format(epoch, perf_report_train))

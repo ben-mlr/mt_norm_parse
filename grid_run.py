@@ -432,18 +432,18 @@ if __name__ == "__main__":
 
           PRETRAINING = True
           if PRETRAINING:
-              epochs = 100
+              epochs = 10
 
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
                                                   batch_size_ls=[2],
-                                                  #checkpoint_dir_ls=["'" + os.path.join(CHECKPOINT_BERT_DIR, "9535768-B-45690-9535768-B-model_0/9535768-B-45690-9535768-B-model_0-epbest-checkpoint.pt") + "'"],
+                                                  checkpoint_dir_ls=["'" + os.path.join(CHECKPOINT_BERT_DIR, "42812-B-5fe82-42812-B-model_0","42812-B-5fe82-42812-B-model_0-args.json") + "'"],
                                                   gpu_mode="random",
                                                   bert_module_ls=None,
                                                   append_n_mask_ls=[0],
                                                   # norm_2_noise_training_ls=[0., 1.],
-                                                  lr_ls=[0.00001, 0.000001, 0.0001, 0.001],
+                                                  lr_ls=[0.00001],
                                                   # lr_ls=[OrderedDict([("bert", 1e-5), ("classifier_task_2", 1e-4), ("classifier_task_1", 1e-5)]),
                                                      #       OrderedDict([("bert", 5e-6), ("classifier_task_2", 1e-4), ("classifier_task_1", 1e-5)]),
                                                      #       OrderedDict([("bert", 1e-5), ("classifier_task_2", 1e-3), ("classifier_task_1", 1e-5)])],
@@ -469,8 +469,8 @@ if __name__ == "__main__":
                                                   freeze_parameters_ls=[0],
                                                   freeze_layer_prefix_ls_ls=[None],
                                                   train_path=[[CODE_MIXED_RAW_DEMO]],#[[CODE_MIXED_RAW_TRAIN]],
-                                                  dev_path=[[[CODE_MIXED_RAW_DEMO]]],#[[[CODE_MIXED_RAW_DEV_SMALL], [WIKI_DEV_SMALL]]],
-                                                  test_paths=[[[CODE_MIXED_RAW_DEMO]]],#[[[CODE_MIXED_RAW_TRAIN_SMALL], [WIKI_DEV_SMALL], [CODE_MIXED_RAW_DEV_SMALL], [CODE_MIXED_RAW_TEST_SMALL]]],
+                                                  dev_path=[[[CODE_MIXED_RAW_DEMO]]],#[[[CODE_MIXED_RAW_DEMO]]],#[[[CODE_MIXED_RAW_DEV_SMALL], [WIKI_DEV_SMALL]]],
+                                                  test_paths=[[[CODE_MIXED_RAW_DEMO]]],#[[[CODE_MIXED_RAW_DEMO]]],#[[[CODE_MIXED_RAW_TRAIN_SMALL], [WIKI_DEV_SMALL], [CODE_MIXED_RAW_DEV_SMALL], [CODE_MIXED_RAW_TEST_SMALL]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,

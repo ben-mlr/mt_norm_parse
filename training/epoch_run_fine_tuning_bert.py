@@ -688,7 +688,7 @@ def epoch_run(batchIter, tokenizer,
                 # for parsing and tagging : will simply remove non-first bpe of each token
                 src_detokenized_dic, label_detokenized_dic, predict_detokenize_dic = get_detokenized_str(source_preprocessed_dict, input_alignement_with_raw,label_dic, predict_dic, null_str, remove_mask_str_prediction, TASKS_PARAMETER, batch=batch)
                 log_data_src_label_pred(src_detokenized_dic, predict_detokenize_dic, label_detokenized_dic,
-                                        tasks=args.tasks, verbose=verbose, verbose_level=1)
+                                        tasks=args.tasks, verbose=verbose, verbose_level=5)
 
                 label_processed = []
 
