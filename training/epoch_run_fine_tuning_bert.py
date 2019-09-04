@@ -684,12 +684,13 @@ def epoch_run(batchIter, tokenizer,
                 #output_tokens_tensor_aligned_dic = get_aligned_output(label_per_task)
                 # for parsing heads will leave heads untouched
 
-                source_preprocessed_dict, label_dic, predict_dic = get_bpe_string(predictions_topk_dic, label_per_task, input_tokens_tensor_per_task, topk, tokenizer, task_to_label_dictionary, null_str, null_token_index, TASKS_PARAMETER, verbose)
+                source_preprocessed_dict, label_dic, predict_dic = get_bpe_string(predictions_topk_dic, label_per_task,
+                                                                                  input_tokens_tensor_per_task, topk,
+                                                                                  tokenizer, task_to_label_dictionary, null_str, null_token_index, TASKS_PARAMETER, mask_token_index, verbose)
                 # for parsing and tagging : will simply remove non-first bpe of each token
                 src_detokenized_dic, label_detokenized_dic, predict_detokenize_dic = get_detokenized_str(source_preprocessed_dict, input_alignement_with_raw,label_dic, predict_dic, null_str, remove_mask_str_prediction, TASKS_PARAMETER, batch=batch)
-                pdb.set_trace()
                 log_data_src_label_pred(src_detokenized_dic, predict_detokenize_dic, label_detokenized_dic,
-                                        tasks=args.tasks, verbose=verbose, verbose_level= 6)
+                                        tasks=args.tasks, verbose=verbose, verbose_level=1)
 
                 label_processed = []
 
@@ -767,7 +768,8 @@ def epoch_run(batchIter, tokenizer,
                 mode = "dev"
                 printing("MODE data {} not optimizing".format(data_label), verbose=verbose, verbose_level=4)
             if writer is not None:
-                tensorboard_loss_writer_batch_level(writer, mode, model_id, _loss, batch_i, iter, loss_dic, task_normalize_is,  args.append_n_mask, task_pos_is)
+                tensorboard_loss_writer_batch_level(writer, mode, model_id, _loss, batch_i, iter,  loss_dic,
+                                                    task_normalize_is, args.append_n_mask, task_pos_is)
                 if args.multitask:
                     tensorboard_loss_writer_batch_level_multi(writer, mode, model_id, _loss, batch_i, iter, loss_dic, tasks=args.tasks)
             time_backprop = time.time()-time_backprop_start

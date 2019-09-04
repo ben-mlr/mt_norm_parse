@@ -1,5 +1,5 @@
 from env.importing import pdb
-from io_.dat.constants import SPECIAL_TOKEN_LS
+from io_.dat.constants import SPECIAL_TOKEN_LS, MASK_BERT
 
 
 def word_level_scoring(metric, gold, topk_pred, topk):
@@ -46,6 +46,8 @@ def word_level_filter(gold, topk_pred, topk, src, sample="all",
 
     if sample == "all":
         sample_1_filter = 1
+    elif sample == "mlm":
+        sample_1_filter = MASK_BERT in src
     elif sample == "MWE":
         assert is_mwe is not None, "ERROR filter request is MWE but is_mwe not provided"
         sample_1_filter = is_mwe

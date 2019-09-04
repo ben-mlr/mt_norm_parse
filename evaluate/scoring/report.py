@@ -57,6 +57,7 @@ def overall_word_level_metric_measure(task_label, pred_label,
     overall_filter_ls = {sample: [] for sample in samples+intersected_samples}
 
     skipping_sent = 0
+
     for gold_ind_sent, gold_sent in enumerate(gold_sent_ls):
         # TODO test for all topk
         try:
@@ -105,7 +106,8 @@ def overall_word_level_metric_measure(task_label, pred_label,
             topk_word_pred = [pred_sent_ls_topk[top][gold_ind_sent][ind_word] for top in range(topk)]
             # handling with LAS specificity ; a types is correct iif its label is correct and its head is correct
             if task_label == "parsing-types":
-                gold_token_to_score = gold_token if gold_sent_ls_dict["parsing-heads"][gold_ind_sent][ind_word] == pred_sent_ls_topk_dict["parsing-heads"][0][gold_ind_sent][ind_word] else "ZERO-ING-SCORE-TYPES-AS-HEADS-IS-UNCORRECT"
+                gold_token_to_score = gold_token \
+                    if gold_sent_ls_dict["parsing-heads"][gold_ind_sent][ind_word] == pred_sent_ls_topk_dict["parsing-heads"][0][gold_ind_sent][ind_word] else "ZERO-ING-SCORE-TYPES-AS-HEADS-IS-UNCORRECT"
                 #if gold_sent_ls_dict["parsing_heads"][gold_ind_sent][ind_word] != pred_sent_ls_topk_dict["parsing_heads"][0][gold_ind_sent][ind_word] and gold_token_to_score == topk_word_pred[0]:
                 #    print("EXCLUDING CORRECT LABELS BECAUSE OF HEADS")
             else:
@@ -118,11 +120,10 @@ def overall_word_level_metric_measure(task_label, pred_label,
                     print("ERROR (scoring/report) handling src {} index ({},{}) ".format(src_detokenized, gold_ind_sent, ind_word), e)
                     pdb.set_trace()
 
-                filter_sent[_sample].append(word_level_filter(sample=_sample, gold=gold_token, topk_pred=topk_word_pred,
-                                                              topk=topk, src=src,
-                                                              is_mwe=gold_sent_ls_dict[task_label][gold_ind_sent][ind_word] if task_label.startswith("mwe") else None,
+                filter_sent[_sample].append(word_level_filter(sample=_sample,
+                                                              gold=gold_token, topk_pred=topk_word_pred,
+                                                              topk=topk, src=src, is_mwe=gold_sent_ls_dict[task_label][gold_ind_sent][ind_word] if task_label.startswith("mwe") else None,
                                                               word_reference_dic_ls=reference_word_dic))
-
             if compute_intersection_score:
                 for ind_sample, _sample in enumerate(sample_to_intersesct):
                     for ind_sample_2 in range(ind_sample):

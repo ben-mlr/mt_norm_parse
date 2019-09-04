@@ -149,9 +149,10 @@ def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu,
     return tokens_tensor, segments_tensors, tokenized_ls, aligned_index_padded, mask
 
 
-def from_bpe_token_to_str(bpe_tensor, topk, pred_mode, null_token_index, null_str, tokenizer=None,
+def from_bpe_token_to_str(bpe_tensor,  topk, pred_mode, null_token_index, null_str, task, tokenizer=None,
+                          bpe_tensor_src=None,
                           pos_dictionary=None, label="normalize",
-                          label_dictionary=None,
+                          label_dictionary=None, mask_index=None,
                           get_string=False, verbose=1):
     """
     it actually supports not only bpe token but also pos-token
@@ -163,14 +164,19 @@ def from_bpe_token_to_str(bpe_tensor, topk, pred_mode, null_token_index, null_st
     """
     assert label is not None or get_string, \
         "ERROR : task {} get_string {} : one of them should be defined or True".format(label, get_string)
-    predictions_topk_ls = [[[bpe_tensor[sent, word, top].item() if pred_mode else bpe_tensor[sent, word].item() for word in range(bpe_tensor.size(1))] for sent in range(bpe_tensor.size(0))] for top in range(topk)]
+    if task == "mlm" and pred_mode:
+        assert bpe_tensor_src is not None and mask_index is not None, "ERROR bpe_tensor_src is needed to get not-predicted token as well as mask_index "
+        predictions_topk_ls = [[[bpe_tensor[sent, word, top].item() if bpe_tensor_src[sent, word].item() == mask_index else bpe_tensor_src[sent, word].item() for word in range(bpe_tensor.size(1))] for sent in range(bpe_tensor.size(0))] for top in range(topk)]
+    else:
+        predictions_topk_ls = [[[bpe_tensor[sent, word, top].item() if pred_mode else bpe_tensor[sent, word].item() for word in range(bpe_tensor.size(1))] for sent in range(bpe_tensor.size(0))] for top in range(topk)]
 
-    # here all label that requires the tokenizer (should factorize his in some way)
+    # here all labels that require the tokenizer (should factorize it in some way)
     if label in ["normalize", "mwe_prediction", "input_masked"] or get_string:
         assert tokenizer is not None
-        sent_ls_top = [[tokenizer.convert_ids_to_tokens(sent_bpe, special_extra_token=null_token_index,special_token_string=null_str) for sent_bpe in predictions_topk] for predictions_topk in predictions_topk_ls]
-        printing("DATA : bpe string again {}", var=[sent_ls_top], verbose=verbose, verbose_level="raw_data")
+        # requires task specific here : mlm only prediction we are interested in are
+        sent_ls_top = [[tokenizer.convert_ids_to_tokens(sent_bpe, special_extra_token=null_token_index, special_token_string=null_str) for sent_bpe in predictions_topk] for predictions_topk in predictions_topk_ls]
 
+        printing("DATA : bpe string again {}", var=[sent_ls_top], verbose=verbose, verbose_level="raw_data")
     else:
         dictionary = label_dictionary
 
@@ -183,6 +189,7 @@ def from_bpe_token_to_str(bpe_tensor, topk, pred_mode, null_token_index, null_st
             except Exception as e:
                 print("{} : dictionary : {} and prediction {} (POS specificity was removed )".format(e, dictionary.instances, predictions_topk_ls))
                 raise(e)
+
     if not pred_mode:
         sent_ls_top = sent_ls_top[0]
 

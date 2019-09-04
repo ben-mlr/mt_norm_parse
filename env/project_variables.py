@@ -75,7 +75,7 @@ SAMPLES_PER_TASK_TO_REPORT = {
             "parsing-heads": ["all", "InV", "OOV"],
             "parsing-types": ["all", "InV", "OOV"],
             "n_masks_mwe-n_masks_mwe": ["all", "InV", "OOV"],
-            "mlm-mwe_prediction": ["all", "InV", "OOV"],
+            "mlm-mwe_prediction": ["all", "InV", "OOV", "mlm"],
             "mwe_detection-mwe_detection": ["all", "InV", "OOV", "MWE"],
             "mwe_prediction-mwe_prediction": ["all", "InV", "OOV", "MWE"],
 }

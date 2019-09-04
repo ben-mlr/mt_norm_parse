@@ -467,7 +467,7 @@ if __name__ == "__main__":
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   freeze_parameters_ls=[0],
                                                   freeze_layer_prefix_ls_ls=[None],
-                                                  train_path=[[CODE_MIXED_RAW_TRAIN_SMALL]],
+                                                  train_path=[[CODE_MIXED_RAW_TRAIN]],
                                                   dev_path=[[[CODE_MIXED_RAW_DEV_SMALL], [WIKI_DEV_SMALL]]],
                                                   test_paths=[[[CODE_MIXED_RAW_TRAIN_SMALL], [WIKI_DEV_SMALL], [CODE_MIXED_RAW_DEV_SMALL], [CODE_MIXED_RAW_TEST_SMALL]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,

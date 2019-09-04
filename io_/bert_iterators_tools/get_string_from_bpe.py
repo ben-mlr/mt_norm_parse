@@ -32,7 +32,7 @@ def get_prediction(logits_dic, topk):
 
 def get_bpe_string(predictions_topk_dic,
                    output_tokens_tensor_aligned_dic, input_tokens_tensor_per_task, topk,
-                   tokenizer, task_to_label_dictionary, null_str, null_token_index, task_settings, verbose):
+                   tokenizer, task_to_label_dictionary, null_str, null_token_index, task_settings, mask_index, verbose):
 
     predict_dic = OrderedDict()
     source_preprocessed = OrderedDict()
@@ -47,19 +47,15 @@ def get_bpe_string(predictions_topk_dic,
         task = label.group(1)
         label = label.group(2)
         sent_ls_top = from_bpe_token_to_str(predictions_topk_dic[task_label], topk, tokenizer=tokenizer,
-                                            pred_mode=True,
+                                            pred_mode=True, task=task, mask_index=mask_index,
+                                            bpe_tensor_src=input_tokens_tensor_per_task["input_masked"] if task == "mlm" else None,
                                             label_dictionary=task_to_label_dictionary[task_label], get_string=False,
                                             label=label, null_token_index=null_token_index, null_str=null_str)
         # some tasks may share same outputs : we don't want to post-process them several times
         if label in gold_already_processed:
             continue
         gold_already_processed.append(label)
-        gold = from_bpe_token_to_str(output_tokens_tensor_aligned_dic[label], topk,
-                                     tokenizer=tokenizer,
-                                     label_dictionary=task_to_label_dictionary[task_label],
-                                     pred_mode=False, get_string=False, label=label,
-                                     null_token_index=null_token_index,
-                                     null_str=null_str)
+        gold = from_bpe_token_to_str(output_tokens_tensor_aligned_dic[label], topk,tokenizer=tokenizer,task=task, label_dictionary=task_to_label_dictionary[task_label], pred_mode=False, get_string=False, label=label, null_token_index=null_token_index,null_str=null_str)
 
         predict_dic[task_label] = sent_ls_top
         label_dic[label] = gold
@@ -72,11 +68,7 @@ def get_bpe_string(predictions_topk_dic,
             continue
         input_already_processed.append(input_label)
 
-        source_preprocessed[input_label] = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer,
-                                                                 label_dictionary=task_to_label_dictionary[task_label],
-                                                                 pred_mode=False,
-                                                                 null_token_index=null_token_index, null_str=null_str,
-                                                                 get_string=True, verbose=verbose)
+        source_preprocessed[input_label] = from_bpe_token_to_str(input_tokens_tensor, topk, tokenizer=tokenizer,label_dictionary=task_to_label_dictionary[task_label], pred_mode=False,task=task, null_token_index=null_token_index, null_str=null_str, get_string=True, verbose=verbose)
 
     return source_preprocessed, label_dic, predict_dic
 

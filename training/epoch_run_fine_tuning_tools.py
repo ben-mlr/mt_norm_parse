@@ -71,14 +71,11 @@ def log_data_src_label_pred(src_detokenized_dic, predict_detokenize_dic, label_d
                                 to_print = "SRC : {} ,    ".format(src) + " ".join(["PRED:{}  GOLD:{} (label {})".format(predict_detokenize_dic[task + "-" + label][0][ind_src_sent][ind_src], label_detokenized_dic[label][ind_src_sent][ind_src], label) for label in label_name_ls])
                                 printing(to_print, verbose=1, verbose_level=1)
                         except Exception as e:
-                            print(e)
-                            pdb.set_trace()
-                            raise(e)
+                            print("ERROR : not aligned labels so cannot log ", e)
+
 
 
             #for sent_src, sent_gold, sent_pred in zip()
-
-
 
 
 def print_align_bpe(source_preprocessed, gold, input_alignement_with_raw, labels_n_mask_prediction,
@@ -315,7 +312,8 @@ def init_score_token_sent_dict(samples_per_task_reporting, tasks, agg_func_ls, c
     labels = get_task_label(tasks, task_settings)
 
     for task in labels:
-        if task.startswith("mwe"):
+        # TODO : standartize make more standart
+        if task.startswith("mwe") or task.startswith("mlm"):
             init_samples_per_task[task] = samples_per_task_reporting[task].copy()
         else:
             init_samples_per_task[task] = samples_per_task_reporting["normalize"].copy()

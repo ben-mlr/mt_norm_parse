@@ -272,6 +272,7 @@ def run(args,
                                                               lr_init=args.lr, betas=(0.9, 0.99),
                                                               epoch=epoch, verbose=verbose)
 
+                loss_train = None
                 if epoch > 0:
                     printing("TRAINING : training on GET_BATCH_MODE ", verbose=verbose, verbose_level=2)
                     printing("TRAINING : training 1 'epoch' = {} iteration ({} batch_size) ",
@@ -375,7 +376,7 @@ def run(args,
                                           model_id=model_id,
                                           info_checkpoint=OrderedDict([("n_epochs", epoch+1), ("batch_size", args.batch_size),
                                                                        ("train_path", train_data_label),
-                                                                       ("dev_path", dev_data_label)]),
+                                                                       ("dev_path", dev_data_label_ls)]),
                                           verbose=verbose)
 
             print("PERFORMANCE LAST {} TRAIN : {} ".format(epoch, perf_report_train))
