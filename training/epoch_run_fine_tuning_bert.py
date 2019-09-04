@@ -92,8 +92,6 @@ def epoch_run(batchIter, tokenizer,
     else:
         raise(Exception("Only static strategy supported so far"))
 
-    if subsample_early_stoping_metric_val is None:
-        subsample_early_stoping_metric_val = "all"
     if low_memory_foot_print_batch_mode:
         assert batch_size_real > 0, "ERROR have to define batch_size_real in low_memory_foot_print_batch_mode"
 

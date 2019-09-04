@@ -46,7 +46,8 @@ def run(args,
     :return:
     """
     assert run_mode in ["train", "test"], "ERROR run mode {} corrupted ".format(run_mode)
-    assert early_stoppin_metric is not None, "ERROR : assert early_stoppin_metric should be defined "
+    assert early_stoppin_metric is not None and subsample_early_stoping_metric_val is not None, \
+        "ERROR : assert early_stoppin_metric should be defined and subsample_early_stoping_metric_val "
     printing("MODEL : RUNNING IN {} mode", var=[run_mode], verbose=verbose, verbose_level=1)
     printing("WARNING : casing was set to {} (this should be consistent at train and test)", var=[case], verbose=verbose, verbose_level=1)
     use_gpu_hardcoded_readers = False
@@ -56,18 +57,6 @@ def run(args,
         printing("INFO : MODEL : 1 set of simultaneous tasks {}".format(args.tasks), verbose=verbose, verbose_level=1)
         #args.tasks = args.tasks[0]
     # to be remove
-    if early_stoppin_metric is None:
-        if "pos" in args.tasks:
-            early_stoppin_metric = "accuracy-exact-pos"
-            subsample_early_stoping_metric_val = "all"
-        elif "normalize" in args.tasks:
-            early_stoppin_metric = "f1-normalize"
-            subsample_early_stoping_metric_val = "rates"
-        printing("INFO : setting early_stoppin_metric to {}", var=[early_stoppin_metric], verbose=verbose, verbose_level=1)
-    else:
-        if early_stoppin_metric == "accuracy-exact-normalize":
-            subsample_early_stoping_metric_val = "all"
-        printing("INFO : early_stoppin_metric passed is {}", var=[early_stoppin_metric], verbose=verbose, verbose_level=1)
     try:
         assert len(args.tasks) == len(args.train_path), "ERROR args.tasks is {} but train path are {}".format(args.tasks, args.train_path)
         assert len(args.dev_path) == len(args.train_path)

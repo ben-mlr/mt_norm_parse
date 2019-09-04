@@ -14,7 +14,7 @@ TASKS_PARAMETER = {
                                      "head": None, "loss": CrossEntropyLoss(),
                                      "prediction_level": "bpe",
                                      "label": ["append_masks"],
-                                     "eval_metrics": [["accuracy-exact-append_masks"]],
+                                     "eval_metrics": [["accuracy-append_masks"]],
                                      # "predicted_classes": ["NORMED", "NEED_NORM"],
                                      # "predicted_classes_pred_field": ["PRED_NORMED", "PRED_NEED_NORM"]
                                      },
@@ -53,7 +53,8 @@ TASKS_PARAMETER = {
                                      "input": "wordpieces_inputs_raw_tokens",
                                      "alignement": "wordpieces_inputs_raw_tokens_alignement",
                                      "label": ["mwe_detection"],
-                                     "eval_metrics": [["accuracy-exact-is_mwe"]],
+                                     "eval_metrics": [["accuracy-is_mwe-is_mwe"]],
+                                     "subsample-allowed": ["all", "InV", "OOV", "MWE"],
                                      },
                    "n_masks_mwe":
                                     {"normalization": False,
@@ -64,7 +65,8 @@ TASKS_PARAMETER = {
                                      "input": "wordpieces_inputs_raw_tokens",
                                      "alignement": "wordpieces_inputs_raw_tokens_alignement",
                                      "label": ["n_masks_mwe"],
-                                     "eval_metrics": [["accuracy-exact-n_masks_mwe"]],
+                                     "eval_metrics": [["accuracy-n_masks_mwe-n_masks_mwe"]],
+                                    "subsample-allowed": ["all", "InV", "OOV", "MWE"],
                                      },
                    "mwe_prediction":
                                     {"normalization": False,
@@ -72,11 +74,12 @@ TASKS_PARAMETER = {
                                      "num_labels_mandatory":False,
                                      "loss": CrossEntropyLoss(ignore_index=-1, reduce="mean"),
                                      "prediction_level": "bpe",
+                                     "subsample-allowed": ["all", "InV", "OOV", "MWE"],
                                      "input": "wordpieces_raw_aligned_with_words",
                                      "alignement": "wordpieces_raw_aligned_with_words_alignement",
 
                                      "label": ["mwe_prediction"],
-                                     "eval_metrics": [["accuracy-exact-mwe_pred"]],
+                                     "eval_metrics": [["accuracy-mwe_pred-mwe_pred"]],
                                      },
 
 
@@ -85,7 +88,8 @@ TASKS_PARAMETER = {
                            "pred": ["pos_pred"],
                             "num_labels_mandatory":True,
                            # a list per prediction
-                           "eval_metrics": [["accuracy-exact-pos"]],
+                           "eval_metrics": [["accuracy-pos-pos"]],
+                           "subsample-allowed": ["all", "NEED_NORM", "NORMED", "PRED_NEED_NORM", "PRED_NORMED", "InV", "OOV"],
                            "label": ["pos"],
                            # because its the label of mwe prediction
                            "input": "mwe_prediction",
@@ -97,11 +101,12 @@ TASKS_PARAMETER = {
                    "mlm": {"normalization": False,
                            "mask_input": True,# means the sequence input is always masked following mlm (train and test!)
                            "default_metric": "accuracy-mlm",
+                           "default-subsample": "mlm",
+                           "subsample-allowed": ["all", "InV", "OOV", "mlm"],
                            "num_labels_mandatory": False,
                            # a list per prediction
-                           "eval_metrics": [["accuracy-exact-mlm"]],
+                           "eval_metrics": [["accuracy-mlm-mwe_prediction"]],
                            "label": ["mwe_prediction"],
-
                            # because its the label of mwe prediction
                            "input": "input_masked",
                            "alignement": "mwe_prediction_alignement",
@@ -115,8 +120,9 @@ TASKS_PARAMETER = {
                        "default_metric": None,
                        "num_labels_mandatory": True,
                        "num_labels_mandatory_to_check": ["types"],
-                       "eval_metrics": [["accuracy-exact-parsing_heads"], ["accuracy-exact-parsing_types"]],
+                       "eval_metrics": [["accuracy-parsing-heads"], ["accuracy-parsing-types"]],
                        "head": "BertGraphHead",
+                        "subsample-allowed":  ["all", "InV", "OOV"],
                         # because its the label of mwe prediction
                        "input": "mwe_prediction",
                        "alignement": "mwe_prediction_alignement",

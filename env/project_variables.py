@@ -94,13 +94,13 @@ TASKS_2_METRICS_STR = {"all": ["accuracy-exact-normalize", "accuracy-normalize",
                                      "precision-normalize", "tnr-normalize", "f1-normalize",
                                      "precision-normalize_pred", "tnr-normalize_pred", "f1-normalize_pred",
                                      "accuracy-exact-n_masks_pred", "accuracy-exact-normalize_pred"],
-                        "mlm":["accuracy-mlm-mwe_prediction"],
-                       "pos": ["accuracy-pos-pos"],
-                       "n_masks_mwe": ["accuracy-n_masks_mwe-n_masks_mwe"],
-                       "mwe_detection": ["accuracy-mwe_detection-mwe_detection"],
-                       "mwe_prediction": ["accuracy-mwe_prediction-mwe_prediction"],
-                       "edit_prediction": [""],
-                       "norm_not_norm": ["IoU-pred-normed", "recall-norm_not_norm", "accuracy-norm_not_norm","IoU-pred-need_norm","precision-norm_not_norm"]}
+                         "mlm":["accuracy-mlm-mwe_prediction"],
+                         "pos": ["accuracy-pos-pos"],
+                         "n_masks_mwe": ["accuracy-n_masks_mwe-n_masks_mwe"],
+                         "mwe_detection": ["accuracy-mwe_detection-mwe_detection"],
+                         "mwe_prediction": ["accuracy-mwe_prediction-mwe_prediction"],
+                         "edit_prediction": [""],
+                         "norm_not_norm": ["IoU-pred-normed", "recall-norm_not_norm", "accuracy-norm_not_norm","IoU-pred-need_norm","precision-norm_not_norm"]}
 # "InV-accuracy-normalize", "OOV-accuracy-normalize"
 AVAILABLE_OPTIMIZER = ["adam", "bahdanu-adadelta", "SGD"]
 MULTI_TASK_LOSS_PONDERATION_PREDEFINED_MODE = ["uniform", "normalization_100", "pos_100","all", "pos", "normalize", "norm_not_norm"]
@@ -180,7 +180,7 @@ CODE_MIXED_RAW_LABEL, CODE_MIXED_RAW = "raw_code_mixed", os.path.join(PROJECT_PA
 CODE_MIXED_RAW_TRAIN_LABEL, CODE_MIXED_RAW_TRAIN = "raw_code_mixed-train_50k", os.path.join(PROJECT_PATH, "./data/code_mixed/code-train-50k.conll.conll")
 CODE_MIXED_RAW_TRAIN_SMALL_LABEL, CODE_MIXED_RAW_TRAIN_SMALL = "raw_code_mixed-train_10k", os.path.join(PROJECT_PATH, "./data/code_mixed/code-train-10k.conll.conll")
 
-
+CODE_MIXED_RAW_DEMO_LABEL, CODE_MIXED_RAW_DEMO = "code-mixed-demo", os.path.join(PROJECT_PATH, "./data/code_mixed/code-train-demo.conll")
 
 CODE_MIXED_RAW_DEV_LABEL, CODE_MIXED_RAW_DEV = "raw_code_mixed-dev_10k", os.path.join(PROJECT_PATH, "./data/code_mixed/code-dev-10k.conll.conll")
 CODE_MIXED_RAW_DEV_SMALL_LABEL, CODE_MIXED_RAW_DEV_SMALL = "raw_code_mixed-dev_1k", os.path.join(PROJECT_PATH, "./data/code_mixed/code-dev-1k.conll.conll")
@@ -366,6 +366,7 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 CODE_MIXED_RAW: CODE_MIXED_RAW_LABEL,
                 CODE_MIXED_RAW_TRAIN: CODE_MIXED_RAW_TRAIN_LABEL,
                 CODE_MIXED_RAW_DEV: CODE_MIXED_RAW_DEV_LABEL,
+                CODE_MIXED_RAW_DEMO: CODE_MIXED_RAW_DEMO_LABEL,
                 CODE_MIXED_RAW_TEST_SMALL: CODE_MIXED_RAW_TEST_SMALL_LABEL,
                 CODE_MIXED_RAW_DEV_SMALL: CODE_MIXED_RAW_DEV_SMALL_LABEL,
                 CODE_MIXED_RAW_TEST: CODE_MIXED_RAW_TEST_LABEL,

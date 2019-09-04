@@ -58,8 +58,10 @@ def report_score_all(evaluated_task, agg_func_ls, samples, label_heuristic, scor
                 except Exception as e:
                     print("REPORT : ")
                     raise (e)
+
                 if early_stoppin_metric is not None:
                     if metric_val == early_stoppin_metric and subsample_early_stoping_metric_val == sample + label_heuristic and score is not None:
+                        pdb.set_trace()
                         early_stoppin_metric_val = -score /n_tokens
                     elif score is None:
                         print("WARNING : could no apply early sotpping metric cause score is None")

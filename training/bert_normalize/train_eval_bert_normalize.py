@@ -41,7 +41,7 @@ def train_eval_bert_normalize(args, verbose=1):
     list_reference_heuristic_test = pickle.load(open(os.path.join(PROJECT_PATH, "data/wiki-news-FAIR-SG-top50000.pkl"),  "rb"))
     slang_dic = json.load(open(os.path.join(PROJECT_PATH, "data/urban_dic_abbreviations.json"), "r"))
 
-    early_stoppin_metric = get_early_stopping_metric(tasks=args.tasks, early_stoppin_metric=None, verbose=verbose)
+    early_stoppin_metric, subsample_early_stoping_metric_val = get_early_stopping_metric(tasks=args.tasks, early_stoppin_metric=None, verbose=verbose)
 
     printing("INFO : tasks is {} so setting early_stoppin_metric to {} ", var=[args.tasks, early_stoppin_metric], verbose=verbose, verbose_level=1)
     printing("INFO : environ is {} so debug set to {}", var=[os.environ.get("ENV", "Unkwnown"), debug], verbose_level=1, verbose=verbose)
@@ -57,7 +57,8 @@ def train_eval_bert_normalize(args, verbose=1):
         random_iterator_train=True,  bucket_test=False, compute_intersection_score_test=True,
         list_reference_heuristic_test=list_reference_heuristic_test, case="lower",
         n_iter_max_per_epoch=1000,
-        slang_dic_test=slang_dic, early_stoppin_metric=early_stoppin_metric,
+        slang_dic_test=slang_dic,
+        early_stoppin_metric=early_stoppin_metric, subsample_early_stoping_metric_val=subsample_early_stoping_metric_val,
         saving_every_epoch=100, auxilliary_task_norm_not_norm=True,
         report=True, verbose=1)#"alignment")
 
