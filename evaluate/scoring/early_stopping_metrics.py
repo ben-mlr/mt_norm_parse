@@ -7,8 +7,7 @@ from test_._test_early_stoping import sanity_check_early_stop_metric
 
 def get_early_stopping_metric(tasks, verbose, main_task=None, early_stoppin_metric=None, subsample_early_stoping_metric_val=None):
     if main_task is None:
-        printing("INFO : default main task provided is the first of the first list {} ", var=[tasks],
-                 verbose=verbose, verbose_level=1)
+        printing("INFO : default main task provided is the first of the first list {} ", var=[tasks], verbose=verbose, verbose_level=1)
         if isinstance(tasks[0], list):
             main_task = tasks[0][0]
         else:
@@ -25,7 +24,7 @@ def get_early_stopping_metric(tasks, verbose, main_task=None, early_stoppin_metr
         get_subsample = TASKS_PARAMETER[main_task].get("default-subsample")
         if get_subsample is None:
             get_subsample = "all"
-            printing("INFO : early stopping subsample is set to default {} all as not found in {}", var=[TASKS_PARAMETER[main_task]], verbose=verbose, verbose_level=1)
+            printing("INFO : early stopping subsample is set to default {} all as not found in {}", var=["all", TASKS_PARAMETER[main_task]], verbose=verbose, verbose_level=1)
         subsample_early_stoping_metric_val = get_subsample
         assert subsample_early_stoping_metric_val in TASKS_PARAMETER[main_task]["subsample-allowed"], "ERROR task {} subsample not in {} ".format(main_task, subsample_early_stoping_metric_val)
     sanity_check_early_stop_metric(early_stoppin_metric, TASKS_PARAMETER, tasks)

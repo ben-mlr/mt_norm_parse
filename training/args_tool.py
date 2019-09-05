@@ -187,9 +187,9 @@ def args_train(mode="command_line", script="train_evaluate_run"):
 
         parser.add_argument('--masking_strategy', nargs='+', help='<Required> Set flag', default=None)
         parser.add_argument('--portion_mask', type=float, default=None)
-        parser.add_argument('--checkpoint_dir', type=str, default=None)
+        parser.add_argument('--init_args_dir', type=str, default=None)
         parser.add_argument('--norm_2_noise_training', type=float, default=None)
-        parser.add_argument('--aggregating_bert_layer_mode',type=str, default=None)
+        parser.add_argument('--aggregating_bert_layer_mode', type=str, default=None)
 
         parser.add_argument('--bert_module', type=str, default=None)
         parser.add_argument('--layer_wise_attention', type=int, default=0)
@@ -212,6 +212,6 @@ def args_train(mode="command_line", script="train_evaluate_run"):
                 # it should be a string
                 pass
 
-
     return args
+
 

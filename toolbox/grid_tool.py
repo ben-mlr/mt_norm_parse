@@ -77,7 +77,7 @@ def grid_param_label_generate(param,
                               heuristic_ls_ls=None, gold_error_detection_ls=None,
                               bert_model_ls=None,dropout_classifier_ls=None, fine_tuning_strategy_ls=None,
                               dropout_input_bpe_ls=None, dropout_bert_ls=None,
-                              masking_strategy_ls=None, checkpoint_dir_ls=None,norm_2_noise_training_ls=None,
+                              masking_strategy_ls=None, init_args_dir_ls=None,norm_2_noise_training_ls=None,
                               aggregating_bert_layer_mode_ls=None, bert_module_ls=None,layer_wise_attention_ls=None,
                               tokenize_and_bpe_ls=None, memory_efficient_iterator_ls=None, append_n_mask_ls=None, multitask_ls=None,
                               ):

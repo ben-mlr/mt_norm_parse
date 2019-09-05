@@ -20,10 +20,11 @@ from io_.get_new_batcher import get_new_shard
 
 
 def run(args,
-        n_iter_max_per_epoch,
+        n_iter_max_per_epoch_train,
         vocab_size, model_dir,
         voc_tokenizer, auxilliary_task_norm_not_norm,
         null_token_index, null_str,
+        n_iter_max_per_epoch_dev_test=None,
         run_mode="train",
         dict_path=None, end_predictions=None,
         report=True, model_suffix="", description="",
@@ -39,6 +40,7 @@ def run(args,
         bucketing_level=None,
         slang_dic_test=None, list_reference_heuristic_test=None,
         case=None, threshold_edit=3,
+        name_with_epoch=False,
         debug=False, verbose=1):
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
@@ -48,6 +50,9 @@ def run(args,
     assert run_mode in ["train", "test"], "ERROR run mode {} corrupted ".format(run_mode)
     assert early_stoppin_metric is not None and subsample_early_stoping_metric_val is not None, \
         "ERROR : assert early_stoppin_metric should be defined and subsample_early_stoping_metric_val "
+    if n_iter_max_per_epoch_dev_test is None:
+        n_iter_max_per_epoch_dev_test = n_iter_max_per_epoch_train
+
     printing("MODEL : RUNNING IN {} mode", var=[run_mode], verbose=verbose, verbose_level=1)
     printing("WARNING : casing was set to {} (this should be consistent at train and test)", var=[case], verbose=verbose, verbose_level=1)
     use_gpu_hardcoded_readers = False
@@ -133,8 +138,8 @@ def run(args,
     if voc_pos_size is not None:
         printing("MODEL : voc_pos_size defined as {}", var=voc_pos_size,  verbose_level=1, verbose=verbose)
 
-    model = get_multi_task_bert_model(args, model_dir, vocab_size, voc_pos_size, debug, num_labels_per_task=num_labels_per_task, verbose=verbose)
-
+    model = get_multi_task_bert_model(args, model_dir, vocab_size, voc_pos_size, debug,
+                                      num_labels_per_task=num_labels_per_task, verbose=verbose)
     if use_gpu:
         model.to("cuda")
 
@@ -212,15 +217,15 @@ def run(args,
                                                     }
 
                     readers_train = readers_load(datasets=args.train_path if not args.memory_efficient_iterator else training_file,
-                                                tasks=args.tasks, args=args, word_dictionary=word_dictionary,
-                                                bert_tokenizer=tokenizer, word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
-                                                pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
-                                                type_dictionary=type_dictionary, use_gpu=use_gpu_hardcoded_readers,
-                                                norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=True,
-                                                add_start_char=1, add_end_char=1, symbolic_end=1,
-                                                symbolic_root=1, bucket=True, max_char_len=20,
-                                                must_get_norm=True, bucketing_level=bucketing_level,
-                                                verbose=verbose)
+                                                 tasks=args.tasks, args=args, word_dictionary=word_dictionary,
+                                                 bert_tokenizer=tokenizer, word_dictionary_norm=word_norm_dictionary, char_dictionary=char_dictionary,
+                                                 pos_dictionary=pos_dictionary, xpos_dictionary=xpos_dictionary,
+                                                 type_dictionary=type_dictionary, use_gpu=use_gpu_hardcoded_readers,
+                                                 norm_not_norm=auxilliary_task_norm_not_norm, word_decoder=True,
+                                                 add_start_char=1, add_end_char=1, symbolic_end=1,
+                                                 symbolic_root=1, bucket=True, max_char_len=20,
+                                                 must_get_norm=True, bucketing_level=bucketing_level,
+                                                 verbose=verbose)
 
                 checkpointing_model_data = (epoch % saving_every_epoch == 0 or epoch == (args.epochs - 1))
                 # build iterator on the loaded data
@@ -266,7 +271,7 @@ def run(args,
                 if epoch > 0:
                     printing("TRAINING : training on GET_BATCH_MODE ", verbose=verbose, verbose_level=2)
                     printing("TRAINING : training 1 'epoch' = {} iteration ({} batch_size) ",
-                             var=[n_iter_max_per_epoch, args.batch_size],
+                             var=[n_iter_max_per_epoch_train, args.batch_size],
                              verbose=verbose, verbose_level=2)
 
                     loss_train, iter_train, perf_report_train, _ = epoch_run(batchIter_train, tokenizer,
@@ -289,7 +294,7 @@ def run(args,
                                                                              norm_2_noise_eval=False,
                                                                              early_stoppin_metric=None,
                                                                              case=case,
-                                                                             n_iter_max=n_iter_max_per_epoch,
+                                                                             n_iter_max=n_iter_max_per_epoch_train,
                                                                              data_sharded_dir=data_sharded, n_shards=n_shards,
                                                                              n_sent_dataset_total=n_sent_dataset_total_train,
                                                                              args_load_batcher_shard_data=args_load_batcher_shard_data,
@@ -327,7 +332,7 @@ def run(args,
                                                                                            early_stoppin_metric=early_stoppin_metric,
                                                                                            subsample_early_stoping_metric_val=subsample_early_stoping_metric_val,
                                                                                            case=case,
-                                                                                           n_iter_max=1000000,
+                                                                                           n_iter_max=n_iter_max_per_epoch_dev_test,
                                                                                            verbose=verbose)
 
                         printing("TRAINING : loss train:{} dev {}:{} for epoch {}  out of {}",
@@ -362,8 +367,14 @@ def run(args,
                     printing("CHECKPOINT : saving {} model {} ", var=[last_model, checkpoint_dir], verbose=verbose,
                              verbose_level=1)
                     torch.save(model.state_dict(), checkpoint_dir)
+                    if not name_with_epoch:
+                        extra_name = ""
+                    else:
+                        extra_name = str(epoch)+"-best" if _epoch == "best" else str(epoch)
+                        extra_name = "-"+extra_name
+
                     args_dir = write_args(dir=model_location, checkpoint_dir=checkpoint_dir,
-                                          model_id=model_id,
+                                          model_id=model_id+extra_name,
                                           info_checkpoint=OrderedDict([("n_epochs", epoch+1), ("batch_size", args.batch_size),
                                                                        ("train_path", train_data_label),
                                                                        ("dev_path", dev_data_label_ls),
@@ -374,11 +385,11 @@ def run(args,
             print("PERFORMANCE LAST {} DEV : {} ".format(epoch, perf_report_dev))
 
             if row is not None:
-                update_status(row=row, new_status="training-done", verbose=1)
+                update_status(row=row, value="training-done", verbose=1)
 
         except Exception as e:
             if row is not None:
-                update_status(row=row, new_status="ERROR", verbose=1)
+                update_status(row=row, value="ERROR", verbose=1)
             raise(e)
     if run_mode in ["train", "test"] and args.test_paths is not None:
         report_all = []
@@ -550,7 +561,7 @@ def run(args,
                                                                               reference_word_dic={"InV": inv_word_dic},
                                                                               case=case, threshold_edit=threshold_edit,
                                                                               edit_module_pred_need_norm_only=mode_need_norm_heuristic == "need_normed",
-                                                                              n_iter_max=1000000, verbose=verbose)
+                                                                              n_iter_max=n_iter_max_per_epoch_dev_test, verbose=verbose)
                         print("LOSS TEST", loss_test)
                     except Exception as e:
                         #raise(e)

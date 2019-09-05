@@ -63,7 +63,7 @@ class CoNLLReader(object):
   def getNext(self, tasks, normalize_digits=True,
               symbolic_root=False, symbolic_end=False,
               word_decoder=False, must_get_norm=True,
-              load_everything=False,
+              load_everything=False,get_mwe=None,
               verbose=0):
     line = self.__source_file.readline()
     n_words = None
@@ -85,6 +85,7 @@ class CoNLLReader(object):
       if not len(line.strip()) == 0 and line.strip()[0] == '#':
         raw_text.append(line)
         id_stop_mwe = 0
+        id_start_mwe = 0
       line = self.__source_file.readline()
     
     if len(line) == 0:
@@ -191,12 +192,14 @@ class CoNLLReader(object):
       type_ids.append(self.__type_dictionary.get_index(ROOT_TYPE))
       heads.append(ROOT_HEADS_INDEX)
 
+    if get_mwe is None:
+      get_mwe = True if "mwe_prediction" in tasks or "n_masks_mwe" in tasks or "mwe_detection" in tasks else False
     for tokens in lines:
 
       # reading a MWE : we append to the raw tokens
       if '-' in tokens[0] or "." in tokens[0]:
 
-        if '-' in tokens[0]:
+        if '-' in tokens[0] and get_mwe:
 
           matching_mwe_ind = re.match("([0-9]+)-([0-9]+)", tokens[0])
 

@@ -5,10 +5,10 @@ from io_.info_print import printing
 
 def get_multi_task_bert_model(args, model_dir, vocab_size, voc_pos_size, debug, verbose, num_labels_per_task=None):
     if args.multitask:
-        args_checkpoint_dir = args.checkpoint_dir
         # we flatten the tasks to make the model (we don't need to know if tasks are simulateneaous or not )
-        assert args.bert_module is None, "ERROR : bert module should be none in bert_multitask, their definition is based on the task "
-        model = make_bert_multitask(pretrained_model_dir=model_dir, args_checkpoint_dir=args_checkpoint_dir,
+        assert args.bert_module is None, "ERROR : bert module should be none in bert_multitask, " \
+                                         "their definition is based on the task "
+        model = make_bert_multitask(pretrained_model_dir=model_dir, init_args_dir=args.init_args_dir,
                                     tasks=[task for tasks in args.tasks for task in tasks],
                                     num_labels_per_task=num_labels_per_task)
     else:

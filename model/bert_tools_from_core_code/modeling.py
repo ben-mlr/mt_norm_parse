@@ -958,10 +958,10 @@ class BertMultiTask(BertPreTrainedModel):
         assert isinstance(num_labels_per_task, dict)
         assert isinstance(tasks, list) and len(tasks) >= 1, "config.tasks should be a list of len >=1"
         self.head = nn.ModuleDict()
-        self.tasks = tasks
+        self.tasks = tasks # tasks we use for a given run
+        self.tasks_available = tasks # all tasks available in the model (not only the one we want to use at a given run (self.tasks))
         self.task_parameters = TASKS_PARAMETER
         self.layer_wise_attention = None
-        self.downstream_tasks = None
         self.labels_supported = [label for task in tasks for label in self.task_parameters[task]["label"]]
 
         self.sanity_checking_num_labels_per_task(num_labels_per_task, tasks, self.task_parameters)
@@ -1008,9 +1008,11 @@ class BertMultiTask(BertPreTrainedModel):
             head_masks_task = None#head_masks.get(task, None) if task != "parsing" else None
             # NB : head_mask means masks specific the the module heads (nothing related to parsing !! )
             assert self.task_parameters[task]["input"] in sequence_output_dict, \
-                "ERROR input of task {} was not found in input_ids_dict {} " \
-                "and therefore not in sequence_output_dict".format(task, input_ids_dict.keys())
-            logit_label = task#+"-"+self.task_parameters[task]["label"][0] if len(self.task_parameters[task]["label"]) == 1 else task
+                "ERROR input {} of task {} was not found in input_ids_dict {}" \
+                " and therefore not in sequence_output_dict {} ".format(self.task_parameters[task]["input"],
+                                                                        task, input_ids_dict.keys(),
+                                                                        sequence_output_dict.keys())
+
             if not isinstance(self.head[task], BertOnlyMLMHead):
                 logits_dict[task] = self.head[task](sequence_output_dict[self.task_parameters[task]["input"]],
                                                            head_mask=head_masks_task)
@@ -1032,15 +1034,22 @@ class BertMultiTask(BertPreTrainedModel):
         return logits_dict, loss_dict, None
 
     def append_extra_heads_model(self, downstream_tasks, num_labels_dic_new):
-        self.downstream_tasks = downstream_tasks
+
+        self.labels_supported.extend([label for task in downstream_tasks for label in self.task_parameters[task]["label"]])
+        self.sanity_check_new_num_labels_per_task(num_labels_new=num_labels_dic_new, num_labels_original=self.num_labels_dic)
+        self.num_labels_dic.update(num_labels_dic_new)
         for new_task in downstream_tasks:
             if new_task in self.tasks:
                 pass
-                #printing("MODEL : task {} in downstream usage was already define in pretrained model", var=[new_task], verbose_level=1, verbose=1)
+                #printing("MODEL : task {} in downstream usage was already define
+                # in pretrained model", var=[new_task], verbose_level=1, verbose=1)
             else:
-                num_label = get_key_name_num_label(new_task, self.downstream_tasks)
+                num_label = get_key_name_num_label(new_task, self.task_parameters)
                 self.head[new_task] = eval(self.task_parameters[new_task]["head"])(self.config, num_labels=num_labels_dic_new[num_label])
 
+        # we update the tasks attributes
+        self.tasks_available = list(set(self.tasks+downstream_tasks))
+        self.tasks = downstream_tasks # tasks to be used at prediction time (+ possibly train)
 
     @staticmethod
     def get_loss(loss_func, label, num_label_dic, labels, logits_dict, task, logit_label):
@@ -1053,7 +1062,6 @@ class BertMultiTask(BertPreTrainedModel):
                 raise(e)
 
         elif label == "heads":
-            #loss = loss_func(logits_dict[label_task], labels[label_task])
             # trying alternative way for loss
             loss = CrossEntropyLoss(ignore_index=-1, reduction="mean")(logits_dict[logit_label].view(-1, logits_dict[logit_label].size(2)), labels[label].view(-1))
             # other possibilities is to do log softmax then L1 loss (lead to other results)
@@ -1066,11 +1074,8 @@ class BertMultiTask(BertPreTrainedModel):
             pred = logits_dict["parsing-types"][(labels["heads"] != PAD_ID_LOSS_STANDART).nonzero()[:, 0],
                                                 (labels["heads"] != PAD_ID_LOSS_STANDART).nonzero()[:, 1], labels["heads"][labels["heads"] != PAD_ID_LOSS_STANDART]]
             # remark : in the way it's coded for paring : the padding is already removed (so ignore index is null)
-            try:
-                loss = loss_func(pred, gold)
-            except Exception as e:
-                print("ERROR pred : {} gold {} : parsing heads origin {)  ".format(pred, gold, labels["heads"]))
-                raise(e)
+            loss = loss_func(pred, gold)
+
         return loss
 
 
@@ -1116,6 +1121,12 @@ class BertMultiTask(BertPreTrainedModel):
                                                                   "not found in {}".format(task, "num_labels_mandatory_to_check", task_parameters[task])
                 for label in num_labels_mandatory_to_check:
                     assert task+"-"+label in num_labels_per_task, "ERROR : task {} label {} not in num_labels_per_task {} dictionary".format(task, label, num_labels_per_task)
+    @staticmethod
+    def sanity_check_new_num_labels_per_task(num_labels_original, num_labels_new):
+        for label in num_labels_new:
+            if label in num_labels_original:
+                assert num_labels_original[label] == num_labels_new[label], \
+                    "ERROR new num label provided for existing task not the same as original original:{} new:{} ".format(num_labels_original[label], num_labels_new[label])
 
 
 

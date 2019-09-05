@@ -223,6 +223,13 @@ def write_conll_multitask(format, dir_pred, dir_original, src_text_ls,
             printing("CREATING NEW FILE (io_/dat/normalized_writer) : {} ", var=[dir_pred], verbose=verbose,
                      verbose_level=1)
 
+
+    pos_label = "pos-pos" if not gold else "pos"
+    types_label = "parsing-types" if not gold else "types"
+    heads_label = "parsing-heads" if not gold else "heads"
+    n_masks_mwe_label = "n_masks_mwe-n_masks_mwe" if not gold else "n_masks_mwe"
+    mwe_detection_label = "mwe_detection-mwe_detection" if not gold else "mwe_detection"
+
     with open(dir_pred, mode_write) as norm_file:
         with open(dir_original, mode_write) as original:
             len_original = 0
@@ -292,12 +299,12 @@ def write_conll_multitask(format, dir_pred, dir_original, src_text_ls,
                         last_mwe_index = int(matching_mwe_ind.group(2))
                         ind_mwe = int(matching_mwe_ind.group(1))
 
-                        original_token = src_text_ls["wordpieces_inputs_raw_tokens"][ind_sent][ind_mwe] if "mwe_detection" in pred_per_task or "mwe_prediction" in pred_per_task or "n_masks_mwe" in pred_per_task else "NOT_NEEDED"
+                        original_token = src_text_ls["wordpieces_inputs_raw_tokens"][ind_sent][ind_mwe] if mwe_detection_label in pred_per_task or "mwe_prediction" in pred_per_task or n_masks_mwe_label in pred_per_task else "NOT_NEEDED"
                         adjust_mwe += (last_mwe_index-ind_mwe)
                         #assert ind_adjust == 0, "ERROR not supported"
-                        mwe_meta = "Norm={}|mwe_detection={}|n_masks_mwe={}".format("_", pred_sent["mwe_detection"][ind_mwe] if "mwe_detection" in pred_per_task else "_",
-                                                                                    pred_sent["n_masks_mwe"][ind_mwe]
-                                                                                    if "n_masks_mwe" in pred_per_task else "_")
+
+                        mwe_meta = "Norm={}|mwe_detection={}|n_masks_mwe={}".format("_", pred_sent[mwe_detection_label][ind_mwe] if mwe_detection_label in pred_per_task else "_",
+                                                                                    pred_sent[n_masks_mwe_label][ind_mwe] if n_masks_mwe_label in pred_per_task else "_")
 
                         norm_file.write("{index}\t{original}\t_\t{pos}\t_\t_\t{dep}\t_\t{types}\t{norm}\n".format(index=ind, original=original_token, pos="_", types="_", dep="_", norm=mwe_meta))
                         original.write("{}\t{}\t_\t_\t_\t_\t_\t_\t{}\t_\n".format(ind, original_token, "_"))
@@ -324,18 +331,14 @@ def write_conll_multitask(format, dir_pred, dir_original, src_text_ls,
                         ind_adjust = 1
                         continue
 
-                    pos = pred_sent["pos"][ind] if "pos" in pred_per_task else "_"
-                    try:
-                        tenth_col = "Norm={}|mwe_detection={}|n_masks_mwe={}".format(pred_sent["normalize"][ind] if "normalize" in pred_per_task else "_",
-                                                                                 pred_sent["mwe_detection"][ind-adjust_mwe] if "mwe_detection" in pred_per_task else "_",
-                                                                                 pred_sent["n_masks_mwe"][ind-adjust_mwe] if "n_masks_mwe" in pred_per_task else "_")
-                    except:
-                        pdb.set_trace()
-                    #normalize = "Norm={}|".format(pred_sent["normalize"][ind]) if "normalize" in pred_per_task else "_"
-                    types = pred_sent["parsing_types"][ind] if "parsing_types" in pred_per_task else "_"
-                    heads = pred_sent["parsing_heads"][ind] if "parsing_heads" in pred_per_task else ind - 1
-                    if cp_paste:
-                        normalize = "Norm={}|".format(original_token)
+                    pos = pred_sent[pos_label][ind] if pos_label in pred_per_task else "_"
+                    types = pred_sent[types_label][ind] if types_label in pred_per_task else "_"
+                    heads = pred_sent[heads_label][ind] if heads_label in pred_per_task else ind - 1
+
+                    tenth_col = "Norm={}|mwe_detection={}|n_masks_mwe={}".format(pred_sent["normalize"][ind] if "normalize" in pred_per_task else "_",
+                                                                                 pred_sent[mwe_detection_label][ind-adjust_mwe] if mwe_detection_label in pred_per_task else "_",
+                                                                                 pred_sent[n_masks_mwe_label][ind-adjust_mwe] if n_masks_mwe_label in pred_per_task else "_")
+
                     norm_file.write("{index}\t{original}\t_\t{pos}\t_\t_\t{dep}\t_\t{types}\t{norm}\n".format(index=ind, original=original_token, pos=pos, types=types, dep=heads, norm=tenth_col))
                     original.write("{}\t{}\t_\t_\t_\t_\t_\t_\t{}\t_\n".format(ind, original_token, ind-1))
                     if cut_sent:

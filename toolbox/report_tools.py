@@ -132,7 +132,7 @@ def get_hyperparameters_dict(args, case, random_iterator_train, seed, verbose):
                                    ("tasks", args.tasks),
                                    ("masking_strategy", args.masking_strategy),
                                    ("portion_mask", args.portion_mask),
-                                   ("checkpoint_dir", args.checkpoint_dir if args.checkpoint_dir is not None else None),
+                                   ("init_args_dir", args.init_args_dir),
                                    ("norm_2_noise_training", args.norm_2_noise_training),
                                    ("random_iterator_train", random_iterator_train),
                                    ("aggregating_bert_layer_mode", args.aggregating_bert_layer_mode),
