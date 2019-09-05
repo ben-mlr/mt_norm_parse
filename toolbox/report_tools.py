@@ -89,11 +89,11 @@ def write_args(dir, model_id, checkpoint_dir=None,
         json.dump(args, open(args_dir, "w"))
     else:
         assert hyperparameters is not None, "REPORT : args.json created for the first time : hyperparameters dic required "
-        assert info_checkpoint is None, "REPORT : args. created for the first time : no checkpoint yet "
+        #assert info_checkpoint is None, "REPORT : args. created for the first time : no checkpoint yet "
         info = "new"
         json.dump(OrderedDict([("checkpoint_dir", checkpoint_dir),
                                ("hyperparameters", hyperparameters),
-                               ("info_checkpoint", None)]), open(args_dir, "w"))
+                               ("info_checkpoint", info_checkpoint)]), open(args_dir, "w"))
     printing("MODEL args.json {} written {} ".format(info, args_dir), verbose_level=1, verbose=verbose)
     return args_dir
 

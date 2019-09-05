@@ -1,5 +1,5 @@
 from .ioutils import DependencyInstance, Sentence, SentenceWordPieced
-from .constants import DIGIT_RE, MAX_CHAR_LENGTH, NUM_CHAR_PAD, ROOT, ROOT_CHAR, ROOT_POS, ROOT_TYPE, PAD, END_CHAR, END_POS, END_TYPE, END, ROOT_HEADS_INDEX, END_HEADS_INDEX, CLS_BERT, SEP_BERT, MASK_BERT
+from .constants import DIGIT_RE, MAX_CHAR_LENGTH, MAX_WORDPIECES_LENGTH, NUM_CHAR_PAD, ROOT, ROOT_CHAR, ROOT_POS, ROOT_TYPE, PAD, END_CHAR, END_POS, END_TYPE, END, ROOT_HEADS_INDEX, END_HEADS_INDEX, CLS_BERT, SEP_BERT, MASK_BERT
 from io_.info_print import printing
 from io_.dat.conllu_get_normalization import get_normalized_token
 from env.project_variables import AVAILABLE_TASKS
@@ -16,7 +16,7 @@ class CoNLLReader(object):
                lemma_dictionary, word_norm_dictionary=None,
                bert_tokenizer=None,
                word_level_input=True,
-               case=None,
+               case=None, max_n_bpe=None,
                max_char_len=MAX_CHAR_LENGTH):
     """
     NB : naming conventions : we call words : syntactic words , tokens : raw unsegmentd tokens
@@ -50,6 +50,9 @@ class CoNLLReader(object):
     self.bert_tokenizer = bert_tokenizer
     if bert_tokenizer is not None:
       printing("INFO Reader : will provide BERT bpe tokens", verbose=1, verbose_level=1)
+
+    if max_n_bpe is None:
+      self.max_n_bpe = MAX_WORDPIECES_LENGTH
 
     if max_char_len is None:
       max_char_len = MAX_CHAR_LENGTH
@@ -381,6 +384,8 @@ class CoNLLReader(object):
       heads.append(head)
 
 
+
+
     if symbolic_end:
       words.append(END)
       word_ids.append(self.__word_dictionary.get_index(END))
@@ -413,6 +418,15 @@ class CoNLLReader(object):
           is_first_bpe_of_norm.append(-1)
 
       # we add one indx for SEP token
+
+      word_piece_raw_tokens = word_piece_raw_tokens[:self.max_n_bpe]
+      word_piece_raw_tokens_aligned = word_piece_raw_tokens_aligned[:self.max_n_bpe]
+      word_piece_words = word_piece_words[:self.max_n_bpe]
+
+      word_piece_raw_tokens_index = word_piece_raw_tokens_index[:self.max_n_bpe]
+      word_piece_raw_tokens_aligned_index = word_piece_raw_tokens_aligned_index[:self.max_n_bpe]
+      word_piece_words_index = word_piece_words_index[:self.max_n_bpe]
+
       word_piece_normalization_index.append(int(n_words)+1)
       word_piece_raw_tokens_index.append(int(n_words)+1)
       word_piece_raw_tokens_aligned_index.append(int(n_words)+1)

@@ -354,14 +354,13 @@ if __name__ == "__main__":
               tasks_ls = [[task_simul] for task_simul in task_to_grid for _ in lang_iter]
               printing("GRID : running {} lang on {} tasks combinaiton ".format(lang_iter, task_to_grid), verbose=1, verbose_level=1)
               n_tasks = len(task_to_grid)
-
+              # 9702241-B-93c9a-9702241-B-model_0/9702241-B-93c9a-9702241-B-model_0-9-args.json
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
                                                   batch_size_ls=[2],
                                                   init_args_dir_ls=["'"+os.path.join(CHECKPOINT_BERT_DIR,
-                                                                                      "3b332-B-e77a2-3b332-B-model_0",
-                                                                                      "3b332-B-e77a2-3b332-B-model_0-args.json")+"'"],#["'"+os.path.join(CHECKPOINT_BERT_DIR,"checkpoints", "bert", "9372042-B-6ccaa-9372042-B-model_0/9372042-B-6ccaa-9372042-B-model_0-epbest-checkpoint.pt")+"'"],
+                                                                                      "9702241-B-93c9a-9702241-B-model_0/9702241-B-93c9a-9702241-B-model_0-{}-args.json".format(epoch))+"'" for epoch in [6,8,9]],#["'"+os.path.join(CHECKPOINT_BERT_DIR,"checkpoints", "bert", "9372042-B-6ccaa-9372042-B-model_0/9372042-B-6ccaa-9372042-B-model_0-epbest-checkpoint.pt")+"'"],
                                                   gpu_mode="random",
                                                   append_n_mask_ls=[0],
                                                   #norm_2_noise_training_ls=[0., 1.],
@@ -432,7 +431,7 @@ if __name__ == "__main__":
 
           PRETRAINING = True
           if PRETRAINING:
-              epochs = 5
+              epochs = 10
 
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,

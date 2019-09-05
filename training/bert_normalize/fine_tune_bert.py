@@ -374,6 +374,7 @@ def run(args,
                         extra_name = "-"+extra_name
 
                     args_dir = write_args(dir=model_location, checkpoint_dir=checkpoint_dir,
+                                          hyperparameters=hyperparameters if name_with_epoch else None,
                                           model_id=model_id+extra_name,
                                           info_checkpoint=OrderedDict([("n_epochs", epoch+1), ("batch_size", args.batch_size),
                                                                        ("train_path", train_data_label),
