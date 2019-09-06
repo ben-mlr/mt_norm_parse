@@ -93,7 +93,7 @@ def pos_specific_dic_builder(pos_specific_data_set, pos_dictionary):
 def create_dict(dict_path, train_path, dev_path, test_path, tasks,
                 dry_run, word_normalization=False, expand_vocab_bool=False, add_start_char=0,
                 min_occurence=0, pos_specific_data_set=None,word_embed_dict=None, case=None,
-                verbose=1,
+                verbose=1, do_not_fill_dictionaries=False,
                ):
   """
   Given train, dev, test treebanks and a word embedding matrix :
@@ -152,6 +152,10 @@ def create_dict(dict_path, train_path, dev_path, test_path, tasks,
   assert tasks is not None, "ERROR : we need tasks information along with dataset to know how to commute label dictionary"
 
   for train_dir, simultaneous_task_ls in zip(train_path, tasks):
+    do_not_fill_dictionaries =True
+    if do_not_fill_dictionaries:
+      print("WARNING : do_not_fill_dictionaries is TRUE ")
+      break
     printing("VOCABULARY : computing dictionary for word, char on {} for task {} ", var=[train_dir, simultaneous_task_ls], verbose=verbose, verbose_level=1)
     if len(set(simultaneous_task_ls) & set(["normalize", "all"])) > 0:
       printing("VOCABULARY : computing dictionary for normalized word also {} ", var=[train_dir, simultaneous_task_ls], verbose=verbose, verbose_level=1)

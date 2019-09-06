@@ -331,7 +331,9 @@ if __name__ == "__main__":
                                                   mode_word_encoding_ls=["sum"],
                                                   dropout_input_ls=[0.4, 0.5,  0.6],
                                                   multi_task_loss_ponderation_ls=[#{"pos": 1, "normalize": 0, "norm_not_norm": 0, "edit_prediction":0},
-                                                                                   {"pos": 1, "normalize": 0, "norm_not_norm": 1, "edit_prediction":1},
+                                                                                   {"pos": 1, "normalize": 0,
+                                                                                    "norm_not_norm": 1,
+                                                                                    "edit_prediction": 1},
                                                                                  ],
                                                   scale_ls=[1],
                                                   # arguments that are specific to script generation
@@ -344,7 +346,7 @@ if __name__ == "__main__":
           FINE_TUNE_BERT = False
 
           if FINE_TUNE_BERT:
-              epochs = 2
+              epochs = 15
               lang_iter = ["tr_imst"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
               task_to_grid = [["pos"]]
                              # ["n_masks_mwe", "mwe_detection", "mwe_prediction", "pos"], 
@@ -359,8 +361,8 @@ if __name__ == "__main__":
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
                                                   batch_size_ls=[2],
-                                                  init_args_dir_ls=["'"+os.path.join(CHECKPOINT_BERT_DIR,
-                                                                                      "9702241-B-93c9a-9702241-B-model_0/9702241-B-93c9a-9702241-B-model_0-{}-args.json".format(epoch))+"'" for epoch in [6,8,9]],#["'"+os.path.join(CHECKPOINT_BERT_DIR,"checkpoints", "bert", "9372042-B-6ccaa-9372042-B-model_0/9372042-B-6ccaa-9372042-B-model_0-epbest-checkpoint.pt")+"'"],
+                                                  init_args_dir_ls=["'"+os.path.join(CHECKPOINT_BERT_DIR, "9705484-B-7de0e-9705484-B-model_2/9705484-B-7de0e-9705484-B-model_2-{}-best-args.json".format(epoch))+"'"
+                                                                    for epoch in [0, 2, 3, 4, 5, 6, 7, 9]],#["'"+os.path.join(CHECKPOINT_BERT_DIR,"checkpoints", "bert", "9372042-B-6ccaa-9372042-B-model_0/9372042-B-6ccaa-9372042-B-model_0-epbest-checkpoint.pt")+"'"],
                                                   gpu_mode="random",
                                                   append_n_mask_ls=[0],
                                                   #norm_2_noise_training_ls=[0., 1.],
@@ -385,7 +387,7 @@ if __name__ == "__main__":
                                                   #train_path=[[EN_LINES_EWT_TRAIN], [LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED, EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV], [LIU_DEV, EWT_DEV]],
                                                   #[LIU_TRAIN_OWOPUTI],
                                                   train_path=[[ARABIZI_TRAIN_POS]],#TWEETS_GANESH_PERM_400]], #  [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_NOISY],[LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_2_NOISY], [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_1000]],
-                                                  dev_path=[[[ARABIZI_DEV_POS], [EWT_DEV]]],
+                                                  dev_path=[[[ARABIZI_DEV_POS]]],
                                                   #train_path=[[LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED]], dev_path=[[LIU_DEV]],
                                                   #train_path=[[CODE_MIXED_RAW_TRAIN_SMALL]], dev_path=[[CODE_MIXED_RAW_CUT_DEV]],
                                                   #train_path=[[EWT_DEMO] for _ in range(n_tasks)], dev_path=[[EWT_DEMO] for _ in range(n_tasks)],
@@ -431,7 +433,13 @@ if __name__ == "__main__":
 
           PRETRAINING = True
           if PRETRAINING:
-              epochs = 10
+              epochs = 1
+              noise_level = "noisy"
+              domain = "code_mixed"
+              domain_canonical = "wiki_fr"
+              demo = True
+
+              size = "small" if demo else "large"
 
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
@@ -442,7 +450,7 @@ if __name__ == "__main__":
                                                   bert_module_ls=None,
                                                   append_n_mask_ls=[0],
                                                   # norm_2_noise_training_ls=[0., 1.],
-                                                  lr_ls=[0.00001],
+                                                  lr_ls=[0.000001],
                                                   # lr_ls=[OrderedDict([("bert", 1e-5), ("classifier_task_2", 1e-4), ("classifier_task_1", 1e-5)]),
                                                      #       OrderedDict([("bert", 5e-6), ("classifier_task_2", 1e-4), ("classifier_task_1", 1e-5)]),
                                                      #       OrderedDict([("bert", 1e-5), ("classifier_task_2", 1e-3), ("classifier_task_1", 1e-5)])],
@@ -467,12 +475,12 @@ if __name__ == "__main__":
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   freeze_parameters_ls=[0],
                                                   freeze_layer_prefix_ls_ls=[None],
-                                                  train_path=[[CODE_MIXED_RAW_DEMO]],#[[CODE_MIXED_RAW_TRAIN]],
-                                                  dev_path=[[[CODE_MIXED_RAW_DEMO]]],#[[[CODE_MIXED_RAW_DEMO]]],#[[[CODE_MIXED_RAW_DEV_SMALL], [WIKI_DEV_SMALL]]],
-                                                  test_paths=[[[CODE_MIXED_RAW_DEMO]]],#[[[CODE_MIXED_RAW_DEMO]]],#[[[CODE_MIXED_RAW_TRAIN_SMALL], [WIKI_DEV_SMALL], [CODE_MIXED_RAW_DEV_SMALL], [CODE_MIXED_RAW_TEST_SMALL]]],
+                                                  train_path=[[MLM_DATA[noise_level][domain]["train"][size]]],#[[CODE_MIXED_RAW_TRAIN]],
+                                                  dev_path=[[[MLM_DATA[noise_level][domain]["dev"]["small"]], [MLM_DATA["canonical"][domain_canonical]["dev"]["small"]]]],#[[[CODE_MIXED_RAW_DEMO]]],#[[[CODE_MIXED_RAW_DEV_SMALL], [WIKI_DEV_SMALL]]],
+                                                  test_paths=[[[MLM_DATA[noise_level][domain]["train"]["small"]], [WIKI_DEV_SMALL], [MLM_DATA[noise_level][domain]["dev"]["small"]], [MLM_DATA[noise_level][domain]["test"]["small"]]]],#[[[CODE_MIXED_RAW_DEMO]]],#[[[CODE_MIXED_RAW_TRAIN_SMALL], [WIKI_DEV_SMALL], [CODE_MIXED_RAW_DEV_SMALL], [CODE_MIXED_RAW_TEST_SMALL]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
-                                                  epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
+                                                  epochs=epochs+1 if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
                                                   gpus_ls=gpu_ls,
                                                   write_to_dir=RUN_SCRIPTS_DIR,
                                                   description_comment=description_comment,

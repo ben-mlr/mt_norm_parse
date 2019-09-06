@@ -177,23 +177,25 @@ ARABIZI_POS_TEST_LABEL, ARABIZI_TEST_POS = "arabizi_test-pos",  os.path.join(PRO
 
 CODE_MIXED_RAW_LABEL, CODE_MIXED_RAW = "raw_code_mixed", os.path.join(PROJECT_PATH, "./data/code_mixed/code-mixed_code-mixed1.conll")
 
-CODE_MIXED_RAW_TRAIN_LABEL, CODE_MIXED_RAW_TRAIN = "raw_code_mixed-train_50k", os.path.join(PROJECT_PATH, "./data/code_mixed/code-train-50k.conll.conll")
+CODE_MIXED_RAW_TRAIN_LABEL, CODE_MIXED_RAW_TRAIN = "raw_code_mixed-train_50k", os.path.join(PROJECT_PATH, "./data/code_mixed/code_mixed-train.conll")
 CODE_MIXED_RAW_TRAIN_SMALL_LABEL, CODE_MIXED_RAW_TRAIN_SMALL = "raw_code_mixed-train_10k", os.path.join(PROJECT_PATH, "./data/code_mixed/code-train-10k.conll.conll")
+
+
 
 CODE_MIXED_RAW_DEMO_LABEL, CODE_MIXED_RAW_DEMO = "code-mixed-demo", os.path.join(PROJECT_PATH, "./data/code_mixed/code-train-demo.conll")
 
-CODE_MIXED_RAW_DEV_LABEL, CODE_MIXED_RAW_DEV = "raw_code_mixed-dev_10k", os.path.join(PROJECT_PATH, "./data/code_mixed/code-dev-10k.conll.conll")
-CODE_MIXED_RAW_DEV_SMALL_LABEL, CODE_MIXED_RAW_DEV_SMALL = "raw_code_mixed-dev_1k", os.path.join(PROJECT_PATH, "./data/code_mixed/code-dev-1k.conll.conll")
+CODE_MIXED_RAW_DEV_LABEL, CODE_MIXED_RAW_DEV = "raw_code_mixed-dev_10k", os.path.join(PROJECT_PATH, "./data/code_mixed/code_mixed-dev.conll")
+CODE_MIXED_RAW_DEV_SMALL_LABEL, CODE_MIXED_RAW_DEV_SMALL = "raw_code_mixed-dev_1k", os.path.join(PROJECT_PATH, "./data/code_mixed/code_mixed-dev-1k.conll")
 
 CODE_MIXED_RAW_CUT_DEV_LABEL, CODE_MIXED_RAW_CUT_DEV = "raw_code_mixed-dev", os.path.join(PROJECT_PATH, "./data/code_mixed/code-mixed_code-mixed1-dev_cut.conll.conll")
 
 CODE_MIXED_RAW_TEST_SMALL_LABEL, CODE_MIXED_RAW_TEST_SMALL = "raw_code_mixed-test_1k", os.path.join(PROJECT_PATH, "./data/code_mixed/code-test-1k.conll.conll")
-CODE_MIXED_RAW_TEST_LABEL, CODE_MIXED_RAW_TEST = "raw_code_mixed-test_10k", os.path.join(PROJECT_PATH, "./data/code_mixed/code-test-10k.conll.conll")
+CODE_MIXED_RAW_TEST_LABEL, CODE_MIXED_RAW_TEST = "raw_code_mixed-test_10k", os.path.join(PROJECT_PATH, "./data/code_mixed/code_mixed-test-1k.conll")
 
 CODE_MIXED_RAW_TEST_CUT_LABEL, CODE_MIXED_RAW_CUT_TEST = "raw_code_mixed-test_cut", os.path.join(PROJECT_PATH, "./data/code_mixed/code-mixed_code-mixed1-test_cut.conll.conll")
 
 WIKI_DEV_LABEL, WIKI_DEV = "wikipedia_fr_tk_sg-top10k.conll", os.path.join(PROJECT_PATH, "data/wiki/wikipedia_fr_tk_sg-top10k.conll")
-WIKI_DEV_SMALL_LABEL, WIKI_DEV_SMALL = "wikipedia_fr_tk_sg-top1k.conll", os.path.join(PROJECT_PATH, "data/wiki/wikipedia_fr_tk_sg-top1k.conll")
+WIKI_DEV_SMALL_LABEL, WIKI_DEV_SMALL = "wikipedia_fr_tk_sg-top2k.conll", os.path.join(PROJECT_PATH, "data/wiki/wikipedia_fr_tk_sg-top1k.conll")
 
 # AUGMENT
 
@@ -225,10 +227,32 @@ MTNT_EN_TOK_DEV_CONLL_LABEL, MTNT_EN_TOK_DEV_CONLL = "mtnt_tok_dev_conll", \
 MTNT_EN_TOK_DEV_DEMO_CONLL_LABEL, MTNT_EN_TOK_DEV_DEMO_CONLL = "mtnt_tok_dev_demo_conll", \
                                                                os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/dev.tok.en.demo.conll")
 # tweets
-TWEETS_GANESH_PERM_400_LABEL, TWEETS_GANESH_PERM_400 = "pan_tweets_200k", os.path.join(PROJECT_PATH, "data", "pan_tweets-200k-norm+permute.conll")
-TWEETS_GANESH_LABEL, TWEETS_GANESH = "pan_tweets_200k", os.path.join(PROJECT_PATH, "data", "pan_tweets-200k.conll")
-TWEETS_GANESH_1M_LABEL, TWEETS_GANESH_1M = "pan_tweets_200k", os.path.join(PROJECT_PATH, "data", "pan_tweets-1000k.conll")
-TWEETS_GANESH_DEV_LABEL, TWEETS_GANESH_DEV = "pan_tweets_200k", os.path.join(PROJECT_PATH, "data", "pan_tweets-dev.conll")
+TWEETS_GANESH_PERM_400_LABEL, TWEETS_GANESH_PERM_400 = "pan_tweets_200k", os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets-200k-norm+permute.conll")
+TWEETS_GANESH_LABEL, TWEETS_GANESH = "pan_tweets-train_530k", os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets_en-train-530k.conll")
+TWEETS_GANESH_TRAIN_SMALL_LABEL, TWEETS_GANESH_TRAIN_SMALL = "pan_tweets-dev", os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets-train_1k.conll")
+#TWEETS_GANESH_1M_LABEL, TWEETS_GANESH_1M = "pan_tweets_200k", os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets-1000k.conll")
+TWEETS_GANESH_DEV_LABEL, TWEETS_GANESH_DEV = "pan_tweets-dev", os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets-dev.conll")
+
+TWEETS_GANESH_DEV_SMALL_LABEL, TWEETS_GANESH_DEV_SMALL = "pan_tweets-dev_1k", os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets-dev-1k.conll")
+
+TWEETS_GANESH_TEST_LABEL, TWEETS_GANESH_TEST = "pan_tweets-test", os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets-test.conll")
+TWEETS_GANESH_TEST_SMALL_LABEL, TWEETS_GANESH_TEST_SMALL = "pan_tweets-test_1k", os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets-test-1k.conll")
+
+
+MLM_DATA = {"noisy": {"code_mixed": {"train": {"large": CODE_MIXED_RAW_TRAIN, "small": CODE_MIXED_RAW_TRAIN_SMALL},
+                                     "dev": {"large": CODE_MIXED_RAW_DEV, "small": CODE_MIXED_RAW_DEV_SMALL},
+                                     "test": {"large": CODE_MIXED_RAW_TEST, "small": CODE_MIXED_RAW_TEST_SMALL}},
+                      "tweets_en": {"train": {"large": TWEETS_GANESH, "small": None},
+                                  "dev": {"large": TWEETS_GANESH_DEV, "small": TWEETS_GANESH_DEV_SMALL},
+                                  "test": {"large": TWEETS_GANESH_TEST, "small": TWEETS_GANESH_TEST}}},
+            "canonical": {
+                         "wiki_fr":  {    "train": {"large": None, "small": None},
+                                          "dev": {"large": WIKI_DEV, "small": WIKI_DEV_SMALL},
+                                          "test": {"large": None, "small": None}
+                }
+            }
+
+}
 
 
 #PERMUTATION
@@ -311,9 +335,18 @@ EMNLP12_DIC_LABEL, EMNLP12_DIC = "emnlp-dic-wnut", os.path.join(PROJECT_PATH, "d
 REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO2: DEMO2_LABEL,
                 TEST: TEST_LABEL, LIU: LIU_LABEL,
                 TWEETS_GANESH: TWEETS_GANESH_LABEL,
-                TWEETS_GANESH_DEV: TWEETS_GANESH_DEV_LABEL,
-                TWEETS_GANESH_PERM_400:TWEETS_GANESH_PERM_400_LABEL,
-                TWEETS_GANESH_1M: TWEETS_GANESH_1M_LABEL,
+                TWEETS_GANESH_TRAIN_SMALL:TWEETS_GANESH_TRAIN_SMALL_LABEL,
+
+                TWEETS_GANESH_DEV : TWEETS_GANESH_DEV_LABEL,
+                TWEETS_GANESH_DEV_SMALL : TWEETS_GANESH_DEV_SMALL_LABEL,
+
+                TWEETS_GANESH_PERM_400 : TWEETS_GANESH_PERM_400_LABEL,
+                #TWEETS_GANESH_1M: TWEETS_GANESH_1M_LABEL,
+                TWEETS_GANESH_TRAIN_SMALL : TWEETS_GANESH_TRAIN_SMALL_LABEL,
+
+                TWEETS_GANESH_TEST_SMALL: TWEETS_GANESH_TEST_SMALL_LABEL,
+                TWEETS_GANESH_TEST: TWEETS_GANESH_TEST_LABEL,
+
                 LEX_TRAIN_SPACE_DEMO: LEX_TRAIN_SPACE_DEMO_LABEL,
                 LIU_TRAIN_OWOPUTI_LEX_TRAIN: LIU_TRAIN_OWOPUTI_LEX_TRAIN_LABEL,
                 LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED: LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED_LABEL,
@@ -341,7 +374,7 @@ REPO_DATASET = {TRAINING: TRAINING_LABEL, DEV: DEV_LABEL, DEMO: DEMO_LABEL, DEMO
                 DEMO_SENT: DEMO_SENT_LABEL,
                 TEST_SENT: TEST_SENT_LABEL, DEV_SENT: DEV_SENT_LABEL, LIU_TRAIN_SENT: LIU_TRAIN_SENT_LABEL,
                 LIU_DEV_SENT: LIU_DEV_SENT_LABEL,
-                EWT_TEST:EWT_TEST_LABEL,
+                EWT_TEST: EWT_TEST_LABEL,
                 EN_LINES_TRAIN: EN_LINES_TRAIN_LABEL, EN_LINES_DEV: EN_LINES_DEV_LABEL,
                 EN_LINES_EWT_TRAIN: EN_LINES_EWT_TRAIN_LABEL,
                 MTNT_TOK_TRAIN: MTNT_TOK_TRAIN_LABEL, MTNT_TOK_DEV: MTNT_TOK_DEV_LABEL,
