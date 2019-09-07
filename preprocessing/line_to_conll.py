@@ -32,7 +32,7 @@ def line_to_conll(dir_src, dir_target, starting_index=0, cut_sent=False, n_sents
             line = line.strip().split(" ")
 
             if verbose>=1:
-                if ind%10000==0:
+                if ind % 10000==0:
                     print("{} line processed".format(ind))
 
             #for index, word in enumerate(line):
@@ -60,13 +60,16 @@ if __name__ == "__main__":
 
     #file_name = "code-test-1k.conll"
     starting_index = 0
-    n_sents = 1000
+    n_sents = 1000000
     #line_to_conll("/Users/bemuller/Documents/Work/INRIA/temp/wikipedia_fr_tk_sg-top10k.txt",#os.path.join(PROJECT_PATH, "data", "code_mixed", "code-mixed_code-mixed1.txt.txt"),
     #              "/Users/bemuller/Documents/Work/INRIA/temp/wikipedia_fr_tk_sg-top1k.conll",
     #              cut_sent=True, starting_index=starting_index, n_sents=n_sents)
-    line_to_conll(os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_ben_conll.tok"),
-                  os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets_en-train_1k"),
+    line_to_conll(os.path.join(PROJECT_PATH, "data", "wiki", "wikipedia_fr_tk_sg.txt"),
+                  os.path.join(PROJECT_PATH, "data", "wiki", "wiki_fr-train-1M.conll"),
                   cut_sent=True, starting_index=starting_index, n_sents=n_sents)
+    #line_to_conll(os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_ben_conll.tok"),
+    #              os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets_en-train"),
+    #              cut_sent=True, starting_index=starting_index, n_sents=n_sents)
 
     if False:
        with open(os.path.join(PROJECT_PATH, "data", "code_mixed", "README-data.txt"), "a") as f:

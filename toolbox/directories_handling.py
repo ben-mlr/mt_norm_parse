@@ -26,7 +26,7 @@ def setup_repoting_location(root_dir_checkpoints, model_suffix="", shared_id=Non
         data_sharded = os.path.join(root_dir_checkpoints, model_local_id, "shards")
         os.mkdir(data_sharded)
     else:
-        assert os.path.isdir(data_sharded), "ERROR data_sharded {} ".format(data_sharded)
+        assert os.path.isdir(data_sharded), "ERROR data_sharded not dir {} ".format(data_sharded)
         printing("INFO DATA already sharded in {}",var=[data_sharded], verbose=verbose, verbose_level=1)
 
     printing("CHECKPOINTING model ID:{}", var=[model_local_id], verbose=verbose, verbose_level=1)

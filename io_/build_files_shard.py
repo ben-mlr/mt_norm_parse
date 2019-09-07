@@ -1,5 +1,11 @@
+import sys
+sys.path.append("..")
+sys.path.append( ".")
 from env.importing import np, os, sys, random, pdb
 from io_.info_print import printing
+from env.project_variables import PROJECT_PATH, N_SENT_MAX_CONLL_PER_SHARD
+from os.path import isfile, join
+from os import listdir
 
 
 def count_conll_n_sent(dir_file):
@@ -29,6 +35,7 @@ def create_files(dir_shard, n_shards, label_file):
 def split_randomly(n_shards, dir_shard, dir_file, n_sents, label_file="train"):
 
     ls_files_path = create_files(dir_shard, n_shards, label_file)
+    print("INFO shards files created in {}".format(dir_shard))
     n_sent_written = 0
 
     with open(dir_file, 'r') as f:
@@ -43,15 +50,26 @@ def split_randomly(n_shards, dir_shard, dir_file, n_sents, label_file="train"):
             open(file, "a").write(line)
             line_former = line
 
-    assert n_sent_written == n_sents,\
-        "ERROR not all counted sentence were writted  counted {}  written {} (shard {})".format(n_sents, n_sent_written, dir_shard)
+    assert n_sent_written == n_sents, "ERROR not all counted sentence were writted  counted {}  written {} (shard {})".format(n_sents, n_sent_written, dir_shard)
 
 
 def build_shard(dir_shard, dir_file, n_sent_max_per_file, format="conll", verbose=1):
 
+    onlyfiles = [f for f in listdir(dir_shard) if isfile(join(dir_shard, f))]
+    if len(onlyfiles) > 0:
+        n_shards = len(onlyfiles)
+        n_sents = 0
+        for file in onlyfiles:
+            n_sents += count_conll_n_sent(os.path.join(dir_shard, file))
+
+        printing("INFO : shards already filled in {} files {} sentences total", var=[n_shards, n_sents],
+                 verbose=1, verbose_level=1)
+
+        return dir_shard, n_shards, n_sents
+
     assert format in "conll"
     assert len(dir_file) == 1, "ONLY 1 set of simultaneous task supported for sharding"
-
+    printing("STARTING SHARDING {} of {} ".format(dir_shard, dir_file), verbose=verbose, verbose_level=1)
     dir_file = dir_file[0]
     n_sents = count_conll_n_sent(dir_file)
     n_shards = n_sents//n_sent_max_per_file
@@ -59,15 +77,18 @@ def build_shard(dir_shard, dir_file, n_sent_max_per_file, format="conll", verbos
     if n_shards == 0:
         printing("INFO SHARDING : n_sent_max_per_file is lower that number of files in {} so only building 1 shard", var=[dir_file], verbose=verbose, verbose_level=1)
         n_shards += 1
-
     split_randomly(n_shards, dir_shard, dir_file, n_sents)
 
     printing("INFO SHARD n_sent written {} splitted in {} files with in average {} sent per file written to {}", var=[n_sents, n_shards,n_sent_max_per_file, dir_shard], verbose=verbose, verbose_level=1)
 
     return dir_shard, n_shards, n_sents
-
+    
 
 if __name__ == "__main__":
 
-    build_shard("/Users/bemuller/Documents/Work/INRIA/temp",
-                "/Users/bemuller/Documents/Work/INRIA/dev/parsing/data/Universal-Dependencies-2.4/fr_spoken-ud-train.conllu", 50)
+    #shard = os.path.join(os.environ.get("MT_NORM_PARSE_DATA", ".."), "data", "code_mixed", "train")
+    #data_dir = os.path.join(PROJECT_PATH, "data", "code_mixed", "code_mixed-train.conll") #
+    shard = os.path.join(os.environ.get("MT_NORM_PARSE_DATA", ".."), "data", "tweets_en_pan_ganesh", "train")
+    data_dir = os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets_en-train.conll") #"/Users/bemuller/Documents/Work/INRIA/dev/parsing/data/Universal-Dependencies-2.4/fr_spoken-ud-train.conllu"
+    #data_dir = os.path.join(PROJECT_PATH, "data", "code_mixed", "code-dev-10k.conll.conll")
+    build_shard(shard, [data_dir], N_SENT_MAX_CONLL_PER_SHARD)

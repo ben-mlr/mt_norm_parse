@@ -88,8 +88,17 @@ def run(args,
     writer = None
 
     if run_mode == "train":
+
+        if os.path.isdir(args.train_path[0]) and len(args.train_path) == 1:
+            data_sharded = args.train_path[0]
+            printing("INFO args.train_path is directory so not rebuilding shards", verbose=verbose, verbose_level=1)
+        elif os.path.isdir(args.train_path[0]):
+            raise(Exception(" {} is a directory but len is more than one , not supported".format(args.train_path[0], len(args.train_path))))
         assert model_location is None and model_id is None, "ERROR we are creating a new one "
-        model_id, model_location, dict_path, tensorboard_log, end_predictions, data_sharded = setup_repoting_location(model_suffix=model_suffix, root_dir_checkpoints=CHECKPOINT_BERT_DIR, shared_id=args.overall_label, verbose=verbose)
+        model_id, model_location, dict_path, tensorboard_log, end_predictions, data_sharded \
+            = setup_repoting_location(model_suffix=model_suffix, data_sharded=data_sharded,
+                                      root_dir_checkpoints=CHECKPOINT_BERT_DIR,
+                                      shared_id=args.overall_label, verbose=verbose)
         hyperparameters = get_hyperparameters_dict(args, case, random_iterator_train, seed=SEED_TORCH, verbose=verbose)
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
 
@@ -129,6 +138,7 @@ def run(args,
                               add_start_char=1 if run_mode == "train" else None,
                               verbose=1)
     # we flatten the tasks
+    printing("DICTIONARY CREATED", verbose=verbose, verbose_level=1)
     num_labels_per_task, task_to_label_dictionary = get_vocab_size_and_dictionary_per_task([task for tasks in args.tasks for task in tasks],
                                                                                            vocab_bert_wordpieces_len=vocab_size,
                                                                                            pos_dictionary=pos_dictionary,
@@ -137,11 +147,14 @@ def run(args,
     voc_pos_size = num_labels_per_task["pos"] if "pos" in args.tasks else None
     if voc_pos_size is not None:
         printing("MODEL : voc_pos_size defined as {}", var=voc_pos_size,  verbose_level=1, verbose=verbose)
+    printing("MODEL CREATING.. ", verbose=verbose, verbose_level=1)
 
     model = get_multi_task_bert_model(args, model_dir, vocab_size, voc_pos_size, debug,
                                       num_labels_per_task=num_labels_per_task, verbose=verbose)
+    printing("MODEL CREATED use_gpy {}".format(use_gpu), verbose=verbose, verbose_level=1)
     if use_gpu:
         model.to("cuda")
+        printing("MODEL TO CUDA", verbose=verbose, verbose_level=1)
 
     inv_word_dic = word_dictionary.instance2index
     # load , mask, bucket and index data
@@ -154,7 +167,8 @@ def run(args,
             data_sharded, n_shards, n_sent_dataset_total_train = None, None, None
             args_load_batcher_shard_data = None
 
-            readers_train = readers_load(datasets=args.train_path if not args.memory_efficient_iterator else training_file,
+            printing("INFO : startign loading readers", verbose=verbose, verbose_level=1)
+            readers_train = readers_load(datasets=args.train_path,
                                          tasks=args.tasks,
                                          args=args,
                                          word_dictionary=word_dictionary,
@@ -167,7 +181,9 @@ def run(args,
                                          symbolic_root=1, bucket=True, max_char_len=20,
                                          must_get_norm=True, bucketing_level=bucketing_level,
                                          verbose=verbose)
+            printing("INFO : done with sharding", verbose=verbose, verbose_level=1)
         else:
+            printing("INFO : building shards ", verbose=verbose, verbose_level=1)
             data_sharded, n_shards, n_sent_dataset_total_train = build_shard(data_sharded, args.train_path,
                                                                              n_sent_max_per_file=N_SENT_MAX_CONLL_PER_SHARD,
                                                                              verbose=verbose)
@@ -176,6 +192,7 @@ def run(args,
         time_load_readers_train = time.time()-time_load_readers_train_start
         readers_dev_ls = []
         dev_data_label_ls = []
+        printing("INFO : g readers for dev", verbose=verbose, verbose_level=1)
         for dev_path in args.dev_path:
             dev_data_label = get_dataset_label(dev_path, default="dev")
             dev_data_label_ls.append(dev_data_label)

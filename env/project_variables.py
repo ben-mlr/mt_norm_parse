@@ -4,7 +4,7 @@ from env.tasks_settings import TASKS_PARAMETER
 SEED_NP = 124
 SEED_TORCH = 124
 
-N_SENT_MAX_CONLL_PER_SHARD = 500
+N_SENT_MAX_CONLL_PER_SHARD = 1000
 
 # ENVIRONMENT VARIABLES
 PROJECT_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
@@ -177,10 +177,10 @@ ARABIZI_POS_TEST_LABEL, ARABIZI_TEST_POS = "arabizi_test-pos",  os.path.join(PRO
 
 CODE_MIXED_RAW_LABEL, CODE_MIXED_RAW = "raw_code_mixed", os.path.join(PROJECT_PATH, "./data/code_mixed/code-mixed_code-mixed1.conll")
 
+CODE_MIXED_TRAIN_LABEL_SHARD, CODE_MIXED_TRAIN_SHARD = "code_mixed-train_sharded_all", os.path.join(os.environ.get("MT_NORM_PARSE_DATA", ".."), "data", "code_mixed","train")
+
 CODE_MIXED_RAW_TRAIN_LABEL, CODE_MIXED_RAW_TRAIN = "raw_code_mixed-train_50k", os.path.join(PROJECT_PATH, "./data/code_mixed/code_mixed-train.conll")
-CODE_MIXED_RAW_TRAIN_SMALL_LABEL, CODE_MIXED_RAW_TRAIN_SMALL = "raw_code_mixed-train_10k", os.path.join(PROJECT_PATH, "./data/code_mixed/code-train-10k.conll.conll")
-
-
+CODE_MIXED_RAW_TRAIN_SMALL_LABEL, CODE_MIXED_RAW_TRAIN_SMALL = "raw_code_mixed-train_10k", os.path.join(PROJECT_PATH, "./data/code_mixed/code-train-1k.conll.conll")
 
 CODE_MIXED_RAW_DEMO_LABEL, CODE_MIXED_RAW_DEMO = "code-mixed-demo", os.path.join(PROJECT_PATH, "./data/code_mixed/code-train-demo.conll")
 
@@ -227,8 +227,9 @@ MTNT_EN_TOK_DEV_CONLL_LABEL, MTNT_EN_TOK_DEV_CONLL = "mtnt_tok_dev_conll", \
 MTNT_EN_TOK_DEV_DEMO_CONLL_LABEL, MTNT_EN_TOK_DEV_DEMO_CONLL = "mtnt_tok_dev_demo_conll", \
                                                                os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/dev.tok.en.demo.conll")
 # tweets
-TWEETS_GANESH_PERM_400_LABEL, TWEETS_GANESH_PERM_400 = "pan_tweets_200k", os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets-200k-norm+permute.conll")
 TWEETS_GANESH_LABEL, TWEETS_GANESH = "pan_tweets-train_530k", os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets_en-train-530k.conll")
+
+TWEETS_GANESH_PERM_400_LABEL, TWEETS_GANESH_PERM_400 = "pan_tweets_200k", os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets-200k-norm+permute.conll")
 TWEETS_GANESH_TRAIN_SMALL_LABEL, TWEETS_GANESH_TRAIN_SMALL = "pan_tweets-dev", os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets-train_1k.conll")
 #TWEETS_GANESH_1M_LABEL, TWEETS_GANESH_1M = "pan_tweets_200k", os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets-1000k.conll")
 TWEETS_GANESH_DEV_LABEL, TWEETS_GANESH_DEV = "pan_tweets-dev", os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets-dev.conll")
@@ -239,10 +240,10 @@ TWEETS_GANESH_TEST_LABEL, TWEETS_GANESH_TEST = "pan_tweets-test", os.path.join(P
 TWEETS_GANESH_TEST_SMALL_LABEL, TWEETS_GANESH_TEST_SMALL = "pan_tweets-test_1k", os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets-test-1k.conll")
 
 
-MLM_DATA = {"noisy": {"code_mixed": {"train": {"large": CODE_MIXED_RAW_TRAIN, "small": CODE_MIXED_RAW_TRAIN_SMALL},
+MLM_DATA = {"noisy": {"code_mixed": {"train": {"large": CODE_MIXED_TRAIN_SHARD, "small": CODE_MIXED_RAW_TRAIN_SMALL},
                                      "dev": {"large": CODE_MIXED_RAW_DEV, "small": CODE_MIXED_RAW_DEV_SMALL},
                                      "test": {"large": CODE_MIXED_RAW_TEST, "small": CODE_MIXED_RAW_TEST_SMALL}},
-                      "tweets_en": {"train": {"large": TWEETS_GANESH, "small": None},
+                      "tweets_en": {"train": {"large": TWEETS_GANESH, "small": TWEETS_GANESH_TRAIN_SMALL},
                                   "dev": {"large": TWEETS_GANESH_DEV, "small": TWEETS_GANESH_DEV_SMALL},
                                   "test": {"large": TWEETS_GANESH_TEST, "small": TWEETS_GANESH_TEST}}},
             "canonical": {

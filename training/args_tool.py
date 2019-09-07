@@ -201,6 +201,8 @@ def args_train(mode="command_line", script="train_evaluate_run"):
 
         parser.add_argument('--memory_efficient_iterator', type=int, default=0)
 
+
+
         args = parser.parse_args()
 
         if args.aggregating_bert_layer_mode is not None:
