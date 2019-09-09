@@ -87,8 +87,7 @@ class CoNLLReader(object):
     while len(line) > 0 and (len(line.strip()) == 0 or line.strip()[0] == '#'):
       if not len(line.strip()) == 0 and line.strip()[0] == '#':
         raw_text.append(line)
-        id_stop_mwe = 0
-        id_start_mwe = 0
+
       line = self.__source_file.readline()
     
     if len(line) == 0:
@@ -103,7 +102,8 @@ class CoNLLReader(object):
     length = len(lines)
     if length == 0:
       return None
-
+    id_stop_mwe = 0
+    id_start_mwe = 0
     words = []
     word_ids = []
     char_seqs = []
@@ -382,9 +382,6 @@ class CoNLLReader(object):
       types.append(type)
       type_ids.append(self.__type_dictionary.get_index(type))
       heads.append(head)
-
-
-
 
     if symbolic_end:
       words.append(END)

@@ -13,7 +13,7 @@ import io_.bert_iterators_tools.alignement as alignement
 from evaluate.report_writing import report_score_all
 from evaluate.scoring.report import overall_word_level_metric_measure
 from model.n_masks_predictor import get_n_bpe_pred
-from model.bert_tools_from_core_code.modeling import get_multitask_loss
+from model.bert_tools_from_core_code.modeling import get_loss_multitask
 from toolbox.pred_tools.heuristics import predict_with_heuristic
 from training.epoch_run_fine_tuning_tools import get_casing, logging_processing_data, logging_scores, log_warning, print_align_bpe, log_data_src_label_pred, tensorboard_loss_writer_batch_level, tensorboard_loss_writer_batch_level_multi, \
     tensorboard_loss_writer_epoch_level, \
@@ -669,6 +669,7 @@ def epoch_run(batchIter, tokenizer,
                 logits_dic, loss_dic, _ = model(input_tokens_tensor_per_task,
                                                 token_type_ids=None,
                                                 labels=label_per_task, head_masks=head_masks, attention_mask=input_mask_per_task)
+                pdb.set_trace()
 
                 if len(list(loss_dic.keys() & set(TASKS_PARAMETER.keys()))) != len(loss_dic.keys()):
                     # it means a given task has several set of labels (e.g parsing)
@@ -738,7 +739,7 @@ def epoch_run(batchIter, tokenizer,
                                             iter=iter, batch_i=batch_i, new_file=new_file, gold_per_tasks=label_detokenized_dic,
                                             all_indexes=batch.all_indexes, task_parameters=TASKS_PARAMETER,
                                             tasks=args.tasks, verbose=verbose)
-                _loss = get_multitask_loss(loss_dic, args.multi_task_loss_ponderation)
+                _loss = get_loss_multitask(loss_dic, args.multi_task_loss_ponderation)
                 loss_dic["all"] = _loss
                 loss_dic_epoch = update_loss_dic_average(loss_dic, loss_dic_epoch)
                 time_multitask_postprocess += time_multitask_postprocess_start - time.time()
@@ -799,7 +800,8 @@ def epoch_run(batchIter, tokenizer,
         if writer is not None:
             # n_tokens_counter_per_task
             if args.multitask:
-                tensorboard_loss_writer_epoch_level_multi(writer,  mode, model_id, epoch, loss_dic_epoch, n_tokens_counter_per_task, data_label)
+                tensorboard_loss_writer_epoch_level_multi(writer,  mode, model_id, epoch, loss_dic_epoch,
+                                                          n_tokens_counter_per_task, data_label)
             tensorboard_loss_writer_epoch_level(writer, args.tasks, mode, model_id, epoch, n_batch_norm, n_batch_pos, args.append_n_mask, loss, loss_norm, loss_pos, loss_n_mask_prediction, batch_i, data_label)
         reports = []
         printing("TRAINING : evaluating on {} args.tasks ", var=[evaluated_task], verbose_level=1, verbose=verbose)

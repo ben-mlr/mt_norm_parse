@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 from training.args_tool import args_train, parse_argument_dictionary
 
 
-def get_multitask_loss(loss_dict, ponderation):
+def get_loss_multitask(loss_dict, ponderation):
 
     ponderation = parse_argument_dictionary(ponderation, loss_dict.keys())
 

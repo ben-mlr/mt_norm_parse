@@ -76,6 +76,24 @@ def pred_word_to_list(pred_word, special_symb_ls):
     return new_word
 
 
+def get_name_model_id_with_extra_name(epoch, _epoch, name_with_epoch, model_id):
+    """
+    if name_with_epoch we enrich model_id with epoch information
+    :param epoch:
+    :param _epoch:
+    :param name_with_epoch:
+    :param model_id:
+    :return:
+    """
+    if not name_with_epoch:
+        extra_name = ""
+    else:
+        extra_name = str(epoch) + "_ep_best" if _epoch == "best" else str(epoch)+"_ep"
+        extra_name = "-" + extra_name
+    model_id = model_id + extra_name
+    return model_id
+
+
 def write_args(dir, model_id, checkpoint_dir=None,
                hyperparameters=None,
                info_checkpoint=None, verbose=1):

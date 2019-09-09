@@ -3,7 +3,7 @@ from model.bert_normalize import get_bert_token_classification, make_bert_multit
 from io_.info_print import printing
 
 
-def get_multi_task_bert_model(args, model_dir, vocab_size, voc_pos_size, debug, verbose, num_labels_per_task=None):
+def get_model_multi_task_bert(args, model_dir, vocab_size, voc_pos_size, debug, verbose, num_labels_per_task=None):
     if args.multitask:
         # we flatten the tasks to make the model (we don't need to know if tasks are simulateneaous or not )
         assert args.bert_module is None, "ERROR : bert module should be none in bert_multitask, " \

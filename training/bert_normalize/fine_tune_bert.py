@@ -11,9 +11,9 @@ from io_.data_iterator import readers_load, conllu_data, data_gen_multi_task_sam
 #import model.bert_tools_from_core_code.tokenization as bert_tok
 from model.bert_tools_from_core_code.tokenization import BertTokenizer
 from training.epoch_run_fine_tuning_bert import epoch_run
-from toolbox.report_tools import write_args, get_hyperparameters_dict, get_dataset_label
+from toolbox.report_tools import write_args, get_hyperparameters_dict, get_dataset_label, get_name_model_id_with_extra_name
 from toolbox.pred_tools.heuristics import get_letter_indexes
-from model.bert_tools_from_core_code.get_model import get_multi_task_bert_model
+from model.bert_tools_from_core_code.get_model import get_model_multi_task_bert
 from training.bert_normalize.multi_task_tools import get_vocab_size_and_dictionary_per_task
 from io_.build_files_shard import build_shard
 from io_.get_new_batcher import get_new_shard
@@ -94,6 +94,8 @@ def run(args,
             printing("INFO args.train_path is directory so not rebuilding shards", verbose=verbose, verbose_level=1)
         elif os.path.isdir(args.train_path[0]):
             raise(Exception(" {} is a directory but len is more than one , not supported".format(args.train_path[0], len(args.train_path))))
+        else:
+            data_sharded = None
         assert model_location is None and model_id is None, "ERROR we are creating a new one "
         model_id, model_location, dict_path, tensorboard_log, end_predictions, data_sharded \
             = setup_repoting_location(model_suffix=model_suffix, data_sharded=data_sharded,
@@ -149,7 +151,7 @@ def run(args,
         printing("MODEL : voc_pos_size defined as {}", var=voc_pos_size,  verbose_level=1, verbose=verbose)
     printing("MODEL CREATING.. ", verbose=verbose, verbose_level=1)
 
-    model = get_multi_task_bert_model(args, model_dir, vocab_size, voc_pos_size, debug,
+    model = get_model_multi_task_bert(args, model_dir, vocab_size, voc_pos_size, debug,
                                       num_labels_per_task=num_labels_per_task, verbose=verbose)
     printing("MODEL CREATED use_gpy {}".format(use_gpu), verbose=verbose, verbose_level=1)
     if use_gpu:
@@ -369,7 +371,11 @@ def run(args,
                     else:
                         print('WARNING early_stoping_val is None so saving based on checkpointing_model_data only')
                         _epoch = epoch
-                    checkpoint_dir = os.path.join(model_location, "{}-ep{}-checkpoint.pt".format(model_id, _epoch))
+                    # model_id enriched possibly with some epoch informaiton if name_with_epoch
+                    model_id = get_name_model_id_with_extra_name(epoch=epoch, _epoch=_epoch,
+                                                                 name_with_epoch=name_with_epoch, model_id=model_id)
+                    checkpoint_dir = os.path.join(model_location, "{}-checkpoint.pt".format(model_id))
+
                     if _epoch == "best":
                         print("SAVING BEST MODEL {} (epoch:{}) (new loss is {} former was {})".format(checkpoint_dir, epoch, early_stoping_val, early_stoping_val_former))
                         last_checkpoint_dir_best = checkpoint_dir
@@ -384,15 +390,10 @@ def run(args,
                     printing("CHECKPOINT : saving {} model {} ", var=[last_model, checkpoint_dir], verbose=verbose,
                              verbose_level=1)
                     torch.save(model.state_dict(), checkpoint_dir)
-                    if not name_with_epoch:
-                        extra_name = ""
-                    else:
-                        extra_name = str(epoch)+"-best" if _epoch == "best" else str(epoch)
-                        extra_name = "-"+extra_name
 
                     args_dir = write_args(dir=model_location, checkpoint_dir=checkpoint_dir,
                                           hyperparameters=hyperparameters if name_with_epoch else None,
-                                          model_id=model_id+extra_name,
+                                          model_id=model_id,
                                           info_checkpoint=OrderedDict([("n_epochs", epoch+1), ("batch_size", args.batch_size),
                                                                        ("train_path", train_data_label),
                                                                        ("dev_path", dev_data_label_ls),

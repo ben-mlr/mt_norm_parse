@@ -177,7 +177,7 @@ ARABIZI_POS_TEST_LABEL, ARABIZI_TEST_POS = "arabizi_test-pos",  os.path.join(PRO
 
 CODE_MIXED_RAW_LABEL, CODE_MIXED_RAW = "raw_code_mixed", os.path.join(PROJECT_PATH, "./data/code_mixed/code-mixed_code-mixed1.conll")
 
-CODE_MIXED_TRAIN_LABEL_SHARD, CODE_MIXED_TRAIN_SHARD = "code_mixed-train_sharded_all", os.path.join(os.environ.get("MT_NORM_PARSE_DATA", ".."), "data", "code_mixed","train")
+CODE_MIXED_TRAIN_LABEL_SHARD, CODE_MIXED_TRAIN_SHARD = "code_mixed-train_sharded_all", os.path.join(os.environ.get("MT_NORM_PARSE_DATA", ".."), "data", "code_mixed", "train")
 
 CODE_MIXED_RAW_TRAIN_LABEL, CODE_MIXED_RAW_TRAIN = "raw_code_mixed-train_50k", os.path.join(PROJECT_PATH, "./data/code_mixed/code_mixed-train.conll")
 CODE_MIXED_RAW_TRAIN_SMALL_LABEL, CODE_MIXED_RAW_TRAIN_SMALL = "raw_code_mixed-train_10k", os.path.join(PROJECT_PATH, "./data/code_mixed/code-train-1k.conll.conll")
@@ -228,6 +228,8 @@ MTNT_EN_TOK_DEV_DEMO_CONLL_LABEL, MTNT_EN_TOK_DEV_DEMO_CONLL = "mtnt_tok_dev_dem
                                                                os.path.join(PROJECT_PATH, "./data/MTNT/monolingual/dev.tok.en.demo.conll")
 # tweets
 TWEETS_GANESH_LABEL, TWEETS_GANESH = "pan_tweets-train_530k", os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets_en-train-530k.conll")
+
+TWEETS_GANESH_LABEL_SHARD, TWEETS_GANESH_SHARD = "pan_tweets-3M_shards", os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "train")
 
 TWEETS_GANESH_PERM_400_LABEL, TWEETS_GANESH_PERM_400 = "pan_tweets_200k", os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets-200k-norm+permute.conll")
 TWEETS_GANESH_TRAIN_SMALL_LABEL, TWEETS_GANESH_TRAIN_SMALL = "pan_tweets-dev", os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets-train_1k.conll")

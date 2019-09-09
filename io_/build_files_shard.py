@@ -86,7 +86,7 @@ def build_shard(dir_shard, dir_file, n_sent_max_per_file, format="conll", verbos
 
 if __name__ == "__main__":
 
-    #shard = os.path.join(os.environ.get("MT_NORM_PARSE_DATA", ".."), "data", "code_mixed", "train")
+    #shard = os.path.join(os.environ.get("wMT_NORM_PARSE_DATA", ".."), "data", "code_mixed", "train")
     #data_dir = os.path.join(PROJECT_PATH, "data", "code_mixed", "code_mixed-train.conll") #
     shard = os.path.join(os.environ.get("MT_NORM_PARSE_DATA", ".."), "data", "tweets_en_pan_ganesh", "train")
     data_dir = os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets_en-train.conll") #"/Users/bemuller/Documents/Work/INRIA/dev/parsing/data/Universal-Dependencies-2.4/fr_spoken-ud-train.conllu"
