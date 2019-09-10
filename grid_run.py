@@ -343,16 +343,16 @@ if __name__ == "__main__":
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
                                                   gpus_ls=gpu_ls, gpu_mode="random",
                                                   write_to_dir=RUN_SCRIPTS_DIR, description_comment=description_comment)
-          FINE_TUNE_BERT = True
+          FINE_TUNE_BERT = False
 
           if FINE_TUNE_BERT:
-              epochs = 1
+              epochs = 10
               lang_iter = ["fr_gsd", "fr_sequoia", "fr_spoken", "ar_padt", "en_ewt", "en_lines"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
               task_to_grid = [["parsing", "pos"]]
                              # ["n_masks_mwe", "mwe_detection", "mwe_prediction", "pos"], 
                               #["parsing","n_masks_mwe", "mwe_detection", "mwe_prediction", "pos"]]#, ["parsing", "pos"]]
               #task_to_grid = [["normalize"]]
-              demo_data = True
+              demo_data = False
               tasks_ls = [[task_simul] for task_simul in task_to_grid for _ in lang_iter]
               printing("GRID : running {} lang on {} tasks combinaiton ".format(lang_iter, task_to_grid), verbose=1, verbose_level=1)
               n_tasks = len(task_to_grid)
@@ -430,13 +430,13 @@ if __name__ == "__main__":
                                                                                                ("parsing-types", 1), ("parsing-heads", 1)])],#OrderedDict([("pos", 0.2), ("parsing_types", 1), ("parsing_heads", 1)])],
                                                   scale_ls=[1])
                                 # arguments that are specific to script generation
-          PRETRAINING = False
+          PRETRAINING = True
           if PRETRAINING:
-              epochs = 10
+              epochs = 3
               noise_level = "noisy"
               domain = "code_mixed"
               domain_canonical = "wiki_fr"
-              demo = True
+              demo = False
               # should point to n_max iter
               size = "small" if demo else "large"
               printing("GRID : running {} domain with  {} noise ".format(domain, noise_level), verbose=1, verbose_level=1)
@@ -449,6 +449,10 @@ if __name__ == "__main__":
                                                   gpu_mode="random",
                                                   bert_module_ls=None,
                                                   append_n_mask_ls=[0],
+                                                  demo_ls=[1],
+                                                  saving_every_n_epoch_ls=[1],
+                                                  name_inflation_ls=[1],
+                                                  n_iter_max_train_ls=[10],
                                                   # norm_2_noise_training_ls=[0., 1.],
                                                   lr_ls=[0.000001],
                                                   # lr_ls=[OrderedDict([("bert", 1e-5), ("classifier_task_2", 1e-4), ("classifier_task_1", 1e-5)]),

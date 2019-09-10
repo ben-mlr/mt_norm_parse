@@ -10,7 +10,9 @@ ARGUMENT_AVAILABLE_BERT = ["batch_size", "lr", "initialize_bpe_layer", "freeze_p
                            "init_args_dir", "norm_2_noise_training", "bert_module","append_n_mask",
                            "tasks", "masking_strategy", # "portion_mask",
                            "heuristic_ls", "gold_error_detection", "dropout_bert", "aggregating_bert_layer_mode",
-                           "layer_wise_attention", "tokenize_and_bpe", "multi_task_loss_ponderation", "multitask", "memory_efficient_iterator"]
+                           "layer_wise_attention", "tokenize_and_bpe", "multi_task_loss_ponderation", "multitask", "memory_efficient_iterator",
+                           "demo", "saving_every_n_epoch", "name_inflation", "n_iter_max_train"
+                           ]
 
 ARGUMENT_AVAILABLE_BERT.extend(ARGUMENT_AVAILABLE_ALL)
 

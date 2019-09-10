@@ -51,17 +51,22 @@ def train_eval_bert_normalize(args, verbose=1):
     if not args.multitask:
         args.multi_task_loss_ponderation = update_multitask_loss_ponderation(args.multi_task_loss_ponderation)
 
+    pdb.set_trace()
+
     run(args=args, voc_tokenizer=voc_tokenizer, vocab_size=vocab_size, model_dir=model_dir,
         report_full_path_shared=args.overall_report_dir,
         description=description, null_token_index=null_token_index, null_str=NULL_STR,
         model_suffix="{}".format(args.model_id_pref), debug=debug,
         random_iterator_train=True,  bucket_test=False, compute_intersection_score_test=True,
         list_reference_heuristic_test=list_reference_heuristic_test, case="lower",
-        n_iter_max_per_epoch_train=10,
-        n_iter_max_per_epoch_dev_test=10,
+        n_iter_max_per_epoch_train=args.n_iter_max_train if not args.demo_run else 5,
+        n_iter_max_per_epoch_dev_test=1000000 if not args.demo_run else 5,
         slang_dic_test=slang_dic,
-        early_stoppin_metric=early_stoppin_metric, subsample_early_stoping_metric_val=subsample_early_stoping_metric_val,
-        saving_every_epoch=1, auxilliary_task_norm_not_norm=True, name_with_epoch=False,
+        early_stoppin_metric=early_stoppin_metric,
+        subsample_early_stoping_metric_val=subsample_early_stoping_metric_val,
+        saving_every_epoch=args.saving_every_n_epoch,
+        auxilliary_task_norm_not_norm=True,
+        name_with_epoch=args.name_inflation,
         report=True, verbose=1)#"alignment")
 
     printing("MODEL {} trained and evaluated", var=[args.model_id_pref], verbose_level=1, verbose=verbose)
