@@ -137,6 +137,8 @@ def run(args,
                               tasks=args.tasks,
                               pos_specific_data_set=args.train_path[1] if len(args.tasks) > 1 and len(args.train_path)>1 and "pos" in args.tasks else None,
                               case=case,
+                              # if not normalize pos or parsing in tasks we don't need dictionary
+                              do_not_fill_dictionaries=len(set(["normalize", "pos", "parsing"])&set([task for tasks in args.tasks for task in tasks])) == 0,
                               add_start_char=1 if run_mode == "train" else None,
                               verbose=1)
     # we flatten the tasks
@@ -337,6 +339,7 @@ def run(args,
                                                                                            iter=iter_dev, use_gpu=use_gpu,
                                                                                            model=model,
                                                                                            writer=writer,
+                                                                                           optimizer=None,
                                                                                            writing_pred=epoch == (args.epochs - 1),
                                                                                            dir_end_pred=end_predictions,
                                                                                            predict_mode=True,

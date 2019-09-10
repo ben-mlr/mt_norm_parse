@@ -346,13 +346,13 @@ if __name__ == "__main__":
           FINE_TUNE_BERT = True
 
           if FINE_TUNE_BERT:
-              epochs = 10
+              epochs = 1
               lang_iter = ["fr_gsd", "fr_sequoia", "fr_spoken", "ar_padt", "en_ewt", "en_lines"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
               task_to_grid = [["parsing", "pos"]]
                              # ["n_masks_mwe", "mwe_detection", "mwe_prediction", "pos"], 
                               #["parsing","n_masks_mwe", "mwe_detection", "mwe_prediction", "pos"]]#, ["parsing", "pos"]]
               #task_to_grid = [["normalize"]]
-              demo_data = False
+              demo_data = True
               tasks_ls = [[task_simul] for task_simul in task_to_grid for _ in lang_iter]
               printing("GRID : running {} lang on {} tasks combinaiton ".format(lang_iter, task_to_grid), verbose=1, verbose_level=1)
               n_tasks = len(task_to_grid)
@@ -432,7 +432,7 @@ if __name__ == "__main__":
                                 # arguments that are specific to script generation
           PRETRAINING = False
           if PRETRAINING:
-              epochs = 1
+              epochs = 10
               noise_level = "noisy"
               domain = "code_mixed"
               domain_canonical = "wiki_fr"

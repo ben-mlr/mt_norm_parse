@@ -15,7 +15,7 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None,
               word_normalization=False, pos_specific_data_set=None,
               word_embed_dict=None, tasks=None,
               dry_run=0, expand_vocab=False, add_start_char=None,
-              case=None,
+              case=None, do_not_fill_dictionaries=False,
               force_new_dic=False, verbose=1):
 
   # TODO : CLEAN THIS to_create
@@ -41,7 +41,7 @@ def load_dict(dict_path, train_path=None, dev_path=None, test_path=None,
                                                    word_embed_dict=word_embed_dict,
                                                    expand_vocab_bool=expand_vocab, add_start_char=add_start_char,
                                                    pos_specific_data_set=pos_specific_data_set,
-                                                   tasks=tasks,case=case,
+                                                   tasks=tasks,case=case, do_not_fill_dictionaries=do_not_fill_dictionaries,
                                                    word_normalization=word_normalization, verbose=verbose)
   else:
     # ??
@@ -152,7 +152,6 @@ def create_dict(dict_path, train_path, dev_path, test_path, tasks,
   assert tasks is not None, "ERROR : we need tasks information along with dataset to know how to commute label dictionary"
 
   for train_dir, simultaneous_task_ls in zip(train_path, tasks):
-    do_not_fill_dictionaries =True
     if do_not_fill_dictionaries:
       print("WARNING : do_not_fill_dictionaries is TRUE ")
       break

@@ -39,7 +39,6 @@ from training.args_tool import args_train, parse_argument_dictionary
 def get_loss_multitask(loss_dict, ponderation):
 
     ponderation = parse_argument_dictionary(ponderation, loss_dict.keys())
-
     loss = 0
 
     for label_loss in loss_dict:
