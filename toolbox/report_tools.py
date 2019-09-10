@@ -1,4 +1,5 @@
 from env.importing import *
+from env.project_variables import CHECKPOINT_BERT_DIR
 from io_.info_print import printing
 
 
@@ -74,6 +75,28 @@ def pred_word_to_list(pred_word, special_symb_ls):
             new_word.extend(list(word))
 
     return new_word
+
+
+def get_init_args_dir(init_args_dir):
+    """
+    to simplify reporting we allow three ways of providing init_args_dir
+    :param init_args_dir:
+    :return:
+    """
+    if os.path.isfile(init_args_dir):  # , "ERROR {} not found to reload checkpoint".format(init_args_dir)
+        _dir = os.path.isfile(init_args_dir)
+    elif os.path.isfile(os.path.join(CHECKPOINT_BERT_DIR, init_args_dir)):
+        printing("MODEL init {} not found as directory so using second template ", var=[init_args_dir], verbose=1,
+                 verbose_level=1)
+        _dir = os.path.isfile(os.path.join(CHECKPOINT_BERT_DIR, init_args_dir))
+    else:
+        printing("MODEL init {} not found as directory and as subdirectory so using third template template ",
+                 var=[init_args_dir], verbose=1, verbose_level=1)
+        match = re.match("(.*-model_[0-9]+).*", init_args_dir)
+        assert match is not None, "ERROR : template {} not found in {}".format("([.*]-model_[0-9]+).*", init_args_dir)
+        _dir = os.path.join(CHECKPOINT_BERT_DIR, match.group(1), init_args_dir + "-args.json")
+        assert os.path.isfile(_dir), "ERROR : {} does not exist (based on param {}) ".format(_dir, init_args_dir)
+    return _dir
 
 
 def get_name_model_id_with_extra_name(epoch, _epoch, name_with_epoch, model_id):

@@ -1,11 +1,11 @@
 import logging
 import tarfile
 import tempfile
-
+from env.project_variables import CHECKPOINT_BERT_DIR
 from env.models_dir import *
 from io_.info_print import printing
 from toolbox.deep_learning_toolbox import freeze_param
-
+from toolbox.report_tools import get_init_args_dir
 from model.bert_tools_from_core_code.modeling import BertForTokenClassification, BertConfig, BertForMaskedLM, BertMultiTask, BertConfig
 
 
@@ -20,14 +20,14 @@ def make_bert_multitask(pretrained_model_dir, tasks, num_labels_per_task, init_a
     if pretrained_model_dir is not None and init_args_dir is None:
         model = BertMultiTask.from_pretrained(pretrained_model_dir, tasks=tasks, num_labels_per_task=num_labels_per_task)
     elif init_args_dir is not None:
-
-        assert os.path.isfile(init_args_dir), "ERROR {} not found to reload checkpoint".format(init_args_dir)
+        init_args_dir = get_init_args_dir(init_args_dir)
 
         args_checkpoint = json.load(open(init_args_dir,"r"))
         assert "checkpoint_dir" in args_checkpoint, "ERROR checkpoint_dir not in {} ".format(args_checkpoint)
         checkpoint_dir = args_checkpoint["checkpoint_dir"]
         assert os.path.isfile(checkpoint_dir), "ERROR checkpoint {} not found ".format(checkpoint_dir)
         # redefining model and reloading
+        
         def get_config_bert(bert_model, config_file_name="bert_config.json"):
             model_dir = BERT_MODEL_DIC[bert_model]["model"]
             tempdir = tempfile.mkdtemp()

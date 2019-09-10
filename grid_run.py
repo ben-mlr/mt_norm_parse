@@ -343,7 +343,7 @@ if __name__ == "__main__":
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
                                                   gpus_ls=gpu_ls, gpu_mode="random",
                                                   write_to_dir=RUN_SCRIPTS_DIR, description_comment=description_comment)
-          FINE_TUNE_BERT = False
+          FINE_TUNE_BERT = True
 
           if FINE_TUNE_BERT:
               epochs = 10
@@ -361,8 +361,9 @@ if __name__ == "__main__":
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
                                                   batch_size_ls=[2],
-                                                  #init_args_dir_ls=["'"+os.path.join(CHECKPOINT_BERT_DIR, "9705484-B-7de0e-9705484-B-model_2/9705484-B-7de0e-9705484-B-model_2-{}-best-args.json".format(epoch))+"'"
-                                                  #                  for epoch in [0, 2, 3, 4, 5, 6, 7, 9]],#["'"+os.path.join(CHECKPOINT_BERT_DIR,"checkpoints", "bert", "9372042-B-6ccaa-9372042-B-model_0/9372042-B-6ccaa-9372042-B-model_0-epbest-checkpoint.pt")+"'"],
+                                                  #init_args_dir_ls=["'"+os.path.join(CHECKPOINT_BERT_DIR, "9705484-B-7de0e-9705484-B-model_2/9705484-B-7de0e-9705484-B-model_2-{}-best-args.json".format(epoch))+"'"  for epoch in [0, 2, 3, 4, 5, 6, 7, 9]],#["'"+os.path.join(CHECKPOINT_BERT_DIR,"checkpoints", "bert", "9372042-B-6ccaa-9372042-B-model_0/9372042-B-6ccaa-9372042-B-model_0-epbest-checkpoint.pt")+"'"],
+                                                  init_args_dir_ls=["5107b-B-6ee9d-5107b-B-model_0-0_ep_best-1_ep-2_ep"],
+                                                  # ["'"+os.path.join(CHECKPOINT_BERT_DIR,"checkpoints", "bert", "9372042-B-6ccaa-9372042-B-model_0/9372042-B-6ccaa-9372042-B-model_0-epbest-checkpoint.pt")+"'"],
                                                   gpu_mode="random",
                                                   append_n_mask_ls=[0],
                                                   #norm_2_noise_training_ls=[0., 1.],
@@ -427,16 +428,16 @@ if __name__ == "__main__":
                                                   multi_task_loss_ponderation_ls=[OrderedDict([("pos-pos", 0.5),
                                                                                                ("n_masks_mwe-n_masks_mwe", 0.05), ("mwe_detection-mwe_detection", 0.05),
                                                                                                ("mwe_prediction-mwe_prediction", 0.1),
-                                                                                               ("parsing-types", 1), ("parsing-heads", 1)])],#OrderedDict([("pos", 0.2), ("parsing_types", 1), ("parsing_heads", 1)])],
+                                                                                               ("parsing-types", 1), ("parsing-heads", 1)])],  #OrderedDict([("pos", 0.2), ("parsing_types", 1), ("parsing_heads", 1)])],
                                                   scale_ls=[1])
                                 # arguments that are specific to script generation
-          PRETRAINING = True
+          PRETRAINING = False
           if PRETRAINING:
               epochs = 3
               noise_level = "noisy"
               domain = "code_mixed"
               domain_canonical = "wiki_fr"
-              demo = False
+              demo = True
               # should point to n_max iter
               size = "small" if demo else "large"
               printing("GRID : running {} domain with  {} noise ".format(domain, noise_level), verbose=1, verbose_level=1)
@@ -452,7 +453,7 @@ if __name__ == "__main__":
                                                   demo_ls=[1],
                                                   saving_every_n_epoch_ls=[1],
                                                   name_inflation_ls=[1],
-                                                  n_iter_max_train_ls=[10],
+                                                  n_iter_max_train_ls=[2],
                                                   # norm_2_noise_training_ls=[0., 1.],
                                                   lr_ls=[0.000001],
                                                   # lr_ls=[OrderedDict([("bert", 1e-5), ("classifier_task_2", 1e-4), ("classifier_task_1", 1e-5)]),
