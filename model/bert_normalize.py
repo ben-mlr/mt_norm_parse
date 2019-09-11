@@ -21,7 +21,6 @@ def make_bert_multitask(pretrained_model_dir, tasks, num_labels_per_task, init_a
         model = BertMultiTask.from_pretrained(pretrained_model_dir, tasks=tasks,
                                               mask_id=mask_id,
                                               num_labels_per_task=num_labels_per_task,mapping_keys_state_dic={"cls": "head.mlm"})
-        pdb.set_trace()
     elif init_args_dir is not None:
         init_args_dir = get_init_args_dir(init_args_dir)
 

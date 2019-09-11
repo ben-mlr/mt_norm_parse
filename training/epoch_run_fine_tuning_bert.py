@@ -58,7 +58,8 @@ def epoch_run(batchIter, tokenizer,
               compute_intersection_score=False,
               subsample_early_stoping_metric_val=None,
               slang_dic=None, list_reference_heuristic=None,list_candidates=None, index_alphabetical_order=None,
-              case=None, threshold_edit=None, edit_module_pred_need_norm_only=True, low_memory_foot_print_batch_mode=False,
+              #case=None,
+              threshold_edit=None, edit_module_pred_need_norm_only=True, low_memory_foot_print_batch_mode=False,
               batch_size_real=0, n_epoch=None,
               ponderation_loss_policy="static",
               samples_per_task_reporting=None,
@@ -99,9 +100,11 @@ def epoch_run(batchIter, tokenizer,
         for edit_rule in ["all", "ref", "data"]:
             if "edit_check-"+edit_rule in args.heuristic_ls:
                 assert threshold_edit is not None, "ERROR threshold_edit required as args.heuristic_ls is {}".format(args.heuristic_ls)
-    if case is not None:
+    import pdb
+    pdb
+    if args.case is not None:
         AVAILABLE_CASE_OPTIONS = ["lower"]
-        assert case in AVAILABLE_CASE_OPTIONS
+        assert args.case in AVAILABLE_CASE_OPTIONS
     assert args.norm_2_noise_training is None or not norm_2_noise_eval, "only one of the two should be triggered but we have args.norm_2_noise_training : {} norm_2_noise_eval:{}".format(args.norm_2_noise_training, norm_2_noise_eval)
     if args.norm_2_noise_training is not None:
         printing("WARNING : {} args.norm_2_noise_training is on ", var=[args.norm_2_noise_training],
@@ -234,12 +237,12 @@ def epoch_run(batchIter, tokenizer,
             if task_pos_is:
                print("WARNING : task_pos_is  {} ".format(task_pos_is))
             # case the batches if case is 'lower'
-            batch = get_casing(case, batch, task_normalize_is)
+
+            batch = get_casing(args.case, batch, task_normalize_is)
             #print("ITERATING on {} task".format("pos" if task_pos_is else "normalize"))
             n_task_pos_sanity += int(task_pos_is)
             n_task_normalize_sanity += int(task_normalize_is)
             norm2noise_bool = False
-            batch_raw_output = None
             # Handling input
             if (args.norm_2_noise_training is not None or norm_2_noise_eval) and task_normalize_is:
                 portion_norm2noise = args.norm_2_noise_training if args.norm_2_noise_training is not None else 1.
@@ -268,6 +271,7 @@ def epoch_run(batchIter, tokenizer,
                 rand = np.random.uniform(low=0, high=1, size=1)[0]
                 group_to_mask = np.array(batch.output_norm_not_norm.cpu()) if args.portion_mask >= rand else None
             if not args.tokenize_and_bpe:
+
                 input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = \
                     get_indexes(batch_raw_input, tokenizer, verbose, use_gpu, word_norm_not_norm=group_to_mask)
             if args.masking_strategy == "start_stop":
@@ -324,7 +328,6 @@ def epoch_run(batchIter, tokenizer,
                                                                                       mask_token_index=mask_token_index,
                                                                                       sep_token_index=sep_token_index,
                                                                                       cls_token_index=cls_token_index)
-                pdb.set_trace()
                 # NB : token_type_ids not used in MultiTask (no needed, just use 0 everywhere )
 
 
@@ -668,7 +671,6 @@ def epoch_run(batchIter, tokenizer,
                         n_tokens_counter_current_per_task[task+"-"+label] = (label_per_task[label] != _pad).sum().item()
                         n_tokens_counter_per_task[task+"-"+label] += n_tokens_counter_current_per_task[task+"-"+label]
                         # NB : do you account for CLS and SEQ HERE ?
-                pdb.set_trace()
                 # TODO : handle in a more standart way
                 n_tokens_counter_per_task["all"] += n_tokens_counter_current_per_task[task+"-"+label]
                 time_multitask_preprocess_2 += time.time()-time_multitask_preprocess_2_start
@@ -676,7 +678,6 @@ def epoch_run(batchIter, tokenizer,
                 logits_dic, loss_dic, _ = model(input_tokens_tensor_per_task,
                                                 token_type_ids=None,
                                                 labels=label_per_task, head_masks=head_masks, attention_mask=input_mask_per_task)
-                pdb.set_trace()
 
                 if len(list(loss_dic.keys() & set(TASKS_PARAMETER.keys()))) != len(loss_dic.keys()):
                     # it means a given task has several set of labels (e.g parsing)
@@ -695,6 +696,7 @@ def epoch_run(batchIter, tokenizer,
                                                                                   tokenizer, task_to_label_dictionary, null_str, null_token_index, TASKS_PARAMETER, mask_token_index, verbose)
                 # for parsing and tagging : will simply remove non-first bpe of each token
                 src_detokenized_dic, label_detokenized_dic, predict_detokenize_dic = get_detokenized_str(source_preprocessed_dict, input_alignement_with_raw,label_dic, predict_dic, null_str, remove_mask_str_prediction, TASKS_PARAMETER, batch=batch)
+                pdb.set_trace()
                 log_data_src_label_pred(src_detokenized_dic, predict_detokenize_dic, label_detokenized_dic,
                                         tasks=args.tasks, verbose=verbose, verbose_level=5)
 

@@ -166,8 +166,6 @@ def args_train(mode="command_line", script="train_evaluate_run"):
 
         parser.add_argument("--dropout_input", default=0, type=float, help="display a square of a given number")
 
-
-
         args = parser.parse_args()
 
         if not args.word_embed:
@@ -207,6 +205,8 @@ def args_train(mode="command_line", script="train_evaluate_run"):
         parser.add_argument("--saving_every_n_epoch", default=100, type=int, help="display a square of a given number")
         parser.add_argument("--name_inflation", default=0, type=int, help="display a square of a given number")
         parser.add_argument("--demo_run", default=0, type=int, help="means running for 5 iteration max ")
+
+        parser.add_argument("--case", default=None, type=str, help="means running for 5 iteration max ")
 
         args = parser.parse_args()
 

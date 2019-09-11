@@ -356,7 +356,6 @@ class CoNLLReader(object):
 
             n_masks_to_add_in_raw_label.append(n_masks_to_add_in_raw)
             n_masks_to_add_in_raw_label.extend([-1 for _ in range(len(mwe)-1)])
-
       if self.case is not None and self.case == "lower":
         _word = _word.lower()
       words.append(_word)

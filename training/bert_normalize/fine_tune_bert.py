@@ -41,7 +41,7 @@ def run(args,
         compute_intersection_score_test=True,
         bucketing_level=None,
         slang_dic_test=None, list_reference_heuristic_test=None,
-        case=None, threshold_edit=3,
+        threshold_edit=3,
         name_with_epoch=False,
         debug=False, verbose=1):
 
@@ -57,7 +57,7 @@ def run(args,
         n_iter_max_per_epoch_dev_test = n_iter_max_per_epoch_train
 
     printing("MODEL : RUNNING IN {} mode", var=[run_mode], verbose=verbose, verbose_level=1)
-    printing("WARNING : casing was set to {} (this should be consistent at train and test)", var=[case], verbose=verbose, verbose_level=1)
+    printing("WARNING : casing was set to {} (this should be consistent at train and test)", var=[args.case], verbose=verbose, verbose_level=1)
     use_gpu_hardcoded_readers = False
     printing("WARNING use_gpu_hardcoded_readers hardcoded for readers set to {}", var=[use_gpu_hardcoded_readers],
              verbose=verbose, verbose_level=1)
@@ -104,7 +104,7 @@ def run(args,
             = setup_repoting_location(model_suffix=model_suffix, data_sharded=data_sharded,
                                       root_dir_checkpoints=CHECKPOINT_BERT_DIR,
                                       shared_id=args.overall_label, verbose=verbose)
-        hyperparameters = get_hyperparameters_dict(args, case, random_iterator_train, seed=SEED_TORCH, verbose=verbose)
+        hyperparameters = get_hyperparameters_dict(args, args.case, random_iterator_train, seed=SEED_TORCH, verbose=verbose)
         args_dir = write_args(model_location, model_id=model_id, hyperparameters=hyperparameters, verbose=verbose)
 
         if report:
@@ -139,7 +139,7 @@ def run(args,
                               force_new_dic=True if run_mode == "train" else False,
                               tasks=args.tasks,
                               pos_specific_data_set=args.train_path[1] if len(args.tasks) > 1 and len(args.train_path)>1 and "pos" in args.tasks else None,
-                              case=case,
+                              case=args.case,
                               # if not normalize pos or parsing in tasks we don't need dictionary
                               do_not_fill_dictionaries=len(set(["normalize", "pos", "parsing"])&set([task for tasks in args.tasks for task in tasks])) == 0,
                               add_start_char=1 if run_mode == "train" else None,
@@ -155,7 +155,7 @@ def run(args,
     if voc_pos_size is not None:
         printing("MODEL : voc_pos_size defined as {}", var=voc_pos_size,  verbose_level=1, verbose=verbose)
     printing("MODEL init...", verbose=verbose, verbose_level=1)
-    tokenizer = BertTokenizer.from_pretrained(voc_tokenizer)
+    tokenizer = BertTokenizer.from_pretrained(voc_tokenizer, do_lower_case=args.case == "lower")
     mask_id = tokenizer.convert_tokens_to_ids([MASK_BERT])[0]
     model = get_model_multi_task_bert(args, model_dir, vocab_size, voc_pos_size, debug,
                                       num_labels_per_task=num_labels_per_task, mask_id=mask_id,
@@ -318,7 +318,7 @@ def run(args,
                                                                              null_token_index=null_token_index, null_str=null_str,
                                                                              norm_2_noise_eval=False,
                                                                              early_stoppin_metric=None,
-                                                                             case=case,
+                                                                             #case=case,
                                                                              n_iter_max=n_iter_max_per_epoch_train,
                                                                              data_sharded_dir=data_sharded, n_shards=n_shards,
                                                                              n_sent_dataset_total=n_sent_dataset_total_train,
@@ -357,7 +357,7 @@ def run(args,
                                                                                            norm_2_noise_eval=False,
                                                                                            early_stoppin_metric=early_stoppin_metric,
                                                                                            subsample_early_stoping_metric_val=subsample_early_stoping_metric_val,
-                                                                                           case=case,
+                                                                                           #case=case,
                                                                                            n_iter_max=n_iter_max_per_epoch_dev_test,
                                                                                            verbose=verbose)
 
@@ -585,7 +585,8 @@ def run(args,
                                                                               remove_mask_str_prediction=remove_mask_str_prediction,
                                                                               inverse_writing=inverse_writing,
                                                                               reference_word_dic={"InV": inv_word_dic},
-                                                                              case=case, threshold_edit=threshold_edit,
+                                                                              #case=case,
+                                                                              threshold_edit=threshold_edit,
                                                                               edit_module_pred_need_norm_only=mode_need_norm_heuristic == "need_normed",
                                                                               n_iter_max=n_iter_max_per_epoch_dev_test, verbose=verbose)
                         print("LOSS TEST", loss_test)

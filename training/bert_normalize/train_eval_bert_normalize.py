@@ -56,7 +56,7 @@ def train_eval_bert_normalize(args, verbose=1):
         description=description, null_token_index=null_token_index, null_str=NULL_STR,
         model_suffix="{}".format(args.model_id_pref), debug=debug,
         random_iterator_train=True,  bucket_test=False, compute_intersection_score_test=True,
-        list_reference_heuristic_test=list_reference_heuristic_test, case="lower",
+        list_reference_heuristic_test=list_reference_heuristic_test,
         n_iter_max_per_epoch_train=args.n_iter_max_train if not args.demo_run else 5,
         n_iter_max_per_epoch_dev_test=1000000 if not args.demo_run else 5,
         slang_dic_test=slang_dic,
