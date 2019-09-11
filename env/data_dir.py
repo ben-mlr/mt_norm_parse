@@ -22,7 +22,7 @@ DATASET_CODE_LS = ['af_afribooms', 'ar_nyuad', 'ar_padt', 'be_hse', 'bg_btb', 'b
 
 def get_dir_data(set, data_code, demo=False):
     assert set in ["train", "dev", "test"]
-    assert data_code in DATASET_CODE_LS
+    assert data_code in DATASET_CODE_LS, "ERROR {}".format(data_code)
     demo_str = "-demo" if demo else ""
 
     file_dir = os.path.join(DATA_UD, "{}-ud-{}{}.conllu".format(data_code, set, demo_str))

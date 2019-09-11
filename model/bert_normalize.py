@@ -12,13 +12,16 @@ from model.bert_tools_from_core_code.modeling import BertForTokenClassification,
 logger = logging.getLogger(__name__)
 
 
-def make_bert_multitask(pretrained_model_dir, tasks, num_labels_per_task, init_args_dir):
+def make_bert_multitask(pretrained_model_dir, tasks, num_labels_per_task, init_args_dir, mask_id):
     assert num_labels_per_task is not None and isinstance(num_labels_per_task, dict), \
         "ERROR : num_labels_per_task {} should be a dictionary".format(num_labels_per_task)
     assert isinstance(tasks, list) and len(tasks) >= 1, "ERROR tasks {} should be a list of len >=1".format(tasks)
 
     if pretrained_model_dir is not None and init_args_dir is None:
-        model = BertMultiTask.from_pretrained(pretrained_model_dir, tasks=tasks, num_labels_per_task=num_labels_per_task)
+        model = BertMultiTask.from_pretrained(pretrained_model_dir, tasks=tasks,
+                                              mask_id=mask_id,
+                                              num_labels_per_task=num_labels_per_task,mapping_keys_state_dic={"cls": "head.mlm"})
+        pdb.set_trace()
     elif init_args_dir is not None:
         init_args_dir = get_init_args_dir(init_args_dir)
 
@@ -27,7 +30,7 @@ def make_bert_multitask(pretrained_model_dir, tasks, num_labels_per_task, init_a
         checkpoint_dir = args_checkpoint["checkpoint_dir"]
         assert os.path.isfile(checkpoint_dir), "ERROR checkpoint {} not found ".format(checkpoint_dir)
         # redefining model and reloading
-        
+
         def get_config_bert(bert_model, config_file_name="bert_config.json"):
             model_dir = BERT_MODEL_DIC[bert_model]["model"]
             tempdir = tempfile.mkdtemp()
@@ -42,10 +45,9 @@ def make_bert_multitask(pretrained_model_dir, tasks, num_labels_per_task, init_a
         config_file = get_config_bert(args_checkpoint["hyperparameters"]["bert_model"])
         config = BertConfig(config_file)
 
-        model = BertMultiTask(config=config, tasks=[task for tasks in args_checkpoint["hyperparameters"]["tasks"] for task in tasks], num_labels_per_task=args_checkpoint["info_checkpoint"]["num_labels_per_task"])
-
+        model = BertMultiTask(config=config, tasks=[task for tasks in args_checkpoint["hyperparameters"]["tasks"] for task in tasks],
+                              num_labels_per_task=args_checkpoint["info_checkpoint"]["num_labels_per_task"])
         model.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
-
         model.append_extra_heads_model(downstream_tasks=tasks, num_labels_dic_new=num_labels_per_task)
     else:
         raise(Exception("only one of pretrained_model_dir checkpoint_dir can be defined "))

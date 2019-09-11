@@ -17,6 +17,7 @@ from model.bert_tools_from_core_code.get_model import get_model_multi_task_bert
 from training.bert_normalize.multi_task_tools import get_vocab_size_and_dictionary_per_task
 from io_.build_files_shard import build_shard
 from io_.get_new_batcher import get_new_shard
+from io_.dat.constants import MASK_BERT
 
 
 def run(args,
@@ -27,7 +28,8 @@ def run(args,
         n_iter_max_per_epoch_dev_test=None,
         run_mode="train",
         dict_path=None, end_predictions=None,
-        report=True, model_suffix="", description="",
+        report=True,
+        model_suffix="", description="",
         saving_every_epoch=10,
         model_location=None, model_id=None,
         report_full_path_shared=None, skip_1_t_n=False,
@@ -42,6 +44,7 @@ def run(args,
         case=None, threshold_edit=3,
         name_with_epoch=False,
         debug=False, verbose=1):
+
     """
     2 modes : train (will train using train and dev iterators with test at the end on test_path)
               test : only test at the end : requires all directoris to be created
@@ -151,18 +154,19 @@ def run(args,
     voc_pos_size = num_labels_per_task["pos"] if "pos" in args.tasks else None
     if voc_pos_size is not None:
         printing("MODEL : voc_pos_size defined as {}", var=voc_pos_size,  verbose_level=1, verbose=verbose)
-    printing("MODEL CREATING.. ", verbose=verbose, verbose_level=1)
-
+    printing("MODEL init...", verbose=verbose, verbose_level=1)
+    tokenizer = BertTokenizer.from_pretrained(voc_tokenizer)
+    mask_id = tokenizer.convert_tokens_to_ids([MASK_BERT])[0]
     model = get_model_multi_task_bert(args, model_dir, vocab_size, voc_pos_size, debug,
-                                      num_labels_per_task=num_labels_per_task, verbose=verbose)
-    printing("MODEL CREATED use_gpy {}".format(use_gpu), verbose=verbose, verbose_level=1)
+                                      num_labels_per_task=num_labels_per_task, mask_id=mask_id,
+                                      verbose=verbose)
     if use_gpu:
         model.to("cuda")
         printing("MODEL TO CUDA", verbose=verbose, verbose_level=1)
 
     inv_word_dic = word_dictionary.instance2index
     # load , mask, bucket and index data
-    tokenizer = BertTokenizer.from_pretrained(voc_tokenizer)
+
     assert tokenizer is not None, "ERROR : tokenizer is None , voc_tokenizer failed to be loaded {}".format(voc_tokenizer)
     if run_mode == "train":
         time_load_readers_train_start = time.time()
@@ -375,9 +379,9 @@ def run(args,
                         print('WARNING early_stoping_val is None so saving based on checkpointing_model_data only')
                         _epoch = epoch
                     # model_id enriched possibly with some epoch informaiton if name_with_epoch
-                    model_id = get_name_model_id_with_extra_name(epoch=epoch, _epoch=_epoch,
+                    _model_id = get_name_model_id_with_extra_name(epoch=epoch, _epoch=_epoch,
                                                                  name_with_epoch=name_with_epoch, model_id=model_id)
-                    checkpoint_dir = os.path.join(model_location, "{}-checkpoint.pt".format(model_id))
+                    checkpoint_dir = os.path.join(model_location, "{}-checkpoint.pt".format(_model_id))
 
                     if _epoch == "best":
                         print("SAVING BEST MODEL {} (epoch:{}) (new loss is {} former was {})".format(checkpoint_dir, epoch, early_stoping_val, early_stoping_val_former))
@@ -396,7 +400,7 @@ def run(args,
 
                     args_dir = write_args(dir=model_location, checkpoint_dir=checkpoint_dir,
                                           hyperparameters=hyperparameters if name_with_epoch else None,
-                                          model_id=model_id,
+                                          model_id=_model_id,
                                           info_checkpoint=OrderedDict([("n_epochs", epoch+1), ("batch_size", args.batch_size),
                                                                        ("train_path", train_data_label),
                                                                        ("dev_path", dev_data_label_ls),

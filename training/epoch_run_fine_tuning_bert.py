@@ -164,7 +164,6 @@ def epoch_run(batchIter, tokenizer,
     mask_token_index = tokenizer.convert_tokens_to_ids([MASK_BERT])[0]
     cls_token_index = tokenizer.convert_tokens_to_ids([CLS_BERT])[0]
     sep_token_index = tokenizer.convert_tokens_to_ids([SEP_BERT])[0]
-
     space_token_index = tokenizer.convert_tokens_to_ids([null_str])[0]
     printing("WARNING : [MASK] set to {} [CLS] {} [SEP] {}", var=[mask_token_index, cls_token_index, sep_token_index],
              verbose=verbose, verbose_level=1)
@@ -212,6 +211,7 @@ def epoch_run(batchIter, tokenizer,
     time_multitask_preprocess_1 = 0
     time_multitask_preprocess_2 = 0
     time_multitask_postprocess = 0
+    time_overall_pass = time.time()
 
     n_shard = 0
 
@@ -324,6 +324,7 @@ def epoch_run(batchIter, tokenizer,
                                                                                       mask_token_index=mask_token_index,
                                                                                       sep_token_index=sep_token_index,
                                                                                       cls_token_index=cls_token_index)
+                pdb.set_trace()
                 # NB : token_type_ids not used in MultiTask (no needed, just use 0 everywhere )
 
 
@@ -647,21 +648,27 @@ def epoch_run(batchIter, tokenizer,
 
                 for label in label_per_task:
                     # make mask for the loss padding
+                    pass
                     # TODO handle task specific index pad
                     # NB : maybe factorize with prediction
                     #assert len(set(args.tasks) & set(["parsing", "pos"])) == len(args.tasks), \
                     #    "ERROR need to handle tasks agnostic pad index for allowing other tasks {} ".format(args.tasks)
                     # we transform the padded labels according to the loss ignore mask parameters
-                    if label not in ["heads", "mwe_prediction",
-                                     "n_masks_mwe", "mwe_detection"]:
-                        label_per_task[label][label_per_task[label] == PAD_ID_TAG] = PAD_ID_LOSS_STANDART
+                    #if label not in ["heads", "mwe_prediction",
+                    #                 "n_masks_mwe", "mwe_detection"]:
+                    #    label_per_task[label][label_per_task[label] == PAD_ID_TAG] = PAD_ID_LOSS_STANDART
                     # we do the token counting using labels
 
                 for task in [task for tasks in args.tasks for task in tasks]:
                     for label in TASKS_PARAMETER[task]["label"]:
-                        n_tokens_counter_per_task[task+"-"+label] += (label_per_task[label] != PAD_ID_LOSS_STANDART).sum().item()
+                        if label == "mwe_prediction":
+                            _pad = PAD_ID_BERT
+                        else:
+                            _pad = PAD_ID_LOSS_STANDART
+                        n_tokens_counter_current_per_task[task+"-"+label] = (label_per_task[label] != _pad).sum().item()
+                        n_tokens_counter_per_task[task+"-"+label] += n_tokens_counter_current_per_task[task+"-"+label]
                         # NB : do you account for CLS and SEQ HERE ?
-                        n_tokens_counter_current_per_task[task+"-"+label] = (label_per_task[label] != PAD_ID_LOSS_STANDART).sum().item()
+                pdb.set_trace()
                 # TODO : handle in a more standart way
                 n_tokens_counter_per_task["all"] += n_tokens_counter_current_per_task[task+"-"+label]
                 time_multitask_preprocess_2 += time.time()-time_multitask_preprocess_2_start
@@ -762,10 +769,8 @@ def epoch_run(batchIter, tokenizer,
                         opti.step()
                         opti.zero_grad()
                     mode = "train"
-                    printing("MODE data {} optimizing".format(data_label), verbose=verbose, verbose_level=4)
             else:
                 mode = "dev"
-                printing("MODE data {} not optimizing".format(data_label), verbose=verbose, verbose_level=4)
             if writer is not None:
                 tensorboard_loss_writer_batch_level(writer, mode, model_id, _loss, batch_i, iter,  loss_dic,
                                                     task_normalize_is, args.append_n_mask, task_pos_is)
@@ -785,6 +790,9 @@ def epoch_run(batchIter, tokenizer,
             batchIter = load_batcher_shard_data(args, args_load_batcher_shard_data, training_file, verbose)
 
     if args.multitask:
+        overall_pass = time.time()-time_overall_pass
+        printing("TIME : {:0.3f} min for {} iteration of {} batch_size in {} mode : {} min/batch {} min/sent",
+                 var=[overall_pass/60, batch_i, args.batch_size, "train" if optimizer is not None else "dev", overall_pass/60/batch_i, overall_pass/60/(batch_i*args.batch_size)], verbose_level=1, verbose=verbose)
         timing = OrderedDict([("time_multitask_preprocess_1", "{:0.4f}".format(time_multitask_preprocess_1/batch_i)),
                  ("time_multitask_preprocess_2", "{:0.4f}".format(time_multitask_preprocess_2/batch_i)),
                  ("time_multitask_feedforward", "{:0.4f}".format(time_multitask_train/batch_i)),

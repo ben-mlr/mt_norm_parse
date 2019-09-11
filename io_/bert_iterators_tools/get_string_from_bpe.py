@@ -17,7 +17,8 @@ def get_prediction(logits_dic, topk):
             # getting predicted heads (to know which labels of the graph which should look at
             pred_heads = predictions_topk_dic["parsing-heads"][:, :, 0]
             # we extract from the logits only the one of the predicted heads (that are not PAD_ID_LOSS_STANDART : useless)
-            logits = logits[(pred_heads != PAD_ID_LOSS_STANDART).nonzero()[:, 0], (pred_heads != PAD_ID_LOSS_STANDART).nonzero()[:,1], pred_heads[pred_heads != PAD_ID_LOSS_STANDART]]
+            logits = logits[(pred_heads != PAD_ID_LOSS_STANDART).nonzero()[:, 0],
+                            (pred_heads != PAD_ID_LOSS_STANDART).nonzero()[:, 1], pred_heads[pred_heads != PAD_ID_LOSS_STANDART]]
             # we take the argmax label of this heads
             predictions_topk_dic[logit_label] = torch.argsort(logits, dim=-1, descending=True)[:, :topk]
             # only keeping the top 1 prediction
@@ -25,6 +26,7 @@ def get_prediction(logits_dic, topk):
             # reshaping
             predictions_topk_dic[logit_label] = predictions_topk_dic[logit_label].view(batch_size, -1, topk)
         else:
+            pdb.set_trace()
             predictions_topk_dic[logit_label] = torch.argsort(logits, dim=-1, descending=True)[:, :, :topk]
 
     return predictions_topk_dic

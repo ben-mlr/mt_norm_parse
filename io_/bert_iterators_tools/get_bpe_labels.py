@@ -1,6 +1,6 @@
 
 from env.importing import pdb, OrderedDict, np, torch, time
-from io_.dat.constants import PAD_ID_BERT, PAD_ID_TAG, PAD_ID_HEADS, ROOT_HEADS_INDEX, END_HEADS_INDEX
+from io_.dat.constants import PAD_ID_BERT, PAD_ID_TAG, PAD_ID_HEADS, ROOT_HEADS_INDEX, END_HEADS_INDEX, PAD_ID_LOSS_STANDART
 from model.bert_tools_from_core_code.masking import dropout_mlm
 
 
@@ -52,12 +52,7 @@ def get_bpe_label_word_level_task(labels, batch, input_tokens_tensor, input_alig
         test_get_cumulated_non_first_bpe_counter()
 
         cumulate_shift = [get_cumulated_non_first_bpe_counter(input_alignement_with_raw[ind_sent]) for ind_sent in range(len(input_alignement_with_raw))]
-        #cumulate_shift = [[sum(multi_bpe_token[ind_sent][:ind]) for ind, _ in enumerate(multi_bpe_token[ind_sent])] for ind_sent in range(len(multi_bpe_token))]
-        #cumulate_shift = [[sum(multi_bpe_token[ind_sent][:ind+1]) for ind, _ in enumerate(multi_bpe_token[ind_sent]) if
-        #            ind + 1 < len(multi_bpe_token[ind_sent])
-        #            and not (multi_bpe_token[ind_sent][ind] != 1
-        #            and multi_bpe_token[ind_sent][ind] != multi_bpe_token[ind_sent][ind + 1])]
-        #                  for ind_sent in range(len(multi_bpe_token))]
+
     output_tokens_tensor_new = []
     for ind_sent in range(len(_input_mask)):
         output_tokens_tensor_new_ls = []
@@ -85,7 +80,6 @@ def get_bpe_label_word_level_task(labels, batch, input_tokens_tensor, input_alig
                     pdb.set_trace()
                     #label = output_tokens_tensor[ind_sent, output_tokens_tensor.shape[1] - 1]
                     raise(e)
-                #raise(e)
 
             if mask == 0:
                 # 1 for _PAD_POS
@@ -94,12 +88,6 @@ def get_bpe_label_word_level_task(labels, batch, input_tokens_tensor, input_alig
                 shift += 1
             else:
                 output_tokens_tensor_new_ls.append(label)
-                current_token_shift = 0
-                # TODO : next step is pointing other bpe to single other bpe
-                #if False and graph_labels and input_alignement_with_raw[ind_sent][ind_tok] != 1000:
-                #    # pointing toward first bpe of the given token
-                #    current_token_shift += 1
-                #    output_tokens_tensor_new_ls.append(input_alignement_with_raw[ind_sent][ind_tok-current_token_shift]+cumulate_shift[ind_sent][ind_tok])
         output_tokens_tensor_new.append(output_tokens_tensor_new_ls)
 
     def sanity_test_parsing_label(labels, output_tokens_tensor_new, input_alignement_with_raw, cumulate_shift):
@@ -174,7 +162,8 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
                 if use_gpu:
                     output_tokens_tensor_aligned = output_tokens_tensor_aligned.cuda()
                 # if the task has several label : we just appen the label name to the task in the label dictionary
-
+                # ALL output padded with BERT pad are padded with LOSS pad (-1)
+                #output_tokens_tensor_aligned[output_tokens_tensor_aligned == PAD_ID_BERT] = PAD_ID_LOSS_STANDART
                 label_per_task[task_batch_name] = output_tokens_tensor_aligned
 
             #input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = input_tokens_tensor
@@ -186,7 +175,8 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
                 input_mask_per_task[tasks_parameters[task]["input"]] = (input_tokens_tensor_per_task[tasks_parameters[task]["input"]] != PAD_ID_BERT)
             else:
                 assert masking_strategy is None
-                assert tasks_parameters[task].get("original") is not None, "ERROR 'original' field is needed to get raw sequence before preprocssing for task {} ".format(task)
+                assert tasks_parameters[task].get("original") is not None, \
+                    "ERROR 'original' field is needed to get raw sequence before preprocssing for task {} ".format(task)
                 input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = dropout_mlm(eval("batch.{}".format(tasks_parameters[task]["original"])).clone(),
                                                                                             mask_token_index=mask_token_index,
                                                                                             sep_token_index=sep_token_index,

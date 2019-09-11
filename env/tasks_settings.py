@@ -1,4 +1,5 @@
 from env.importing import CrossEntropyLoss
+from io_.dat.constants import PAD_ID_BERT, PAD_ID_TAG, PAD_ID_HEADS
 #from model.bert_tools_from_core_code.modeling import BertGraphHead
 
 
@@ -72,7 +73,7 @@ TASKS_PARAMETER = {
                                     {"normalization": False,
                                      "head": "BertOnlyMLMHead",
                                      "num_labels_mandatory":False,
-                                     "loss": CrossEntropyLoss(ignore_index=-1, reduce="mean"),
+                                     "loss": CrossEntropyLoss(ignore_index=PAD_ID_TAG, reduce="mean"),
                                      "prediction_level": "bpe",
                                      "subsample-allowed": ["all", "InV", "OOV", "MWE"],
                                      "input": "wordpieces_raw_aligned_with_words",
@@ -96,7 +97,7 @@ TASKS_PARAMETER = {
                            "alignement": "mwe_prediction_alignement",
                            "head": "BertTokenHead",
                            "prediction_level": "word",
-                           "loss": CrossEntropyLoss(ignore_index=-1,reduce="sum")
+                           "loss": CrossEntropyLoss(ignore_index=PAD_ID_TAG,reduce="sum")
                            },
                    "mlm": {"normalization": False,
                            "mask_input": True,# means the sequence input is always masked following mlm (train and test!)
@@ -113,7 +114,7 @@ TASKS_PARAMETER = {
                            "original": "mwe_prediction",
                            "head": "BertOnlyMLMHead",
                            "prediction_level": "bpe",
-                           "loss": CrossEntropyLoss(ignore_index=-1, reduce="sum")
+                           "loss": CrossEntropyLoss(ignore_index=PAD_ID_BERT, reduce="sum")
                            },
                    "parsing": {
                        "normalization": False,
@@ -128,7 +129,7 @@ TASKS_PARAMETER = {
                        "alignement": "mwe_prediction_alignement",
                        "label": ["heads", "types"],
                        "prediction_level": "word",
-                       "loss": CrossEntropyLoss(ignore_index=-1, reduction="mean")
+                       "loss": CrossEntropyLoss(ignore_index=PAD_ID_TAG, reduction="sum")
                    },
 
                    "all": {"normalization": True,

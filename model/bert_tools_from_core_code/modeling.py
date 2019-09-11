@@ -31,8 +31,8 @@ import sys
 from io import open
 
 from env.importing import torch, nn, CrossEntropyLoss, F, np, pdb
-from io_.dat.constants import PAD_ID_LOSS_STANDART
-from io_.dat.constants import NUM_LABELS_N_MASKS
+from io_.dat.constants import PAD_ID_LOSS_STANDART, NUM_LABELS_N_MASKS, PAD_ID_BERT
+
 from model.bert_tools_from_core_code.tools import get_key_name_num_label
 
 #from .file_utils import cached_path
@@ -521,6 +521,7 @@ class BertPreTrainingHeads(nn.Module):
         return prediction_scores, seq_relationship_score
 
 
+
 class BertPreTrainedModel(nn.Module):
     """ An abstract class to handle weights initialization and
         a simple interface for dowloading and loading pretrained models.
@@ -552,7 +553,9 @@ class BertPreTrainedModel(nn.Module):
 
     @classmethod
     def from_pretrained(cls, pretrained_model_name_or_path, state_dict=None, cache_dir=None,
-                        dropout_custom=0.,normalization_mode=True, layer_wise_attention=False,
+                        mapping_keys_state_dic=None,
+                        dropout_custom=0.,
+                        normalization_mode=True, layer_wise_attention=False,
                         mask_n_predictor=False,
                         from_tf=False, *inputs, **kwargs):
         """
@@ -669,31 +672,56 @@ class BertPreTrainedModel(nn.Module):
         if metadata is not None:
             state_dict._metadata = metadata
 
+        if mapping_keys_state_dic is not None:
+            assert isinstance(mapping_keys_state_dic, dict), "ERROR "
+            mapping_keys_state_dic = {"cls": "head.mlm"}
+            print("INFO : from loading from pretrained method (assuming loading original google model : "
+                  "need to rename some keys {})".format(mapping_keys_state_dic))
+            state_dict = cls.adapt_state_dic_to_multitask(state_dict, keys_mapping=mapping_keys_state_dic)
+
         def load(module, prefix=''):
             local_metadata = {} if metadata is None else metadata.get(prefix[:-1], {})
             module._load_from_state_dict(state_dict, prefix, local_metadata, True, missing_keys, unexpected_keys, error_msgs)
             for name, child in module._modules.items():
                 if child is not None:
                     load(child, prefix + name + '.')
+
         start_prefix = ''
-        if not hasattr(model, 'bert') and any(s.startswith('bert.') for s in state_dict.keys()):
+        if not hasattr(model, 'bert') and any(s.startswith('bert.') for s    in state_dict.keys()):
             start_prefix = 'bert.'
         load(model, prefix=start_prefix)
-
         if mask_n_predictor:
             print("MODEL : adding extra post-loading for masks prediction")
             model.mask_n_predictor = BertMaskNPredictionHead(config)
 
         if len(missing_keys) > 0:
+            print("WARNING : Weights of {} not initialized from pretrained model: {} cause missing in checkpoint".format(model.__class__.__name__, missing_keys))
             logger.info("Weights of {} not initialized from pretrained model: {}".format(
                 model.__class__.__name__, missing_keys))
         if len(unexpected_keys) > 0:
+            print("WARNING : Weights from pretrained model not used in {}: {}".format(
+                model.__class__.__name__, unexpected_keys))
             logger.info("Weights from pretrained model not used in {}: {}".format(
                 model.__class__.__name__, unexpected_keys))
         if len(error_msgs) > 0:
             raise RuntimeError('Error(s) in loading state_dict for {}:\n\t{}'.format(
                                model.__class__.__name__, "\n\t".join(error_msgs)))
         return model
+
+    @staticmethod
+    def adapt_state_dic_to_multitask(state_dict, keys_mapping):
+        state_dict_new = OrderedDict()
+        for key, _ in state_dict.items():
+            state_dict_new[key] = state_dict[key].clone()
+            for mapping_key, mapping_value in keys_mapping.items():
+                if key.startswith(mapping_key):
+                    state_dict_new[mapping_value + key[len(mapping_key):]] = state_dict[
+                        mapping_key + key[len(mapping_key):]].clone()
+                    print("MODEL loading replacing key {} from  loaded statedic  with {} ".format(mapping_key + key[len(mapping_key):],
+                                                                           mapping_value + key[len(mapping_key):]))
+
+                    del state_dict_new[mapping_key + key[len(mapping_key):]]
+        return state_dict_new
 
 
 class BertModel(BertPreTrainedModel):
@@ -879,6 +907,7 @@ class BertGraphHeadKyungTae():
     def forward(self):
         pass
 
+
 class BertGraphHead(nn.Module):
     # the MLP layers
     def __init__(self, config, dropout_classifier=None, num_labels=None):
@@ -951,29 +980,26 @@ class BertMultiTask(BertPreTrainedModel):
     """
     BERT model which can call any other modules
     """
-    def __init__(self, config, tasks, num_labels_per_task):
+    def __init__(self, config, tasks, num_labels_per_task, mask_id):
         super(BertMultiTask, self).__init__(config)
         self.bert = BertModel(config)
         self.config = config
         assert isinstance(num_labels_per_task, dict)
         assert isinstance(tasks, list) and len(tasks) >= 1, "config.tasks should be a list of len >=1"
         self.head = nn.ModuleDict()
-        self.tasks = tasks # tasks we use for a given run
+        self.mask_index_bert = mask_id
+        self.tasks = tasks #tasks we use for a given run
         self.tasks_available = tasks # all tasks available in the model (not only the one we want to use at a given run (self.tasks))
         self.task_parameters = TASKS_PARAMETER
         self.layer_wise_attention = None
         self.labels_supported = [label for task in tasks for label in self.task_parameters[task]["label"]]
-
         self.sanity_checking_num_labels_per_task(num_labels_per_task, tasks, self.task_parameters)
-
         self.num_labels_dic = num_labels_per_task
         ##if "mlm" in tasks:
         #   self.num_labels_dic["mlm"] = self.bert.embeddings.word_embeddings.weight.size(0)
         for task in TASKS_PARAMETER:
             if task in tasks:
-                #assert task in TASKS_PARAMETER, "ERROR : task {} is not in {}".format(task, TASKS_PARAMETER)
                 num_label = get_key_name_num_label(task, self.task_parameters)
-                #num_label = task+"-"+self.task_parameters[task]["label"][0] if len(self.task_parameters[task]["label"]) == 1 else task+"-"+self.task_parameters[task]["num_labels_mandatory_to_check"][0] # assuming 1 in num_labels_mandatory_to_check
                 if not self.task_parameters[task]["num_labels_mandatory"]:
                     # in this case we need to define and load MLM head of the model
                     self.head[task] = eval(self.task_parameters[task]["head"])(config, self.bert.embeddings.word_embeddings.weight)
@@ -1005,23 +1031,23 @@ class BertMultiTask(BertPreTrainedModel):
         for task in self.tasks:
             # we don't use mask for parsing heads (cf. test performed below : the -1 already ignore the heads we don't want)
             # NB : head_masks for parsing only applies to heads not types
-            head_masks_task = None#head_masks.get(task, None) if task != "parsing" else None
+            head_masks_task = None # head_masks.get(task, None) if task != "parsing" else None
             # NB : head_mask means masks specific the the module heads (nothing related to parsing !! )
             assert self.task_parameters[task]["input"] in sequence_output_dict, \
                 "ERROR input {} of task {} was not found in input_ids_dict {}" \
                 " and therefore not in sequence_output_dict {} ".format(self.task_parameters[task]["input"],
                                                                         task, input_ids_dict.keys(),
                                                                         sequence_output_dict.keys())
-
             if not isinstance(self.head[task], BertOnlyMLMHead):
-                logits_dict[task] = self.head[task](sequence_output_dict[self.task_parameters[task]["input"]],
-                                                           head_mask=head_masks_task)
+                logits_dict[task] = self.head[task](sequence_output_dict[self.task_parameters[task]["input"]], head_mask=head_masks_task)
             else:
+
                 logits_dict[task] = self.head[task](sequence_output_dict[self.task_parameters[task]["input"]])
             # test performed : (logits_dict[task][0][1,2,:20]==float('-inf'))==(labels["parsing_heads"][1,:20]==-1)
             # handle several labels at output (e.g  parsing)
-            logits_dict = self.rename_multi_modal_task_logits(labels=self.task_parameters[task]["label"],  task=task, logits_dict=logits_dict, task_parameters=self.task_parameters)
-
+            logits_dict = self.rename_multi_modal_task_logits(labels=self.task_parameters[task]["label"],  task=task,
+                                                              logits_dict=logits_dict,
+                                                              task_parameters=self.task_parameters)
             for logit_label in logits_dict:
             #for label in self.task_parameters[task]["label"]:
                 # HANDLE HERE MULTI MODAL TASKS
@@ -1029,8 +1055,19 @@ class BertMultiTask(BertPreTrainedModel):
                 assert label is not None, "ERROR logit_label {}".format(logit_label)
                 label = label.group(2)
                 if label in labels:
-                    loss_dict[logit_label] = self.get_loss(self.task_parameters[task]["loss"], label, self.num_labels_dic, labels, logits_dict, task, logit_label)
+                    # all the task that takes as input input_masked requires the loss to ignore all non MASK tokens ()
+                    # for now only mlm task --> PAD_ID_BERT as ignore should be made more standart
+
+                    if self.task_parameters[task]["input"] == "input_masked":
+                        _labels = labels[label].clone()
+                        _labels[input_ids_dict["input_masked"] != self.mask_index_bert] = PAD_ID_BERT
+                    else:
+                        _labels = labels[label]
+                    loss_dict[logit_label] = self.get_loss(self.task_parameters[task]["loss"], label,
+                                                           self.num_labels_dic, _labels,
+                                                           logits_dict, task, logit_label)
         # thrid output is for potential attention weights
+
         return logits_dict, loss_dict, None
 
     def append_extra_heads_model(self, downstream_tasks, num_labels_dic_new):
@@ -1052,27 +1089,28 @@ class BertMultiTask(BertPreTrainedModel):
         self.tasks = downstream_tasks # tasks to be used at prediction time (+ possibly train)
 
     @staticmethod
-    def get_loss(loss_func, label, num_label_dic, labels, logits_dict, task, logit_label):
+    def get_loss(loss_func, label, num_label_dic, labels, logits_dict, task, logit_label, head_label=None):
         if label not in ["heads", "types"]:
             try:
-                loss = loss_func(logits_dict[logit_label].view(-1, num_label_dic[logit_label]), labels[label].view(-1))
+                loss = loss_func(logits_dict[logit_label].view(-1, num_label_dic[logit_label]), labels.view(-1))
             except Exception as e:
                 print(e)
-                print("ERROR task {} num_label {} , labels {} ".format(task, num_label_dic, labels[label].view(-1)))
+                print("ERROR task {} num_label {} , labels {} ".format(task, num_label_dic, labels.view(-1)))
                 raise(e)
 
         elif label == "heads":
             # trying alternative way for loss
-            loss = CrossEntropyLoss(ignore_index=-1, reduction="mean")(logits_dict[logit_label].view(-1, logits_dict[logit_label].size(2)), labels[label].view(-1))
+            loss = CrossEntropyLoss(ignore_index=-1, reduction="sum")(logits_dict[logit_label].view(-1, logits_dict[logit_label].size(2)), labels.view(-1))
             # other possibilities is to do log softmax then L1 loss (lead to other results)
             if loss < 1e-3:
                 pdb.set_trace()
         elif label == "types":
+            assert head_label is not None, "ERROR head_label should be passed"
             # gold label after removing 0 gold
-            gold = labels["types"][labels["heads"] != PAD_ID_LOSS_STANDART]
+            gold = labels[head_label != PAD_ID_LOSS_STANDART]
             # pred logits (after removing -1) on the gold heads
-            pred = logits_dict["parsing-types"][(labels["heads"] != PAD_ID_LOSS_STANDART).nonzero()[:, 0],
-                                                (labels["heads"] != PAD_ID_LOSS_STANDART).nonzero()[:, 1], labels["heads"][labels["heads"] != PAD_ID_LOSS_STANDART]]
+            pred = logits_dict["parsing-types"][(head_label != PAD_ID_LOSS_STANDART).nonzero()[:, 0],
+                                                (head_label != PAD_ID_LOSS_STANDART).nonzero()[:, 1], head_label[head_label != PAD_ID_LOSS_STANDART]]
             # remark : in the way it's coded for paring : the padding is already removed (so ignore index is null)
             loss = loss_func(pred, gold)
 
@@ -1092,12 +1130,14 @@ class BertMultiTask(BertPreTrainedModel):
 
         for i_label, label in enumerate(labels):
             # NB : the order of self.task_parameters[task]["label"] must be the same as the head output
-            logits_dict[task+"-"+label] = logits_dict[task][i_label]
+            logits_dict[task+"-"+label] = logits_dict[task][i_label].clone()
+
         del logits_dict[task]
         #elif n_pred == 1:
         #    logits_dict[task+"-"] = logits_dict[logits_label][0]
         #else:
         #    raise (Exception("More than 3 tensors as prediction is not supported (task {})".format(task)))
+
         return logits_dict
 
 
@@ -1127,9 +1167,6 @@ class BertMultiTask(BertPreTrainedModel):
             if label in num_labels_original:
                 assert num_labels_original[label] == num_labels_new[label], \
                     "ERROR new num label provided for existing task not the same as original original:{} new:{} ".format(num_labels_original[label], num_labels_new[label])
-
-
-
 
 
 class BertForTreePrediction(BertPreTrainedModel):
@@ -1240,7 +1277,8 @@ class BertForMaskedLM(BertPreTrainedModel):
             multi_task_loss_ponderation = self.loss_weights_default
         sequence_output, _ = self.bert(input_ids, token_type_ids, attention_mask, output_all_encoded_layers=self.layer_wise_attention is not None)
         if self.mask_n_predictor is not None:
-            sequence_output_masks, _ = self.bert(input_ids, token_type_ids=torch.zeros_like(input_ids), attention_mask=(input_ids != 0) & (input_ids != mask_token_index), output_all_encoded_layers=None)
+            print("WARNING : & (input_ids != mask_token_index) was removed")
+            sequence_output_masks, _ = self.bert(input_ids, token_type_ids=torch.zeros_like(input_ids), attention_mask=(input_ids != 0) , output_all_encoded_layers=None)
         softmax_weight = None
         if self.layer_wise_attention is not None:
             stacked_layers = torch.stack(sequence_output, dim=-1).transpose(3, 2).squeeze(-1)

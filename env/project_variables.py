@@ -1,8 +1,8 @@
 import os
 from env.tasks_settings import TASKS_PARAMETER
 # SEEDS
-SEED_NP = 124
-SEED_TORCH = 124
+SEED_NP = 120
+SEED_TORCH = 120
 
 N_SENT_MAX_CONLL_PER_SHARD = 1000
 
@@ -29,8 +29,8 @@ else:
 CHECKPOINT_BERT_DIR = os.path.join(CHECKPOINT_DIR, "bert")
 
 assert os.path.isdir(CHECKPOINT_BERT_DIR), \
-    "ERROR : {} CHECKPOINT_BERT_DIR  does not exist : you should create it in {} ".format(CHECKPOINT_BERT_DIR, CHECKPOINT_DIR)
-
+    "ERROR : {} CHECKPOINT_BERT_DIR  does not exist : you should create it in {} ".format(CHECKPOINT_BERT_DIR,
+                                                                                          CHECKPOINT_DIR)
 
 CLIENT_GOOGLE_CLOUD = os.path.join(PROJECT_PATH, "tracking/google_api")
 SHEET_NAME_DEFAULT, TAB_NAME_DEFAULT = "model_evaluation", "experiments_tracking"
