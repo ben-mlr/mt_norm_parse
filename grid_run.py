@@ -439,7 +439,7 @@ if __name__ == "__main__":
                                 # arguments that are specific to script generation
           PRETRAINING = True 
           if PRETRAINING:
-              epochs = 2
+              epochs = 50
               noise_level = "noisy"
               domain = "code_mixed"
               domain_canonical = "wiki_fr"
@@ -451,12 +451,12 @@ if __name__ == "__main__":
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
-                                                  batch_size_ls=[2],
+                                                  batch_size_ls=[16],
                                                   #checkpoint_dir_ls=["'" + os.path.join(CHECKPOINT_BERT_DIR, "9535768-B-45690-9535768-B-model_0/9535768-B-45690-9535768-B-model_0-epbest-checkpoint.pt") + "'"],
                                                   gpu_mode="random",
                                                   bert_module_ls=None,
                                                   append_n_mask_ls=[0],
-                                                  demo_ls=[1],
+                                                  demo_ls=[0],
                                                   saving_every_n_epoch_ls=[1],
                                                   name_inflation_ls=[1],
                                                   n_iter_max_train_ls=[2000],

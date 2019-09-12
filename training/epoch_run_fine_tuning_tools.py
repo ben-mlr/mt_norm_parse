@@ -1,4 +1,4 @@
-from env.importing import torch, pdb, re
+from env.importing import torch, pdb, re, np
 from env.tasks_settings import TASKS_PARAMETER
 from io_.dat.constants import SPECIAL_TOKEN_LS, PAD_ID_BERT
 from io_.printout_iterator_as_raw import printing
@@ -124,16 +124,12 @@ def tensorboard_loss_writer_batch_level_multi(writer, mode, model_id, _loss, bat
                            iter + batch_i)
 
 
-def tensorboard_loss_writer_batch_level(writer, mode, model_id, _loss, batch_i, iter, loss_dic,task_normalize_is,  append_n_mask, task_pos_is):
+def tensorboard_loss_writer_batch_level(writer, mode, model_id, _loss, batch_i, iter, loss_dic, task_normalize_is,  append_n_mask):
     writer.add_scalars("loss-batch-sum",
                        {"loss-{}-{}-bpe".format(mode, model_id): _loss.clone().cpu().data.numpy()
                        if not isinstance(_loss, int) else 0},
                        iter+batch_i)
-    if task_pos_is:
-        writer.add_scalars("loss-batch-pos",
-                           {"loss-{}-{}-bpe".format(mode, model_id): loss_dic["loss_task_2"].detach().clone().cpu().data.numpy()
-                           },
-                           iter + batch_i)
+
     if task_normalize_is:
         writer.add_scalars("loss-batch-norm",
                            {"loss-{}-{}-bpe".format(mode, model_id):
@@ -232,21 +228,21 @@ def tensorboard_loss_writer_epoch_level(writer, tasks, mode, model_id, epoch, n_
 
 
 def writing_predictions_conll(dir_normalized, dir_normalized_original_only, dir_gold, dir_gold_original_only,
-                              src_detokenized, inverse_writing, pred_detokenized_topk, task_pos_is, iter, batch_i,
+                              src_detokenized, inverse_writing, pred_detokenized_topk,  iter, batch_i,
                               new_file, gold_detokenized, verbose):
 
     write_conll(format="conll", dir_normalized=dir_normalized,
                 dir_original=dir_normalized_original_only,
                 src_text_ls=src_detokenized, inverse=inverse_writing,
                 text_decoded_ls=pred_detokenized_topk[0],  # pred_pos_ls=None, src_text_pos=None,
-                tasks=["pos" if task_pos_is else "normalize"], ind_batch=iter + batch_i, new_file=new_file,
+                tasks=["normalize"], ind_batch=iter + batch_i, new_file=new_file,
                 src_text_pos=src_detokenized, pred_pos_ls=gold_detokenized,
                 verbose=verbose)
     write_conll(format="conll", dir_normalized=dir_gold, dir_original=dir_gold_original_only,
                 src_text_ls=src_detokenized,
                 src_text_pos=src_detokenized, pred_pos_ls=gold_detokenized,
                 text_decoded_ls=gold_detokenized,  # pred_pos_ls=None, src_text_pos=None,
-                tasks=["pos" if task_pos_is else "normalize"],
+                tasks=["normalize"],
                 ind_batch=iter + batch_i, new_file=new_file, verbose=verbose)
     new_file = False
     return new_file
@@ -394,3 +390,6 @@ def extend_input(masks, input, input_alignement_with_raw, mask_token_index, use_
         extended_alignement_sent_torch = extended_alignement_sent_torch.cuda()
 
     return extended_input_torch, extended_alignement_sent_torch
+
+
+

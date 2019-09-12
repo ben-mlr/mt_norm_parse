@@ -6,7 +6,7 @@ from env.project_variables import SAMPLES_PER_TASK_TO_REPORT, AVAILABLE_BERT_MAS
 from env.tasks_settings import TASKS_PARAMETER
 from io_.dat.constants import PAD_ID_BERT, MASK_BERT, CLS_BERT, SEP_BERT, SPECIAL_TOKEN_LS, NULL_STR, PAD_ID_TAG, PAD_ID_LOSS_STANDART
 from io_.info_print import printing
-from io_.bert_iterators_tools.string_processing import preprocess_batch_string_for_bert, from_bpe_token_to_str, get_indexes, get_indexes_src_gold
+from io_.bert_iterators_tools.string_processing import preprocess_batch_string_for_bert, from_bpe_token_to_str, get_indexes, get_indexes_src_gold, input_normalization_processing
 from io_.bert_iterators_tools.get_string_from_bpe import get_prediction, get_bpe_string, get_indexes_src_gold, get_detokenized_str, get_aligned_output
 #from io_.bert_iterators_tools.alignement import aligned_output, realigne
 import io_.bert_iterators_tools.alignement as alignement
@@ -203,7 +203,6 @@ def epoch_run(batchIter, tokenizer,
     loss_n_mask_prediction = 0
     n_batch_pos = 0
     n_batch_norm = 0
-    n_task_pos_sanity = 0
     n_task_normalize_sanity = 0
 
     counting_failure_parralel_bpe_batch = 0
@@ -227,20 +226,14 @@ def epoch_run(batchIter, tokenizer,
             batch_i += 1
             batch = batchIter.__next__()
             n_tokens_counter_current_per_task = OrderedDict()
-            # if no normalization found : should have pos
-            task_pos_is = len(batch.raw_output[0]) == 0
-            # only one task supported at a time per batch so far based on the input batch
-            task_normalize_is = not args.multitask
-            task_pos_is = False#"pos" in args.tasks and len(args.tasks) == 1
-            if task_pos_is:
-               print("WARNING : task_pos_is  {} ".format(task_pos_is))
-            # case the batches if case is 'lower'
 
+            # Normalization task is handled seperately
+            task_normalize_is = not args.multitask
+            # case the batches if case is 'lower'
             batch = get_casing(args.case, batch, task_normalize_is)
-            #print("ITERATING on {} task".format("pos" if task_pos_is else "normalize"))
-            n_task_pos_sanity += int(task_pos_is)
             n_task_normalize_sanity += int(task_normalize_is)
-            norm2noise_bool = False
+            batch_raw_input,  norm2noise_bool, args.norm_2_noise_training = input_normalization_processing(task_normalize_is, batch, args.norm_2_noise_training, norm_2_noise_eval)
+
             # Handling input
             if (args.norm_2_noise_training is not None or norm_2_noise_eval) and task_normalize_is:
                 portion_norm2noise = args.norm_2_noise_training if args.norm_2_noise_training is not None else 1.
@@ -269,7 +262,6 @@ def epoch_run(batchIter, tokenizer,
                 rand = np.random.uniform(low=0, high=1, size=1)[0]
                 group_to_mask = np.array(batch.output_norm_not_norm.cpu()) if args.portion_mask >= rand else None
             if not args.tokenize_and_bpe:
-
                 input_tokens_tensor, input_segments_tensors, inp_bpe_tokenized, input_alignement_with_raw, input_mask = \
                     get_indexes(batch_raw_input, tokenizer, verbose, use_gpu, word_norm_not_norm=group_to_mask)
             if args.masking_strategy == "start_stop":
@@ -314,7 +306,6 @@ def epoch_run(batchIter, tokenizer,
 
             if args.multitask:
                 time_multitask_preprocess_start = time.time()
-                out_bpe_tokenized = None
                 # TODO : should have a task specific input_mask and head_masks : only considering word level tasks and bpe level tasks for now
                 input_mask = get_mask_input(input_tokens_tensor, use_gpu)
                 head_masks, input_tokens_tensor, token_type_ids, label_per_task,\
@@ -437,9 +428,6 @@ def epoch_run(batchIter, tokenizer,
                     if args.append_n_mask:
                         if not isinstance(loss_dic["loss_task_n_mask_prediction"], int):
                             loss_n_mask_prediction += loss_dic["loss_task_n_mask_prediction"].detach()
-                if task_pos_is:
-                    loss_pos += loss_dic["loss_task_2"].detach()
-                    n_batch_pos += 1
                 if predict_mode:
                     start_pred = time.time()
                     predictions_topk = {}
@@ -544,7 +532,7 @@ def epoch_run(batchIter, tokenizer,
                         new_file = writing_predictions_conll(dir_normalized, dir_normalized_original_only, dir_gold,
                                                              dir_gold_original_only,
                                                              src_detokenized, inverse_writing, pred_detokenized_topk,
-                                                             task_pos_is, iter, batch_i, new_file,  gold_detokenized,
+                                                             iter, batch_i, new_file,  gold_detokenized,
                                                              verbose)
                     try:
 
@@ -751,7 +739,6 @@ def epoch_run(batchIter, tokenizer,
                 time_multitask_postprocess += time_multitask_postprocess_start - time.time()
                 # temporary
                 task_normalize_is = False
-                task_pos_is = False
                 # based on a policy : handle batch, epoch, batch weights, simultanuously
                 # assert the policy is consistent with the available labels fed to the model
             # training :
@@ -772,7 +759,7 @@ def epoch_run(batchIter, tokenizer,
                 mode = "dev"
             if writer is not None:
                 tensorboard_loss_writer_batch_level(writer, mode, model_id, _loss, batch_i, iter,  loss_dic,
-                                                    task_normalize_is, args.append_n_mask, task_pos_is)
+                                                    task_normalize_is, args.append_n_mask)
                 if args.multitask:
                     tensorboard_loss_writer_batch_level_multi(writer, mode, model_id, _loss, batch_i, iter, loss_dic, tasks=args.tasks)
             time_backprop = time.time()-time_backprop_start
@@ -828,7 +815,7 @@ def epoch_run(batchIter, tokenizer,
     iter += batch_i
     if writing_pred:
         printing("DATA WRITTEN TO {} ", var=[dir_end_pred], verbose=verbose, verbose_level=1)
-    printing("END EPOCH {} mode, iterated {} on pos {} on normalisation ", var=[mode, n_task_pos_sanity, n_task_normalize_sanity], verbose_level=1, verbose=verbose)
+    printing("END EPOCH {} mode, iterated {} on normalisation ", var=[mode, n_task_normalize_sanity], verbose_level=1, verbose=verbose)
     try:
         if early_stoppin_metric is not None:
             assert early_stoppin_metric_val is not None, \

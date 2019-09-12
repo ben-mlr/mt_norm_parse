@@ -1,5 +1,5 @@
-#from env.importing import *
-from env.importing import pdb, torch
+
+from env.importing import pdb, torch, np
 from io_.dat.constants import TOKEN_BPE_BERT_SEP, TOKEN_BPE_BERT_START, PAD_ID_BERT, PAD_BERT, PAD_ID_NORM_NOT_NORM
 from io_.info_print import printing
 
@@ -194,3 +194,23 @@ def from_bpe_token_to_str(bpe_tensor,  topk, pred_mode, null_token_index, null_s
         sent_ls_top = sent_ls_top[0]
 
     return sent_ls_top
+
+
+def input_normalization_processing(task_normalize_is, batch, norm_2_noise_training, norm_2_noise_eval):
+    norm2noise_bool = False
+    if (norm_2_noise_training is not None or norm_2_noise_eval) and task_normalize_is:
+        portion_norm2noise = norm_2_noise_training if norm_2_noise_training is not None else 1.
+        norm_2_noise_training = portion_norm2noise is not None
+        rand = np.random.uniform(low=0, high=1, size=1)[0]
+        norm2noise_bool = portion_norm2noise >= rand
+        if norm2noise_bool:
+            batch_raw_input = preprocess_batch_string_for_bert(batch.raw_output)
+            printing("WARNING : input is gold norm", verbose_level=2, verbose=1)
+        else:
+            printing("WARNING : input is input", verbose_level=2, verbose=1)
+            batch_raw_input = preprocess_batch_string_for_bert(batch.raw_input)
+    else:
+        printing("WARNING : input is input ", verbose_level=2, verbose=1)
+        batch_raw_input = preprocess_batch_string_for_bert(batch.raw_input)
+    return batch_raw_input,  norm2noise_bool, norm_2_noise_training
+
