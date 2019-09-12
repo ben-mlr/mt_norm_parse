@@ -1063,9 +1063,11 @@ class BertMultiTask(BertPreTrainedModel):
                         _labels[input_ids_dict["input_masked"] != self.mask_index_bert] = PAD_ID_BERT
                     else:
                         _labels = labels[label]
-                    loss_dict[logit_label] = self.get_loss(self.task_parameters[task]["loss"], label,
-                                                           self.num_labels_dic, _labels,
-                                                           logits_dict, task, logit_label)
+                    loss_dict[logit_label] = self.get_loss(loss_func=self.task_parameters[task]["loss"],
+                                                           label=label, num_label_dic=self.num_labels_dic,
+                                                           labels=_labels, logits_dict=logits_dict, task=task,
+                                                           logit_label=logit_label,
+                                                           head_label=labels["heads"] if label == "types" else None)
         # thrid output is for potential attention weights
 
         return logits_dict, loss_dict, None

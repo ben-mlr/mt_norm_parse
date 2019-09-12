@@ -100,8 +100,7 @@ def epoch_run(batchIter, tokenizer,
         for edit_rule in ["all", "ref", "data"]:
             if "edit_check-"+edit_rule in args.heuristic_ls:
                 assert threshold_edit is not None, "ERROR threshold_edit required as args.heuristic_ls is {}".format(args.heuristic_ls)
-    import pdb
-    pdb
+
     if args.case is not None:
         AVAILABLE_CASE_OPTIONS = ["lower"]
         assert args.case in AVAILABLE_CASE_OPTIONS
@@ -221,7 +220,6 @@ def epoch_run(batchIter, tokenizer,
     while True:
 
         try:
-
             if memory_efficient_iterator and batch_i*args.batch_size >= n_sent_dataset_total:
                 printing("BREAKING ALL ITERATORS for (mode is {} memory_efficient_iterator {} , shard {} ending ",
                          var=[mode, args.memory_efficient_iterator, n_shard], verbose_level=1, verbose=1)
@@ -696,7 +694,6 @@ def epoch_run(batchIter, tokenizer,
                                                                                   tokenizer, task_to_label_dictionary, null_str, null_token_index, TASKS_PARAMETER, mask_token_index, verbose)
                 # for parsing and tagging : will simply remove non-first bpe of each token
                 src_detokenized_dic, label_detokenized_dic, predict_detokenize_dic = get_detokenized_str(source_preprocessed_dict, input_alignement_with_raw,label_dic, predict_dic, null_str, remove_mask_str_prediction, TASKS_PARAMETER, batch=batch)
-                pdb.set_trace()
                 log_data_src_label_pred(src_detokenized_dic, predict_detokenize_dic, label_detokenized_dic,
                                         tasks=args.tasks, verbose=verbose, verbose_level=5)
 
@@ -781,7 +778,8 @@ def epoch_run(batchIter, tokenizer,
             time_backprop = time.time()-time_backprop_start
 
         except StopIteration:
-            printing("BREAKING ITERATION for (mode is {} memory_efficient_iterator {} , shard {} ending ", var=[mode, memory_efficient_iterator, n_shard],
+            printing("BREAKING ITERATION {} iter for (mode is {} memory_efficient_iterator {} , shard {} ending ", var=[batch_i, mode,
+                                                                                                                        memory_efficient_iterator, n_shard],
                      verbose_level=1, verbose=1)
             printing("TIME : {:0.3f} min with / without {} n_masks predictions ", var=[mean_end_pred / batch_i, args.append_n_mask], verbose_level=1, verbose=verbose)
             n_shard += 1

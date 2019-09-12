@@ -45,7 +45,7 @@ def make_bert_multitask(pretrained_model_dir, tasks, num_labels_per_task, init_a
         config = BertConfig(config_file)
 
         model = BertMultiTask(config=config, tasks=[task for tasks in args_checkpoint["hyperparameters"]["tasks"] for task in tasks],
-                              num_labels_per_task=args_checkpoint["info_checkpoint"]["num_labels_per_task"])
+                              num_labels_per_task=args_checkpoint["info_checkpoint"]["num_labels_per_task"], mask_id=mask_id)
         model.load_state_dict(torch.load(checkpoint_dir, map_location=lambda storage, loc: storage))
         model.append_extra_heads_model(downstream_tasks=tasks, num_labels_dic_new=num_labels_per_task)
     else:

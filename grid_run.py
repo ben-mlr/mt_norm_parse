@@ -346,9 +346,9 @@ if __name__ == "__main__":
           FINE_TUNE_BERT = False
 
           if FINE_TUNE_BERT:
-              epochs = 5
-              lang_iter = ["fr_gsd"]# "fr_sequoia", "fr_spoken", "ar_padt", "en_ewt", "en_lines"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
-              task_to_grid = [["parsing", "pos"]]
+              epochs = 2
+              lang_iter = ["fr_sequoia"]# "fr_sequoia", "fr_spoken", "ar_padt", "en_ewt", "en_lines"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
+              task_to_grid = [["parsing","pos"]]
                              # ["n_masks_mwe", "mwe_detection", "mwe_prediction", "pos"], 
                               #["parsing","n_masks_mwe", "mwe_detection", "mwe_prediction", "pos"]]#, ["parsing", "pos"]]
               #task_to_grid = [["normalize"]]
@@ -361,11 +361,14 @@ if __name__ == "__main__":
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
                                                   batch_size_ls=[2],
+                                                  demo_ls=[0],
                                                   #init_args_dir_ls=["'"+os.path.join(CHECKPOINT_BERT_DIR, "9705484-B-7de0e-9705484-B-model_2/9705484-B-7de0e-9705484-B-model_2-{}-best-args.json".format(epoch))+"'"  for epoch in [0, 2, 3, 4, 5, 6, 7, 9]],#["'"+os.path.join(CHECKPOINT_BERT_DIR,"checkpoints", "bert", "9372042-B-6ccaa-9372042-B-model_0/9372042-B-6ccaa-9372042-B-model_0-epbest-checkpoint.pt")+"'"],
                                                   #init_args_dir_ls=["5107b-B-6ee9d-5107b-B-model_0-0_ep_best-1_ep-2_ep"],
-                                                  init_args_dir_ls=["9729396-B-b2f43-9729396-B-model_0-3_ep",
-                                                                    "9729396-B-b2f43-9729396-B-model_0-1_ep",
-                                                                    "9729396-B-b2f43-9729396-B-model_0-2_ep"],
+                                                  #init_args_dir_ls=["9738294-B-946b3-9738294-B-model_0-0_ep_best",
+                                                  #                  "9738294-B-946b3-9738294-B-model_0-10_ep_best",
+                                                  #                  "9738294-B-946b3-9738294-B-model_0-21_ep_best",
+                                                  #                  "9738294-B-946b3-9738294-B-model_0-36_ep_best",
+                                                  #                  "9738294-B-946b3-9738294-B-model_0-45_ep"],
                                                   # ["'"+os.path.join(CHECKPOINT_BERT_DIR,"checkpoints", "bert", "9372042-B-6ccaa-9372042-B-model_0/9372042-B-6ccaa-9372042-B-model_0-epbest-checkpoint.pt")+"'"],
                                                   gpu_mode="random",
                                                   append_n_mask_ls=[0],
@@ -407,8 +410,8 @@ if __name__ == "__main__":
                                                   #test_paths=[[[LEX_TRAIN_SPLIT_2], [LEX_DEV_SPLIT_2], [LEX_TEST]]],# [[LEX_TRAIN_SPLIT_2], [LEX_DEV_SPLIT_2], [LEX_TEST]]],
                                                   #test_paths=[[[EWT_DEV], [EN_LINES_EWT_TRAIN], [EWT_TEST], [DEV], [TEST]], [[LEX_TEST, EWT_DEV], [LIU_DEV, EWT_TEST], [DEV,  DEV], [TEST, TEST]]],
                                                   #test_paths=[[[EWT_DEMO]] for _ in range(n_tasks)],
-                                                  test_paths=[[[get_dir_data("test", lang, demo=demo_data)], [get_dir_data("dev", lang, demo=demo_data)], [get_dir_data("train", lang, demo=demo_data)]] for _ in range(n_tasks) for lang in lang_iter],
-                                                  #test_paths=[[[get_dir_data("test", lang, demo=demo_data)], [get_dir_data("dev", lang, demo=demo_data)], [get_dir_data("train", lang, demo=demo_data)]] for _ in range(n_tasks) for lang in lang_iter],  # [EWT_DEV], [EWT_TEST], [EN_LINES_EWT_TRAIN]]],
+                                                  #test_paths=[[[get_dir_data("test", lang, demo=demo_data)], [get_dir_data("dev", lang, demo=demo_data)], [get_dir_data("train", lang, demo=demo_data)]] for _ in range(n_tasks) for lang in lang_iter],
+                                                  test_paths=[[[get_dir_data("test", lang, demo=demo_data)], [get_dir_data("dev", lang, demo=demo_data)], [get_dir_data("train", lang, demo=demo_data)]] for _ in range(n_tasks) for lang in lang_iter],  # [EWT_DEV], [EWT_TEST], [EN_LINES_EWT_TRAIN]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
                                                   epochs=epochs+1 if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
@@ -434,13 +437,13 @@ if __name__ == "__main__":
                                                                                                ("parsing-types", 1), ("parsing-heads", 1)])],  #OrderedDict([("pos", 0.2), ("parsing_types", 1), ("parsing_heads", 1)])],
                                                   scale_ls=[1])
                                 # arguments that are specific to script generation
-          PRETRAINING = True
+          PRETRAINING = True 
           if PRETRAINING:
-              epochs = 1
+              epochs = 2
               noise_level = "noisy"
               domain = "code_mixed"
               domain_canonical = "wiki_fr"
-              demo = True
+              demo = False
               # should point to n_max iter
               size = "small" if demo else "large"
               printing("GRID : running {} domain with  {} noise ".format(domain, noise_level), verbose=1, verbose_level=1)
@@ -453,7 +456,7 @@ if __name__ == "__main__":
                                                   gpu_mode="random",
                                                   bert_module_ls=None,
                                                   append_n_mask_ls=[0],
-                                                  demo_ls=[0],
+                                                  demo_ls=[1],
                                                   saving_every_n_epoch_ls=[1],
                                                   name_inflation_ls=[1],
                                                   n_iter_max_train_ls=[2000],
@@ -484,7 +487,7 @@ if __name__ == "__main__":
                                                   freeze_parameters_ls=[0],
                                                   freeze_layer_prefix_ls_ls=[None],
                                                   train_path=[[MLM_DATA[noise_level][domain]["train"][size]]],#[[CODE_MIXED_RAW_TRAIN]],
-                                                  dev_path=[[[MLM_DATA["canonical"][domain_canonical]["dev"]["small"]], [MLM_DATA[noise_level][domain]["dev"]["small"]]]],#[[[CODE_MIXED_RAW_DEMO]]],#[[[CODE_MIXED_RAW_DEV_SMALL], [WIKI_DEV_SMALL]]],
+                                                  dev_path=[[[MLM_DATA[noise_level][domain]["dev"]["small"]], [MLM_DATA["canonical"][domain_canonical]["dev"]["small"]]]],#[[[CODE_MIXED_RAW_DEMO]]],#[[[CODE_MIXED_RAW_DEV_SMALL], [WIKI_DEV_SMALL]]],
                                                   test_paths=[[[MLM_DATA[noise_level][domain]["train"]["small"]], [MLM_DATA["canonical"][domain_canonical]["dev"]["small"]], [MLM_DATA[noise_level][domain]["dev"]["small"]], [MLM_DATA[noise_level][domain]["test"]["small"]]]],#[[[CODE_MIXED_RAW_DEMO]]],#[[[CODE_MIXED_RAW_TRAIN_SMALL], [WIKI_DEV_SMALL], [CODE_MIXED_RAW_DEV_SMALL], [CODE_MIXED_RAW_TEST_SMALL]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
