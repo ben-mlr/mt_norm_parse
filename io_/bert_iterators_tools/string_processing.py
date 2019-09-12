@@ -123,7 +123,6 @@ def get_indexes(list_pretokenized_str, tokenizer, verbose, use_gpu,
 
     printing("DATA : bpe tokenized {} , {} {} ", var=[tokenized_ls, len(tokenized_ls),len(tokenized_ls[0])], verbose=verbose, verbose_level="raw_data")
     printing("DATA : bpe tokenized {} , {} {} ", var=[tokenized_ls, len(tokenized_ls),len(tokenized_ls[0])], verbose=verbose, verbose_level="alignement")
-    pdb.set_trace()
     ids_ls = [tokenizer.convert_tokens_to_ids(inp) for inp in tokenized_ls]
     max_sent_len = max([len(inp) for inp in tokenized_ls])
     ids_padded = [inp + [PAD_ID_BERT for _ in range(max_sent_len - len(inp))] for inp in ids_ls]

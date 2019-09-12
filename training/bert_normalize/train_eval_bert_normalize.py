@@ -65,6 +65,6 @@ def train_eval_bert_normalize(args, verbose=1):
         saving_every_epoch=args.saving_every_n_epoch,
         auxilliary_task_norm_not_norm=True,
         name_with_epoch=args.name_inflation,
-        report=True, verbose="alignment")
+        report=True, verbose=1)
 
     printing("MODEL {} trained and evaluated", var=[args.model_id_pref], verbose_level=1, verbose=verbose)

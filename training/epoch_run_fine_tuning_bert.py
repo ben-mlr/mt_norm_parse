@@ -303,14 +303,12 @@ def epoch_run(batchIter, tokenizer,
                                                                                       sep_token_index=sep_token_index,
                                                                                       cls_token_index=cls_token_index)
                 # NB : token_type_ids not used in MultiTask (no needed, just use 0 everywhere )
-
-
                 dimension_check_label(label_per_task, input_tokens_tensor)
                 time_multitask_preprocess_1 += time_multitask_preprocess_start-time.time()
 
                 # NB : we use the aligned input with the
             # logging
-            verbose_level = verbose if verbose in ["raw_data", "alignement"] else "raw_data"
+            #verbose_level = verbose if verbose in ["raw_data", "alignement"] else "raw_data"
             #logging_processing_data(verbose, verbose, verbose_level, batch_raw_input, input_tokens_tensor,
             #                        batch_raw_output, output_tokens_tensor_aligned, inp_bpe_tokenized, out_bpe_tokenized)
 

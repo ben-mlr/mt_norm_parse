@@ -26,7 +26,6 @@ def get_prediction(logits_dic, topk):
             # reshaping
             predictions_topk_dic[logit_label] = predictions_topk_dic[logit_label].view(batch_size, -1, topk)
         else:
-            pdb.set_trace()
             predictions_topk_dic[logit_label] = torch.argsort(logits, dim=-1, descending=True)[:, :, :topk]
 
     return predictions_topk_dic
