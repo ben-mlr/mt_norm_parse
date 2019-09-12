@@ -232,24 +232,9 @@ def epoch_run(batchIter, tokenizer,
             # case the batches if case is 'lower'
             batch = get_casing(args.case, batch, task_normalize_is)
             n_task_normalize_sanity += int(task_normalize_is)
+            # handling normalization input
+            # TODO ? is this necessary if normalization False !?
             batch_raw_input,  norm2noise_bool, args.norm_2_noise_training = input_normalization_processing(task_normalize_is, batch, args.norm_2_noise_training, norm_2_noise_eval)
-
-            # Handling input
-            if (args.norm_2_noise_training is not None or norm_2_noise_eval) and task_normalize_is:
-                portion_norm2noise = args.norm_2_noise_training if args.norm_2_noise_training is not None else 1.
-                args.norm_2_noise_training = portion_norm2noise is not None
-                rand = np.random.uniform(low=0, high=1, size=1)[0]
-                norm2noise_bool = portion_norm2noise >= rand
-                if norm2noise_bool:
-                    batch_raw_input = preprocess_batch_string_for_bert(batch.raw_output)
-                    printing("WARNING : input is gold norm", verbose_level=2, verbose=1)
-                else:
-                    printing("WARNING : input is input", verbose_level=2, verbose=1)
-                    batch_raw_input = preprocess_batch_string_for_bert(batch.raw_input)
-            else:
-                printing("WARNING : input is input ", verbose_level=2, verbose=1)
-                batch_raw_input = preprocess_batch_string_for_bert(batch.raw_input)
-
             group_to_mask = None
 
             if args.masking_strategy == "cls":
