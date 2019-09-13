@@ -913,8 +913,8 @@ class BertGraphHead(nn.Module):
     def __init__(self, config, dropout_classifier=None, num_labels=None):
         super(BertGraphHead, self).__init__()
         assert dropout_classifier is None
-        n_mlp_arc = 300
-        n_mlp_rel = 300
+        n_mlp_arc = 100
+        n_mlp_rel = 100
 
         n_rels = num_labels
         mlp_dropout = 0.1
@@ -1105,6 +1105,7 @@ class BertMultiTask(BertPreTrainedModel):
             loss = CrossEntropyLoss(ignore_index=LABEL_PARAMETER[label]["pad_value"],
                                     reduction="sum")(logits_dict[logit_label].view(-1, logits_dict[logit_label].size(2)), labels.view(-1))
             # other possibilities is to do log softmax then L1 loss (lead to other results)
+
         elif label == "types":
             assert head_label is not None, "ERROR head_label should be passed"
             # gold label after removing 0 gold

@@ -56,10 +56,10 @@ def epoch_run(batchIter, tokenizer,
               norm_2_noise_eval=False,
               compute_intersection_score=False,
               subsample_early_stoping_metric_val=None,
-              slang_dic=None, list_reference_heuristic=None,list_candidates=None, index_alphabetical_order=None,
-              #case=None,
-              threshold_edit=None, edit_module_pred_need_norm_only=True, low_memory_foot_print_batch_mode=False,
-              batch_size_real=0, n_epoch=None,
+              slang_dic=None, list_reference_heuristic=None,
+              list_candidates=None, index_alphabetical_order=None,
+              threshold_edit=None, edit_module_pred_need_norm_only=True,
+              n_epoch=None,
               ponderation_loss_policy="static",
               samples_per_task_reporting=None,
               task_to_eval=None, task_to_label_dictionary=None,
@@ -92,8 +92,8 @@ def epoch_run(batchIter, tokenizer,
     else:
         raise(Exception("Only static strategy supported so far"))
 
-    if low_memory_foot_print_batch_mode:
-        assert batch_size_real > 0, "ERROR have to define batch_size_real in low_memory_foot_print_batch_mode"
+    if args.low_memory_foot_print_batch_mode:
+        assert args.batch_update_train > 0, "ERROR have to define batch_size_real in low_memory_foot_print_batch_mode"
 
     if args.heuristic_ls is not None:
         for edit_rule in ["all", "ref", "data"]:
@@ -618,10 +618,9 @@ def epoch_run(batchIter, tokenizer,
                 n_tokens_counter_per_task, n_tokens_counter_current_per_task, n_tokens_all = count_tokens([task for tasks in args.tasks for task in tasks], n_tokens_counter_per_task,label_per_task, LABEL_PARAMETER)
                 n_tokens_counter_per_task["all"] += n_tokens_all
 
-                pdb.set_trace()
-
                 time_multitask_preprocess_2 += time.time()-time_multitask_preprocess_2_start
                 time_multitask_train_start = time.time()
+                # FORWARD PASS:
                 logits_dic, loss_dic, _ = model(input_tokens_tensor_per_task,
                                                 token_type_ids=None,
                                                 labels=label_per_task, head_masks=head_masks, attention_mask=input_mask_per_task)
@@ -633,9 +632,8 @@ def epoch_run(batchIter, tokenizer,
                 time_multitask_train += time_multitask_train_start - time.time()
                 time_multitask_postprocess_start = time.time()
                 assert "normalize" not in args.tasks, "ERROR : following line () was needed apparently for normalize being supported"
-                #output_tokens_tensor_aligned_dic = get_aligned_output(label_per_task)
                 # for parsing heads will leave heads untouched
-
+                # POSTPROCESSING : get back to untokenized string
                 source_preprocessed_dict, label_dic, predict_dic = get_bpe_string(predictions_topk_dic, label_per_task,
                                                                                   input_tokens_tensor_per_task, topk,
                                                                                   tokenizer, task_to_label_dictionary, null_str, null_token_index, TASKS_PARAMETER, mask_token_index, verbose)
@@ -645,7 +643,7 @@ def epoch_run(batchIter, tokenizer,
                                         tasks=args.tasks, verbose=verbose, verbose_level=5)
 
                 label_processed = []
-                # handle prediction and post processing to get back to string
+                # SCORING : get back to untokenized string
                 for label_pred in predict_detokenize_dic:
                     from training.epoch_run_fine_tuning_tools import get_task_name_based_on_logit_label
                     label, _, _continue, label_processed = get_task_name_based_on_logit_label(label_pred, label_processed)
@@ -682,7 +680,7 @@ def epoch_run(batchIter, tokenizer,
                                                        n_sents_dic=n_sents_dic[label_pred])
 
                     evaluated_task.append(label_pred)
-
+                # WRITTING PREDICTION
                 if writing_pred:
                     new_file = writing_predictions_conll_multi(
                                             dir_pred=dir_normalized,
@@ -702,17 +700,25 @@ def epoch_run(batchIter, tokenizer,
             # training :
             time_backprop_start = time.time()
             loss += _loss.detach()
+            # BACKWARD PASS
+            # batch_i is the iteration counter
             if optimizer is not None:
                 _loss.backward()
-                if (low_memory_foot_print_batch_mode and batch_i % batch_size_real == 0) or not low_memory_foot_print_batch_mode:
-                    if low_memory_foot_print_batch_mode:
+                if (args.low_memory_foot_print_batch_mode and batch_i % int(args.batch_update_train//args.batch_size) == 0) or not args.low_memory_foot_print_batch_mode:
+                    if args.low_memory_foot_print_batch_mode:
                         printing("OPTIMIZING in low_memory_foot_print_batch_mode cause batch index {}"
-                                 " is batch_size_real",
-                                 var=[batch_i, batch_size_real], verbose=verbose, verbose_level=1)
+                                 " we update every {} batch of size {} to get batch backward pass of size {}",
+                                 var=[batch_i,int(args.batch_update_train/args.batch_size), args.batch_size, args.batch_update_train], verbose=verbose, verbose_level=1)
+                        pdb.set_trace()
                     for opti in optimizer:
                         opti.step()
                         opti.zero_grad()
-                    mode = "train"
+                else:
+                    pdb.set_trace()
+                    pass
+
+
+                mode = "train"
             else:
                 mode = "dev"
             if writer is not None:

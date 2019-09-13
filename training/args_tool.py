@@ -208,6 +208,10 @@ def args_train(mode="command_line", script="train_evaluate_run"):
 
         parser.add_argument("--case", default=None, type=str, help="means running for 5 iteration max ")
 
+        parser.add_argument("--low", default=None, type=str, help="means running for 5 iteration max ")
+
+        parser.add_argument("--low_memory_foot_print_batch_mode", default=0, type=int, help="means running for 5 iteration max ")
+
         args = parser.parse_args()
 
         if args.aggregating_bert_layer_mode is not None:

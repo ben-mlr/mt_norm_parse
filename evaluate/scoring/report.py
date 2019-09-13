@@ -82,7 +82,6 @@ def overall_word_level_metric_measure(task_label, pred_label,
                         pred_sent_ls_topk[0][gold_ind_sent] = pred_sent_ls_topk[0][gold_ind_sent]+["[SEP]" for _ in range(len(gold_sent) - len(pred_sent_ls_topk[0][gold_ind_sent]))]
                         print("APPENDING pred_sent_ls_topk[0] {} with {} ".format(len(gold_sent) - len(pred_sent_ls_topk[0][gold_ind_sent]), pred_sent_ls_topk[0][gold_ind_sent]))
                         assert len(gold_sent) == len(pred_sent_ls_topk[0][gold_ind_sent])
-                        pdb.set_trace()
                     else:
                         print(Exception("ERROR {} : could not handled mismatch between pred {} len/src {} "
                                         "and gold len by cutting it based on GOLD padding (SHOULD BE RAISED IN TASK POS)".format(e, gold_sent, pred_sent_ls_topk[0][gold_ind_sent])))
@@ -106,7 +105,6 @@ def overall_word_level_metric_measure(task_label, pred_label,
             topk_word_pred = [pred_sent_ls_topk[top][gold_ind_sent][ind_word] for top in range(topk)]
             # handling with LAS specificity ; a types is correct iif its label is correct and its head is correct
             if task_label == "types":
-                pdb.set_trace()
                 gold_token_to_score = gold_token \
                     if gold_sent_ls_dict["heads"][gold_ind_sent][ind_word] == pred_sent_ls_topk_dict["parsing-heads"][0][gold_ind_sent][ind_word] else "ZERO-ING-SCORE-TYPES-AS-HEADS-IS-UNCORRECT"
                 #if gold_sent_ls_dict["parsing_heads"][gold_ind_sent][ind_word] != pred_sent_ls_topk_dict["parsing_heads"][0][gold_ind_sent][ind_word] and gold_token_to_score == topk_word_pred[0]:

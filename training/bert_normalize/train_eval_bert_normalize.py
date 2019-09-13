@@ -31,7 +31,7 @@ def train_eval_bert_normalize(args, verbose=1):
     model_dir = BERT_MODEL_DIC[args.bert_model]["model"]
     vocab_size = BERT_MODEL_DIC[args.bert_model]["vocab_size"]
 
-    debug = False
+    debug = True
     if os.environ.get("ENV") in ["rioc", "neff"]:
         debug = False
 
@@ -50,6 +50,13 @@ def train_eval_bert_normalize(args, verbose=1):
 
     if not args.multitask:
         args.multi_task_loss_ponderation = update_multitask_loss_ponderation(args.multi_task_loss_ponderation)
+    args.low_memory_foot_print_batch_mode = 1
+    if args.low_memory_foot_print_batch_mode:
+        args.batch_update_train = args.batch_size
+        args.batch_size = 2
+        assert isinstance(args.batch_update_train//args.batch_size, int), "ERROR batch_size {} should be a multiple of 2 ".format(args.batch_update_train)
+        printing("INFO iterator : updating with {} equivalent batch size : forward pass is {} batch size",
+                 var=[args.batch_update_train, args.batch_size], verbose=verbose, verbose_level=1)
 
     run(args=args, voc_tokenizer=voc_tokenizer, vocab_size=vocab_size, model_dir=model_dir,
         report_full_path_shared=args.overall_report_dir,

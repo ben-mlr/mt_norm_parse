@@ -81,7 +81,8 @@ def grid_param_label_generate(param,
                               aggregating_bert_layer_mode_ls=None, bert_module_ls=None,layer_wise_attention_ls=None,
                               tokenize_and_bpe_ls=None, memory_efficient_iterator_ls=None, append_n_mask_ls=None, multitask_ls=None,
                               demo_ls=None, saving_every_n_epoch_ls=None,
-                              name_inflation_ls=None, n_iter_max_train_ls=None
+                              name_inflation_ls=None, n_iter_max_train_ls=None,
+                              low_memory_foot_print_batch_mode_ls=None,
                               ):
 
   assert gpu_mode in GPU_MODE_SUPPORTED, "ERROR gpu_mode not in {}".format(str(GPU_MODE_SUPPORTED))
