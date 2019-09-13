@@ -343,12 +343,12 @@ if __name__ == "__main__":
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
                                                   gpus_ls=gpu_ls, gpu_mode="random",
                                                   write_to_dir=RUN_SCRIPTS_DIR, description_comment=description_comment)
-          FINE_TUNE_BERT = False
+          FINE_TUNE_BERT = True
 
           if FINE_TUNE_BERT:
-              epochs = 15
+              epochs = 2
               lang_iter = ["fr_sequoia"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
-              task_to_grid = [["parsing", "pos"]]
+              task_to_grid = [["pos"]]
                              # ["n_masks_mwe", "mwe_detection", "mwe_prediction", "pos"], 
                               #["parsing","n_masks_mwe", "mwe_detection", "mwe_prediction", "pos"]]#, ["parsing", "pos"]] 
               #task_to_grid = [["normalize"]]
@@ -360,7 +360,8 @@ if __name__ == "__main__":
               dir_script, row = script_generation(py_script="train_evaluate_bert_normalizer",
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
-                                                  batch_size_ls=[4],
+                                                  batch_size_ls=[4, 2],
+                                                  low_memory_foot_print_batch_mode_ls=[0, 1],
                                                   demo_ls=[0],
                                                   #init_args_dir_ls=["'"+os.path.join(CHECKPOINT_BERT_DIR, "9705484-B-7de0e-9705484-B-model_2/9705484-B-7de0e-9705484-B-model_2-{}-best-args.json".format(epoch))+"'"  for epoch in [0, 2, 3, 4, 5, 6, 7, 9]],#["'"+os.path.join(CHECKPOINT_BERT_DIR,"checkpoints", "bert", "9372042-B-6ccaa-9372042-B-model_0/9372042-B-6ccaa-9372042-B-model_0-epbest-checkpoint.pt")+"'"],
                                                   #init_args_dir_ls=["5107b-B-6ee9d-5107b-B-model_0-0_ep_best-1_ep-2_ep"],
@@ -373,7 +374,7 @@ if __name__ == "__main__":
                                                   gpu_mode="random",
                                                   append_n_mask_ls=[0],
                                                   #norm_2_noise_training_ls=[0., 1.],
-                                                  lr_ls=[0.00005, 0.00001, 0.000005, 0.000001],
+                                                  lr_ls=[0.00005],
                                                   #lr_ls=[OrderedDict([("bert", 1e-5), ("classifier_task_2", 1e-4), ("classifier_task_1", 1e-5)]),)])],
                                                   #masking_strategy_ls=[["mlm", "0"]],# ["mlm", "1"], ["norm_mask_variable", "0"]],
                                                   masking_strategy_ls=[None],  #[["mlm", "0"], None],#[["mlm_need_norm", "0.5"], ["mlm", "0"],],# ["norm_mask", "0.5"],["norm_mask", "0.25"], ["norm_mask_variable", "0"]],#, ["mlm", "1"], ["mlm", "0"]],
@@ -437,7 +438,7 @@ if __name__ == "__main__":
                                                                                                ("parsing-types", 1), ("parsing-heads", 1)])],  #OrderedDict([("pos", 0.2), ("parsing_types", 1), ("parsing_heads", 1)])],
                                                   scale_ls=[1])
                                 # arguments that are specific to script generation
-          PRETRAINING = True
+          PRETRAINING = False
           if PRETRAINING:
               epochs = 1
               noise_level = "noisy"

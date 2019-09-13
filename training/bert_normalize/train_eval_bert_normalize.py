@@ -50,7 +50,6 @@ def train_eval_bert_normalize(args, verbose=1):
 
     if not args.multitask:
         args.multi_task_loss_ponderation = update_multitask_loss_ponderation(args.multi_task_loss_ponderation)
-    args.low_memory_foot_print_batch_mode = 1
     if args.low_memory_foot_print_batch_mode:
         args.batch_update_train = args.batch_size
         args.batch_size = 2

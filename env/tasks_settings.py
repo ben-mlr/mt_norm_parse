@@ -107,7 +107,7 @@ TASKS_PARAMETER = {
                            "alignement": "mwe_prediction_alignement",
                            "head": "BertTokenHead",
                            "prediction_level": "word",
-                           "loss": CrossEntropyLoss(ignore_index=PAD_ID_TAG,reduce="sum")
+                           "loss": CrossEntropyLoss(ignore_index=PAD_ID_TAG, reduce="sum")
                            },
                    "mlm": {"normalization": False,
                            "mask_input": True,# means the sequence input is always masked following mlm (train and test!)

@@ -59,13 +59,13 @@ if __name__ == "__main__":
     #line_to_conll(os.path.join(PROJECT_PATH, "data", "pan_ben_conll.tok"), os.path.join(PROJECT_PATH, "data","pan_tweets-dev"), starting_index=1000000, n_sents=30000)
 
     #file_name = "code-test-1k.conll"
-    starting_index = 0
-    n_sents = 1000000
+    starting_index = 150000
+    n_sents = 10000
     #line_to_conll("/Users/bemuller/Documents/Work/INRIA/temp/wikipedia_fr_tk_sg-top10k.txt",#os.path.join(PROJECT_PATH, "data", "code_mixed", "code-mixed_code-mixed1.txt.txt"),
     #              "/Users/bemuller/Documents/Work/INRIA/temp/wikipedia_fr_tk_sg-top1k.conll",
     #              cut_sent=True, starting_index=starting_index, n_sents=n_sents)
-    line_to_conll(os.path.join(PROJECT_PATH, "data", "wiki", "wikipedia_fr_tk_sg.txt"),
-                  os.path.join(PROJECT_PATH, "data", "wiki", "wiki_fr-train-1M.conll"),
+    line_to_conll(os.path.join(PROJECT_PATH, "data", "code_mixed", "clean_data", "code-mixed_sep_13.txt"),
+                  os.path.join(PROJECT_PATH, "data", "code_mixed", "clean_data", "code-mixed_sep_13-dev"),
                   cut_sent=True, starting_index=starting_index, n_sents=n_sents)
     #line_to_conll(os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_ben_conll.tok"),
     #              os.path.join(PROJECT_PATH, "data", "tweets_en_pan_ganesh", "pan_tweets_en-train"),

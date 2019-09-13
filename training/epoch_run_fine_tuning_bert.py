@@ -621,12 +621,16 @@ def epoch_run(batchIter, tokenizer,
                 time_multitask_preprocess_2 += time.time()-time_multitask_preprocess_2_start
                 time_multitask_train_start = time.time()
                 # FORWARD PASS:
+                print("input_tokens_tensor_per_task", input_tokens_tensor_per_task)
+                print("label_per_task", label_per_task)
                 logits_dic, loss_dic, _ = model(input_tokens_tensor_per_task,
                                                 token_type_ids=None,
                                                 labels=label_per_task, head_masks=head_masks, attention_mask=input_mask_per_task)
+                print("loss_dic", loss_dic)
                 # loss_dic_epoch is the sum over all the epoch (mean computed for reporting)
                 loss_dic_epoch = update_loss_dic_average(loss_dic, loss_dic_epoch)
                 loss_dic = loss_mean(loss_dic, n_tokens_counter_current_per_task)
+                print("loss_dic", loss_dic)
                 # NB : could use
                 predictions_topk_dic = get_prediction(logits_dic, topk=topk)
                 time_multitask_train += time_multitask_train_start - time.time()
@@ -703,22 +707,16 @@ def epoch_run(batchIter, tokenizer,
             # BACKWARD PASS
             # batch_i is the iteration counter
             if optimizer is not None:
+                mode = "train"
                 _loss.backward()
                 if (args.low_memory_foot_print_batch_mode and batch_i % int(args.batch_update_train//args.batch_size) == 0) or not args.low_memory_foot_print_batch_mode:
                     if args.low_memory_foot_print_batch_mode:
                         printing("OPTIMIZING in low_memory_foot_print_batch_mode cause batch index {}"
                                  " we update every {} batch of size {} to get batch backward pass of size {}",
                                  var=[batch_i,int(args.batch_update_train/args.batch_size), args.batch_size, args.batch_update_train], verbose=verbose, verbose_level=1)
-                        pdb.set_trace()
                     for opti in optimizer:
                         opti.step()
                         opti.zero_grad()
-                else:
-                    pdb.set_trace()
-                    pass
-
-
-                mode = "train"
             else:
                 mode = "dev"
             if writer is not None:
