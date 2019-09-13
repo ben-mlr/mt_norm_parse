@@ -32,7 +32,7 @@ from io import open
 
 from env.importing import torch, nn, CrossEntropyLoss, F, np, pdb
 from io_.dat.constants import PAD_ID_LOSS_STANDART, NUM_LABELS_N_MASKS, PAD_ID_BERT
-
+from env.tasks_settings import LABEL_PARAMETER
 from model.bert_tools_from_core_code.tools import get_key_name_num_label
 
 #from .file_utils import cached_path
@@ -1102,17 +1102,16 @@ class BertMultiTask(BertPreTrainedModel):
 
         elif label == "heads":
             # trying alternative way for loss
-            loss = CrossEntropyLoss(ignore_index=-1, reduction="sum")(logits_dict[logit_label].view(-1, logits_dict[logit_label].size(2)), labels.view(-1))
+            loss = CrossEntropyLoss(ignore_index=LABEL_PARAMETER[label]["pad_value"],
+                                    reduction="sum")(logits_dict[logit_label].view(-1, logits_dict[logit_label].size(2)), labels.view(-1))
             # other possibilities is to do log softmax then L1 loss (lead to other results)
-            if loss < 1e-3:
-                pdb.set_trace()
         elif label == "types":
             assert head_label is not None, "ERROR head_label should be passed"
             # gold label after removing 0 gold
-            gold = labels[head_label != PAD_ID_LOSS_STANDART]
+            gold = labels[head_label != LABEL_PARAMETER["heads"]["pad_value"]]
             # pred logits (after removing -1) on the gold heads
-            pred = logits_dict["parsing-types"][(head_label != PAD_ID_LOSS_STANDART).nonzero()[:, 0],
-                                                (head_label != PAD_ID_LOSS_STANDART).nonzero()[:, 1], head_label[head_label != PAD_ID_LOSS_STANDART]]
+            pred = logits_dict["parsing-types"][(head_label != LABEL_PARAMETER["heads"]["pad_value"]).nonzero()[:, 0],
+                                                (head_label != LABEL_PARAMETER["heads"]["pad_value"]).nonzero()[:, 1], head_label[head_label != LABEL_PARAMETER["heads"]["pad_value"]]]
             # remark : in the way it's coded for paring : the padding is already removed (so ignore index is null)
             loss = loss_func(pred, gold)
 

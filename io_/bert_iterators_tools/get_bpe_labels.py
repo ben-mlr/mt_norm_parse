@@ -1,5 +1,6 @@
 
 from env.importing import pdb, OrderedDict, np, torch, time
+from env.tasks_settings import LABEL_PARAMETER
 from io_.dat.constants import PAD_ID_BERT, PAD_ID_TAG, PAD_ID_HEADS, ROOT_HEADS_INDEX, END_HEADS_INDEX, PAD_ID_LOSS_STANDART
 from model.bert_tools_from_core_code.masking import dropout_mlm
 
@@ -19,13 +20,14 @@ CLS_ADJUST = 0
 
 
 def get_bpe_label_word_level_task(labels, batch, input_tokens_tensor, input_alignement_with_raw,
-                                  use_gpu, graph_labels=False):
+                                  use_gpu, label_name, graph_labels=False):
     output_tokens_tensor = np.array(labels.cpu())
     new_input = np.array(input_tokens_tensor.cpu())
     len_max = max([len(sent) for sent in new_input])
     new_input = [[inp for inp in sent] + [PAD_ID_BERT for _ in range(len_max - len(sent))] for sent
                  in new_input]
     # we mask bpe token that have been split (we don't mask the first bpe token of each word)
+    # SHOULD BE MADE STANDART !
     padding = PAD_ID_BERT
     _input_mask = [[0 if new_input[ind_sent][ind_tok] == padding or input_alignement_with_raw[ind_sent][ind_tok-1] ==
                          input_alignement_with_raw[ind_sent][ind_tok] else 1 for ind_tok in range(len(new_input[ind_sent]))] for ind_sent in range(len(new_input))]
@@ -45,8 +47,10 @@ def get_bpe_label_word_level_task(labels, batch, input_tokens_tensor, input_alig
                     counter_former = counter
                     counter = 0
             return new_sent
+
         def test_get_cumulated_non_first_bpe_counter():
-            assert [0, 0, 0, 1, 1, 1, 3, 3, 3, 5, 5, 5] == get_cumulated_non_first_bpe_counter([0, 1,2 ,2 ,3, 4, 5, 5, 5, 6, 7, 8, 8, 8, 9, 10 ,11, 1000])
+
+            assert [0, 0, 0, 1, 1, 1, 3, 3, 3, 5, 5, 5] == get_cumulated_non_first_bpe_counter([0, 1, 2, 2 ,3, 4, 5, 5, 5, 6, 7, 8, 8, 8, 9, 10 ,11, 1000])
             assert [0, 0, 0, 1, 1, 1, 3, 3, 3, 5, 5, 5] == get_cumulated_non_first_bpe_counter([0, 1, 2, 2, 3, 4, 5, 5, 5, 6, 7, 8, 8, 8, 9, 10, 11])
             #print("TEST passed ")
         test_get_cumulated_non_first_bpe_counter()
@@ -71,19 +75,18 @@ def get_bpe_label_word_level_task(labels, batch, input_tokens_tensor, input_alig
             except Exception as e:
                 try:
                     assert input_alignement_with_raw[ind_sent][ind_tok] == 1000, "ERROR we should have reached the end of get labels also "
-                    label = PAD_ID_TAG if not graph_labels else PAD_ID_HEADS # output_tokens_tensor[ind_sent, output_tokens_tensor.shape[1] - 1]
+                    label = LABEL_PARAMETER[label_name]["pad_value"]#PAD_ID_TAG if not graph_labels else PAD_ID_HEADS # output_tokens_tensor[ind_sent, output_tokens_tensor.shape[1] - 1]
                 except Exception as f:
                     print("ERROR (get_bpe_labels): we reached the end of output labels but input is not done ! ", f)
-                    print("ERROR ind_send:{} ind_tok {} shift {} output_tokens_tensor {} alignement {} -  {}".format(ind_sent, ind_tok, shift, output_tokens_tensor,
-                                                                                                                     input_alignement_with_raw[ind_sent], e))
+                    print("ERROR ind_send:{} ind_tok {} shift {} output_tokens_tensor {} alignement {} -  {}".format(ind_sent, ind_tok, shift, output_tokens_tensor, input_alignement_with_raw[ind_sent], e))
                     print("ERROR ind_send ", batch.raw_input, batch.raw_output)
                     pdb.set_trace()
                     #label = output_tokens_tensor[ind_sent, output_tokens_tensor.shape[1] - 1]
                     raise(e)
 
             if mask == 0:
-                # 1 for _PAD_POS
-                pad = PAD_ID_TAG if not graph_labels else PAD_ID_HEADS
+                # 1 for _PAD_POS fpr PAD_ID_HEADS 0
+                pad = LABEL_PARAMETER[label_name]["pad_value"]#PAD_ID_TAG if not graph_labels else PAD_ID_HEADS
                 output_tokens_tensor_new_ls.append(pad)
                 shift += 1
             else:
@@ -120,7 +123,6 @@ def get_bpe_label_word_level_task(labels, batch, input_tokens_tensor, input_alig
         head_mask = head_mask.cuda()
         input_tokens_tensor = input_tokens_tensor.cuda()
         output_tokens_tensor = output_tokens_tensor.cuda()
-
     return output_tokens_tensor, head_mask, input_tokens_tensor
 
 
@@ -144,12 +146,16 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
         for task in simul_task:
             for task_batch_name in tasks_parameters[task]["label"]:
                 task_batch = eval("batch.{}".format(task_batch_name)).clone()
-
                 # we handle all word level tasks in the same way
-                #assert tasks_parameters[task]["prediction_level"] == "word", "ERROR only word level task supported here so far"
+                # assert tasks_parameters[task]["prediction_level"] == "word",
+                # "ERROR only word level task supported here so far"
                 if task in ["parsing", "pos"]:
                     # for now we align parsing and tagging signal with raw input using get_bpe_label_word_level_task here
-                    output_tokens_tensor, head_mask, input_tokens_tensor = get_bpe_label_word_level_task(task_batch, batch, input_tokens_tensor, input_alignement_with_raw, use_gpu, graph_labels=bool("parsing_heads" == task_batch_name))
+                    output_tokens_tensor, head_mask, input_tokens_tensor = get_bpe_label_word_level_task(task_batch, batch,
+                                                                                                         input_tokens_tensor,
+                                                                                                         input_alignement_with_raw, use_gpu,
+                                                                                                         label_name=task_batch_name,
+                                                                                                         graph_labels=LABEL_PARAMETER[task_batch_name].get("graph_label", False))
                     output_tokens_tensor_aligned = output_tokens_tensor[:, : input_tokens_tensor.size(1)]
                 else:
                     # for tokenization related tasks we already took care of alignement during CoNLLReader

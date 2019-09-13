@@ -94,16 +94,16 @@ def grid_param_label_generate(param,
   if py_script == "train_evaluate_bert_normalizer":
     # we preprocess arguments : fill them in a dictionary in order to handle default None --> set to [None] (will call default in argparse )
     args_avail = OrderedDict()
+    defaulted_list_args = []
     for arg in ARGS_AVAILABLE_PER_MODEL[py_script]:
       #TODO : all argument name should be normalize
       for lab in ["train", "dev", "test"]:
         if arg.startswith(lab):
           arg = lab
       args_avail[arg + "_ls"] = eval(arg + "_ls") if eval(arg + "_ls") is not None else [None]
-      printing("WARNING : missing {} for script {} so setting it to [None]".format(arg+"_ls", py_script),
-               verbose=1, verbose_level=1)
-        #assert eval(arg+"_ls") is not None, "ERROR : missing {} for script {}".format(arg+"_ls", py_script)
-
+      if eval(arg + "_ls") is None:
+        defaulted_list_args.append(arg + "_ls")
+  printing("WARNING : defaulted list arguments : {} for script {} (set to [None])".format(defaulted_list_args, py_script), verbose=1, verbose_level=1)
   assert len(train_ls) == len(dev_ls), "ERROR train_ls is {} dev_ls {} : they should be same length".format(train_ls, dev_ls)
   assert len(tasks_ls) == len(train_ls), "ERROR tasks_ls {} and train_ls {} should be same lenght ".format(tasks_ls, train_ls)
   assert len(train_ls) == len(test_ls), "ERROR len train {} test {} train_ls is {} test_ls {} :" \

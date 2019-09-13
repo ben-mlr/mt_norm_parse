@@ -394,7 +394,7 @@ def run(args,
                     last_model = ""
                     if epoch == (args.epochs - 1):
                         last_model = "last"
-                    printing("CHECKPOINT : saving {} model {} ", var=[last_model, checkpoint_dir], verbose=verbose,
+                    printing("CHECKPOINT : epoch {} saving {} model {} ", var=[epoch,last_model, checkpoint_dir], verbose=verbose,
                              verbose_level=1)
                     torch.save(model.state_dict(), checkpoint_dir)
 

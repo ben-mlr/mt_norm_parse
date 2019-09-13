@@ -3,12 +3,11 @@
 
 from env.importing import np, torch, OrderedDict, time, pdb, os, re
 from env.project_variables import SAMPLES_PER_TASK_TO_REPORT, AVAILABLE_BERT_MASKING_STRATEGY, MULTITASK_BERT_LABELS_MLM_HEAD
-from env.tasks_settings import TASKS_PARAMETER
+from env.tasks_settings import TASKS_PARAMETER, LABEL_PARAMETER
 from io_.dat.constants import PAD_ID_BERT, MASK_BERT, CLS_BERT, SEP_BERT, SPECIAL_TOKEN_LS, NULL_STR, PAD_ID_TAG, PAD_ID_LOSS_STANDART
 from io_.info_print import printing
 from io_.bert_iterators_tools.string_processing import preprocess_batch_string_for_bert, from_bpe_token_to_str, get_indexes, get_indexes_src_gold, input_normalization_processing
 from io_.bert_iterators_tools.get_string_from_bpe import get_prediction, get_bpe_string, get_indexes_src_gold, get_detokenized_str, get_aligned_output
-#from io_.bert_iterators_tools.alignement import aligned_output, realigne
 import io_.bert_iterators_tools.alignement as alignement
 from evaluate.report_writing import report_score_all
 from evaluate.scoring.report import overall_word_level_metric_measure
@@ -17,12 +16,12 @@ from model.bert_tools_from_core_code.modeling import get_loss_multitask
 from toolbox.pred_tools.heuristics import predict_with_heuristic
 from training.epoch_run_fine_tuning_tools import get_casing, logging_processing_data, logging_scores, log_warning, print_align_bpe, log_data_src_label_pred, tensorboard_loss_writer_batch_level, tensorboard_loss_writer_batch_level_multi, \
     tensorboard_loss_writer_epoch_level, \
-    writing_predictions_conll, writing_predictions_conll_multi, init_score_token_sent_dict, dimension_check_label, extend_input, tensorboard_loss_writer_epoch_level_multi, update_loss_dic_average
+    writing_predictions_conll, writing_predictions_conll_multi, init_score_token_sent_dict, \
+    dimension_check_label, extend_input, tensorboard_loss_writer_epoch_level_multi, update_loss_dic_average, \
+    count_tokens, loss_mean
 from io_.bert_iterators_tools.get_bpe_labels import get_label_per_bpe, get_mask_input
 from toolbox.deep_learning_toolbox import dropout_input_tensor
 from model.bert_tools_from_core_code.masking import focused_masking
-
-from io_.build_files_shard import build_shard
 from io_.get_new_batcher import get_new_shard, load_batcher_shard_data
 
 
@@ -217,11 +216,10 @@ def epoch_run(batchIter, tokenizer,
     n_shard = 0
 
     while True:
-
         try:
             if memory_efficient_iterator and batch_i*args.batch_size >= n_sent_dataset_total:
-                printing("BREAKING ALL ITERATORS for (mode is {} memory_efficient_iterator {} , shard {} ending ",
-                         var=[mode, args.memory_efficient_iterator, n_shard], verbose_level=1, verbose=1)
+                printing("BREAKING ALL ITERATORS memory_efficient_iterator True (mode is {}  shard {} ending) ",
+                         var=[mode, n_shard], verbose_level=1, verbose=1)
                 break
             batch_i += 1
             batch = batchIter.__next__()
@@ -617,42 +615,20 @@ def epoch_run(batchIter, tokenizer,
                 # TODO:
                 # - factorize   masking
                 assert "normalize" not in args.tasks[0], "ERROR : input and output not supported yet for 'normalize' task in this setting "
+                n_tokens_counter_per_task, n_tokens_counter_current_per_task, n_tokens_all = count_tokens([task for tasks in args.tasks for task in tasks], n_tokens_counter_per_task,label_per_task, LABEL_PARAMETER)
+                n_tokens_counter_per_task["all"] += n_tokens_all
 
-                for label in label_per_task:
-                    # make mask for the loss padding
-                    pass
-                    # TODO handle task specific index pad
-                    # NB : maybe factorize with prediction
-                    #assert len(set(args.tasks) & set(["parsing", "pos"])) == len(args.tasks), \
-                    #    "ERROR need to handle tasks agnostic pad index for allowing other tasks {} ".format(args.tasks)
-                    # we transform the padded labels according to the loss ignore mask parameters
-                    #if label not in ["heads", "mwe_prediction",
-                    #                 "n_masks_mwe", "mwe_detection"]:
-                    #    label_per_task[label][label_per_task[label] == PAD_ID_TAG] = PAD_ID_LOSS_STANDART
-                    # we do the token counting using labels
+                pdb.set_trace()
 
-                for task in [task for tasks in args.tasks for task in tasks]:
-                    for label in TASKS_PARAMETER[task]["label"]:
-                        if label == "mwe_prediction":
-                            _pad = PAD_ID_BERT
-                        else:
-                            _pad = PAD_ID_LOSS_STANDART
-                        n_tokens_counter_current_per_task[task+"-"+label] = (label_per_task[label] != _pad).sum().item()
-                        n_tokens_counter_per_task[task+"-"+label] += n_tokens_counter_current_per_task[task+"-"+label]
-                        # NB : do you account for CLS and SEQ HERE ?
-                # TODO : handle in a more standart way
-                n_tokens_counter_per_task["all"] += n_tokens_counter_current_per_task[task+"-"+label]
                 time_multitask_preprocess_2 += time.time()-time_multitask_preprocess_2_start
                 time_multitask_train_start = time.time()
                 logits_dic, loss_dic, _ = model(input_tokens_tensor_per_task,
                                                 token_type_ids=None,
                                                 labels=label_per_task, head_masks=head_masks, attention_mask=input_mask_per_task)
-
-                if len(list(loss_dic.keys() & set(TASKS_PARAMETER.keys()))) != len(loss_dic.keys()):
-                    # it means a given task has several set of labels (e.g parsing)
-                    # should do same for logits
-                    pass
-
+                # loss_dic_epoch is the sum over all the epoch (mean computed for reporting)
+                loss_dic_epoch = update_loss_dic_average(loss_dic, loss_dic_epoch)
+                loss_dic = loss_mean(loss_dic, n_tokens_counter_current_per_task)
+                # NB : could use
                 predictions_topk_dic = get_prediction(logits_dic, topk=topk)
                 time_multitask_train += time_multitask_train_start - time.time()
                 time_multitask_postprocess_start = time.time()
@@ -669,7 +645,7 @@ def epoch_run(batchIter, tokenizer,
                                         tasks=args.tasks, verbose=verbose, verbose_level=5)
 
                 label_processed = []
-
+                # handle prediction and post processing to get back to string
                 for label_pred in predict_detokenize_dic:
                     from training.epoch_run_fine_tuning_tools import get_task_name_based_on_logit_label
                     label, _, _continue, label_processed = get_task_name_based_on_logit_label(label_pred, label_processed)
@@ -718,7 +694,6 @@ def epoch_run(batchIter, tokenizer,
                                             tasks=args.tasks, verbose=verbose)
                 _loss = get_loss_multitask(loss_dic, args.multi_task_loss_ponderation)
                 loss_dic["all"] = _loss
-                loss_dic_epoch = update_loss_dic_average(loss_dic, loss_dic_epoch)
                 time_multitask_postprocess += time_multitask_postprocess_start - time.time()
                 # temporary
                 task_normalize_is = False

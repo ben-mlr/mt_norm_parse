@@ -106,9 +106,9 @@ def data_gen_conllu(data, word_dictionary, char_dictionary,
             is_mwe_label, n_masks_to_app_in_raw_label, \
             char, chars_norm, word_norm_not_norm, edit, pos, _, heads, types, _, \
             lenght, order_ids, raw_word_inputs, normalized_str, _ = conllu_data.get_batch_variable(data,
-                                                                                                      batch_size=batch_size,
-                                                                                                      normalization=normalization,
-                                                                                                      unk_replace=0)
+                                                                                                  batch_size=batch_size,
+                                                                                                  normalization=normalization,
+                                                                                                  unk_replace=0)
             if char.size(0) <= 1:
                 printing("WARNING :  batch is 1 ", verbose_level=2, verbose=verbose)
 

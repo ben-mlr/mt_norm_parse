@@ -1,4 +1,4 @@
-from env.importing import torch, pdb, re, np
+from env.importing import torch, pdb, re, np, OrderedDict
 from env.tasks_settings import TASKS_PARAMETER
 from io_.dat.constants import SPECIAL_TOKEN_LS, PAD_ID_BERT
 from io_.printout_iterator_as_raw import printing
@@ -178,12 +178,16 @@ def tensorboard_loss_writer_epoch_level_multi(writer, mode, model_id, epoch, los
         "ERROR keys mismatching between loss and n_tokens {} {}".format(loss_dic, n_tokens_dic)
     except Exception as e:
         print(e)
+    loss_lab_not_reported_ls = []
     for loss_lab, loss_val in loss_dic.items():
         try:
             writer.add_scalars("loss-multitask-epoch-{}-{}".format(loss_lab, mode),
                                {"{}-{}-{}-{}".format("loss", mode, data_label, model_id): loss_val/n_tokens_dic[loss_lab]}, epoch)
         except:
-            print("WARNING : could not report loss in tensorboard for epoch {}, n_token {} , loss {} , loss task {} data {}".format(epoch, n_tokens_dic[loss_lab], loss_val, loss_lab, data_label))
+            loss_lab_not_reported_ls.append((loss_lab, loss_val, n_tokens_dic[loss_lab]))
+
+    print("WARNING : could not report loss in "
+          "tensorboard for epoch {}  data {} : task {} ".format(epoch, data_label, loss_lab_not_reported_ls))
 
 
 def tensorboard_loss_writer_epoch_level(writer, tasks, mode, model_id, epoch, n_batch_norm, n_batch_pos, append_n_mask, loss, loss_norm, loss_pos, loss_n_mask_prediction, batch_i, data_label):
@@ -392,4 +396,19 @@ def extend_input(masks, input, input_alignement_with_raw, mask_token_index, use_
     return extended_input_torch, extended_alignement_sent_torch
 
 
+def count_tokens(task_ls, n_tokens_counter_per_task, label_per_task, label_paremeter):
+    n_tokens_counter_current_per_task = OrderedDict()
+    """"get exact number of non-pad tokens for each tasks"""
+    for task in task_ls:
+        for label in TASKS_PARAMETER[task]["label"]:
+            n_tokens_counter_current_per_task[task + "-" + label] = (label_per_task[label] != label_paremeter[label]["pad_value"]).sum().item()
+            n_tokens_counter_per_task[task + "-" + label] += n_tokens_counter_current_per_task[task + "-" + label]
+    ## TODO : handle in a more standart way
+    n_tokens_all = n_tokens_counter_current_per_task[task+"-"+label]
+    return n_tokens_counter_per_task, n_tokens_counter_current_per_task, n_tokens_all
 
+
+def loss_mean(loss_dic, n_tokens_counter_current_per_task):
+    for val in loss_dic:
+        loss_dic[val] /= n_tokens_counter_current_per_task[val]
+    return loss_dic

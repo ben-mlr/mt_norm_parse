@@ -343,7 +343,7 @@ if __name__ == "__main__":
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
                                                   gpus_ls=gpu_ls, gpu_mode="random",
                                                   write_to_dir=RUN_SCRIPTS_DIR, description_comment=description_comment)
-          FINE_TUNE_BERT = True
+          FINE_TUNE_BERT = False
 
           if FINE_TUNE_BERT:
               epochs = 15
@@ -437,7 +437,7 @@ if __name__ == "__main__":
                                                                                                ("parsing-types", 1), ("parsing-heads", 1)])],  #OrderedDict([("pos", 0.2), ("parsing_types", 1), ("parsing_heads", 1)])],
                                                   scale_ls=[1])
                                 # arguments that are specific to script generation
-          PRETRAINING = False
+          PRETRAINING = True
           if PRETRAINING:
               epochs = 50
               noise_level = "noisy"

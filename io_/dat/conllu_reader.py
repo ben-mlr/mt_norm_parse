@@ -198,7 +198,6 @@ class CoNLLReader(object):
     if get_mwe is None:
       get_mwe = True if "mwe_prediction" in tasks or "n_masks_mwe" in tasks or "mwe_detection" in tasks else False
     for tokens in lines:
-
       # reading a MWE : we append to the raw tokens
       if '-' in tokens[0] or "." in tokens[0]:
 
@@ -209,7 +208,6 @@ class CoNLLReader(object):
           assert matching_mwe_ind is not None, "ERROR : tokens[0] {} - or . " \
                                                "byt did not match mwe pattern".format(tokens[0])
           mwe = self.bert_tokenizer.tokenize_origin(tokens[1])[0]
-
           all_indexes.append(tokens[0])
 
           word_piece_raw_tokens.extend(self.bert_tokenizer.convert_tokens_to_ids(mwe))
@@ -225,11 +223,9 @@ class CoNLLReader(object):
           word_piece_raw_tokens_aligned.extend(self.bert_tokenizer.convert_tokens_to_ids(mwe))
           word_piece_raw_tokens_aligned_index.extend([tokens[0] for _ in mwe])
           index_mwe = tokens[0]
-
           id_stop_mwe = eval(matching_mwe_ind.group(2))
           assert isinstance(id_stop_mwe, int), "ERROR : {} not int while it should".format(id_stop_mwe)
           id_start_mwe =eval(matching_mwe_ind.group(1))
-
         else:
           printing("WARNING : (reader) skipping {} line because . found inside index", var=[tokens], verbose=verbose, verbose_level=1)
 

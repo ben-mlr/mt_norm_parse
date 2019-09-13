@@ -1,5 +1,5 @@
 from env.importing import CrossEntropyLoss
-from io_.dat.constants import PAD_ID_BERT, PAD_ID_TAG, PAD_ID_HEADS
+from io_.dat.constants import PAD_ID_BERT, PAD_ID_TAG, PAD_ID_HEADS, PAD_ID_COUNTER
 #from model.bert_tools_from_core_code.modeling import BertGraphHead
 
 
@@ -7,6 +7,16 @@ from io_.dat.constants import PAD_ID_BERT, PAD_ID_TAG, PAD_ID_HEADS
 #  for single task prediction (tagging) : the task itself batch.label , label name, logits, ... have same name
 #  for double task prediction (parsing) : the labels  logits, follow the template : task_label_name_1 :
 #    eg parsing_heads, parsing_types
+
+#NB : all labels of TASK_PARAMETERS SHOULD APPEAR HERE and CONSISTENT WITH CrossEntropy ignore loss
+LABEL_PARAMETER = {"heads": {"graph_label": True, "pad_value": PAD_ID_HEADS},
+                   "types": {"graph_label": False, "pad_value": PAD_ID_TAG},
+                   "pos": {"graph_label": False,"pad_value": PAD_ID_TAG},
+                   "mwe_prediction": {"graph_label": False, "pad_value": PAD_ID_BERT},
+                   "mwe_detection": {"graph_label": False, "pad_value": PAD_ID_COUNTER},
+                   "n_masks_mwe": {"graph_label": False, "pad_value": PAD_ID_COUNTER},
+                   "mlm": {"graph_label": False, "pad_value": PAD_ID_BERT},
+                   }
 
 TASKS_PARAMETER = {
 
@@ -48,7 +58,7 @@ TASKS_PARAMETER = {
                    # TOOD : could add input for full flexibility
                    "mwe_detection": {"normalization": False,
                                      "head": "BertTokenHead",
-                                     "loss": CrossEntropyLoss(ignore_index=-1, reduce="mean"),
+                                     "loss": CrossEntropyLoss(ignore_index=PAD_ID_COUNTER, reduce="sum"),
                                      "prediction_level": "word",
                                      "num_labels_mandatory":True,
                                      "input": "wordpieces_inputs_raw_tokens",
@@ -60,7 +70,7 @@ TASKS_PARAMETER = {
                    "n_masks_mwe":
                                     {"normalization": False,
                                      "head": "BertTokenHead",
-                                     "loss": CrossEntropyLoss(ignore_index=-1, reduce="mean"),
+                                     "loss": CrossEntropyLoss(ignore_index=PAD_ID_COUNTER, reduce="sum"),
                                      "num_labels_mandatory":True,
                                      "prediction_level": "word",
                                      "input": "wordpieces_inputs_raw_tokens",
@@ -72,8 +82,8 @@ TASKS_PARAMETER = {
                    "mwe_prediction":
                                     {"normalization": False,
                                      "head": "BertOnlyMLMHead",
-                                     "num_labels_mandatory":False,
-                                     "loss": CrossEntropyLoss(ignore_index=PAD_ID_TAG, reduce="mean"),
+                                     "num_labels_mandatory": False,
+                                     "loss": CrossEntropyLoss(ignore_index=PAD_ID_BERT, reduce="sum"),
                                      "prediction_level": "bpe",
                                      "subsample-allowed": ["all", "InV", "OOV", "MWE"],
                                      "input": "wordpieces_raw_aligned_with_words",

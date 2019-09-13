@@ -42,6 +42,9 @@ PAD_ID_LOSS_STANDART = -1
 MEAN_RAND_W2V = 0
 SCALE_RAND_W2V = 0.2
 
+# for count prediction pad has to be -1
+PAD_ID_COUNTER = -1
+
 # BERT
 TOKEN_BPE_BERT_START = "[CLS]"
 TOKEN_BPE_BERT_SEP = "[SEP]"
