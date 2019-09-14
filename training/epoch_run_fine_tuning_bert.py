@@ -339,7 +339,8 @@ def epoch_run(batchIter, tokenizer,
                 # or number of bpe tokens related to each bpe
 
             # if we reach n_iter max we break (when low_memory_foot_print_batch_mode : we need int(args.batch_update_train//args.batch_size) more iterations (we cound backward update)
-            if (batch_i == n_iter_max and not args.low_memory_foot_print_batch_mode) or (batch_i * int(args.batch_update_train//args.batch_size) == n_iter_max and args.low_memory_foot_print_batch_mode):
+            if (batch_i == n_iter_max and not args.low_memory_foot_print_batch_mode) or\
+                    (batch_i  == n_iter_max * int(args.batch_update_train//args.batch_size) and args.low_memory_foot_print_batch_mode):
                 printing("BREAKING ITERATION because n_iter_max {} reached (mode is {} memory_efficient_iterator {}, "
                          "shard {} ending ",
                          var=[n_iter_max, mode, memory_efficient_iterator, n_shard],

@@ -8,7 +8,7 @@ def get_model_multi_task_bert(args, model_dir, vocab_size, voc_pos_size, debug, 
         # we flatten the tasks to make the model (we don't need to know if tasks are simulateneaous or not )
         assert args.bert_module is None, "ERROR : bert module should be none in bert_multitask, " \
                                          "their definition is based on the task "
-        model = make_bert_multitask(pretrained_model_dir=model_dir, init_args_dir=args.init_args_dir,
+        model = make_bert_multitask(args=args, pretrained_model_dir=model_dir, init_args_dir=args.init_args_dir,
                                     tasks=[task for tasks in args.tasks for task in tasks],
                                     mask_id=mask_id,
                                     num_labels_per_task=num_labels_per_task)

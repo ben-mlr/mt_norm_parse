@@ -83,6 +83,7 @@ def grid_param_label_generate(param,
                               demo_ls=None, saving_every_n_epoch_ls=None,
                               name_inflation_ls=None, n_iter_max_train_ls=None,
                               low_memory_foot_print_batch_mode_ls=None,
+                              graph_head_hidden_size_mlp_rel_ls=None, graph_head_hidden_size_mlp_arc_ls=None,
                               ):
 
   assert gpu_mode in GPU_MODE_SUPPORTED, "ERROR gpu_mode not in {}".format(str(GPU_MODE_SUPPORTED))

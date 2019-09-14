@@ -153,6 +153,9 @@ class BertConfig(object):
                  attention_probs_dropout_prob=0.1,
                  max_position_embeddings=512,
                  type_vocab_size=2,
+                 dropout_classifier=None,
+                 graph_head_hidden_size_mlp_arc=None,
+                 graph_head_hidden_size_mlp_rel=None,
                  initializer_range=0.02, normalization_module=False, mask_n_predictor=False,
                  layer_wise_attention=False):
         """Constructs BertConfig.
@@ -202,6 +205,11 @@ class BertConfig(object):
             self.type_vocab_size = type_vocab_size
             self.initializer_range = initializer_range
 
+            # added (should be added to the json)
+            self.dropout_classifier = dropout_classifier
+            self.graph_head_hidden_size_mlp_arc = graph_head_hidden_size_mlp_arc
+            self.graph_head_hidden_size_mlp_rel = graph_head_hidden_size_mlp_rel
+
         else:
             raise ValueError("First argument must be either a vocabulary size (int)"
                              "or the path to a pretrained model config file (str)")
@@ -232,6 +240,10 @@ class BertConfig(object):
     def to_json_string(self):
         """Serializes this instance to a JSON string."""
         return json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n"
+
+    def update_config(self, config_key_to_update):
+        for to_uptate in config_key_to_update:
+            setattr(self, to_uptate, config_key_to_update[to_uptate])
 
 try:
     from apex.normalization.fused_layer_norm import FusedLayerNorm as BertLayerNorm
@@ -552,7 +564,7 @@ class BertPreTrainedModel(nn.Module):
 
 
     @classmethod
-    def from_pretrained(cls, pretrained_model_name_or_path, state_dict=None, cache_dir=None,
+    def from_pretrained(cls, pretrained_model_name_or_path, config_to_update, state_dict=None, cache_dir=None,
                         mapping_keys_state_dic=None,
                         dropout_custom=0.,
                         normalization_mode=True, layer_wise_attention=False,
@@ -627,6 +639,7 @@ class BertPreTrainedModel(nn.Module):
         assert os.path.isfile(config_file), "ERROR : {} not found".format(config_file)
         config = BertConfig.from_json_file(config_file)
         logger.info("Model config {}".format(config))
+        # TODO : to be remove , now .update_config should handle it !
         if normalization_mode:
             config.normalization_module = normalization_mode
         if layer_wise_attention:
@@ -634,6 +647,7 @@ class BertPreTrainedModel(nn.Module):
         if dropout_custom > 0:
             config.hidden_dropout_prob = dropout_custom
             config.attention_probs_dropout_prob = dropout_custom
+        config.update_config(config_to_update)
         print("CONFIG updated", config, config_file)
         # Instantiate model.
         model = cls(config, *inputs, **kwargs)
@@ -882,8 +896,9 @@ from model.parser_modules import (CHAR_LSTM, MLP, Biaffine, BiLSTM, IndependentD
 
 
 class BertTokenHead(nn.Module):
-    def __init__(self, config, num_labels, dropout_classifier=None):
+    def __init__(self, config, num_labels):
         super(BertTokenHead, self).__init__()
+        dropout_classifier = config.dropout_classifier
         self.num_labels = num_labels
         self.classifier = nn.Linear(config.hidden_size, self.num_labels)
         self.dropout = nn.Dropout(dropout_classifier) if dropout_classifier is not None else None
@@ -900,40 +915,29 @@ class BertTokenHead(nn.Module):
         return logits,
 
 
-class BertGraphHeadKyungTae():
-
-    def __init__(self):
-        pass
-    def forward(self):
-        pass
-
-
 class BertGraphHead(nn.Module):
     # the MLP layers
-    def __init__(self, config, dropout_classifier=None, num_labels=None):
+    def __init__(self, config, num_labels=None):
         super(BertGraphHead, self).__init__()
-        assert dropout_classifier is None
-        n_mlp_arc = 100
-        n_mlp_rel = 100
+
+        n_mlp_arc = config.graph_head_hidden_size_mlp_arc if config.graph_head_hidden_size_mlp_arc is not None else 100
+        n_mlp_rel = config.graph_head_hidden_size_mlp_rel if config.graph_head_hidden_size_mlp_rel is not None else 100
 
         n_rels = num_labels
-        mlp_dropout = 0.1
-
         pad_index = 1
         unk_index = 0
-
         self.mlp_arc_h = MLP(n_in=config.hidden_size,
                              n_hidden=n_mlp_arc,
-                             dropout=mlp_dropout)
+                             dropout=config.dropout_classifier if config.dropout_classifier is not None else 0.1)
         self.mlp_arc_d = MLP(n_in=config.hidden_size,
                              n_hidden=n_mlp_arc,
-                             dropout=mlp_dropout)
+                             dropout=config.dropout_classifier if config.dropout_classifier is not None else 0.1)
         self.mlp_rel_h = MLP(n_in=config.hidden_size,
                              n_hidden=n_mlp_rel,
-                             dropout=mlp_dropout)
+                             dropout=config.dropout_classifier if config.dropout_classifier is not None else 0.1)
         self.mlp_rel_d = MLP(n_in=config.hidden_size,
                              n_hidden=n_mlp_rel,
-                             dropout=mlp_dropout)
+                             dropout=config.dropout_classifier if config.dropout_classifier is not None else 0.1)
 
         # the Biaffine layers
         self.arc_attn = Biaffine(n_in=n_mlp_arc,
@@ -950,9 +954,13 @@ class BertGraphHead(nn.Module):
     def forward(self, x, head_mask=None):
         # apply MLPs to the BiLSTM output states
         arc_h = self.mlp_arc_h(x)
+
         arc_d = self.mlp_arc_d(x)
+
         rel_h = self.mlp_rel_h(x)
+
         rel_d = self.mlp_rel_d(x)
+
         # get arc and rel scores from the bilinear attention
         # [batch_size, seq_len, seq_len]
         s_heads = self.arc_attn(arc_d, arc_h)
@@ -964,7 +972,6 @@ class BertGraphHead(nn.Module):
             # set the scores that exceed the length of each sentence to -inf
             head_mask = head_mask.byte()
             s_heads.masked_fill_(~head_mask.unsqueeze(1), float('-inf'))
-
 
         return s_heads, s_labels
 

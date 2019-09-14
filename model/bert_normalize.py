@@ -7,20 +7,26 @@ from io_.info_print import printing
 from toolbox.deep_learning_toolbox import freeze_param
 from toolbox.report_tools import get_init_args_dir
 from model.bert_tools_from_core_code.modeling import BertForTokenClassification, BertConfig, BertForMaskedLM, BertMultiTask, BertConfig
-
+from model.bert_tools_from_core_code.tools import get_config_param_to_modify
 
 logger = logging.getLogger(__name__)
 
 
-def make_bert_multitask(pretrained_model_dir, tasks, num_labels_per_task, init_args_dir, mask_id):
+def make_bert_multitask(args, pretrained_model_dir, tasks, num_labels_per_task, init_args_dir, mask_id):
     assert num_labels_per_task is not None and isinstance(num_labels_per_task, dict), \
         "ERROR : num_labels_per_task {} should be a dictionary".format(num_labels_per_task)
     assert isinstance(tasks, list) and len(tasks) >= 1, "ERROR tasks {} should be a list of len >=1".format(tasks)
+    # we get from provided argument the one that require BertConfig modification
+    config_to_update = get_config_param_to_modify(args)
 
     if pretrained_model_dir is not None and init_args_dir is None:
-        model = BertMultiTask.from_pretrained(pretrained_model_dir, tasks=tasks,
+
+        model = BertMultiTask.from_pretrained(pretrained_model_dir,
+                                              tasks=tasks,
                                               mask_id=mask_id,
-                                              num_labels_per_task=num_labels_per_task,mapping_keys_state_dic={"cls": "head.mlm"})
+                                              config_to_update=config_to_update,
+                                              num_labels_per_task=num_labels_per_task,
+                                              mapping_keys_state_dic={"cls": "head.mlm"})
     elif init_args_dir is not None:
         init_args_dir = get_init_args_dir(init_args_dir)
 
@@ -43,6 +49,8 @@ def make_bert_multitask(pretrained_model_dir, tasks, num_labels_per_task, init_a
 
         config_file = get_config_bert(args_checkpoint["hyperparameters"]["bert_model"])
         config = BertConfig(config_file)
+
+        config.update_config(config_to_update)
 
         model = BertMultiTask(config=config, tasks=[task for tasks in args_checkpoint["hyperparameters"]["tasks"] for task in tasks],
                               num_labels_per_task=args_checkpoint["info_checkpoint"]["num_labels_per_task"], mask_id=mask_id)

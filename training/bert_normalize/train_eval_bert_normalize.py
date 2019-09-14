@@ -56,6 +56,8 @@ def train_eval_bert_normalize(args, verbose=1):
         assert isinstance(args.batch_update_train//args.batch_size, int), "ERROR batch_size {} should be a multiple of 2 ".format(args.batch_update_train)
         printing("INFO iterator : updating with {} equivalent batch size : forward pass is {} batch size",
                  var=[args.batch_update_train, args.batch_size], verbose=verbose, verbose_level=1)
+    else:
+        args.batch_update_train = args.batch_size
 
     run(args=args, voc_tokenizer=voc_tokenizer, vocab_size=vocab_size, model_dir=model_dir,
         report_full_path_shared=args.overall_report_dir,

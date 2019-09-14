@@ -42,6 +42,7 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                       masking_strategy_ls=None, init_args_dir_ls=None, norm_2_noise_training_ls=None, aggregating_bert_layer_mode_ls=None,bert_module_ls=None,
                       layer_wise_attention_ls=None,tokenize_and_bpe_ls=None, append_n_mask_ls=None, multitask_ls=None, memory_efficient_iterator_ls=None,
                       demo_ls=None, saving_every_n_epoch_ls=None, name_inflation_ls = None, n_iter_max_train_ls=None, low_memory_foot_print_batch_mode_ls=None,
+                      graph_head_hidden_size_mlp_arc_ls=None, graph_head_hidden_size_mlp_rel_ls=None,
                       py_script="train_evaluate_run"):
     """
 
@@ -113,6 +114,8 @@ def script_generation(grid_label, init_param, warmup, dir_grid, environment, dir
                                                                             demo_ls=demo_ls, saving_every_n_epoch_ls=saving_every_n_epoch_ls,
                                                                             name_inflation_ls=name_inflation_ls, n_iter_max_train_ls=n_iter_max_train_ls,
                                                                             low_memory_foot_print_batch_mode_ls=low_memory_foot_print_batch_mode_ls,
+                                                                            graph_head_hidden_size_mlp_rel_ls=graph_head_hidden_size_mlp_rel_ls,
+                                                                            graph_head_hidden_size_mlp_arc_ls=graph_head_hidden_size_mlp_arc_ls,
                                                                             )
     if gpu_mode == "random":
         if gpus_ls is None:

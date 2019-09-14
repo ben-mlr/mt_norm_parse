@@ -183,7 +183,7 @@ def args_train(mode="command_line", script="train_evaluate_run"):
         parser.add_argument('--heuristic_ls', nargs='+', help='<Required> Set flag', default=None)
         parser.add_argument('--gold_error_detection', type=int, default=0)
         parser.add_argument('--dropout_input_bpe', type=float, default=0.)
-        parser.add_argument('--dropout_bert', type=float, default=0.)
+        parser.add_argument('--dropout_bert', type=float, default=None)
 
         parser.add_argument('--masking_strategy', nargs='+', help='<Required> Set flag', default=None)
         parser.add_argument('--portion_mask', type=float, default=None)
@@ -207,10 +207,11 @@ def args_train(mode="command_line", script="train_evaluate_run"):
         parser.add_argument("--demo_run", default=0, type=int, help="means running for 5 iteration max ")
 
         parser.add_argument("--case", default=None, type=str, help="means running for 5 iteration max ")
-
         parser.add_argument("--low", default=None, type=str, help="means running for 5 iteration max ")
-
         parser.add_argument("--low_memory_foot_print_batch_mode", default=0, type=int, help="means running for 5 iteration max ")
+
+        parser.add_argument("--graph_head_hidden_size_mlp_rel", default=None, type=int,help="means running for 5 iteration max ")
+        parser.add_argument("--graph_head_hidden_size_mlp_arc", default=None, type=int, help="means running for 5 iteration max ")
 
         args = parser.parse_args()
 

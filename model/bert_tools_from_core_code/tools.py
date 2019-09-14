@@ -1,6 +1,6 @@
 
 #from env.importing import nn, torch, np
-from env.importing import pdb
+from env.importing import pdb, OrderedDict
 import json
 import logging
 import os
@@ -35,6 +35,23 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 from training.args_tool import args_train, parse_argument_dictionary
 
+
+def get_config_param_to_modify(args):
+    """ for now only internal bert dropout can be modifed a such"""
+    config_to_update = OrderedDict()
+    if args.dropout_bert is not None:
+        assert args.dropout_bert >= 0, "ERROR {}".format(args.dropout_bert)
+        config_to_update["attention_probs_dropout_prob"] = args.dropout_bert
+        config_to_update["hidden_dropout_prob"] = args.dropout_bert
+    if args.dropout_classifier is not None:
+        assert args.dropout_classifier >= 0
+        config_to_update["dropout_classifier"] = args.dropout_classifier
+    if args.graph_head_hidden_size_mlp_rel is not None:
+        config_to_update["graph_head_hidden_size_mlp_rel"] = args.graph_head_hidden_size_mlp_rel
+    if args.graph_head_hidden_size_mlp_rel is not None:
+        config_to_update["graph_head_hidden_size_mlp_arc"] = args.graph_head_hidden_size_mlp_arc
+
+    return config_to_update
 
 def get_loss_multitask(loss_dict, ponderation):
 
