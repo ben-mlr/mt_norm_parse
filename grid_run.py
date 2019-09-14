@@ -346,7 +346,7 @@ if __name__ == "__main__":
           FINE_TUNE_BERT = True
 
           if FINE_TUNE_BERT:
-              epochs = 10
+              epochs = 100
               lang_iter = ["fr_sequoia"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
               task_to_grid = [["parsing"]]
                              # ["n_masks_mwe", "mwe_detection", "mwe_prediction", "pos"], 
@@ -365,6 +365,9 @@ if __name__ == "__main__":
                                                   demo_ls=[0],
                                                   graph_head_hidden_size_mlp_arc_ls=[10],
                                                   graph_head_hidden_size_mlp_rel_ls=[10],
+                                                  dropout_bert_ls=[0.1],
+                                                  dropout_classifier_ls=[0.2],
+                                                  dropout_input_bpe_ls=[0.4],
                                                   #init_args_dir_ls=["'"+os.path.join(CHECKPOINT_BERT_DIR, "9705484-B-7de0e-9705484-B-model_2/9705484-B-7de0e-9705484-B-model_2-{}-best-args.json".format(epoch))+"'"  for epoch in [0, 2, 3, 4, 5, 6, 7, 9]],#["'"+os.path.join(CHECKPOINT_BERT_DIR,"checkpoints", "bert", "9372042-B-6ccaa-9372042-B-model_0/9372042-B-6ccaa-9372042-B-model_0-epbest-checkpoint.pt")+"'"],
                                                   #init_args_dir_ls=["5107b-B-6ee9d-5107b-B-model_0-0_ep_best-1_ep-2_ep"],
                                                   #init_args_dir_ls=["9738294-B-946b3-9738294-B-model_0-0_ep_best",
@@ -386,11 +389,10 @@ if __name__ == "__main__":
                                                   #tasks_ls=[[["pos"]], [["parsing"]], [["parsing", "pos"]]],
                                                   tasks_ls=tasks_ls,
                                                   fine_tuning_strategy_ls=["standart"],
-                                                  dropout_classifier_ls=[0.0],
                                                   multitask_ls=[1],
-                                                  dropout_input_bpe_ls=[0.0], layer_wise_attention_ls=[0],
+                                                layer_wise_attention_ls=[0],
                                                   aggregating_bert_layer_mode_ls=["last"],
-                                                  dropout_bert_ls=[0.1], tokenize_and_bpe_ls=[0],
+                                                  tokenize_and_bpe_ls=[0],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
                                                   freeze_parameters_ls=[0],
                                                   freeze_layer_prefix_ls_ls=[None],

@@ -185,6 +185,8 @@ def get_hyperparameters_dict(args, case, random_iterator_train, seed, verbose):
                                    ("multi_task_loss_ponderation", args.multi_task_loss_ponderation),
                                    ("multitask", args.multitask),
                                    ("low_memory_foot_print_batch_mode", args.low_memory_foot_print_batch_mode),
+                                   ("graph_head_hidden_size_mlp_rel", args.graph_head_hidden_size_mlp_rel),
+                                   ("graph_head_hidden_size_mlp_arc", args.graph_head_hidden_size_mlp_arc),
                                    ])
     printing("HYPERPARAMETERS {} ", var=[hyperparameters], verbose=verbose, verbose_level=1)
     return hyperparameters

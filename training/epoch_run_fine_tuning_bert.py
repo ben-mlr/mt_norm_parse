@@ -299,7 +299,7 @@ def epoch_run(batchIter, tokenizer,
                                                                                       vocab_len=len(tokenizer.vocab)-2,
                                                                                       mask_token_index=mask_token_index,
                                                                                       sep_token_index=sep_token_index,
-                                                                                      cls_token_index=cls_token_index)
+                                                                                      cls_token_index=cls_token_index, dropout_input_bpe=dropout_input_bpe)
                 # NB : token_type_ids not used in MultiTask (no needed, just use 0 everywhere )
                 dimension_check_label(label_per_task, input_tokens_tensor)
                 time_multitask_preprocess_1 += time_multitask_preprocess_start-time.time()

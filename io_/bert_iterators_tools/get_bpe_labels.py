@@ -127,7 +127,7 @@ def get_bpe_label_word_level_task(labels, batch, input_tokens_tensor, input_alig
 
 
 def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_raw, use_gpu, tasks_parameters, vocab_len=None, masking_strategy=0,
-                      mask_token_index=None, sep_token_index=None, cls_token_index=None):
+                      mask_token_index=None, sep_token_index=None, cls_token_index=None, dropout_input_bpe=None):
     """
     returns input, input masks and output for each tasks
     (in regard to the task type , so far only word level is supported)
@@ -175,12 +175,28 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
             #input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = input_tokens_tensor
 
             # if "mlm" in
-
             if not tasks_parameters[task].get("mask_input", False):
                 input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = eval("batch.{}".format(tasks_parameters[task]["input"])).clone() if task not in ["parsing", "pos"] else input_tokens_tensor.clone()
-                input_mask_per_task[tasks_parameters[task]["input"]] = (input_tokens_tensor_per_task[tasks_parameters[task]["input"]] != PAD_ID_BERT)
+                # we dropout input for regulirization purpose here if needed
+                if dropout_input_bpe is not None and dropout_input_bpe>0:
+                    pdb.set_trace()
+                    input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = dropout_mlm(
+                        input_tokens_tensor_per_task[tasks_parameters[task]["input"]],
+                        mask_token_index=mask_token_index,
+                        sep_token_index=sep_token_index,
+                        cls_token_index=cls_token_index,
+                        pad_index=PAD_ID_BERT,
+                        use_gpu=use_gpu,
+                        dropout_mask=dropout_input_bpe,
+                        dropout_random_bpe_of_masked=0.5, vocab_len=vocab_len)
+
+                input_mask_per_task[tasks_parameters[task]["input"]] = (
+                        input_tokens_tensor_per_task[tasks_parameters[task]["input"]] != PAD_ID_BERT)
+                pdb.set_trace()
             else:
+                # mask_input is for Mask Languag Model task  : which means Masking + replacing by random wordpiece
                 assert masking_strategy is None
+                #NB : dropout_input_bpe is ignored in MLM : set to 15% as Bert Paper
                 assert tasks_parameters[task].get("original") is not None, \
                     "ERROR 'original' field is needed to get raw sequence before preprocssing for task {} ".format(task)
                 input_tokens_tensor_per_task[tasks_parameters[task]["input"]] = dropout_mlm(eval("batch.{}".format(tasks_parameters[task]["original"])).clone(),
