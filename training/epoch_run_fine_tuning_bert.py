@@ -338,7 +338,8 @@ def epoch_run(batchIter, tokenizer,
                 # number of repetition in output_alignement_with_raw
                 # or number of bpe tokens related to each bpe
 
-            if batch_i == n_iter_max:
+            # if we reach n_iter max we break (when low_memory_foot_print_batch_mode : we need int(args.batch_update_train//args.batch_size) more iterations (we cound backward update)
+            if (batch_i == n_iter_max and not args.low_memory_foot_print_batch_mode) or (batch_i * int(args.batch_update_train//args.batch_size) == n_iter_max and args.low_memory_foot_print_batch_mode):
                 printing("BREAKING ITERATION because n_iter_max {} reached (mode is {} memory_efficient_iterator {}, "
                          "shard {} ending ",
                          var=[n_iter_max, mode, memory_efficient_iterator, n_shard],
@@ -621,16 +622,16 @@ def epoch_run(batchIter, tokenizer,
                 time_multitask_preprocess_2 += time.time()-time_multitask_preprocess_2_start
                 time_multitask_train_start = time.time()
                 # FORWARD PASS:
-                print("input_tokens_tensor_per_task", input_tokens_tensor_per_task)
-                print("label_per_task", label_per_task)
+                #print("input_tokens_tensor_per_task", input_tokens_tensor_per_task)
+                #print("label_per_task", label_per_task)
                 logits_dic, loss_dic, _ = model(input_tokens_tensor_per_task,
                                                 token_type_ids=None,
                                                 labels=label_per_task, head_masks=head_masks, attention_mask=input_mask_per_task)
-                print("loss_dic", loss_dic)
+                #print("loss_dic", loss_dic)
                 # loss_dic_epoch is the sum over all the epoch (mean computed for reporting)
                 loss_dic_epoch = update_loss_dic_average(loss_dic, loss_dic_epoch)
                 loss_dic = loss_mean(loss_dic, n_tokens_counter_current_per_task)
-                print("loss_dic", loss_dic)
+                #print("loss_dic", loss_dic)
                 # NB : could use
                 predictions_topk_dic = get_prediction(logits_dic, topk=topk)
                 time_multitask_train += time_multitask_train_start - time.time()

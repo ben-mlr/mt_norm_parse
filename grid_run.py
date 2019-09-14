@@ -343,7 +343,7 @@ if __name__ == "__main__":
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
                                                   gpus_ls=gpu_ls, gpu_mode="random",
                                                   write_to_dir=RUN_SCRIPTS_DIR, description_comment=description_comment)
-          FINE_TUNE_BERT = True
+          FINE_TUNE_BERT = False
 
           if FINE_TUNE_BERT:
               epochs = 2
@@ -438,9 +438,9 @@ if __name__ == "__main__":
                                                                                                ("parsing-types", 1), ("parsing-heads", 1)])],  #OrderedDict([("pos", 0.2), ("parsing_types", 1), ("parsing_heads", 1)])],
                                                   scale_ls=[1])
                                 # arguments that are specific to script generation
-          PRETRAINING = False
+          PRETRAINING = True
           if PRETRAINING:
-              epochs = 1
+              epochs = 10
               noise_level = "noisy"
               domain = "code_mixed"
               domain_canonical = "wiki_fr"
@@ -457,11 +457,11 @@ if __name__ == "__main__":
                                                   gpu_mode="random",
                                                   bert_module_ls=None,
                                                   append_n_mask_ls=[0],
-                                                  demo_ls=[1],
+                                                  demo_ls=[0],
                                                   low_memory_foot_print_batch_mode_ls=[1],
                                                   saving_every_n_epoch_ls=[1],
                                                   name_inflation_ls=[1],
-                                                  n_iter_max_train_ls=[2000],
+                                                  n_iter_max_train_ls=[1000],
                                                   # norm_2_noise_training_ls=[0., 1.],
                                                   lr_ls=[0.000001],
                                                   # lr_ls=[OrderedDict([("bert", 1e-5), ("classifier_task_2", 1e-4), ("classifier_task_1", 1e-5)]),
