@@ -6,6 +6,7 @@ from env.project_variables import AVAILABLE_BERT_FINE_TUNING_STRATEGY
 
 def apply_fine_tuning_strategy(fine_tuning_strategy, model, epoch, lr_init, betas=None,verbose=1):
     assert fine_tuning_strategy in AVAILABLE_BERT_FINE_TUNING_STRATEGY, "{} not in {}".format(fine_tuning_strategy, AVAILABLE_BERT_FINE_TUNING_STRATEGY)
+
     if fine_tuning_strategy in ["standart", "bert_out_first", "only_first_and_last"]:
         assert isinstance(lr_init, float), "{} lr : type {}".format(lr_init, type(lr_init))
         optimizer = [dptx.get_optimizer(model.parameters(), lr=lr_init, betas=betas)]
@@ -39,6 +40,7 @@ def apply_fine_tuning_strategy(fine_tuning_strategy, model, epoch, lr_init, beta
             model = dptx.freeze_param(model, freeze_layer_prefix_ls, verbose=verbose)
         printing("TRAINING : fine tuning strategy {} : {} freezing bert for epoch {}"\
                  .format(fine_tuning_strategy, info_add, epoch), verbose_level=1, verbose=verbose)
+
     elif fine_tuning_strategy == "only_first_and_last":
         #optimizer = [torch.optim.Adam(model.parameters(), lr=lr_init, betas=betas, eps=1e-9)]
         model = dptx.freeze_param(model, freeze_layer_prefix_ls=None,
