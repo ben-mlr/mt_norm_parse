@@ -30,7 +30,7 @@ def make_bert_multitask(args, pretrained_model_dir, tasks, num_labels_per_task, 
     elif init_args_dir is not None:
         init_args_dir = get_init_args_dir(init_args_dir)
 
-        args_checkpoint = json.load(open(init_args_dir,"r"))
+        args_checkpoint = json.load(open(init_args_dir, "r"))
         assert "checkpoint_dir" in args_checkpoint, "ERROR checkpoint_dir not in {} ".format(args_checkpoint)
         checkpoint_dir = args_checkpoint["checkpoint_dir"]
         assert os.path.isfile(checkpoint_dir), "ERROR checkpoint {} not found ".format(checkpoint_dir)
@@ -44,7 +44,13 @@ def make_bert_multitask(args, pretrained_model_dir, tasks, num_labels_per_task, 
                 archive.extractall(tempdir)
             serialization_dir = tempdir
             config_file = os.path.join(serialization_dir, config_file_name)
-            assert os.path.isfile(config_file), "ERROR {} not a file ".format(config_file)
+            try:
+                assert os.path.isfile(config_file), "ERROR {} not a file , extracted from {} : dir includes {} ".format(config_file, model_dir, [x[0] for x in os.walk(serialization_dir)])
+            except Exception as e:
+                print(e)
+                config_file = os.path.join(serialization_dir,"bert-base-multilingual-cased", config_file_name)
+                assert os.path.isfile(config_file), "ERROR {} not a file , extracted from {} : dir includes {} ".format(
+                    config_file, model_dir, [x[0] for x in os.walk(serialization_dir)])
             return config_file
 
         config_file = get_config_bert(args_checkpoint["hyperparameters"]["bert_model"])

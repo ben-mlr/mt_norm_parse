@@ -204,7 +204,7 @@ def get_label_per_bpe(tasks, batch, input_tokens_tensor, input_alignement_with_r
                                                                                             sep_token_index=sep_token_index,
                                                                                             cls_token_index=cls_token_index,
                                                                                             pad_index=PAD_ID_BERT,
-                                                                                            use_gpu=use_gpu,
+                                                                                            use_gpu=False,
                                                                                             dropout_mask=0.15,
                                                                                             dropout_random_bpe_of_masked=0.5,
                                                                                             vocab_len=vocab_len)

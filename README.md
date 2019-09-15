@@ -1,6 +1,6 @@
 # Multitask learning 
 
-Multitask learning framework for sequence prediction and sequence labelling 
+Multitask learning framework for sequence prediction, sequence labelling and graph prediction
 
 ## Environment setup 
 

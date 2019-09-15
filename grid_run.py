@@ -343,16 +343,16 @@ if __name__ == "__main__":
                                                   epochs=epochs if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
                                                   gpus_ls=gpu_ls, gpu_mode="random",
                                                   write_to_dir=RUN_SCRIPTS_DIR, description_comment=description_comment)
-          FINE_TUNE_BERT = True
+          FINE_TUNE_BERT = False
 
           if FINE_TUNE_BERT:
-              epochs = 100
-              lang_iter = ["fr_sequoia"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
-              task_to_grid = [["parsing"]]
+              epochs = 20
+              lang_iter = ["fr_gsd"]#["fr_sequoia", "tr_imst"]#["en_lines", "en_ewt"]#, "fr_sequoia", "zh_gsd"]
+              task_to_grid = [["pos"]]
                              # ["n_masks_mwe", "mwe_detection", "mwe_prediction", "pos"], 
                               #["parsing","n_masks_mwe", "mwe_detection", "mwe_prediction", "pos"]]#, ["parsing", "pos"]] 
               #task_to_grid = [["normalize"]]
-              demo_data = True
+              demo_data = False
               tasks_ls = [[task_simul] for task_simul in task_to_grid for _ in lang_iter]
               printing("GRID : running {} lang on {} tasks combinaiton ".format(lang_iter, task_to_grid), verbose=1, verbose_level=1)
               n_tasks = len(task_to_grid)
@@ -361,19 +361,19 @@ if __name__ == "__main__":
                                                   init_param=None,
                                                   grid_label=LABEL_GRID,
                                                   batch_size_ls=[4],
-                                                  low_memory_foot_print_batch_mode_ls=[0,1],
+                                                  low_memory_foot_print_batch_mode_ls=[0],
                                                   demo_ls=[0],
-                                                  graph_head_hidden_size_mlp_arc_ls=[10],
-                                                  graph_head_hidden_size_mlp_rel_ls=[10],
-                                                  dropout_bert_ls=[0.1],
-                                                  dropout_classifier_ls=[0.2],
-                                                  dropout_input_bpe_ls=[0.4],
+                                                  #graph_head_hidden_size_mlp_arc_ls=[200],
+                                                  #graph_head_hidden_size_mlp_rel_ls=[400],
+                                                  dropout_bert_ls=[0.15],
+                                                  dropout_classifier_ls=[0.15],
+                                                  dropout_input_bpe_ls=[0.0],
                                                   #init_args_dir_ls=["'"+os.path.join(CHECKPOINT_BERT_DIR, "9705484-B-7de0e-9705484-B-model_2/9705484-B-7de0e-9705484-B-model_2-{}-best-args.json".format(epoch))+"'"  for epoch in [0, 2, 3, 4, 5, 6, 7, 9]],#["'"+os.path.join(CHECKPOINT_BERT_DIR,"checkpoints", "bert", "9372042-B-6ccaa-9372042-B-model_0/9372042-B-6ccaa-9372042-B-model_0-epbest-checkpoint.pt")+"'"],
                                                   #init_args_dir_ls=["5107b-B-6ee9d-5107b-B-model_0-0_ep_best-1_ep-2_ep"],
-                                                  #init_args_dir_ls=["9738294-B-946b3-9738294-B-model_0-0_ep_best",
-                                                  #                  "9738294-B-946b3-9738294-B-model_0-10_ep_best",
-                                                  #                  "9738294-B-946b3-9738294-B-model_0-21_ep_best",
-                                                  #                  "9738294-B-946b3-9738294-B-model_0-36_ep_best",
+                                                  init_args_dir_ls=["9754696-B-f3fa2-9754696-B-model_0-0_ep_best",
+                                                                    "9754696-B-f3fa2-9754696-B-model_0-4_ep_best",
+                                                                    "9754696-B-f3fa2-9754696-B-model_0-8_ep_best",
+                                                                    "9754696-B-f3fa2-9754696-B-model_0-9_ep_best"],
                                                   #                  "9738294-B-946b3-9738294-B-model_0-45_ep"],
                                                   # ["'"+os.path.join(CHECKPOINT_BERT_DIR,"checkpoints", "bert", "9372042-B-6ccaa-9372042-B-model_0/9372042-B-6ccaa-9372042-B-model_0-epbest-checkpoint.pt")+"'"],
                                                   gpu_mode="random",
@@ -381,7 +381,7 @@ if __name__ == "__main__":
                                                   #norm_2_noise_training_ls=[0., 1.],
                                                   ##lr_ls=[0.0001],
                                                   fine_tuning_strategy_ls=["flexible_lr"],
-                                                  lr_ls=[OrderedDict([("bert", 1e-5), ("head", 1e-4)])],
+                                                  lr_ls=[OrderedDict([("bert", 5e-5), ("head", 1e-3)])],# OrderedDict([("bert", 5e-5), ("head", 5e-5)])],
                                                   #masking_strategy_ls=[["mlm", "0"]],# ["mlm", "1"], ["norm_mask_variable", "0"]],
                                                   masking_strategy_ls=[None],  #[["mlm", "0"], None],#[["mlm_need_norm", "0.5"], ["mlm", "0"],],# ["norm_mask", "0.5"],["norm_mask", "0.25"], ["norm_mask_variable", "0"]],#, ["mlm", "1"], ["mlm", "0"]],
                                                   #                     ["normed", "0.75"],["normed", "1."]],#[None,,
@@ -390,7 +390,7 @@ if __name__ == "__main__":
                                                   #tasks_ls=[[["pos"]], [["parsing"]], [["parsing", "pos"]]],
                                                   tasks_ls=tasks_ls,
                                                   multitask_ls=[1],
-                                                layer_wise_attention_ls=[0],
+                                                  layer_wise_attention_ls=[0],
                                                   aggregating_bert_layer_mode_ls=["last"],
                                                   tokenize_and_bpe_ls=[0],
                                                   overall_report_dir=dir_grid, overall_label=LABEL_GRID,
@@ -398,25 +398,25 @@ if __name__ == "__main__":
                                                   freeze_layer_prefix_ls_ls=[None],
                                                   #train_path=[[EN_LINES_EWT_TRAIN], [LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED, EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV], [LIU_DEV, EWT_DEV]],
                                                   #[LIU_TRAIN_OWOPUTI],
-                                                  #train_path=[[ARABIZI_TRAIN_POS]],#TWEETS_GANESH_PERM_400]], #  [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_NOISY],[LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_2_NOISY], [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_1000]],
-                                                  #dev_path=[[[ARABIZI_DEV_POS]]],
+                                                  train_path=[[ARABIZI_TRAIN_POS]],#TWEETS_GANESH_PERM_400]], #  [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_NOISY],[LEX_TRAIN_SPLIT_EN_LINES_TRAIN_500_2_NOISY], [LEX_TRAIN_SPLIT_EN_LINES_TRAIN_NOISY_1000]],
+                                                  dev_path=[[[ARABIZI_DEV_POS]]],
                                                   #train_path=[[LIU_OWOPUTI_TRAIN_LEX_TRAIN_FILTERED]], dev_path=[[LIU_DEV]],
                                                   #train_path=[[CODE_MIXED_RAW_TRAIN_SMALL]], dev_path=[[CODE_MIXED_RAW_CUT_DEV]],
                                                   #train_path=[[EWT_DEMO] for _ in range(n_tasks)], dev_path=[[EWT_DEMO] for _ in range(n_tasks)],
-                                                  train_path=[[get_dir_data("train", lang, demo=demo_data)] for _ in range(n_tasks) for lang in lang_iter],
-                                                  dev_path=[[[get_dir_data("dev", lang, demo=demo_data)]] for _ in range(n_tasks) for lang in lang_iter],
+                                                  #train_path=[[get_dir_data("train", lang, demo=demo_data)] for _ in range(n_tasks) for lang in lang_iter],
+                                                  #dev_path=[[[get_dir_data("dev", lang, demo=demo_data)]] for _ in range(n_tasks) for lang in lang_iter],
                                                   memory_efficient_iterator_ls=[0],
                                                   #train_path=[[EN_LINES_EWT_TRAIN]], dev_path=[[EWT_DEV]],
                                                   #train_path=[[AUGMENTED_LEX_DIC[n_sent]] for n_sent in [80, 100, 120, 150, 250, 350]],
                                                   #dev_path=[[LIU_DEV] for n_sent in [80, 100, 120,150,250,350]],
-                                                  #test_paths=[[[ARABIZI_TEST_POS], [ARABIZI_TRAIN_POS], [ARABIZI_DEV_POS]]],
+                                                  test_paths=[[[ARABIZI_TEST_POS], [ARABIZI_TRAIN_POS], [ARABIZI_DEV_POS]]],
                                                   #test_paths=[[[CODE_MIXED_RAW_CUT_TEST]]],
                                                   #test_paths=[[[LIU_DEV], [DEV], [TEST], [LEX_TEST], [LEX_DEV_SPLIT_2], [LEX_TRAIN]]],# for _ in [80, 100, 120,150,250,350]],
                                                   #test_paths=[[[LEX_TRAIN_SPLIT_2], [LEX_DEV_SPLIT_2], [LEX_TEST]]],# [[LEX_TRAIN_SPLIT_2], [LEX_DEV_SPLIT_2], [LEX_TEST]]],
                                                   #test_paths=[[[EWT_DEV], [EN_LINES_EWT_TRAIN], [EWT_TEST], [DEV], [TEST]], [[LEX_TEST, EWT_DEV], [LIU_DEV, EWT_TEST], [DEV,  DEV], [TEST, TEST]]],
                                                   #test_paths=[[[EWT_DEMO]] for _ in range(n_tasks)],
                                                   #test_paths=[[[get_dir_data("test", lang, demo=demo_data)], [get_dir_data("dev", lang, demo=demo_data)], [get_dir_data("train", lang, demo=demo_data)]] for _ in range(n_tasks) for lang in lang_iter],
-                                                  test_paths=[[[get_dir_data("test", lang, demo=demo_data)], [get_dir_data("dev", lang, demo=demo_data)], [get_dir_data("train", lang, demo=demo_data)]] for _ in range(n_tasks) for lang in lang_iter],  # [EWT_DEV], [EWT_TEST], [EN_LINES_EWT_TRAIN]]],
+                                                  #test_paths=[[[get_dir_data("test", lang, demo=demo_data)], [get_dir_data("dev", lang, demo=demo_data)], [get_dir_data("train", lang, demo=demo_data)]] for _ in range(n_tasks) for lang in lang_iter],  # [EWT_DEV], [EWT_TEST], [EN_LINES_EWT_TRAIN]]],
                                                   warmup=test_before_run, test_before_run=test_before_run,
                                                   dir_grid=dir_grid, environment=environment, dir_log=log,
                                                   epochs=epochs+1 if not (test_before_run or warmup) else WARMUP_N_EPOCHS,
@@ -442,9 +442,9 @@ if __name__ == "__main__":
                                                                                                ("parsing-types", 1), ("parsing-heads", 1)])],  #OrderedDict([("pos", 0.2), ("parsing_types", 1), ("parsing_heads", 1)])],
                                                   scale_ls=[1])
                                 # arguments that are specific to script generation
-          PRETRAINING = False
+          PRETRAINING = True
           if PRETRAINING:
-              epochs = 10
+              epochs = 20
               noise_level = "noisy"
               domain = "code_mixed"
               domain_canonical = "wiki_fr"
@@ -465,9 +465,9 @@ if __name__ == "__main__":
                                                   low_memory_foot_print_batch_mode_ls=[1],
                                                   saving_every_n_epoch_ls=[1],
                                                   name_inflation_ls=[1],
-                                                  n_iter_max_train_ls=[1000],
+                                                  n_iter_max_train_ls=[10000],
                                                   # norm_2_noise_training_ls=[0., 1.],
-                                                  lr_ls=[0.00001, 0.0001],
+                                                  lr_ls=[0.0001],
                                                   # lr_ls=[OrderedDict([("bert", 1e-5), ("classifier_task_2", 1e-4), ("classifier_task_1", 1e-5)]),
                                                      #       OrderedDict([("bert", 5e-6), ("classifier_task_2", 1e-4), ("classifier_task_1", 1e-5)]),
                                                      #       OrderedDict([("bert", 1e-5), ("classifier_task_2", 1e-3), ("classifier_task_1", 1e-5)])],

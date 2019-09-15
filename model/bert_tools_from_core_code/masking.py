@@ -29,6 +29,9 @@ def dropout_mlm(input_tokens_tensor, mask_token_index, sep_token_index, cls_toke
             permute[permute == mask_token_index] = mask_token_index + 10
             permute[permute == pad_index] = 53
 
+            if use_gpu:
+                permute = permute.cuda()
+
             input_tokens_tensor[mask_dropout == 0] = permute
 
     return input_tokens_tensor
