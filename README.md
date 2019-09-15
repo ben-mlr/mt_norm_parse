@@ -79,11 +79,3 @@ In ./checkpoint/bert/model_full_name folder :
 Model dictionary, predictions, checkpoints, argument and performance report will be written in it 
 
 
-### doc TODO 
-- handle report_template 
-- add list of all possible arguments with comments on their default and their use 
-- test the full git pull, conda create , and curl 
-- test a train and evaluation 
-
-
-
